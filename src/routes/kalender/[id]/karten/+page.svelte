@@ -3,6 +3,7 @@
 	import { FormState } from '#lib/forms.svelte.ts';
 	import { t } from '#lib/i18n/index.ts';
 	import Crumbs from '#lib/components/Crumbs.svelte';
+	import Icon from '#lib/components/Icon.svelte';
 	import ShareButton from '#lib/components/ShareButton.svelte';
 	import Title from '#lib/components/Title.svelte';
 
@@ -95,9 +96,9 @@
 			</dl>
 			<p><strong>{t.tickets.counts.takings}: {data.counts.takings}</strong></p>
 			{#if data.counts.feeCents}<p class="hint">{t.tickets.counts.fees(data.counts.fees)}</p>{/if}
-			<div class="ui-actions">
-				<a href="/einlass/{encodeURIComponent(data.concert.id)}">{t.tickets.door}</a>
-				{#if data.orders.length}<a href="{eventUrl}/karten/gaeste.csv" download>{t.tickets.orders.csv}</a>{/if}
+			<div class="counts-actions">
+				{#if !data.concert.past}<a class="btn" href="/einlass/{encodeURIComponent(data.concert.id)}"><Icon name="check" size={18} />{t.tickets.door}</a>{/if}
+				{#if data.orders.length}<a class="btn secondary" href="{eventUrl}/karten/gaeste.csv" download><Icon name="download" size={18} />{t.tickets.orders.csv}</a>{/if}
 			</div>
 		</section>
 
@@ -355,9 +356,21 @@
 		overflow-wrap: anywhere;
 	}
 
+	.counts-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-2);
+		margin-top: var(--space-3);
+	}
+
 	@media (max-width: 960px) {
 		.layout {
 			grid-template-columns: minmax(0, 1fr);
+		}
+
+		/* One column: how it stands and the door first, the setup below. */
+		.side {
+			order: -1;
 		}
 	}
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { t } from '#lib/i18n/index.ts';
 	import Crumbs from '#lib/components/Crumbs.svelte';
 	import Icon from '#lib/components/Icon.svelte';
@@ -93,6 +93,7 @@
 	let last = { code: '', at: 0 };
 	async function startScan() {
 		try {
+			// Without https (or on an old browser) there is no mediaDevices at all.
 			stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
 		} catch {
 			noCamera = true;
@@ -100,9 +101,11 @@
 		}
 		scanning = true;
 		noCamera = false;
-		await Promise.resolve();
-		video!.srcObject = stream;
-		await video!.play().catch(() => {});
+		// The <video> only exists once Svelte has drawn the scanning state.
+		await tick();
+		if (!video) return stopScan();
+		video.srcObject = stream;
+		await video.play().catch(() => {});
 		const read = await codeReader();
 		const loop = async () => {
 			if (!scanning || !video) return;
@@ -157,49 +160,45 @@
 	<p class="counter" aria-live="polite">{d.counter(inside, tickets.length)}</p>
 </header>
 
-<div class="status">
-	<span class="muted">{loadedAt ? d.loaded(tickets.length, time(loadedAt)) : d.noList}</span>
-	{#if pending.length}<span class="pending">{d.pending(pending.length)}</span>{:else if loadedAt && !failed}<span class="ok"><Icon name="check" size={14} />{d.synced}</span>{/if}
-	<button class="btn small secondary" onclick={sync} disabled={syncing}>{loadedAt ? d.reload : d.load}</button>
-</div>
-{#if failed}<p class="msg info">{loadedAt ? d.offline : d.loadFailed}</p>{/if}
-
-<!-- The verdict, large enough to read at arm's length: green to let in, red to stop. -->
-{#if result}
-	<div class="verdict" class:yes={result.ok} class:no={!result.ok} role="status" aria-live="assertive">
-		{#if result.ok}
-			<strong>{d.welcome}</strong>
-			<span>{result.ticket.seat || t.tickets.ticket.freeSeating} · {result.ticket.type}</span>
-			<span>{result.ticket.name}</span>
-		{:else if result.reason === 'used'}
-			<strong>{d.used(time(result.ticket.checkedInAt!))}</strong>
-			<span>{result.ticket.name}</span>
-		{:else}
-			<strong>{d.unknown}</strong>
-		{/if}
-	</div>
-{/if}
-
+<!-- First on the phone: the camera, and right under it what it read. -->
 <section class="scan">
 	{#if scanning}
 		<!-- svelte-ignore a11y_media_has_caption -->
-		<video bind:this={video} playsinline muted></video>
-		<button class="btn ghost" onclick={stopScan}><Icon name="x" size={18} />{d.stop}</button>
+		<video bind:this={video} autoplay playsinline muted></video>
 	{:else}
-		<button class="btn big" onclick={startScan} disabled={!tickets.length}><Icon name="eye" size={20} />{d.scan}</button>
+		<button class="btn big" onclick={startScan} disabled={!loadedAt}><Icon name="eye" size={20} />{d.scan}</button>
 	{/if}
-	{#if noCamera}<p class="msg info">{d.noCamera}</p>{/if}
 
+	<!-- The verdict, large enough to read at arm's length: green to let in, red to stop. -->
+	{#if result}
+		<div class="verdict" class:yes={result.ok} class:no={!result.ok} role="status" aria-live="assertive">
+			{#if result.ok}
+				<strong>{d.welcome}</strong>
+				<span>{result.ticket.seat || t.tickets.ticket.freeSeating} · {result.ticket.type}</span>
+				<span>{result.ticket.name}</span>
+			{:else if result.reason === 'used'}
+				<strong>{d.used(time(result.ticket.checkedInAt!))}</strong>
+				<span>{result.ticket.name}</span>
+			{:else}
+				<strong>{d.unknown}</strong>
+			{/if}
+		</div>
+	{/if}
+
+	{#if scanning}<button class="btn secondary" onclick={stopScan}><Icon name="x" size={18} />{d.stop}</button>{/if}
+	{#if noCamera}<p class="msg info">{d.noCamera}</p>{/if}
+	{#if !loadedAt && !syncing}<p class="msg info">{failed ? d.loadFailed : d.noList}</p>{/if}
+</section>
+
+<section class="search">
 	<form class="manual" onsubmit={submitCode}>
 		<label class="field">
 			<span>{d.code}</span>
 			<input bind:value={code} autocomplete="off" autocapitalize="characters" spellcheck="false" />
 		</label>
-		<button class="btn secondary" disabled={!tickets.length}>{d.check}</button>
+		<button class="btn secondary" disabled={!loadedAt}>{d.check}</button>
 	</form>
-</section>
 
-<section class="search">
 	<label class="field">
 		<span>{d.search}</span>
 		<input bind:value={query} type="search" autocomplete="off" />
@@ -223,6 +222,14 @@
 	{/if}
 </section>
 
+<!-- Housekeeping last: where the list stands, and loading it again. -->
+<div class="status">
+	<span class="muted">{loadedAt ? d.loaded(tickets.length, time(loadedAt)) : d.noList}</span>
+	{#if pending.length}<span class="pending">{d.pending(pending.length)}</span>{:else if loadedAt && !failed}<span class="ok"><Icon name="check" size={14} />{d.synced}</span>{/if}
+	<button class="btn small secondary" onclick={sync} disabled={syncing}>{loadedAt ? d.reload : d.load}</button>
+</div>
+{#if failed && loadedAt}<p class="msg info">{d.offline}</p>{/if}
+
 <style>
 	.head {
 		display: grid;
@@ -244,7 +251,8 @@
 		flex-wrap: wrap;
 		align-items: center;
 		gap: var(--space-2) var(--space-4);
-		margin-bottom: var(--space-4);
+		padding-top: var(--space-4);
+		border-top: 1px solid var(--hairline);
 		font-size: var(--text-sm);
 	}
 
@@ -268,7 +276,6 @@
 		--tone: var(--ok);
 		display: grid;
 		gap: var(--space-1);
-		margin-bottom: var(--space-4);
 		padding: var(--space-5);
 		border-radius: var(--radius-l);
 		background: color-mix(in oklab, var(--tone) 22%, var(--surface));
@@ -294,7 +301,9 @@
 
 	video {
 		width: 100%;
-		max-height: 50vh;
+		aspect-ratio: 4 / 3;
+		/* Short enough that the verdict below stays on screen. */
+		max-height: 40vh;
 		border-radius: var(--radius-l);
 		background: #000;
 		object-fit: cover;

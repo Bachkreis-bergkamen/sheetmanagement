@@ -294,6 +294,83 @@
 	</section>
 {/if}
 
+{#if data.kind === 'event' && (data.tickets?.doorUrl || data.tickets?.manageUrl)}
+	<!-- For those who run the sale and the door, in either view: on the evening it's the first thing they need. -->
+	<section class="block">
+		<h2 class="ui-label">{t.tickets.title}</h2>
+		<ul class="ui-list tools">
+			{#if data.tickets.doorUrl}
+				<li><a href={data.tickets.doorUrl}><Icon name="check" size={18} /><span>{t.tickets.door}<small>{t.tickets.doorHint}</small></span><Icon name="chevron" size={18} /></a></li>
+			{/if}
+			{#if data.tickets.manageUrl}
+				<li><a href={data.tickets.manageUrl}><Icon name="list" size={18} /><span>{t.tickets.manage}<small>{t.tickets.manageHint}</small></span><Icon name="chevron" size={18} /></a></li>
+			{/if}
+		</ul>
+	</section>
+{/if}
+
+{#if planner && data.program.published !== null}
+	<!-- In the public feed the orchestra's website reads (#197): a switch, saved at once. Planning, not what members come for. -->
+	<section class="block">
+		<h2 class="ui-label">{t.concert.publish.title}</h2>
+		<form class="publish" method="POST" action="?/publish" use:enhance={publishSave.submit()}>
+			<input type="hidden" name="published" value={data.program.published ? '' : 'on'} />
+			<span class="publish-state" class:on={data.program.published}>
+				<Icon name="globe" size={16} />
+				{data.program.published ? t.concert.publish.on : t.concert.publish.off}
+			</span>
+			<button class="btn small secondary" disabled={publishSave.busy}>{data.program.published ? t.concert.publish.withdraw : t.concert.publish.publish}</button>
+		</form>
+		{#if data.program.published && data.program.publicDetails}
+			{@const details = data.program.publicDetails}
+			<!-- What the website shows with it; folded, since most concerts need only the switch. -->
+			<details class="ui-disclosure public-details" open={!!(form?.publicDetailsError || form?.publicDetailsSaved)}>
+				<summary>{t.concert.publish.details}</summary>
+				<form method="POST" action="?/publicDetails" use:enhance={detailsSave.submit()}>
+					<p class="details-hint">{t.concert.publish.detailsHint}</p>
+					<div class="pair">
+						<label class="field">
+							<span>{t.concert.publish.textDe}</span>
+							<textarea name="textDe" lang="de" maxlength="2000">{details.text?.de ?? ''}</textarea>
+						</label>
+						<label class="field">
+							<span>{t.concert.publish.textEn}</span>
+							<textarea name="textEn" lang="en" maxlength="2000">{details.text?.en ?? ''}</textarea>
+						</label>
+					</div>
+					<label class="field">
+						<span>{t.concert.publish.ticketUrl}</span>
+						<input
+							type="url"
+							name="ticketUrl"
+							inputmode="url"
+							placeholder="https://"
+							value={details.ticketUrl ?? ''}
+							aria-invalid={form?.publicDetailsError ? 'true' : undefined}
+							aria-describedby={form?.publicDetailsError ? 'ticket-error' : undefined}
+						/>
+					</label>
+					{#if form?.publicDetailsError}<p class="msg error" id="ticket-error" role="alert">{form.publicDetailsError}</p>{/if}
+					<div class="pair">
+						<label class="field">
+							<span>{t.concert.publish.ticketNoteDe}</span>
+							<input name="ticketNoteDe" lang="de" maxlength="200" placeholder={t.concert.publish.ticketNotePlaceholder} value={details.ticketNote?.de ?? ''} />
+						</label>
+						<label class="field">
+							<span>{t.concert.publish.ticketNoteEn}</span>
+							<input name="ticketNoteEn" lang="en" maxlength="200" value={details.ticketNote?.en ?? ''} />
+						</label>
+					</div>
+					<div class="details-actions">
+						<button class="btn small" disabled={detailsSave.busy}>{t.concert.publish.save}</button>
+						{#if form?.publicDetailsSaved}<span class="saved-inline" role="status"><Icon name="check" size={16} />{t.concert.publish.saved}</span>{/if}
+					</div>
+				</form>
+			</details>
+		{/if}
+	</section>
+{/if}
+
 {#if overview}
 {#if data.kind === 'event' && data.attendance?.kind === 'rehearsal'}
 	<section class="block">
@@ -326,68 +403,8 @@
 				{#if data.program.canEdit && !several}
 					<a href={data.program.groups[0].editUrl}><Icon name="edit" size={16} />{t.editor.edit}</a>
 				{/if}
-				{#if data.tickets?.manageUrl}<a href={data.tickets.manageUrl}><Icon name="list" size={16} />{t.tickets.manage}</a>{/if}
-				{#if data.tickets?.doorUrl}<a href={data.tickets.doorUrl}><Icon name="check" size={16} />{t.tickets.door}</a>{/if}
 			</div>
 		</div>
-		{#if data.program.published !== null}
-			<!-- In the public feed the orchestra's website reads (#197): a switch, saved at once. -->
-			<form class="publish" method="POST" action="?/publish" use:enhance={publishSave.submit()}>
-				<input type="hidden" name="published" value={data.program.published ? '' : 'on'} />
-				<span class="publish-state" class:on={data.program.published}>
-					<Icon name="globe" size={16} />
-					{data.program.published ? t.concert.publish.on : t.concert.publish.off}
-				</span>
-				<button class="btn small secondary" disabled={publishSave.busy}>{data.program.published ? t.concert.publish.withdraw : t.concert.publish.publish}</button>
-			</form>
-			{#if data.program.published && data.program.publicDetails}
-				{@const details = data.program.publicDetails}
-				<!-- What the website shows with it; folded, since most concerts need only the switch. -->
-				<details class="ui-disclosure public-details" open={!!(form?.publicDetailsError || form?.publicDetailsSaved)}>
-					<summary>{t.concert.publish.details}</summary>
-					<form method="POST" action="?/publicDetails" use:enhance={detailsSave.submit()}>
-						<p class="details-hint">{t.concert.publish.detailsHint}</p>
-						<div class="pair">
-							<label class="field">
-								<span>{t.concert.publish.textDe}</span>
-								<textarea name="textDe" lang="de" maxlength="2000">{details.text?.de ?? ''}</textarea>
-							</label>
-							<label class="field">
-								<span>{t.concert.publish.textEn}</span>
-								<textarea name="textEn" lang="en" maxlength="2000">{details.text?.en ?? ''}</textarea>
-							</label>
-						</div>
-						<label class="field">
-							<span>{t.concert.publish.ticketUrl}</span>
-							<input
-								type="url"
-								name="ticketUrl"
-								inputmode="url"
-								placeholder="https://"
-								value={details.ticketUrl ?? ''}
-								aria-invalid={form?.publicDetailsError ? 'true' : undefined}
-								aria-describedby={form?.publicDetailsError ? 'ticket-error' : undefined}
-							/>
-						</label>
-						{#if form?.publicDetailsError}<p class="msg error" id="ticket-error" role="alert">{form.publicDetailsError}</p>{/if}
-						<div class="pair">
-							<label class="field">
-								<span>{t.concert.publish.ticketNoteDe}</span>
-								<input name="ticketNoteDe" lang="de" maxlength="200" placeholder={t.concert.publish.ticketNotePlaceholder} value={details.ticketNote?.de ?? ''} />
-							</label>
-							<label class="field">
-								<span>{t.concert.publish.ticketNoteEn}</span>
-								<input name="ticketNoteEn" lang="en" maxlength="200" value={details.ticketNote?.en ?? ''} />
-							</label>
-						</div>
-						<div class="details-actions">
-							<button class="btn small" disabled={detailsSave.busy}>{t.concert.publish.save}</button>
-							{#if form?.publicDetailsSaved}<span class="saved-inline" role="status"><Icon name="check" size={16} />{t.concert.publish.saved}</span>{/if}
-						</div>
-					</form>
-				</details>
-			{/if}
-		{/if}
 		{#if data.program.saved}<p class="saved" role="status"><Icon name="check" size={16} />{t.editor.saved}</p>{/if}
 		{#if data.program.driveAuto === 'ok'}<p class="saved" role="status"><Icon name="folder" size={16} />{t.currentProgram.autoDone}</p>{/if}
 		{#if data.program.driveAuto === 'fehler'}<p class="saved warn" role="status"><Icon name="alert" size={16} />{t.currentProgram.autoFailed}</p>{/if}
