@@ -6,6 +6,9 @@ import {
 	counts,
 	doorList,
 	euro,
+	FREE_TYPE,
+	freeGuest,
+	freeTickets,
 	KEEP_DAYS,
 	MAX_PER_ORDER,
 	orderTickets,
@@ -158,11 +161,42 @@ export async function reserve(concertId: string, body: Record<string, unknown>, 
 	return { ok: true, orderId: order.id, path, url, mailed };
 }
 
+/** The label of a ticket's kind: from the organiser's prices, or "Freikarte". */
+export function labelOf(sale: TicketSale | null, type: string): string {
+	return sale?.prices.find((price) => price.type === type)?.label ?? (type === FREE_TYPE ? t.tickets.free.label : type);
+}
+
+export type FreeResult = { ok: true; orderId: string; path: string; url: string | null; mailed: boolean } | { ok: false; problem: OrderProblem | 'noSale' };
+
+/**
+ * Freikarten from the organisers for a named guest: an order on its own channel, nothing to pay,
+ * on top of the seats online. With an e-mail address the guest gets the link by mail; without
+ * one the organiser passes it on.
+ */
+export async function giveFreeTickets(concertId: string, fields: { name: unknown; email: unknown; count: unknown }): Promise<FreeResult> {
+	const store = getStore();
+	const [library, sale] = await Promise.all([getLibrary(), store.ticketSale(concertId)]);
+	const event = upcomingConcert(library, concertId);
+	if (!event || !sale) return { ok: false, problem: 'noSale' };
+	const guest = freeGuest(fields.name, fields.email, fields.count);
+	if (typeof guest === 'string') return { ok: false, problem: guest };
+
+	const order: TicketOrder = { id: randomCode().toLowerCase(), concertId, name: guest.name, email: guest.email, channel: 'free', status: 'paid', createdAt: '' };
+	const tickets: Ticket[] = freeTickets(guest.count).map((ticket) => ({ code: randomCode(), orderId: order.id, concertId, seat: '', ...ticket }));
+	await store.placeTicketOrder(order, tickets, null);
+
+	const path = `/karte/${order.id}`;
+	const origin = (await mailAccount())?.origin ?? null;
+	const url = origin ? `${origin}${path}` : null;
+	const mailed = guest.email ? await sendMail(guest.email, t.tickets.free.subject(event.displayTitle), confirmationText(event, sale, order, tickets, url)).catch(() => false) : false;
+	return { ok: true, orderId: order.id, path, url, mailed };
+}
+
 /** One line per kind: "2 × Erwachsene à 12,67 € (12,00 € + 0,67 € Online-Zuschlag) = 25,34 €". */
 export function orderLines(sale: TicketSale, tickets: Ticket[]) {
 	const lines = new Map<string, { label: string; n: number; cents: number; feeCents: number }>();
 	for (const ticket of tickets) {
-		const line = lines.get(ticket.type) ?? { label: sale.prices.find((price) => price.type === ticket.type)?.label ?? ticket.type, n: 0, cents: ticket.cents, feeCents: ticket.feeCents };
+		const line = lines.get(ticket.type) ?? { label: labelOf(sale, ticket.type), n: 0, cents: ticket.cents, feeCents: ticket.feeCents };
 		line.n++;
 		lines.set(ticket.type, line);
 	}
@@ -174,19 +208,26 @@ export function confirmationText(event: ShownEvent, sale: TicketSale, order: Tic
 	const money = (cents: number) => euro(cents, locale());
 	const total = tickets.reduce((sum, ticket) => sum + ticket.cents, 0);
 	const fees = tickets.reduce((sum, ticket) => sum + ticket.feeCents, 0);
+	const free = order.channel === 'free';
+	// Freikarten: no prices and nothing to pay, just how many.
+	const bill = free
+		? [t.tickets.free.mailLine(tickets.length)]
+		: [
+				...orderLines(sale, tickets).map((line) =>
+					m.line(line.n, line.label, money(line.cents), line.feeCents ? m.lineFee(money(line.cents - line.feeCents), money(line.feeCents)) : '', money(line.n * line.cents))
+				),
+				m.total(money(total)),
+				...(fees ? [m.feeExplained(money(fees))] : []),
+				'',
+				m.payAtDoor
+			];
 	return [
 		m.hello(order.name),
 		'',
-		m.reserved(event.displayTitle, event.date.long, event.date.time),
+		(free ? t.tickets.free.mailReserved : m.reserved)(event.displayTitle, event.date.long, event.date.time),
 		...(event.location ? [event.location] : []),
 		'',
-		...orderLines(sale, tickets).map((line) =>
-			m.line(line.n, line.label, money(line.cents), line.feeCents ? m.lineFee(money(line.cents - line.feeCents), money(line.feeCents)) : '', money(line.n * line.cents))
-		),
-		m.total(money(total)),
-		...(fees ? [m.feeExplained(money(fees))] : []),
-		'',
-		m.payAtDoor,
+		...bill,
 		'',
 		...(url ? [m.link, url] : []),
 		m.codes,
@@ -212,8 +253,7 @@ export async function saleOverview(concertId: string) {
 /** The door's list: every valid ticket with the buyer's name and its kind's label, for checking offline. */
 export async function doorTickets(concertId: string) {
 	const [{ orders, tickets }, sale] = await Promise.all([getStore().ticketOrders(concertId), getStore().ticketSale(concertId)]);
-	const labelOf = (type: string) => sale?.prices.find((price) => price.type === type)?.label ?? type;
-	return doorList(orders, tickets, config.locale).map((ticket) => ({ ...ticket, type: labelOf(ticket.type) }));
+	return doorList(orders, tickets, config.locale).map((ticket) => ({ ...ticket, type: labelOf(sale, ticket.type) }));
 }
 
 /**

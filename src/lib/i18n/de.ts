@@ -682,6 +682,7 @@ export const de = {
 			sold: 'Reserviert',
 			left: 'Frei',
 			checkedIn: 'Eingelassen',
+			free: 'Freikarten',
 			takings: 'An der Kasse zu kassieren',
 			fees: (fees: string) => `davon ${fees} Online-Zuschlag für die Gebühren`
 		},
@@ -696,7 +697,29 @@ export const de = {
 			markPaid: 'Bezahlt',
 			csv: 'Gästeliste als CSV',
 			csvHeader: (): string[] => ['Name', 'E-Mail', 'Karten', 'Kartenarten', 'Betrag', 'davon Online-Zuschlag', 'Status', 'Reserviert am'],
-			conflict: 'Für die wiederhergestellte Reservierung sind nicht mehr genug Plätze frei.'
+			conflict: 'Für die wiederhergestellte Reservierung sind nicht mehr genug Plätze frei.',
+			free: 'Freikarte',
+			openTickets: 'Karten öffnen'
+		},
+		/** Freikarten the organisers hand out to named guests. */
+		free: {
+			title: 'Freikarten',
+			lead: 'Für Gäste, die nichts bezahlen. Freikarten kommen zu den Plätzen online hinzu und gelten am Einlass wie jede andere Karte.',
+			name: 'Name',
+			email: 'E-Mail (freiwillig)',
+			emailHint: 'Mit E-Mail bekommt der Gast den Link zu den Karten per Mail. Ohne gibst du ihn selbst weiter.',
+			count: 'Anzahl',
+			give: 'Freikarten anlegen',
+			given: (n: number, name: string) => `${n === 1 ? '1 Freikarte' : `${n} Freikarten`} für ${name} angelegt.`,
+			mailed: (email: string) => `Der Link ging per Mail an ${email}.`,
+			notMailed: 'Die Mail konnte nicht verschickt werden. Gib den Link selbst weiter.',
+			share: 'Gib diesen Link weiter oder druck die Karten aus:',
+			noSale: 'Freikarten gibt es, sobald der Kartenverkauf gespeichert ist, und nur vor dem Konzert.',
+			label: 'Freikarte',
+			nothingToPay: 'Freikarten: Es gibt nichts zu bezahlen.',
+			subject: (concert: string) => `Deine Freikarten: ${concert}`,
+			mailReserved: (concert: string, date: string, time: string) => `für ${concert} am ${date}${time ? `, ${time}` : ''} haben wir Freikarten für dich:`,
+			mailLine: (n: number) => (n === 1 ? '1 Freikarte, es gibt nichts zu bezahlen.' : `${n} Freikarten, es gibt nichts zu bezahlen.`)
 		},
 		mail: {
 			subject: (concert: string) => `Deine Karten: ${concert}`,
@@ -757,7 +780,8 @@ export const de = {
 			soldout: 'Online ist alles vergeben. Vielleicht gibt es an der Abendkasse noch Karten.',
 			full: 'So viele Plätze sind nicht mehr frei.',
 			rate: 'Zu viele Bestellungen in kurzer Zeit. Versuch es später noch einmal.',
-			noConcert: 'Dieses Konzert gibt es nicht.'
+			noConcert: 'Dieses Konzert gibt es nicht.',
+			count: 'Wähle zwischen 1 und 10 Karten.'
 		} as Record<string, string>
 	},
 	pwa: {

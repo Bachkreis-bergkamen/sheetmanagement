@@ -4,11 +4,23 @@
 	import { t } from '#lib/i18n/index.ts';
 	import Crumbs from '#lib/components/Crumbs.svelte';
 	import Icon from '#lib/components/Icon.svelte';
+	import ShareButton from '#lib/components/ShareButton.svelte';
 	import Title from '#lib/components/Title.svelte';
 
 	let { data, form } = $props();
 	const saving = new FormState();
 	const changing = new FormState();
+	const giving = new FormState();
+	// The amount, who got in, and paid or cancelled; Freikarten say what they are in the kinds already.
+	const details = (order: (typeof data.orders)[number]) =>
+		[
+			order.free ? '' : order.amount,
+			order.checkedIn ? `${order.checkedIn} ${t.tickets.doorPage.admitted}` : '',
+			order.status === 'cancelled' ? t.tickets.orders.cancelled : order.status === 'paid' && !order.free ? t.tickets.orders.paid : ''
+		]
+			.filter(Boolean)
+			.join(' · ');
+	const freeValues = $derived((form && 'freeValues' in form && form.freeValues) || { name: '', email: '', count: '1' });
 	const eventUrl = $derived(`/kalender/${encodeURIComponent(data.concert.id)}`);
 	// After a failed save the form keeps what was typed.
 	const values = $derived({ ...data.values, ...(form?.values ?? {}) });
@@ -80,6 +92,7 @@
 				<div><dt>{t.tickets.counts.sold}</dt><dd>{data.counts.sold}</dd></div>
 				<div><dt>{t.tickets.counts.left}</dt><dd>{data.counts.left}</dd></div>
 				<div><dt>{t.tickets.counts.checkedIn}</dt><dd>{data.counts.checkedIn}</dd></div>
+				<div><dt>{t.tickets.counts.free}</dt><dd>{data.counts.free}</dd></div>
 			</dl>
 			<p><strong>{t.tickets.counts.takings}: {data.counts.takings}</strong></p>
 			{#if data.counts.feeCents}<p class="hint">{t.tickets.counts.fees(data.counts.fees)}</p>{/if}
@@ -105,6 +118,40 @@
 	</div>
 </div>
 
+<!-- Freikarten for named guests: on top of the seats online, a link to pass on or a mail. -->
+<section class="ui-card free" aria-labelledby="free-title">
+	<h2 id="free-title">{t.tickets.free.title}</h2>
+	<p class="muted">{t.tickets.free.lead}</p>
+	{#if form && 'freeMessage' in form}<p class="msg error" role="alert">{form.freeMessage}</p>{/if}
+	{#if form && 'free' in form && form.free}
+		<div class="msg ok given" role="status">
+			<p>{form.free.given}{form.free.mail ? ` ${form.free.mail}` : ''}</p>
+			<p>{t.tickets.free.share}</p>
+			<a class="link" href={form.free.link} target="_blank" rel="noopener">{form.free.link}</a>
+			<div class="ui-actions">
+				<a href={form.free.link} target="_blank" rel="noopener">{t.tickets.orders.openTickets}</a>
+				<ShareButton title="{t.tickets.free.title} · {data.concert.title}" text="{t.tickets.free.title} · {data.concert.title}" url={form.free.link} />
+			</div>
+		</div>
+	{/if}
+	<form class="free-form" method="POST" action="?/free" use:enhance={giving.submit({ reset: true })}>
+		<label class="field">
+			<span>{t.tickets.free.name}</span>
+			<input name="name" required minlength="2" maxlength="100" autocomplete="off" value={freeValues.name} />
+		</label>
+		<label class="field">
+			<span>{t.tickets.free.email}</span>
+			<input name="email" type="email" maxlength="200" autocomplete="off" value={freeValues.email} />
+		</label>
+		<label class="field count">
+			<span>{t.tickets.free.count}</span>
+			<input name="count" type="number" min="1" max="10" inputmode="numeric" required value={freeValues.count} defaultValue="1" />
+		</label>
+		<button class="btn" disabled={giving.busy}>{t.tickets.free.give}</button>
+	</form>
+	<small>{t.tickets.free.emailHint}</small>
+</section>
+
 <section class="orders" aria-labelledby="orders-title">
 	<h2 id="orders-title">{t.tickets.orders.title}</h2>
 	{#if form && 'conflict' in form}<p class="msg error" role="alert">{form.conflict}</p>{/if}
@@ -119,13 +166,15 @@
 					<div class="what">
 						<span>{t.tickets.orders.tickets(order.tickets)} · {order.kinds}</span>
 						<span class="hint">
-							{order.amount}{#if order.checkedIn} · {order.checkedIn} {t.tickets.doorPage.admitted}{/if}{#if order.status !== 'reserved'} · {order.status === 'paid' ? t.tickets.orders.paid : t.tickets.orders.cancelled}{/if}
+							{details(order)}
 						</span>
 					</div>
 					<form class="ui-actions" method="POST" action="?/status" use:enhance={changing.submit()}>
 						<input type="hidden" name="order" value={order.id} />
+						{#if order.free}<a href="/karte/{order.id}" target="_blank" rel="noopener">{t.tickets.orders.openTickets}</a>{/if}
 						{#if order.status === 'cancelled'}
-							<button name="status" value="reserved" disabled={changing.busy}>{t.tickets.orders.restore}</button>
+							<!-- Freikarten come back as they were: nothing to pay. -->
+							<button name="status" value={order.free ? 'paid' : 'reserved'} disabled={changing.busy}>{t.tickets.orders.restore}</button>
 						{:else}
 							{#if order.status === 'reserved'}<button name="status" value="paid" disabled={changing.busy}>{t.tickets.orders.markPaid}</button>{/if}
 							<button name="status" value="cancelled" disabled={changing.busy}>{t.tickets.orders.cancel}</button>
@@ -212,7 +261,7 @@
 
 	.counts dl {
 		display: grid;
-		grid-template-columns: repeat(3, 1fr);
+		grid-template-columns: repeat(4, 1fr);
 		gap: var(--space-3);
 		margin: 0 0 var(--space-3);
 	}
@@ -250,9 +299,40 @@
 		font-weight: 600;
 	}
 
+	.free {
+		display: grid;
+		gap: var(--space-3);
+		margin-bottom: var(--space-6);
+	}
+
+	.free h2,
 	.orders h2 {
 		margin-bottom: var(--space-3);
 		font-size: var(--text-lg);
+	}
+
+	.free h2 {
+		margin-bottom: 0;
+	}
+
+	.free-form {
+		display: grid;
+		grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) 6rem auto;
+		gap: var(--space-3);
+		align-items: end;
+	}
+
+	.given {
+		display: grid;
+		gap: var(--space-2);
+	}
+
+	.given p {
+		margin: 0;
+	}
+
+	.link {
+		overflow-wrap: anywhere;
 	}
 
 	.order {
@@ -295,7 +375,8 @@
 	}
 
 	@media (max-width: 760px) {
-		.order {
+		.order,
+		.free-form {
 			grid-template-columns: minmax(0, 1fr);
 		}
 	}

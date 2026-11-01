@@ -679,6 +679,7 @@ export const en: Texts = {
 			sold: 'Reserved',
 			left: 'Free',
 			checkedIn: 'Checked in',
+			free: 'Complimentary',
 			takings: 'To be collected at the door',
 			fees: (fees: string) => `of which ${fees} online surcharge for the fees`
 		},
@@ -693,7 +694,29 @@ export const en: Texts = {
 			markPaid: 'Paid',
 			csv: 'Guest list as CSV',
 			csvHeader: (): string[] => ['Name', 'Email', 'Tickets', 'Kinds', 'Amount', 'of which online surcharge', 'Status', 'Reserved on'],
-			conflict: 'There aren’t enough seats left for the restored reservation.'
+			conflict: 'There aren’t enough seats left for the restored reservation.',
+			free: 'complimentary',
+			openTickets: 'Open tickets'
+		},
+		/** Complimentary tickets the organisers hand out to named guests. */
+		free: {
+			title: 'Complimentary tickets',
+			lead: 'For guests who don’t pay. They come on top of the seats online and get in at the door like any other ticket.',
+			name: 'Name',
+			email: 'Email (optional)',
+			emailHint: 'With an email address the guest gets the link to the tickets by mail. Without one, you pass it on yourself.',
+			count: 'Number',
+			give: 'Add complimentary tickets',
+			given: (n: number, name: string) => `${n === 1 ? '1 complimentary ticket' : `${n} complimentary tickets`} for ${name} added.`,
+			mailed: (email: string) => `The link was mailed to ${email}.`,
+			notMailed: 'The mail couldn’t be sent. Pass the link on yourself.',
+			share: 'Pass this link on or print the tickets:',
+			noSale: 'Complimentary tickets are available once the ticket sale is saved, and only before the concert.',
+			label: 'Complimentary',
+			nothingToPay: 'Complimentary tickets: there is nothing to pay.',
+			subject: (concert: string) => `Your complimentary tickets: ${concert}`,
+			mailReserved: (concert: string, date: string, time: string) => `we have complimentary tickets for you for ${concert} on ${date}${time ? `, ${time}` : ''}:`,
+			mailLine: (n: number) => (n === 1 ? '1 complimentary ticket, nothing to pay.' : `${n} complimentary tickets, nothing to pay.`)
 		},
 		mail: {
 			subject: (concert: string) => `Your tickets: ${concert}`,
@@ -754,7 +777,8 @@ export const en: Texts = {
 			soldout: 'Everything online is taken. There may be tickets left at the door.',
 			full: 'That many seats aren’t free any more.',
 			rate: 'Too many orders in a short time. Please try again later.',
-			noConcert: 'This concert doesn’t exist.'
+			noConcert: 'This concert doesn’t exist.',
+			count: 'Choose between 1 and 10 tickets.'
 		} as Record<string, string>
 	},
 	pwa: {

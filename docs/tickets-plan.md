@@ -1,6 +1,6 @@
 # Plan: concert tickets and check-in at the door
 
-Status: phases 1 and 2 are built (free seating, reservations paid at the Kasse, the online surcharge, check-in at the door). Written 2026-10-31. The public site (bachkreis-berg-de) sells through `/konzerte/karten`; this plan is about what sits behind it.
+Status: phases 1 and 2 are built (free seating, reservations paid at the Kasse, the online surcharge, check-in at the door), and Freikarten (§4.6). Wallet passes are only planned (§7). Written 2026-10-31. The public site (bachkreis-berg-de) sells through `/konzerte/karten`; this plan is about what sits behind it.
 
 ## 1. Where things stand
 
@@ -126,6 +126,16 @@ A new right, `karten.einlass`. The group "Einlass" gets it for the evening, and 
 - The order confirmation, with one QR code per ticket, goes through `src/lib/server/mail`.
 - The wallet passes from the mock-up (Apple/Google Wallet) need signing certificates and a paid Apple developer account, so they are left out under principle 3. The mail and a PDF are enough.
 
+### 4.6 Freikarten (built)
+
+Organisers with `karten.verwalten` add Freikarten for a named guest on the sale's page: a name, an optional e-mail address and 1–10 tickets.
+
+- **Stored as:** an order with `channel = 'free'` and `status = 'paid'`, its tickets of type `freikarte` at 0 € without a surcharge. No migration: `channel` was always free text.
+- **Capacity:** Freikarten don't count against it. The capacity is "Plätze online", so a Freikarte never takes a seat away from the website (`takesSeat()` in `src/lib/tickets/tickets.ts`). The organiser keeps seats free for them, as for the Sekretariat. The counts show them apart.
+- **Getting in:** the door list and `/karte/[order]` treat them like any other ticket, labelled "Freikarte", with nothing to pay.
+- **The guest:** with an e-mail address, they get the confirmation mail without prices and without the pay-at-the-door line. Without one, the organiser gets the link to share or print, and every Freikarten order in the list keeps an "open tickets" link.
+- **Lists:** the reservations list and `gaeste.csv` mark them as Freikarte. Cancelling and restoring work as for reservations; restoring brings one back as paid.
+
 ## 5. Legal (have this checked before going live)
 
 - **Privacy notice:** buyers aren't members. noten's privacy text needs a section on ticket orders that covers:
@@ -151,3 +161,33 @@ A new right, `karten.einlass`. The group "Einlass" gets it for the evening, and 
 | 5 (optional) | **Online payment**, per deployment and off by default, once the board has accepted the fees. Wero through the association's bank's payment provider (Payone at Sparkassen, VR Payment at Volksbanken); the association's bank account must be a business or association account | A test payment in the provider's sandbox marks the order as paid |
 
 Phases 1 and 2 already replace the paper reservation list and speed up entry at no cost. Phase 5 is the only one that costs money.
+
+## 7. Wallet passes (later, not built)
+
+Guests could keep their tickets in Apple Wallet or Google Wallet next to the QR codes on `/karte/[order]`. Nothing of this is built. This section says what it would need, so the current design doesn't block it.
+
+### 7.1 Apple Wallet (.pkpass)
+
+- **Account:** the Apple Developer Program (about 99 $ a year) for the association or whoever runs the deployment. In it, a Pass Type ID (`pass.de.example.noten`) and its signing certificate.
+- **The file:** a zip with `pass.json` (style `eventTicket`, `serialNumber`, `passTypeIdentifier`, `teamIdentifier`, `organizationName`, `relevantDate`, a QR `barcodes` entry), `icon.png` and `logo.png`, `manifest.json` (SHA-1 of every file), and `signature`.
+- **Signing:** the signature is a detached PKCS#7 signature of `manifest.json`, with the pass certificate, its key and Apple's WWDR intermediate certificate. WebCrypto can't build PKCS#7, so the Worker needs a small pure-JS library for it (e.g. PKI.js). Check its size and the CPU time per request. The certificate and key are Worker secrets, never in D1 or the repo.
+- **One pass per ticket,** since each ticket has its own code. Several tickets go out as one `.pkpasses` bundle (iOS 15 and later). Served as `application/vnd.apple.pkpass` from a route like `/karte/[order]/wallet.pkpass`, behind the same unguessable order id.
+- **Cancellations:** a pass on a phone only changes through Apple's update web service (`webServiceURL`, `authenticationToken`, device registrations and APNs pushes). Leave this out at first: the door list already refuses a cancelled code. Adding it later needs a migration for the device registrations.
+
+### 7.2 Google Wallet (event tickets)
+
+- **Account:** an issuer account in the Google Pay & Wallet Console, and a Google Cloud service account with access to the Google Wallet API. Its JSON key is a Worker secret.
+- **Objects:** one `EventTicketClass` per concert (name, venue, start, logo) and one `EventTicketObject` per ticket. The object holds the QR code (`barcode.value` = the ticket code), `ticketHolderName`, the kind as `ticketType` and the seat if there is one.
+- **The button:** a link to `https://pay.google.com/gp/v/save/<JWT>`. The JWT is signed with the service account's key (RS256, which WebCrypto can do) and can carry the class and the objects. So adding a pass needs no API call.
+- **Cancellations and check-ins:** set the object's `state` to `INACTIVE` or `COMPLETED` through the REST API, with an OAuth token from the service account. Optional, as for Apple.
+
+### 7.3 On `/karte/[order]`
+
+- The official "Add to Apple Wallet" and "Add to Google Wallet" badges go under the lead, above the tickets, for all tickets of the order at once. They show only when the deployment has the secrets set, never for a cancelled order, and never in print (`@media print`).
+- Show both badges, or pick by user agent. Neither replaces the QR codes on the page: the page stays the source and keeps working offline and printed.
+
+### 7.4 What the data model already has, and what it would need
+
+- **Already there:** each ticket's `code` is stable, unique and random. It can be the barcode message, Apple's `serialNumber` and Google's object id (`<issuerId>.<code>`) without a new column. The order id is the proof in the link. Name, kind (`labelOf()`), seat, status and channel are on the order and its tickets; the title, date and place come from the calendar.
+- **Keep it that way:** never change a ticket's code after it's sent. Keep the barcode content exactly the code, which the door already reads. Keep cancelling as a status, not deleting, so a pass can be voided.
+- **Would be new:** settings per deployment (Apple team and pass type id, Google issuer id, and the secrets) in `wrangler.toml` vars and secrets. For live updates only: a `wallet_registrations` table (device id, push token, ticket code) and an `updated_at` on tickets or orders. The pass images can come from the orchestra's logo the page already shows.

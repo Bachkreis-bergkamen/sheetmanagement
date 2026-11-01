@@ -88,14 +88,15 @@ export function sqlTickets(db: D1, schema: () => Promise<unknown>): TicketMethod
 						.prepare('INSERT INTO ticket_orders (id, concert_id, name, email, channel, status) VALUES (?, ?, ?, ?, ?, ?)')
 						.bind(order.id, order.concertId, order.name, order.email || null, order.channel, order.status),
 					// All tickets or none, and only while they fit: the count is read in the same statement.
+					// Freikarten don't take seats online, and a null capacity places an order regardless.
 					db
 						.prepare(
 							`INSERT INTO tickets (code, order_id, concert_id, seat, type, cents, fee_cents)
 							 SELECT * FROM (VALUES ${rows})
-							 WHERE (SELECT COUNT(*) FROM tickets t JOIN ticket_orders o ON o.id = t.order_id
-							        WHERE t.concert_id = ? AND o.status != 'cancelled') + ? <= ?`
+							 WHERE ? IS NULL OR (SELECT COUNT(*) FROM tickets t JOIN ticket_orders o ON o.id = t.order_id
+							        WHERE t.concert_id = ? AND o.status != 'cancelled' AND o.channel != 'free') + ? <= ?`
 						)
-						.bind(...values, order.concertId, tickets.length, capacity),
+						.bind(...values, capacity, order.concertId, tickets.length, capacity),
 					// No tickets inserted: the guard's check fails and the order goes too.
 					db.prepare('INSERT INTO write_guard (changed) VALUES (changes())'),
 					db.prepare('DELETE FROM write_guard')

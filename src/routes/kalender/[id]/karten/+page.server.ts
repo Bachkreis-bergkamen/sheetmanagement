@@ -5,13 +5,14 @@ import { requireRight } from '#lib/server/auth/index.ts';
 import { getStore } from '#lib/server/db/index.ts';
 import { requireFeature } from '#lib/server/env.ts';
 import { getLibrary } from '#lib/server/library.ts';
-import { publicPrices, saleOverview } from '#lib/server/tickets.ts';
+import { giveFreeTickets, labelOf, publicPrices, saleOverview } from '#lib/server/tickets.ts';
 import { euro, fromLocalInput, localInput, NO_FEE, onlineFeeOf, parsePrices, pricesText, saleCounts, type TicketSale } from '#lib/tickets/tickets.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /**
  * A concert's ticket sale for organisers (docs/tickets-plan.md §4.1): open it, set the seats,
- * the prices and the online surcharge, see who reserved, cancel, and mark orders paid.
+ * the prices and the online surcharge, see who reserved, cancel, and mark orders paid. Freikarten
+ * for named guests come on top of the seats online.
  */
 
 const RIGHT = 'karten.verwalten';
@@ -60,9 +61,10 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			name: order.name,
 			email: order.email,
 			status: order.status,
+			free: order.channel === 'free',
 			createdAt: order.createdAt,
 			tickets: order.tickets.length,
-			kinds: [...new Set(order.tickets.map((ticket) => sale?.prices.find((price) => price.type === ticket.type)?.label ?? ticket.type))].join(', '),
+			kinds: [...new Set(order.tickets.map((ticket) => labelOf(sale, ticket.type)))].join(', '),
 			amount: money(order.tickets.reduce((sum, ticket) => sum + ticket.cents, 0)),
 			checkedIn: order.tickets.filter((ticket) => ticket.checkedInAt).length
 		}))
@@ -99,6 +101,28 @@ export const actions: Actions = {
 		};
 		await getStore().saveTicketSale(sale);
 		return { saved: true };
+	},
+
+	free: async ({ params, request, locals, url }) => {
+		requireFeature('tickets');
+		requireRight(locals, RIGHT);
+		const event = await concertOf(params.id);
+		const data = await request.formData();
+		const fields = { name: data.get('name'), email: data.get('email'), count: data.get('count') };
+		const result = await giveFreeTickets(event.id, fields);
+		if (!result.ok) {
+			const freeValues = Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, String(value ?? '')]));
+			return fail(400, { freeMessage: result.problem === 'noSale' ? t.tickets.free.noSale : t.tickets.problems[result.problem], freeValues });
+		}
+		const email = String(fields.email ?? '').trim();
+		return {
+			free: {
+				given: t.tickets.free.given(Number(fields.count), String(fields.name).trim().replace(/\s+/g, ' ')),
+				mail: email ? (result.mailed ? t.tickets.free.mailed(email) : t.tickets.free.notMailed) : null,
+				// The organiser is on noten itself, so its own address does when no mail account knows it.
+				link: result.url ?? new URL(result.path, url).href
+			}
+		};
 	},
 
 	status: async ({ params, request, locals }) => {
