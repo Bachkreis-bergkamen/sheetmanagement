@@ -109,7 +109,7 @@ export const en: Texts = {
 		empty: 'Once Google Drive is connected, every piece in the library shows here.',
 		failed: "The library couldn't be loaded just now. Please try again in a moment.",
 		checkStatus: 'Check connection',
-		search: 'Title, composer or catalogue no. …',
+		search: 'Title, composer, instrument, note …',
 		all: 'All',
 		needsWork: 'With gaps',
 		noMusic: 'Without music',
@@ -121,6 +121,8 @@ export const en: Texts = {
 		parts: (n: number) => (n === 1 ? '1 part' : `${n} parts`),
 		noResults: 'Nothing found.',
 		clearSearch: 'Clear search',
+		foundParts: (instruments: string) => `Part: ${instruments}`,
+		foundNote: (excerpt: string) => `Note: ${excerpt}`,
 		filter: 'Filter',
 		status: {
 			ok: '',

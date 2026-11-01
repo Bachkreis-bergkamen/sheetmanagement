@@ -111,7 +111,7 @@ export const de = {
 		empty: 'Sobald Google Drive verbunden ist, erscheinen hier alle Stücke aus dem Notenarchiv.',
 		failed: 'Das Notenarchiv konnte gerade nicht geladen werden. Versuch es gleich noch einmal.',
 		checkStatus: 'Verbindung prüfen',
-		search: 'Titel, Komponist oder BWV …',
+		search: 'Titel, Komponist, Instrument, Notiz …',
 		all: 'Alle',
 		needsWork: 'Mit Lücken',
 		noMusic: 'Ohne Noten',
@@ -123,6 +123,9 @@ export const de = {
 		parts: (n: number) => (n === 1 ? '1 Stimme' : `${n} Stimmen`),
 		noResults: 'Nichts gefunden.',
 		clearSearch: 'Suche leeren',
+		// Found not by the title but by a part or a note on the piece.
+		foundParts: (instruments: string) => `Stimme: ${instruments}`,
+		foundNote: (excerpt: string) => `Notiz: ${excerpt}`,
 		filter: 'Filter',
 		status: {
 			ok: '',

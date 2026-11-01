@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import { t } from '#lib/i18n/index.ts';
 	import { searchText } from '#lib/music/text.ts';
+	import { findPiece, type FoundBy } from '#lib/music/piece-search.ts';
 	import AddToArchive from '#lib/components/AddToArchive.svelte';
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import Icon from '#lib/components/Icon.svelte';
@@ -42,9 +43,10 @@
 	const composer = $derived(page.url.searchParams.get('komponist')?.trim() || null);
 	const activeCategory = $derived(filter.startsWith('category:') ? filter.slice('category:'.length) : null);
 
-	const visible = $derived.by(() => {
+	const matches = $derived.by(() => {
 		const words = searchText(query).split(/\s+/).filter(Boolean);
-		return data.pieces.filter((piece) => {
+		const found = new Map<string, FoundBy>();
+		const result = data.pieces.filter((piece) => {
 			// Also the works this composer wrote with others ("Mozart, Haydn").
 			if (composer && !listHas(piece.composer, composer)) return false;
 			if (filter === NEEDS_WORK && (piece.status === 'ok' || piece.status === 'none')) return false;
@@ -52,9 +54,15 @@
 			if (filter === RECORDING && !piece.recording) return false;
 			if (filter.startsWith('program:') && !piece.programs.includes(filter.slice('program:'.length))) return false;
 			if (filter.startsWith('category:') && piece.category !== filter.slice('category:'.length)) return false;
-			return words.every((word) => piece.search.includes(word));
+			const by = findPiece(piece, words);
+			if (by && (by.instruments.length || by.note)) found.set(piece.id, by);
+			return !!by;
 		});
+		return { result, found };
 	});
+	const visible = $derived(matches.result);
+	// Why a piece was found, when only by a part or a note ("Bariton", "Goldfinger").
+	const foundBy = $derived(matches.found);
 
 	const letterOf = (title: string) => {
 		const first = searchText(title.charAt(0)).toUpperCase();
@@ -172,6 +180,13 @@
 											{[piece.composer, piece.catalogue].filter(Boolean).join(' · ')}
 											{#each piece.programs as program (program)}<span class="tag program">{program}</span>{/each}
 											{#if piece.category}<span class="tag">{piece.category}</span>{/if}
+										</span>
+									{/if}
+									{#if foundBy.get(piece.id)}
+										{@const by = foundBy.get(piece.id)!}
+										<span class="found">
+											{#if by.instruments.length}<span>{t.pieces.foundParts(by.instruments.join(', '))}</span>{/if}
+											{#if by.note}<span class="note">{t.pieces.foundNote(by.note)}</span>{/if}
 										</span>
 									{/if}
 								</span>
@@ -406,6 +421,18 @@
 		gap: var(--space-2);
 		color: var(--text-muted);
 		font-size: var(--text-sm);
+	}
+
+	.found {
+		display: grid;
+		gap: 2px;
+		color: var(--accent);
+		font-size: var(--text-sm);
+	}
+
+	.found .note {
+		color: var(--text-muted);
+		font-style: italic;
 	}
 
 	.tag {
