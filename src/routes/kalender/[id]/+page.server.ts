@@ -69,8 +69,8 @@ async function instrumentation(items: ProgramItem[], library: Library, orchestra
 	);
 	const needed = new Set(programInstruments(withMusic.map((row) => row.parts), music));
 	const instruments = config.instruments
-		.map((instrument) => instrument.name)
-		.filter((name) => needed.has(name) || (played.has(name) && name !== 'Partitur'));
+		.filter((instrument) => needed.has(instrument.name) || (played.has(instrument.name) && instrument.family !== 'partitur'))
+		.map((instrument) => instrument.name);
 	return {
 		instruments: instruments.map((name) => ({ name, played: played.has(name) })),
 		rows: rows.map(({ item, parts }) => ({

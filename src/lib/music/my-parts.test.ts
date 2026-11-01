@@ -174,6 +174,18 @@ describe('matchParts', () => {
 		expect(labels(matchParts(parts, { instrument: 'Partitur', numbers: [] }, config).own)).toEqual(['Partitur']);
 	});
 
+	it('gives the conductor the reductions too, and the pianist the piano reduction', () => {
+		const reduced = [...parts, part('@Bolero - Klavierauszug.pdf'), part('@Bolero - Streicherauszug.pdf'), part('Bolero - Klavier.pdf')];
+		const conductor = matchParts(reduced, { instrument: 'Partitur', numbers: [] }, config);
+		expect(labels(conductor.own)).toEqual(['Partitur']);
+		expect(labels(conductor.shared)).toEqual(['Klavierauszug', 'Streicherauszug']);
+		const pianist = matchParts(reduced, { instrument: 'Klavier', numbers: [] }, config);
+		expect(labels(pianist.own)).toEqual(['Klavier']);
+		expect(labels(pianist.shared)).toEqual(['C-Stimmen', 'Klavierauszug']);
+		// Only a reduction: the conductor still has something to read.
+		expect(coverage([part('@Bolero - Klavierauszug.pdf')], 'Partitur', config)).toBe('shared');
+	});
+
 	it('finds nothing for an instrument the piece lacks', () => {
 		expect(matchParts(parts, { instrument: 'Tuba', numbers: [] }, config)).toEqual({ own: [], shared: [] });
 	});
@@ -205,7 +217,7 @@ describe('instrumentation check', () => {
 	});
 
 	it('lists the instruments of a programme in the configured order, without group parts', () => {
-		const other = [part('Bolero - Partitur.pdf'), part('Bolero - Flöte.pdf'), part('Bolero - Schlagwerk.pdf'), part('Bolero - Holz.pdf')];
+		const other = [part('Bolero - Partitur.pdf'), part('@Bolero - Klavierauszug.pdf'), part('Bolero - Flöte.pdf'), part('Bolero - Schlagwerk.pdf'), part('Bolero - Holz.pdf')];
 		expect(programInstruments([parts, other], config)).toEqual(['Flöte', 'Schlagwerk', 'Geige', 'Viola', 'Violoncello']);
 	});
 });

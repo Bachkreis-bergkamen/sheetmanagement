@@ -48,6 +48,14 @@ describe('checkSection', () => {
 		]);
 	});
 
+	it('names the reductions like the score, with the "@" prefix', () => {
+		expect(check(['LOTR-1st-Violin.pdf', 'LOTR-Piano-Reduction.pdf', 'LOTR-String-Reduction.pdf'], 'The Lord of the Rings')).toEqual([
+			['LOTR-1st-Violin.pdf', 'rename', 'The Lord of the Rings - Geige I.pdf'],
+			['LOTR-Piano-Reduction.pdf', 'rename', '@The Lord of the Rings - Klavierauszug.pdf'],
+			['LOTR-String-Reduction.pdf', 'rename', '@The Lord of the Rings - Streicherauszug.pdf']
+		]);
+	});
+
 	it('keeps status words, notes, movements and Google Doc placeholders', () => {
 		expect(
 			check(
