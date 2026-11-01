@@ -2,13 +2,19 @@ import { fileUrl } from '#lib/server/catalog.ts';
 import { getLibrary } from '#lib/server/library.ts';
 import type { PieceSummary } from '#lib/music/types.ts';
 import { addPiece } from '#lib/server/archive.ts';
+import { getPieceNotes } from '#lib/server/repertoire.ts';
+import { partInstruments } from '#lib/music/piece-search.ts';
+import { normalize } from '#lib/repertoire/sheet.ts';
 import type { Actions, PageServerLoad } from './$types';
 
-/** A piece in the list; `recording` marks a Hörbeispiel in the sheet. */
-type ListedPiece = PieceSummary & { recording: boolean };
+/**
+ * A piece in the list; `recording` marks a Hörbeispiel in the sheet. The search also looks at
+ * `instruments` (those with a part) and `notes`: the sheet's "Notiz" and the piece's Hinweise.
+ */
+type ListedPiece = PieceSummary & { recording: boolean; instruments: string[]; notes: string[] };
 
 export const load: PageServerLoad = async ({ locals }) => {
-	const library = await getLibrary();
+	const [library, pieceNotes] = await Promise.all([getLibrary(), getPieceNotes()]);
 	const canAdd = locals.access.rights.has('archiv.bearbeiten') && library.sheet === 'ok';
 	if (!library.catalog.ok) {
 		return {
@@ -21,9 +27,16 @@ export const load: PageServerLoad = async ({ locals }) => {
 		};
 	}
 
-	// Only what the list shows; the parts stay on the server.
+	// Hinweise by the piece's title in "Stücke", as on the piece page.
+	const hints = new Map<string, string[]>();
+	for (const note of pieceNotes.notes) {
+		const key = normalize(note.pieceName);
+		hints.set(key, [...(hints.get(key) ?? []), note.text]);
+	}
+
+	// Only what the list shows; of the parts just their instruments, for the search.
 	const pieces: ListedPiece[] = library.pieces.map(
-		({ id, title, composer, catalogue, category, programs, partCount, status, search, sheet }) => ({
+		({ id, title, composer, catalogue, category, programs, partCount, status, search, sheet, detail }) => ({
 			id,
 			title,
 			composer,
@@ -33,7 +46,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 			partCount,
 			status,
 			search,
-			recording: !!sheet?.recording
+			recording: !!sheet?.recording,
+			instruments: partInstruments(detail?.parts ?? []),
+			notes: [sheet?.notes ?? '', ...(hints.get(normalize(sheet?.title ?? title)) ?? [])].filter(Boolean)
 		})
 	);
 	const categories = [...new Set(pieces.map((piece) => piece.category).filter((c): c is string => !!c))];
