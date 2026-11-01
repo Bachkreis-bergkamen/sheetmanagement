@@ -187,9 +187,10 @@ export interface Store {
 	/**
 	 * Places an order with its tickets, only if they still fit under `capacity` together with
 	 * every ticket of the concert's orders that aren't cancelled; false, and nothing kept, if not.
-	 * Two orders at once can't both take the last seats.
+	 * Two orders at once can't both take the last seats. Freikarten (channel 'free') don't count,
+	 * and a null capacity places the order without a check.
 	 */
-	placeTicketOrder(order: TicketOrder, tickets: Ticket[], capacity: number): Promise<boolean>;
+	placeTicketOrder(order: TicketOrder, tickets: Ticket[], capacity: number | null): Promise<boolean>;
 	/** One order with its tickets. */
 	ticketOrder(id: string): Promise<{ order: TicketOrder; tickets: Ticket[] } | null>;
 	/** Every order of a concert, cancelled ones too, oldest first, with all their tickets. */

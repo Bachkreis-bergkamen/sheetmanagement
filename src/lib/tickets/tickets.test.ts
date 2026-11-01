@@ -3,6 +3,8 @@ import {
 	admit,
 	buyer,
 	doorList,
+	freeGuest,
+	freeTickets,
 	fromLocalInput,
 	localInput,
 	looksLikeCode,
@@ -104,6 +106,25 @@ describe('buyer', () => {
 	});
 });
 
+describe('freeGuest', () => {
+	it('takes a name and how many, the e-mail only if given', () => {
+		expect(freeGuest(' Frau  Bürgermeisterin ', '', '2')).toEqual({ name: 'Frau Bürgermeisterin', email: '', count: 2 });
+		expect(freeGuest('Anna', ' Anna@Example.org ', 1)).toEqual({ name: 'Anna', email: 'anna@example.org', count: 1 });
+		expect(freeGuest('Anna', 'anna', 1)).toBe('email');
+		expect(freeGuest('A', '', 1)).toBe('name');
+		expect(freeGuest('Anna', '', 0)).toBe('count');
+		expect(freeGuest('Anna', '', 11)).toBe('count');
+		expect(freeGuest('Anna', '', '1,5')).toBe('count');
+	});
+
+	it('makes tickets that cost nothing', () => {
+		expect(freeTickets(2)).toEqual([
+			{ type: 'freikarte', cents: 0, feeCents: 0 },
+			{ type: 'freikarte', cents: 0, feeCents: 0 }
+		]);
+	});
+});
+
 describe('saleState', () => {
 	const now = Date.parse('2026-11-20T12:00:00Z');
 	it('is open until the end, the capacity or the organiser closes it', () => {
@@ -118,18 +139,20 @@ describe('saleState', () => {
 const orders: TicketOrder[] = [
 	{ id: 'o1', concertId: 'c1', name: 'Zoe Ärmel', email: 'z@x.org', channel: 'online', status: 'reserved', createdAt: '' },
 	{ id: 'o2', concertId: 'c1', name: 'Anna Bach', email: 'a@x.org', channel: 'online', status: 'cancelled', createdAt: '' },
-	{ id: 'o3', concertId: 'c1', name: 'Bernd Arm', email: '', channel: 'abendkasse', status: 'paid', createdAt: '' }
+	{ id: 'o3', concertId: 'c1', name: 'Bernd Arm', email: '', channel: 'abendkasse', status: 'paid', createdAt: '' },
+	{ id: 'o4', concertId: 'c1', name: 'Clara Gast', email: '', channel: 'free', status: 'paid', createdAt: '' }
 ];
 const tickets: Ticket[] = [
 	{ code: 'A', orderId: 'o1', concertId: 'c1', seat: '', type: 'erwachsene', cents: 1267, feeCents: 67, checkedInAt: '2026-11-21T16:00:00Z' },
 	{ code: 'B', orderId: 'o1', concertId: 'c1', seat: '', type: 'kinder-bis-12', cents: 0, feeCents: 0 },
 	{ code: 'C', orderId: 'o2', concertId: 'c1', seat: '', type: 'erwachsene', cents: 1267, feeCents: 67 },
-	{ code: 'D', orderId: 'o3', concertId: 'c1', seat: '', type: 'erwachsene', cents: 1200, feeCents: 0 }
+	{ code: 'D', orderId: 'o3', concertId: 'c1', seat: '', type: 'erwachsene', cents: 1200, feeCents: 0 },
+	{ code: 'E', orderId: 'o4', concertId: 'c1', seat: '', type: 'freikarte', cents: 0, feeCents: 0 }
 ];
 
 describe('saleCounts', () => {
-	it('counts what isn’t cancelled, with the surcharges apart', () => {
-		expect(saleCounts(orders, tickets)).toEqual({ sold: 3, checkedIn: 1, cents: 2467, feeCents: 67, byType: { erwachsene: 2, 'kinder-bis-12': 1 } });
+	it('counts what isn’t cancelled, with the surcharges and the Freikarten apart', () => {
+		expect(saleCounts(orders, tickets)).toEqual({ sold: 3, free: 1, checkedIn: 1, cents: 2467, feeCents: 67, byType: { erwachsene: 2, 'kinder-bis-12': 1, freikarte: 1 } });
 	});
 });
 
@@ -137,8 +160,8 @@ describe('at the door', () => {
 	const list = doorList(orders, tickets);
 	const byCode = new Map(list.map((ticket) => [ticket.code, ticket]));
 
-	it('keeps the valid tickets by name', () => {
-		expect(list.map((ticket) => ticket.code)).toEqual(['D', 'A', 'B']);
+	it('keeps the valid tickets by name, Freikarten too', () => {
+		expect(list.map((ticket) => ticket.code)).toEqual(['D', 'E', 'A', 'B']);
 	});
 
 	it('lets a ticket in once and knows no others', () => {

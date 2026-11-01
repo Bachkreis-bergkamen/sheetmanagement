@@ -25,15 +25,19 @@
 		<p class="muted">{t.tickets.ticket.lead}</p>
 	{/if}
 
-	<!-- The bill, with the online surcharge apart from the price. -->
-	<div class="bill">
-		<ul>
-			{#each data.lines as line (line.text)}<li>{line.text}</li>{/each}
-		</ul>
-		<p class="total"><span>{t.tickets.ticket.total}</span><strong>{data.total}</strong></p>
-		{#if data.hasFee}<p class="muted small">{t.tickets.ticket.fee}</p>{/if}
-		<p class="small">{t.tickets.ticket.payAtDoor}</p>
-	</div>
+	<!-- The bill, with the online surcharge apart from the price; Freikarten have none. -->
+	{#if data.free}
+		<p class="bill">{t.tickets.free.nothingToPay}</p>
+	{:else}
+		<div class="bill">
+			<ul>
+				{#each data.lines as line (line.text)}<li>{line.text}</li>{/each}
+			</ul>
+			<p class="total"><span>{t.tickets.ticket.total}</span><strong>{data.total}</strong></p>
+			{#if data.hasFee}<p class="muted small">{t.tickets.ticket.fee}</p>{/if}
+			<p class="small">{t.tickets.ticket.payAtDoor}</p>
+		</div>
+	{/if}
 
 	<ol class="tickets" class:void={data.cancelled}>
 		{#each data.tickets as ticket, i (ticket.code)}
@@ -42,7 +46,7 @@
 					<span class="ui-label">{t.tickets.ticket.of(i + 1, data.tickets.length)}</span>
 					<strong>{ticket.label}</strong>
 					<span>{ticket.seat || t.tickets.ticket.freeSeating}</span>
-					<span class="muted small">{ticket.price} · {data.name}</span>
+					<span class="muted small">{ticket.price ? `${ticket.price} · ` : ''}{data.name}</span>
 				</div>
 				<svg class="qr" viewBox="0 0 {ticket.qr.size} {ticket.qr.size}" role="img" aria-label="{t.tickets.ticket.code} {ticket.code}" shape-rendering="crispEdges">
 					<rect width={ticket.qr.size} height={ticket.qr.size} fill="#fff" />

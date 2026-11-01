@@ -1,4 +1,4 @@
-import { counts, type Ticket, type TicketOrder, type TicketSale } from '#lib/tickets/tickets.ts';
+import { takesSeat, type Ticket, type TicketOrder, type TicketSale } from '#lib/tickets/tickets.ts';
 import type { Store } from './types.ts';
 
 /** Concert tickets without D1 (demo, tests): the same rules as tickets-sql.ts, kept in memory. */
@@ -29,9 +29,9 @@ export function memoryTickets(): TicketMethods {
 		},
 		async placeTicketOrder(order, list, capacity) {
 			if (orders.has(order.id) || list.some((ticket) => tickets.has(ticket.code))) throw new Error('UNIQUE constraint failed');
-			const valid = new Set([...orders.values()].filter((o) => o.concertId === order.concertId && counts(o)).map((o) => o.id));
+			const valid = new Set([...orders.values()].filter((o) => o.concertId === order.concertId && takesSeat(o)).map((o) => o.id));
 			const sold = [...tickets.values()].filter((ticket) => valid.has(ticket.orderId)).length;
-			if (sold + list.length > capacity) return false;
+			if (capacity !== null && sold + list.length > capacity) return false;
 			orders.set(order.id, { ...copy(order), createdAt: sqlNow() });
 			for (const ticket of list) tickets.set(ticket.code, copy(ticket));
 			return true;

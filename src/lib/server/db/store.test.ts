@@ -371,6 +371,14 @@ describe.each([
 		expect(all.tickets.find((t) => t.code === 'c-0')).toMatchObject({ checkedInAt: '2026-11-21T16:01:00.000Z', checkedInBy: 'tuer@x.org' });
 		expect(all.tickets.find((t) => t.code === 'd-0')?.checkedInAt).toBeUndefined();
 
+		// The hall is full online (c, d: 4 of 4), but Freikarten come on top and are kept as such.
+		const free = { ...order('f'), email: '', channel: 'free' as const, status: 'paid' as const };
+		expect(await store.placeTicketOrder(free, tickets('f', 2).map((t) => ({ ...t, type: 'freikarte', cents: 0, feeCents: 0 })), null)).toBe(true);
+		expect((await store.ticketOrder('f'))?.order).toMatchObject({ email: '', channel: 'free', status: 'paid' });
+		// And they don't take seats online: with d cancelled, three fit again.
+		await store.setTicketOrderStatus('d', 'cancelled');
+		expect(await store.placeTicketOrder(order('g'), tickets('g', 3), 4)).toBe(true);
+
 		await store.deleteTicketsOf('c1');
 		expect(await store.ticketOrders('c1')).toEqual({ orders: [], tickets: [] });
 		expect(await store.ticketSales()).toEqual([]);

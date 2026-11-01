@@ -11,7 +11,8 @@ export const MAX_PER_ORDER = 10;
 export const KEEP_DAYS = 30;
 
 export type Seating = 'free';
-export type Channel = 'online' | 'sekretariat' | 'abendkasse';
+/** free: Freikarten the organisers hand out to named guests, outside the online capacity. */
+export type Channel = 'online' | 'sekretariat' | 'abendkasse' | 'free';
 /** held: in someone's checkout (seat plans, later); reserved: to be paid at the Kasse. */
 export type OrderStatus = 'held' | 'reserved' | 'paid' | 'cancelled';
 
@@ -145,8 +146,14 @@ export function parsePrices(text: string): TicketPrice[] | null {
 export const pricesText = (prices: TicketPrice[]) =>
 	prices.map((price) => `${price.label} ${price.cents % 100 ? (price.cents / 100).toFixed(2).replace('.', ',') : price.cents / 100}`).join('\n');
 
-/** Not cancelled: it counts against the capacity and gets in. */
+/** Not cancelled: it gets in. */
 export const counts = (order: Pick<TicketOrder, 'status'>) => order.status !== 'cancelled';
+
+/** Gets in and takes one of the seats online: Freikarten come on top of the capacity. */
+export const takesSeat = (order: Pick<TicketOrder, 'status' | 'channel'>) => counts(order) && order.channel !== 'free';
+
+/** The kind of a Freikarte as stored with it, apart from the organiser's prices. */
+export const FREE_TYPE = 'freikarte';
 
 export type SaleState = 'open' | 'closed' | 'ended' | 'soldout';
 
@@ -158,7 +165,7 @@ export function saleState(sale: TicketSale | null, sold: number, now: number): S
 	return 'open';
 }
 
-export type OrderProblem = 'empty' | 'tooMany' | 'unknownType' | 'name' | 'email';
+export type OrderProblem = 'empty' | 'tooMany' | 'unknownType' | 'name' | 'email' | 'count';
 
 /**
  * An order as tickets with what each costs on its channel, or what's wrong with it. `counts`
@@ -178,18 +185,33 @@ export function orderTickets(sale: TicketSale, counts: Record<string, unknown>, 
 	return tickets.length ? tickets : 'empty';
 }
 
-/** A buyer's name and e-mail as stored, or what's wrong with them. */
-export function buyer(name: unknown, email: unknown): { name: string; email: string } | OrderProblem {
+/** A buyer's name and e-mail as stored, or what's wrong with them. Freikarten may go without an e-mail. */
+export function buyer(name: unknown, email: unknown, emailRequired = true): { name: string; email: string } | OrderProblem {
 	const cleanName = typeof name === 'string' ? name.trim().replace(/\s+/g, ' ') : '';
 	const cleanEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
 	if (cleanName.length < 2 || cleanName.length > 100) return 'name';
+	if (!cleanEmail && !emailRequired) return { name: cleanName, email: '' };
 	if (cleanEmail.length > 200 || !/^[^\s@<>,]+@[^\s@<>,]+\.[^\s@<>,]+$/.test(cleanEmail)) return 'email';
 	return { name: cleanName, email: cleanEmail };
 }
 
+/** Freikarten for one guest: the name, an optional e-mail address and how many, or what's wrong. */
+export function freeGuest(name: unknown, email: unknown, count: unknown): { name: string; email: string; count: number } | OrderProblem {
+	const person = buyer(name, email, false);
+	if (typeof person === 'string') return person;
+	const n = Number(count);
+	if (!Number.isInteger(n) || n < 1 || n > MAX_PER_ORDER) return 'count';
+	return { ...person, count: n };
+}
+
+/** The tickets of a Freikarten order: nothing to pay, no surcharge. */
+export const freeTickets = (n: number) => Array.from({ length: n }, () => ({ type: FREE_TYPE, cents: 0, feeCents: 0 }));
+
 export interface SaleCounts {
-	/** Tickets of orders that aren't cancelled. */
+	/** Tickets of orders that aren't cancelled and take a seat online; Freikarten are apart. */
 	sold: number;
+	/** Freikarten that aren't cancelled. */
+	free: number;
 	checkedIn: number;
 	/** Euro cents of those tickets, surcharges included. */
 	cents: number;
@@ -199,11 +221,13 @@ export interface SaleCounts {
 }
 
 export function saleCounts(orders: TicketOrder[], tickets: Ticket[]): SaleCounts {
-	const valid = new Set(orders.filter(counts).map((order) => order.id));
-	const result: SaleCounts = { sold: 0, checkedIn: 0, cents: 0, feeCents: 0, byType: {} };
+	const valid = new Map(orders.filter(counts).map((order) => [order.id, order]));
+	const result: SaleCounts = { sold: 0, free: 0, checkedIn: 0, cents: 0, feeCents: 0, byType: {} };
 	for (const ticket of tickets) {
-		if (!valid.has(ticket.orderId)) continue;
-		result.sold++;
+		const order = valid.get(ticket.orderId);
+		if (!order) continue;
+		if (takesSeat(order)) result.sold++;
+		else result.free++;
 		result.cents += ticket.cents;
 		result.feeCents += ticket.feeCents;
 		result.byType[ticket.type] = (result.byType[ticket.type] ?? 0) + 1;

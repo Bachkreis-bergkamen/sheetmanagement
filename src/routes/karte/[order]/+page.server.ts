@@ -4,7 +4,7 @@ import { t } from '#lib/i18n/index.ts';
 import { getStore } from '#lib/server/db/index.ts';
 import { requireFeature } from '#lib/server/env.ts';
 import { getLibrary } from '#lib/server/library.ts';
-import { orderLines } from '#lib/server/tickets.ts';
+import { labelOf, orderLines } from '#lib/server/tickets.ts';
 import { qrPath } from '#lib/tickets/qr.ts';
 import { euro } from '#lib/tickets/tickets.ts';
 import type { PageServerLoad } from './$types';
@@ -22,18 +22,18 @@ export const load: PageServerLoad = async ({ params, setHeaders }) => {
 	const [library, sale] = await Promise.all([getLibrary(), getStore().ticketSale(order.concertId)]);
 	const event = library.schedule.ok ? library.schedule.byId.get(order.concertId) : undefined;
 	const money = (cents: number) => euro(cents, config.locale.startsWith('de') ? 'de-DE' : config.locale);
-	const labelOf = (type: string) => sale?.prices.find((price) => price.type === type)?.label ?? type;
 	// Nobody else's business, and not for search engines or shared caches.
 	setHeaders({ 'cache-control': 'private, no-store', 'x-robots-tag': 'noindex' });
 	return {
 		concert: event ? { title: event.displayTitle, date: event.date.long, time: event.date.time, location: event.location } : null,
 		name: order.name,
 		cancelled: order.status === 'cancelled',
+		free: order.channel === 'free',
 		tickets: tickets.map((ticket) => ({
 			code: ticket.code,
-			label: labelOf(ticket.type),
+			label: labelOf(sale, ticket.type),
 			seat: ticket.seat,
-			price: ticket.feeCents ? t.tickets.ticket.priceWithFee(money(ticket.cents), money(ticket.cents - ticket.feeCents), money(ticket.feeCents)) : money(ticket.cents),
+			price: order.channel === 'free' ? '' : ticket.feeCents ? t.tickets.ticket.priceWithFee(money(ticket.cents), money(ticket.cents - ticket.feeCents), money(ticket.feeCents)) : money(ticket.cents),
 			qr: qrPath(ticket.code)
 		})),
 		lines: sale

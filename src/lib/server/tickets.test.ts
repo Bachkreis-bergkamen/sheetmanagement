@@ -23,7 +23,7 @@ const concert = {
 };
 vi.mock('./library.ts', () => ({ getLibrary: async () => ({ schedule: { ok: true, byId: new Map([['herbst', concert]]) } }) }));
 
-const { publicSale, reserve, pruneTickets } = await import('./tickets.ts');
+const { publicSale, reserve, pruneTickets, giveFreeTickets, doorTickets, saleOverview } = await import('./tickets.ts');
 
 const now = Date.parse('2026-11-01T12:00:00Z');
 const sale = {
@@ -100,6 +100,40 @@ describe('reserve', () => {
 		await store.saveTicketSale({ ...sale, capacity: 100 });
 		for (let i = 0; i < 5; i++) expect((await reserve('herbst', { name: 'Anna', email: `a${i}@x.org`, tickets: { kinder: 1 } }, 'same', now)).ok).toBe(true);
 		expect(await reserve('herbst', { name: 'Anna', email: 'a9@x.org', tickets: { kinder: 1 } }, 'same', now)).toMatchObject({ ok: false, problem: 'rate' });
+	});
+});
+
+describe('giveFreeTickets', () => {
+	it('places Freikarten on top of the seats online and mails them without anything to pay', async () => {
+		const result = await giveFreeTickets('herbst', { name: 'Frau Meier', email: 'Meier@Example.org', count: '4' });
+		expect(result).toMatchObject({ ok: true, mailed: true });
+		if (!result.ok) return;
+		expect(result.url).toBe(`https://noten.example.org/karte/${result.orderId}`);
+		const found = await store.ticketOrder(result.orderId);
+		expect(found?.order).toMatchObject({ name: 'Frau Meier', email: 'meier@example.org', channel: 'free', status: 'paid' });
+		expect(found?.tickets.map((ticket) => [ticket.type, ticket.cents, ticket.feeCents])).toEqual(Array(4).fill(['freikarte', 0, 0]));
+
+		// More than the capacity of 3, and the website still sells all three seats.
+		expect((await publicSale('herbst', now))?.left).toBe(3);
+		expect((await saleOverview('herbst')).counts).toMatchObject({ sold: 0, free: 4 });
+		expect((await doorTickets('herbst')).map((ticket) => ticket.type)).toEqual(Array(4).fill('Freikarte'));
+
+		const [mail] = sent;
+		expect(mail).toMatchObject({ to: 'meier@example.org', subject: 'Deine Freikarten: Herbstkonzert' });
+		expect(mail.text).toContain('4 Freikarten, es gibt nichts zu bezahlen.');
+		expect(mail.text).not.toContain('Abendkasse');
+		expect(mail.text).not.toContain('€');
+		expect(mail.text).toContain(result.url!);
+		for (const ticket of found!.tickets) expect(mail.text).toContain(ticket.code);
+	});
+
+	it('goes without a mail when there is no address, and needs a sale', async () => {
+		expect(await giveFreeTickets('herbst', { name: 'Herr Bach', email: '', count: 1 })).toMatchObject({ ok: true, mailed: false });
+		expect(sent).toEqual([]);
+		expect(await giveFreeTickets('herbst', { name: 'Herr Bach', email: '', count: 11 })).toEqual({ ok: false, problem: 'count' });
+		expect(await giveFreeTickets('probe', { name: 'Herr Bach', email: '', count: 1 })).toEqual({ ok: false, problem: 'noSale' });
+		await store.deleteTicketsOf('herbst');
+		expect(await giveFreeTickets('herbst', { name: 'Herr Bach', email: '', count: 1 })).toEqual({ ok: false, problem: 'noSale' });
 	});
 });
 
