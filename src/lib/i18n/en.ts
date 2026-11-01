@@ -288,6 +288,7 @@ export const en: Texts = {
 	concert: {
 		/** In the public feed for the orchestra's website (#197). */
 		publish: {
+			title: 'Website',
 			on: "On the orchestra's website",
 			off: "Not on the orchestra's website",
 			publish: 'Publish',
@@ -647,6 +648,8 @@ export const en: Texts = {
 		title: 'Tickets',
 		manage: 'Ticket sales',
 		door: 'Door',
+		doorHint: 'Scan tickets and let guests in',
+		manageHint: 'Seats, prices and reservations',
 		notAConcert: 'Only concerts have tickets.',
 		setup: {
 			lead: 'Reservations through the website, paid at the door. Printed tickets from the school office don’t count here yet: keep seats free for them.',

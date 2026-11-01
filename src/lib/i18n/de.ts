@@ -290,6 +290,7 @@ export const de = {
 	concert: {
 		/** In the public feed for the orchestra's website (#197). */
 		publish: {
+			title: 'Website',
 			on: 'Auf der Website des Orchesters',
 			off: 'Nicht auf der Website des Orchesters',
 			publish: 'Veröffentlichen',
@@ -650,6 +651,8 @@ export const de = {
 		/** On the concert's page, for organisers. */
 		manage: 'Kartenverkauf',
 		door: 'Einlass',
+		doorHint: 'Karten scannen und Gäste einlassen',
+		manageHint: 'Plätze, Preise und Reservierungen',
 		notAConcert: 'Karten gibt es nur für Konzerte.',
 		setup: {
 			lead: 'Reservierungen über die Website, bezahlt wird an der Abendkasse. Gedruckte Karten aus dem Sekretariat zählen hier noch nicht mit: lass für sie Plätze frei.',
