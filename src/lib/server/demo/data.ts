@@ -50,6 +50,8 @@ const MODIFIED = '2026-09-01T12:00:00Z';
 
 const STRINGS = ['Geige I', 'Geige II', 'Viola', 'Violoncello', 'Kontrabass'];
 const WINDS = ['Flöte', 'Oboe', 'Klarinette in B', 'Fagott', 'Horn in F', 'Trompete in B'];
+/** The score and its reductions, named with the "@" prefix. */
+const SCORES = ['Partitur', 'Klavierauszug', 'Streicherauszug'];
 
 interface SamplePiece {
 	id: string;
@@ -126,7 +128,7 @@ const PIECES: SamplePiece[] = [
 		title: 'Jesu bleibet meine Freude',
 		composer: 'Johann Sebastian Bach',
 		duration: '3:30',
-		parts: ['Partitur', 'Oboe', ...STRINGS],
+		parts: ['Partitur', 'Oboe', ...STRINGS, 'Klavierauszug'],
 		gaps: { Viola: 'UNVOLLSTÄNDIG' }
 	},
 	{
@@ -137,7 +139,7 @@ const PIECES: SamplePiece[] = [
 		composer: 'Edvard Grieg',
 		duration: '3:45',
 		publisher: 'Edition Peters',
-		parts: ['Partitur', 'Flöte', 'Oboe', 'Klarinette in B', 'Horn in F', ...STRINGS]
+		parts: ['Partitur', 'Flöte', 'Oboe', 'Klarinette in B', 'Horn in F', ...STRINGS, 'Streicherauszug']
 	},
 	{
 		id: 'demo-007',
@@ -206,7 +208,7 @@ export function demoFiles(): DemoFile[] {
 		});
 		piece.parts.forEach((part, i) => {
 			const gap = piece.gaps?.[part];
-			const prefix = part === 'Partitur' ? '@' : '';
+			const prefix = SCORES.includes(part) ? '@' : '';
 			files.push({
 				id: `${piece.id}-${i}`,
 				name: `${prefix}${piece.short} - ${part}${gap ? ` - ${gap}` : ''}${gap === 'FEHLT' ? '' : '.pdf'}`,

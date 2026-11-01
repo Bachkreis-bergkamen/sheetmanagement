@@ -12,6 +12,8 @@ describe('parsePartName', () => {
 		// The orchestra's own convention
 		['BWV 147 - Geige II.pdf', 'Geige II', 'stimme'],
 		['@BWV 147 - Partitur.pdf', 'Partitur', 'partitur'],
+		['@BWV 147 - Klavierauszug.pdf', 'Klavierauszug', 'partitur'],
+		['@Egmont - Streicherauszug.pdf', 'Streicherauszug', 'partitur'],
 		['Sword Dance - Trompete I in B.pdf', 'Trompete I in B', 'stimme'],
 		['Fame - Geige III / Viola.pdf', 'Geige III / Bratsche', 'sammelstimme'],
 		['Fame - Pauke & Schlagwerk.pdf', 'Pauke & Schlagwerk', 'sammelstimme'],
@@ -51,6 +53,10 @@ describe('parsePartName', () => {
 		['Barcarolle-Bass-Clarinet-Trombone.pdf', 'Bassklarinette & Posaune', 'sammelstimme'],
 		['Thriller - Part 5 Trombone Baritone BC Bassoonpdf.pdf', 'Stimme 5: Posaune & Bariton & Fagott', 'sammelstimme'],
 		['Viva_la_Vida-Pianopdf.pdf', 'Klavier', 'stimme'],
+		// A reduction of the score is a score, not the piano or string part
+		['Messiah-Piano-Reduction.pdf', 'Klavierauszug', 'partitur'],
+		['Messiah Vocal Score.pdf', 'Klavierauszug', 'partitur'],
+		['Egmont_String_Reduction.pdf', 'Streicherauszug', 'partitur'],
 		// Clefs written "BC"/"TC", before or after the instrument
 		['Phantom-BC-Baritone.pdf', 'Bariton', 'stimme'],
 		['SEVEN NATION ARMY-BaritoneTC.pdf', 'Bariton', 'stimme']

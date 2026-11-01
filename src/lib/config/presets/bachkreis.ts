@@ -16,6 +16,9 @@ export const bachkreis: OrchestraConfig = {
 
 	instruments: [
 		{ name: 'Partitur', family: 'partitur', common: true, aliases: ['Score', 'Full Score', 'Direktion', 'Dirigent', 'Conductor', 'Gesamtausgabe', 'Gesammtausgabe', 'Ges', 'Full Orchestra'] },
+		// Reductions of the score: for rehearsals at the piano, or a strings-only setting.
+		{ name: 'Klavierauszug', family: 'partitur', common: true, aliases: ['Klavier-Auszug', 'Klavierauszüge', 'Piano Reduction', 'Piano Score', 'Piano Conductor', 'Vocal Score'] },
+		{ name: 'Streicherauszug', family: 'partitur', common: true, aliases: ['Streicher-Auszug', 'String Reduction', 'Strings Reduction', 'String Score'] },
 
 		{ name: 'Blockflöte', family: 'holz', aliases: ['Recorder', 'Recorders'] },
 		{ name: 'Tenor-Blockflöte', family: 'holz', aliases: ['Tenorblockflöte', 'Tenor Recorder'] },
@@ -214,6 +217,8 @@ export const bachkreis: OrchestraConfig = {
 		Percussion: ['Schlagwerk', 'Pauke', 'Glockenspiel', 'Xylophon', 'Becken', 'Große Trommel', 'Trommel', 'Tamburin', 'Tamtam'],
 		Schlagwerk: ['Percussion', 'Becken', 'Große Trommel', 'Trommel', 'Tamburin', 'Tamtam'],
 		Continuo: ['Cembalo', 'Orgel', 'Violoncello', 'Kontrabass', 'Fagott'],
+		// The pianist can rehearse from the piano reduction.
+		Klavierauszug: ['Klavier'],
 		// Most arrangements' bass guitar parts are played on the double bass.
 		'E-Bass': ['Kontrabass']
 	}

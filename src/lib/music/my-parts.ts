@@ -127,7 +127,11 @@ export function matchParts(parts: Part[], choice: InstrumentChoice, config: Orch
 		part.voices.some((voice) => voice.instrument === choice.instrument && voice.numbers.some((n) => choice.numbers.includes(n)))
 	);
 	if (exact.length) own = exact;
-	const shared = parts.filter((part) => !own.includes(part) && part.instruments.some((name) => groups.has(name)));
+	// Whoever reads the score also reads its reductions ("Klavierauszug", "Streicherauszug").
+	const readsScore = config.instruments.some((instrument) => instrument.name === choice.instrument && instrument.family === 'partitur');
+	const shared = parts.filter(
+		(part) => !own.includes(part) && (part.instruments.some((name) => groups.has(name)) || (readsScore && part.kind === 'partitur'))
+	);
 	return { own, shared };
 }
 
