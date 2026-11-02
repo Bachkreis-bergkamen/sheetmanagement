@@ -202,9 +202,9 @@ test('picking an instrument from the grid (#165)', async ({ page }) => {
 });
 
 test('the current programme in Drive follows the programme (#60)', async ({ page }) => {
-	await open(page, '/kalender/demo-herbstkonzert');
-	// EO and A play this concert, each with its own programme and folder; the finale they
-	// play together is in both.
+	// Planners keep it under "Planung". EO and A play this concert, each with its own programme
+	// and folder; the finale they play together is in both.
+	await open(page, '/kalender/demo-herbstkonzert?planung');
 	const drive = page.locator('form.drive').first();
 	const driveA = page.locator('form.drive').last();
 	await expect(drive).toContainText('4 von 5 Stücken');
@@ -214,6 +214,7 @@ test('the current programme in Drive follows the programme (#60)', async ({ page
 	await page.getByRole('button', { name: 'Entfernen' }).last().click();
 	await page.getByRole('button', { name: 'Speichern' }).click();
 	await expect(page.getByText('Auch im Drive-Ordner »Aktuelles Programm« abgeglichen.')).toBeVisible();
+	await open(page, '/kalender/demo-herbstkonzert?planung');
 	await expect(drive).toContainText('Alle 4 Stücke');
 	await expect(driveA).toContainText('Noch kein Programmordner für A');
 	await drive.getByRole('button', { name: 'Abgleichen' }).click();
