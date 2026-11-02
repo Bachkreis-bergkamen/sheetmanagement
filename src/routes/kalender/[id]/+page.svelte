@@ -82,6 +82,8 @@
 	}
 	const overview = $derived(!planning || view === 'overview');
 	const planner = $derived(!planning || view === 'planung');
+	/** Editing links, Drive and suggestions sit inline only where there's no "Planung" to keep them in. */
+	const inlineTools = $derived(!planning);
 	const showPlan = $derived(
 		data.kind === 'event' &&
 			!isConcert &&
@@ -122,7 +124,13 @@
 		{#if partsUrl}
 			<a class="btn" href={partsUrl}><Icon name="parts" size={18} />{t.nav.myParts}</a>
 		{/if}
-		<div class="ui-actions"><ShareButton {title} text={shareText} url={page.url.pathname} /></div>
+		<div class="ui-actions">
+			<ShareButton {title} text={shareText} url={page.url.pathname} />
+			<!-- Where it came from: a quiet way out, beside sharing rather than among the facts. -->
+			{#if data.kind === 'event' && data.event.url}
+				<a href={data.event.url} target="_blank" rel="noopener noreferrer"><Icon name="calendar" size={16} />{t.concert.openInCalendar}</a>
+			{/if}
+		</div>
 	</div>
 </header>
 
@@ -245,22 +253,19 @@
 			</div>
 		</li>
 	{/if}
-	{#if data.kind === 'event' && data.event.url}
+	{#if data.kind === 'event' && data.event.description}
+		<!-- The note from the calendar is one more fact, not a section of its own. -->
 		<li>
-			<a class="fact quiet" href={data.event.url} target="_blank" rel="noopener noreferrer">
-				<span class="icon"><Icon name="external" size={16} /></span>
-				<span class="fact-body"><span>{t.concert.openInCalendar}</span></span>
-			</a>
+			<div class="fact top">
+				<span class="icon"><Icon name="note" size={18} /></span>
+				<span class="fact-body">
+					<span class="over">{t.concert.description}</span>
+					<span class="description">{data.event.description}</span>
+				</span>
+			</div>
 		</li>
 	{/if}
 </ul>
-
-{#if data.kind === 'event' && data.event.description}
-	<section class="block">
-		<h2 class="ui-label">{t.concert.description}</h2>
-		<p class="ui-card description">{data.event.description}</p>
-	</section>
-{/if}
 {/if}
 
 {#if check && planner}
@@ -296,8 +301,17 @@
 			{#if data.program.canEdit}
 				<li><a href="/kalender/{id}/programm"><Icon name="edit" size={18} /><span>{t.editor.edit}</span><Icon name="chevron" size={18} /></a></li>
 			{/if}
+			{#if data.program.canEdit && data.program.suggestions}
+				<li><a href="/kalender/{id}/programm"><Icon name="bulb" size={18} /><span>{t.editor.openSuggestions(data.program.suggestions)}</span><Icon name="chevron" size={18} /></a></li>
+			{/if}
+			{#if data.program.canEdit && data.program.jointUrl}
+				<li><a href={data.program.jointUrl}><Icon name="link" size={18} /><span>{t.editor.addJoint(data.program.jointNames)}</span><Icon name="chevron" size={18} /></a></li>
+			{/if}
 			{#if data.kind === 'event' && data.rehearsalPlan.editUrl}
 				<li><a href={data.rehearsalPlan.editUrl}><Icon name="calendar" size={18} /><span>{t.rehearsalPlan.edit}</span><Icon name="chevron" size={18} /></a></li>
+			{/if}
+			{#if data.kind === 'event' && data.addRehearsalUrl}
+				<li><a href={data.addRehearsalUrl}><Icon name="plus" size={18} /><span>{t.concert.addRehearsal}</span><Icon name="chevron" size={18} /></a></li>
 			{/if}
 			{#if planning.attendanceUrl}
 				<li>
@@ -314,6 +328,15 @@
 			{/if}
 		</ul>
 	</section>
+	{#if data.program.groups.some((group) => group.drive && group.items.length)}
+		<!-- "01 | Aktuelles Programm" for each orchestra, kept here so the overview stays the programme itself. -->
+		<section class="block">
+			<h2 class="ui-label">{t.currentProgram.title}</h2>
+			{#each data.program.groups as group (group.orchestra)}
+				{#if group.drive && group.items.length}{@render driveCard(group, several ? group.label : t.currentProgram.title)}{/if}
+			{/each}
+		</section>
+	{/if}
 {/if}
 
 {#if data.kind === 'event' && (data.tickets?.doorUrl || data.tickets?.manageUrl)}
@@ -478,7 +501,7 @@
 					<a href="/kalender/{id}/drucken"><Icon name="print" size={16} />{t.print.link}</a>
 					{#if data.program.canPrintSet}<a href="/kalender/{id}/stimmensatz"><Icon name="file" size={16} />{t.partSet.link}</a>{/if}
 				{/if}
-				{#if data.program.canEdit && !several}
+				{#if data.program.canEdit && !several && inlineTools}
 					<a href={data.program.groups[0].editUrl}><Icon name="edit" size={16} />{t.editor.edit}</a>
 				{/if}
 			</div>
@@ -500,7 +523,7 @@
 				</span>
 			</p>
 		{/if}
-		{#if data.program.canEdit && data.program.suggestions}
+		{#if data.program.canEdit && data.program.suggestions && inlineTools}
 			<p class="note">
 				<Icon name="bulb" size={16} />
 				<a href="/kalender/{id}/programm">{t.editor.openSuggestions(data.program.suggestions)}</a>
@@ -511,62 +534,24 @@
 			{#if several}
 				<div class="group-head" class:joint={group.joint}>
 					<h3>{#if group.joint}<Icon name="link" size={16} />{/if}{group.label}</h3>
-					{#if data.program.canEdit}
+					{#if data.program.canEdit && inlineTools}
 						<a href={group.editUrl}><Icon name="edit" size={16} />{t.editor.edit}</a>
 					{/if}
 				</div>
 			{/if}
 			{#if group.items.length}
 				<ProgramList items={group.items} total />
-				{#if group.drive}
-					{@const drive = group.drive}
-					{@const mine = form?.currentProgramOrchestra === group.orchestra}
-					{@const result = mine ? form?.currentProgram : undefined}
-					<!-- "01 | Aktuelles Programm" (#60): how far the folder matches, and one button to make it match. -->
-					<form
-						class="ui-card drive"
-						method="POST"
-						action="?/currentProgram"
-						use:enhance={() => {
-							syncing = group.orchestra;
-							return async ({ update }) => {
-								await update({ reset: false });
-								syncing = null;
-							};
-						}}
-					>
-						<input type="hidden" name="orchestra" value={group.orchestra} />
-						<span class="icon" class:done={result || (drive.program && drive.linked === drive.total && !drive.extra.length)}><Icon name="folder" size={18} /></span>
-						<span class="fact-body">
-							<strong>{t.currentProgram.title}</strong>
-							<span>
-								{#if result}
-									{t.currentProgram.done(result.added.length, result.removed.length)}{#if result.removed.length}{' '}{t.currentProgram.removedHint}{/if}{#if result.stuck.length}{' '}{t.currentProgram.stuck(result.stuck)}{/if}
-								{:else if !drive.program}
-									{t.currentProgram.noFolder(drive.orchestra)}
-								{:else if drive.linked === drive.total && !drive.extra.length}
-									{t.currentProgram.complete(drive.total, drive.program)}
-								{:else}
-									{t.currentProgram.partly(drive.linked, drive.total, drive.program)}{#if drive.extra.length}{' '}{t.currentProgram.extra(drive.extra.length)}{/if}
-								{/if}
-								{#if !drive.next}· {t.currentProgram.notNext}{/if}
-							</span>
-							{#if mine && form?.currentProgramError}<span class="drive-error" role="alert">{form.currentProgramError}</span>{/if}
-						</span>
-						{#if result}<a class="open" href={result.folderUrl} target="_blank" rel="noopener noreferrer">{t.currentProgram.open}<Icon name="external" size={14} /></a>{/if}
-						<button class="btn small secondary" disabled={syncing !== null}><Icon name="refresh" size={16} />{t.currentProgram.sync}</button>
-					</form>
-				{/if}
+				{#if group.drive && inlineTools}{@render driveCard(group, t.currentProgram.title)}{/if}
 			{:else}
 				<p class="placeholder">{data.program.sheet === 'ok' ? t.concert.programEmpty : t.concert.programNoSheet}</p>
 			{/if}
 		{/each}
-		{#if data.program.canEdit && data.program.jointUrl}
+		{#if data.program.canEdit && data.program.jointUrl && inlineTools}
 			<!-- Nothing played together yet: one click to the editor's tab for it. -->
 			<a class="add-joint" href={data.program.jointUrl}><Icon name="link" size={16} />{t.editor.addJoint(data.program.jointNames)}</a>
 		{/if}
 		<!-- Where it's kept only matters to those who keep it. -->
-		{#if data.program.canEdit && data.program.items.length}<p class="hint">{t.concert.programHint}</p>{/if}
+		{#if data.program.canEdit && data.program.items.length && inlineTools}<p class="hint">{t.concert.programHint}</p>{/if}
 	</section>
 {/if}
 
@@ -574,7 +559,7 @@
 	<section class="block">
 		<div class="block-head">
 			<h2 class="ui-label">{t.concert.rehearsals}</h2>
-			{#if data.rehearsalPlan.editUrl || data.addRehearsalUrl}
+			{#if (data.rehearsalPlan.editUrl || data.addRehearsalUrl) && inlineTools}
 				<div class="ui-actions">
 					{#if data.addRehearsalUrl}<a href={data.addRehearsalUrl}><Icon name="plus" size={16} />{t.concert.addRehearsal}</a>{/if}
 					{#if data.rehearsalPlan.editUrl}<a href={data.rehearsalPlan.editUrl}><Icon name="edit" size={16} />{t.rehearsalPlan.edit}</a>{/if}
@@ -684,6 +669,48 @@
 {#if planner && isConcert && data.program.instrumentation}
 	<InstrumentationMatrix {...data.program.instrumentation} />
 {/if}
+
+{#snippet driveCard(group: (typeof data.program.groups)[number], heading: string)}
+	{#if group.drive}
+		{@const drive = group.drive}
+		{@const mine = form?.currentProgramOrchestra === group.orchestra}
+		{@const result = mine ? form?.currentProgram : undefined}
+		<!-- "01 | Aktuelles Programm" (#60): how far the folder matches, and one button to make it match. -->
+		<form
+			class="ui-card drive"
+			method="POST"
+			action="?/currentProgram"
+			use:enhance={() => {
+				syncing = group.orchestra;
+				return async ({ update }) => {
+					await update({ reset: false });
+					syncing = null;
+				};
+			}}
+		>
+			<input type="hidden" name="orchestra" value={group.orchestra} />
+			<span class="icon" class:done={result || (drive.program && drive.linked === drive.total && !drive.extra.length)}><Icon name="folder" size={18} /></span>
+			<span class="fact-body">
+				<strong>{heading}</strong>
+				<span>
+					{#if result}
+						{t.currentProgram.done(result.added.length, result.removed.length)}{#if result.removed.length}{' '}{t.currentProgram.removedHint}{/if}{#if result.stuck.length}{' '}{t.currentProgram.stuck(result.stuck)}{/if}
+					{:else if !drive.program}
+						{t.currentProgram.noFolder(drive.orchestra)}
+					{:else if drive.linked === drive.total && !drive.extra.length}
+						{t.currentProgram.complete(drive.total, drive.program)}
+					{:else}
+						{t.currentProgram.partly(drive.linked, drive.total, drive.program)}{#if drive.extra.length}{' '}{t.currentProgram.extra(drive.extra.length)}{/if}
+					{/if}
+					{#if !drive.next}· {t.currentProgram.notNext}{/if}
+				</span>
+				{#if mine && form?.currentProgramError}<span class="drive-error" role="alert">{form.currentProgramError}</span>{/if}
+			</span>
+			{#if result}<a class="open" href={result.folderUrl} target="_blank" rel="noopener noreferrer">{t.currentProgram.open}<Icon name="external" size={14} /></a>{/if}
+			<button class="btn small secondary" disabled={syncing !== null}><Icon name="refresh" size={16} />{t.currentProgram.sync}</button>
+		</form>
+	{/if}
+{/snippet}
 
 <style>
 	.head {
@@ -1057,9 +1084,15 @@
 		text-transform: uppercase;
 	}
 
-	.fact.quiet .fact-body span {
-		color: var(--accent);
-		font-weight: 600;
+	/* A longer note: the icon stays by its first line. */
+	.fact.top {
+		align-items: flex-start;
+	}
+
+	.fact-body .description {
+		margin-top: 2px;
+		color: var(--text);
+		font-size: var(--text-md);
 	}
 
 	.trail {
@@ -1171,6 +1204,15 @@
 		gap: var(--space-3);
 		margin-top: var(--space-3);
 		padding: var(--space-3) var(--space-4);
+	}
+
+	.ui-label + .drive {
+		margin-top: 0;
+	}
+
+	/* On a phone the status reads across the card and the button drops below it. */
+	.drive .fact-body {
+		flex-basis: 14rem;
 	}
 
 	.drive .icon.done {
