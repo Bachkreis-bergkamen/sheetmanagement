@@ -1,6 +1,6 @@
 {
 	"schemaVersion": 2,
-	"generatedAt": "2026-10-27T18:31:14.051Z",
+	"generatedAt": "2026-11-02T09:31:56.909Z",
 	"title": "Design System: Sheetmanagement",
 	"extensions": {
 		"colorMeta": {
@@ -464,6 +464,16 @@
 				"name": "unfold",
 				"value": "0.25s",
 				"purpose": "Details sections open to auto height."
+			},
+			{
+				"name": "season-loop",
+				"value": "linear, about 4–15s, infinite",
+				"purpose": "The season's motifs drifting behind the story card; the only looping motion, off under prefers-reduced-motion."
+			},
+			{
+				"name": "season-hop",
+				"value": "0.6s cubic-bezier(0.2, 0.8, 0.2, 1)",
+				"purpose": "The footer pair hopping in once on the shared curve."
 			}
 		],
 		"breakpoints": [
@@ -545,11 +555,19 @@
 			"description": "Phone navigation below 720px; the current place sits on a soft gold pill.",
 			"html": "<nav class=\"ds-tabbar\"><a class=\"on\" href=\"#\" aria-current=\"page\"><span class=\"pill\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z\"/></svg></span>Übersicht</a><a href=\"#\"><span class=\"pill\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M6 3h12v18l-6-4-6 4z\"/></svg></span>Meine Noten</a><a href=\"#\"><span class=\"pill\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"5\" width=\"18\" height=\"16\" rx=\"2\"/><path d=\"M3 10h18M8 3v4M16 3v4\"/></svg></span>Kalender</a></nav>",
 			"css": ".ds-tabbar{display:grid;grid-template-columns:repeat(3,1fr);height:64px;background:color-mix(in oklab,var(--bg,#f4f4f1) 94%,transparent);backdrop-filter:saturate(1.6) blur(20px);border-top:1px solid color-mix(in oklab,var(--border,#e0ded7) 75%,transparent)}.ds-tabbar a{display:grid;justify-items:center;align-content:center;gap:2px;color:var(--text-muted,#625e55);font:500 11.5px ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;text-decoration:none}.ds-tabbar .pill{display:grid;place-items:center;width:56px;height:30px;border-radius:999px;transition:background .15s cubic-bezier(.2,.8,.2,1)}.ds-tabbar a.on{color:var(--accent,#815c09);font-weight:650}.ds-tabbar a.on .pill{background:var(--accent-soft,color-mix(in oklab,#e6b422 22%,transparent))}.ds-tabbar a:focus-visible{outline:2px solid var(--accent,#815c09);outline-offset:2px;border-radius:8px}"
+		},
+		{
+			"name": "Season marks",
+			"kind": "custom",
+			"refersTo": "season-mark",
+			"description": "The season's line drawings: a motif and its companion (autumn: a leaf and a kite). In the footer at 22px in the accent at 45%; behind the story card larger, in the brand gold at 60%.",
+			"html": "<span class=\"ds-season-pair\"><span class=\"ds-season-motif\"><svg viewBox=\"0 0 24 24\" width=\"14\" height=\"14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 19C5 10 10 5 19 5c0 9-5 14-14 14z\"/><path d=\"M5 19L14 10M9.5 14.5h3.5M12 12V9\"/></svg></span><span class=\"ds-season-companion\"><svg viewBox=\"0 0 24 24\" width=\"22\" height=\"22\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><g class=\"ds-kite\"><path d=\"M14 2.5l5 5.5-5 8.5-5-8.5z\"/><path d=\"M9 8h10M14 2.5v14\"/><path d=\"M14 16.5c-1.8 1.2.2 2.4-1.6 3.6s.2 2.4-1.6 3.4\"/></g></svg></span></span>",
+			"css": ".ds-season-pair { display: inline-flex; align-items: flex-end; gap: 2px; color: color-mix(in oklab, var(--accent, #815c09) 45%, transparent); } .ds-season-motif { opacity: 0.7; display: grid; } .ds-season-companion { display: grid; animation: ds-hop 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both; } .ds-season-companion svg { animation: ds-sway 5s ease-in-out 6 alternate; transform-origin: 30% 100%; } @keyframes ds-hop { 0% { translate: 0 6px; scale: 0.6; opacity: 0; } 60% { translate: 0 -2px; scale: 1.05; opacity: 1; } 100% { translate: 0 0; scale: 1; } } @keyframes ds-sway { from { rotate: -8deg; } to { rotate: 10deg; } } @media (prefers-reduced-motion: reduce) { .ds-season-pair * { animation: none !important; } }"
 		}
 	],
 	"narrative": {
 		"northStar": "The Stand Folder",
-		"overview": "Every player has a folder on the music stand: their parts, the dates, a pencilled note from the last rehearsal. The app is that folder on the phone. It's quiet and practical, and everything for *my* part is within reach of a thumb. The orchestra's colour is the tab on the folder: it marks where to look and what to press, and it isn't wallpaper. The next date, the answer and one's own part come first. Organisers' tools sit further back and use the same materials.\n\nThe density is calm, not sparse. White cards lie on a nearly neutral paper page, lists are inset with hairlines between rows, and there's one primary action per area. The poster world of the Bachkreis (black and gold, the condensed heading face, the logo large and dim behind the greeting) shows up in a few chosen places: page titles, the dark story card on the start page, and the date blocks of concerts. The rest stays out of the way.\n\nThe whole system is themeable per orchestra. Bachkreis-Gold is the Bachkreis preset's accent. Another orchestra sets its own colour, and the light and dark shades are derived from it so that text and buttons keep 4.5:1. The \"plain\" look swaps the condensed display face for a classic serif and drops the watermark.",
+		"overview": "Every player has a folder on the music stand: their parts, the dates, a pencilled note from the last rehearsal. The app is that folder on the phone. It's quiet and practical, and everything for *my* part is within reach of a thumb. The orchestra's colour is the tab on the folder: it marks where to look and what to press, and it isn't wallpaper. The next date, the answer and one's own part come first. Organisers' tools sit further back and use the same materials.\n\nThe density is calm, not sparse. White cards lie on a nearly neutral paper page, lists are inset with hairlines between rows, and there's one primary action per area. The poster world of the Bachkreis (black and gold, the condensed heading face, the logo large and dim behind the greeting) shows up in a few chosen places: page titles, the dark story card on the start page with the season drifting through it, and the date blocks of concerts. The rest stays out of the way.\n\nThe whole system is themeable per orchestra. Bachkreis-Gold is the Bachkreis preset's accent. Another orchestra sets its own colour, and the light and dark shades are derived from it so that text and buttons keep 4.5:1. The \"plain\" look swaps the condensed display face for a classic serif and drops the watermark.",
 		"keyCharacteristics": [
 			"One accent colour per orchestra, used sparingly for actions, the current place and concerts.",
 			"Condensed bold display headings over a system sans for everything you read or tap.",
@@ -587,7 +605,7 @@
 			{
 				"name": "The Paper On Paper Rule",
 				"body": "There are only two levels: resting cards and raised overlays. Don't stack a shadowed card inside a shadowed card. Inner groups use Stand Grey or a hairline instead.",
-				"section": "elevation & depth"
+				"section": "elevation"
 			}
 		],
 		"dos": [
@@ -604,7 +622,7 @@
 			"**Don't** add thick one-sided colour stripes to cards or chips. Use a tint, a full hairline or a small dot to mark a type.",
 			"**Don't** set readable text below 0.75rem, or in px where it should follow the text size setting.",
 			"**Don't** nest a shadowed card inside a shadowed card.",
-			"**Don't** use bouncy or elastic easing. Every transition, the segmented control's thumb included, runs on the one curve.",
+			"**Don't** use bouncy or elastic easing. Every transition, the segmented control's thumb included, runs on the one curve. The only looping motion is the season's scene, and it stops with reduced motion.",
 			"**Don't** write a colour, size or radius as a literal in a component. Use the tokens in `src/app.css`; the tuner and metronome drawings, which paint their own wood, brass and dial, are the only exception."
 		]
 	}

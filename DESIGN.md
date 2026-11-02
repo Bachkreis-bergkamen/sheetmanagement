@@ -120,7 +120,7 @@ components:
 
 Every player has a folder on the music stand: their parts, the dates, a pencilled note from the last rehearsal. The app is that folder on the phone. It's quiet and practical, and everything for *my* part is within reach of a thumb. The orchestra's colour is the tab on the folder: it marks where to look and what to press, and it isn't wallpaper. The next date, the answer and one's own part come first. Organisers' tools sit further back and use the same materials.
 
-The density is calm, not sparse. White cards lie on a nearly neutral paper page, lists are inset with hairlines between rows, and there's one primary action per area. The poster world of the Bachkreis (black and gold, the condensed heading face, the logo large and dim behind the greeting) shows up in a few chosen places: page titles, the dark story card on the start page, and the date blocks of concerts. The rest stays out of the way.
+The density is calm, not sparse. White cards lie on a nearly neutral paper page, lists are inset with hairlines between rows, and there's one primary action per area. The poster world of the Bachkreis (black and gold, the condensed heading face, the logo large and dim behind the greeting) shows up in a few chosen places: page titles, the dark story card on the start page with the season drifting through it, and the date blocks of concerts. The rest stays out of the way.
 
 The whole system is themeable per orchestra. Bachkreis-Gold is the Bachkreis preset's accent. Another orchestra sets its own colour, and the light and dark shades are derived from it so that text and buttons keep 4.5:1. The "plain" look swaps the condensed display face for a classic serif and drops the watermark.
 
@@ -249,7 +249,14 @@ Calm, round and thumb-sized. They're quiet until touched.
 A 52px column with the weekday, day number and month stacked in a block with the control radius (12px), tinted with the event type's tone. Concerts get the full accent fill with contrast text. It's the app's most repeated mark: every list of dates starts with it.
 
 ### Story card (signature)
-The start page's greeting is always on Poster Black, in both schemes, with a hairline edge so it holds its shape on the dark page. The greeting is in the brand colour at full strength, with no eyebrow above it, and the orchestra's logo sits large and dim (20% opacity) behind it, bleeding off the right edge. It's the one place the poster speaks loudly. On phones it stays short so the next date is still on the first screen.
+The start page's greeting is always on Poster Black, in both schemes, with a hairline edge so it holds its shape on the dark page. The greeting is in the brand colour at full strength, with no eyebrow above it, and the orchestra's logo sits large and dim (20% opacity) behind it, bleeding off the right edge. The season's scene drifts between the greeting and the logo (see Season marks). It's the one place the poster speaks loudly. On phones it stays short so the next date is still on the first screen.
+
+### Season marks (signature)
+Small line drawings for the time of year, drawn on a 24 grid with round strokes like pencil marks in the margin: stars and a candle in Advent, a burst and a sparkling glass at New Year, snow and a waving snowman in winter, blossoms and a butterfly in spring, a sun and a sailing boat in summer, leaves and a kite in autumn, and a flapping bat at Halloween. They appear in two places only:
+- **Scene:** behind the story card's greeting, in the brand colour at 60% opacity, the motifs drifting, falling or twinkling in slow linear loops and the companion moving one part (wings, an arm, a flame). On a wide card they're drawn 1.6× larger and kept between the greeting and the logo, never on top of it.
+- **Pair:** one motif and its companion at 22px in the footer, in the accent at 45%, hopping in once on the shared curve and moving a few times before they rest.
+
+With reduced motion everything stands still, and snow lies where it would have fallen. The marks never carry meaning and never appear on working pages.
 
 ### Answer dock (signature)
 On phones the start page reads at the top and acts at the bottom. The next date's question ("Bist du am Samstag dabei?"), its three answer buttons and a full-width "Meine Noten · <instrument>" button sit in a frosted dock fixed right above the tab bar, in thumb reach. Once answered, it shrinks to one line, and the whole band takes the answer's colour (green, amber or red, at about 15% over the page), with "ändern" on the right. When the next date's card scrolls out of view, the dock slides away, because its answers belong to that date. Toasts rise above it (`--dock-height`). On desktop the same controls sit inside the card. Later dates never get their own answer buttons on the start page, only an answer line that links to the date.
@@ -273,5 +280,5 @@ The month view is a velvet board with paper stickers for rehearsals, the General
 - **Don't** add thick one-sided colour stripes to cards or chips. Use a tint, a full hairline or a small dot to mark a type.
 - **Don't** set readable text below 0.75rem, or in px where it should follow the text size setting.
 - **Don't** nest a shadowed card inside a shadowed card.
-- **Don't** use bouncy or elastic easing. Every transition, the segmented control's thumb included, runs on the one curve.
+- **Don't** use bouncy or elastic easing. Every transition, the segmented control's thumb included, runs on the one curve. The only looping motion is the season's scene, and it stops with reduced motion.
 - **Don't** write a colour, size or radius as a literal in a component. Use the tokens in `src/app.css`; the tuner and metronome drawings, which paint their own wood, brass and dial, are the only exception.
