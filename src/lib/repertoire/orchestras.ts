@@ -17,13 +17,16 @@ export const sameOrchestra = (a: string | undefined, b: string | undefined) => s
 /**
  * The orchestra a programme row belongs to: the one it names, else all of the concert's.
  * Several named ("a, eo") become one way of writing them, in the concert's order ("EO, A").
+ * Guest ensembles (their short names) come after our orchestras and are never the default:
+ * a row naming none is ours.
  */
-export function rowOrchestra(entered: string | undefined, orchestras: string[]): string | undefined {
-	const named = splitList(entered).map((name) => orchestras.find((orchestra) => sameOrchestra(orchestra, name)) ?? name);
+export function rowOrchestra(entered: string | undefined, orchestras: string[], partners: string[] = []): string | undefined {
+	const known = [...orchestras, ...partners];
+	const named = splitList(entered).map((name) => known.find((orchestra) => sameOrchestra(orchestra, name)) ?? name);
 	if (!named.length) return orchestras.length ? joinList(orchestras) : undefined;
 	const rank = (name: string) => {
-		const index = orchestras.indexOf(name);
-		return index === -1 ? orchestras.length : index;
+		const index = known.indexOf(name);
+		return index === -1 ? known.length : index;
 	};
 	return joinList([...named].sort((a, b) => rank(a) - rank(b)));
 }
@@ -35,21 +38,31 @@ export const playedBy = (rowValue: string | undefined, orchestra: string | undef
 /** Played together by several orchestras. */
 export const isJoint = (rowValue: string | undefined) => splitList(rowValue).length > 1;
 
-/** "Programm EO", or "Gemeinsam: EO + A" for what they play together. */
-export function programLabel(orchestra: string): string {
-	const names = splitList(orchestra);
-	return names.length > 1 ? t.editor.jointTab(names) : t.editor.orchestraTab(orchestra);
+/**
+ * "Programm EO", or "Gemeinsam: EO + A" for what they play together. Guests by their full name
+ * when `names` knows it ("Programm Kammerchor Unna").
+ */
+export function programLabel(orchestra: string, names: (short: string) => string = (short) => short): string {
+	const all = splitList(orchestra).map(names);
+	return all.length > 1 ? t.editor.jointTab(all) : t.editor.orchestraTab(all[0] ?? orchestra);
 }
 
-/** The concert's programmes to edit: one per orchestra and, for several, the one they play together. */
-export function programScopes(orchestras: string[]): string[] {
-	return orchestras.length > 1 ? [...orchestras, joinList(orchestras)] : orchestras;
+/**
+ * The concert's programmes to edit: one per orchestra and guest ensemble; for several of ours
+ * the one they play together, and with guests the one everybody plays together, last. Guests
+ * only get tabs next to orchestras we name.
+ */
+export function programScopes(orchestras: string[], partners: string[] = []): string[] {
+	const guests = orchestras.length ? partners : [];
+	const together = orchestras.length > 1 ? [joinList(orchestras)] : [];
+	const everybody = guests.length ? [joinList([...orchestras, ...guests])] : [];
+	return orchestras.length + guests.length > 1 ? [...orchestras, ...guests, ...together, ...everybody] : orchestras;
 }
 
 /** The programme to show or edit: the one asked for if the concert has it, else its first orchestra's. */
-export function pickOrchestra(orchestras: string[], wanted: string | null | undefined): string | undefined {
-	const scopes = programScopes(orchestras);
-	const asked = wanted ? rowOrchestra(wanted, orchestras) : undefined;
+export function pickOrchestra(orchestras: string[], wanted: string | null | undefined, partners: string[] = []): string | undefined {
+	const scopes = programScopes(orchestras, partners);
+	const asked = wanted ? rowOrchestra(wanted, orchestras, partners) : undefined;
 	return scopes.find((scope) => sameOrchestra(scope, asked)) ?? orchestras[0];
 }
 

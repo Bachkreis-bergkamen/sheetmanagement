@@ -38,7 +38,7 @@ export class SheetNotSetUpError extends Error {
 }
 
 /** The tabs the app reads besides the repertoire; each only when present, so an older sheet keeps working. */
-export const OPTIONAL_TABS = [...ACCESS_TABS, ...FEEDBACK_TABS, 'missingParts', 'instrumentGroups', 'signups', 'rehearsals', 'loans', 'attendance', 'settings', 'instruments', 'pieceNotes', 'rehearsalNotes'] as const;
+export const OPTIONAL_TABS = [...ACCESS_TABS, ...FEEDBACK_TABS, 'missingParts', 'instrumentGroups', 'signups', 'rehearsals', 'loans', 'attendance', 'settings', 'instruments', 'pieceNotes', 'rehearsalNotes', 'ensembles'] as const;
 
 /** Every tab the sheet has, as raw values with the header row, in one request. */
 export async function readSheetGrids(client: GoogleClient, spreadsheetId: string): Promise<Partial<Record<TabKey, string[][]>>> {
@@ -55,9 +55,9 @@ export async function readSheetGrids(client: GoogleClient, spreadsheetId: string
 function rawFromGrids(grids: Partial<Record<TabKey, string[][]>>) {
 	const missing = REPERTOIRE_TABS.filter((key) => !grids[key]).map((key) => LAYOUT[key].tab);
 	if (missing.length) throw new SheetNotSetUpError(missing);
-	const { pieces, concerts, program, reports, wishes, missingParts, instrumentGroups, signups, rehearsals, loans, attendance, settings, instruments, pieceNotes, rehearsalNotes, ...access } = grids as Record<TabKey, string[][]>;
+	const { pieces, concerts, program, ensembles, reports, wishes, missingParts, instrumentGroups, signups, rehearsals, loans, attendance, settings, instruments, pieceNotes, rehearsalNotes, ...access } = grids as Record<TabKey, string[][]>;
 	return {
-		values: { pieces, concerts, program } as SheetValues,
+		values: { pieces, concerts, program, ensembles } as SheetValues,
 		access: access as AccessValues,
 		feedback: { reports, wishes } as FeedbackValues,
 		missingParts: missingParts as string[][] | undefined,

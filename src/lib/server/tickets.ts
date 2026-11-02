@@ -46,6 +46,9 @@ export function upcomingConcert(library: Library, id: string): ShownEvent | unde
 	return event?.type === 'konzert' && !event.past ? event : undefined;
 }
 
+/** Another ensemble organises the concert and sells its tickets ("Veranstalter"): nothing is sold here. */
+export const soldElsewhere = (library: Library, id: string) => !!library.concertsById.get(id)?.organizer;
+
 /** A price as the website shows it: the Kasse price, the online surcharge and the sum, apart. */
 export interface PublicPrice {
 	type: string;
@@ -74,6 +77,8 @@ export interface PublicSale {
 	prices: PublicPrice[];
 	/** How the surcharge is made up, for the sentence under the prices. */
 	onlineFee: { percent: number; cents: number };
+	/** The choirs and orchestras we play with, for "mit …" above the prices. */
+	partners: { name: string; kind?: string }[];
 }
 
 async function soldFor(concertId: string): Promise<{ orders: TicketOrder[]; tickets: Ticket[]; sold: number }> {
@@ -92,8 +97,9 @@ export function publicPrices(sale: TicketSale): PublicPrice[] {
 export async function publicSale(concertId: string, now = Date.now()): Promise<PublicSale | null> {
 	const [library, sale] = await Promise.all([getLibrary(), getStore().ticketSale(concertId)]);
 	const event = upcomingConcert(library, concertId);
-	if (!event || !sale?.open) return null;
+	if (!event || !sale?.open || soldElsewhere(library, concertId)) return null;
 	const { sold } = await soldFor(concertId);
+	const partners = library.concertsById.get(concertId)?.partners ?? [];
 	return {
 		concertId,
 		title: event.displayTitle,
@@ -106,7 +112,8 @@ export async function publicSale(concertId: string, now = Date.now()): Promise<P
 		maxPerOrder: MAX_PER_ORDER,
 		onlineUntil: sale.onlineUntil,
 		prices: publicPrices(sale),
-		onlineFee: sale.onlineFee
+		onlineFee: sale.onlineFee,
+		partners: partners.map(({ name, kind }) => ({ name, ...(kind ? { kind } : {}) }))
 	};
 }
 
@@ -130,7 +137,7 @@ export async function reserve(concertId: string, body: Record<string, unknown>, 
 	const store = getStore();
 	const [library, sale] = await Promise.all([getLibrary(), store.ticketSale(concertId)]);
 	const event = upcomingConcert(library, concertId);
-	if (!event || !sale) return { ok: false, status: 404, problem: 'noConcert' };
+	if (!event || !sale || soldElsewhere(library, concertId)) return { ok: false, status: 404, problem: 'noConcert' };
 
 	const person = buyer(body.name, body.email);
 	if (typeof person === 'string') return { ok: false, status: 400, problem: person };

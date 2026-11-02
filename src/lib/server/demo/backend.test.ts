@@ -30,11 +30,14 @@ describe('the sample sheet', () => {
 		const repertoire = buildRepertoire({
 			pieces: values.get(LAYOUT.pieces.tab)!,
 			concerts: values.get(LAYOUT.concerts.tab)!,
-			program: values.get(LAYOUT.program.tab)!
+			program: values.get(LAYOUT.program.tab)!,
+			ensembles: values.get(LAYOUT.ensembles.tab)
 		});
 		expect(repertoire.problems).toEqual([]);
 		// The 2nd Christmas concert plays the 1st one's programme.
-		expect(repertoire.concertsByEvent.get('demo-weihnacht-2')?.program.length).toBe(3);
+		expect(repertoire.concertsByEvent.get('demo-weihnacht-2')?.program.length).toBe(5);
+		// … with its guest choir, whose pieces aren't in "Stücke" and aren't problems.
+		expect(repertoire.concertsByEvent.get('demo-weihnacht-2')?.partners.map((partner) => partner.name)).toEqual(['Kammerchor Musterstadt']);
 		expect(buildRehearsalPlan(values.get(LAYOUT.rehearsals.tab)!).byEvent.get('demo-probe-3')?.length).toBe(2);
 	});
 });

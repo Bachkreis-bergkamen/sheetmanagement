@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { enhance } from '$app/forms';
 	import { t } from '#lib/i18n/index.ts';
 	import Icon from '#lib/components/Icon.svelte';
 	import Title from '#lib/components/Title.svelte';
@@ -38,6 +39,18 @@
 	</div>
 </div>
 
+{#if data.report?.scope && data.items.length}
+	<!-- A concert with guests: everything we organise, only ours when a guest reports theirs. -->
+	<form class="no-print scope" method="POST" action="?art=musikfolge&/scope" use:enhance={() => async ({ update }) => update({ reset: false })}>
+		<span class="scope-label">{t.partners.reportScope}</span>
+		<span class="scope-options">
+			<button name="scope" value="all" class="tab" class:active={data.report.scope === 'all'} aria-pressed={data.report.scope === 'all'}>{t.partners.reportAll}</button>
+			<button name="scope" value="ours" class="tab" class:active={data.report.scope === 'ours'} aria-pressed={data.report.scope === 'ours'}>{t.partners.reportOurs}</button>
+		</span>
+		<p class="hint">{t.partners.reportScopeHint}</p>
+	</form>
+{/if}
+
 {#if data.report && data.items.length}
 	<!-- What's still missing, with a way to fill it in; not printed. -->
 	<div class="no-print gaps" class:complete={!data.report.gaps.length}>
@@ -50,6 +63,9 @@
 						<span class="muted">{gap.missing.map((field) => t.musicReport.missing[field]).join(', ')}</span>
 						{#if gap.pieceId && data.report.canFill}
 							<a href="/stuecke/{encodeURIComponent(gap.pieceId)}/bearbeiten">{t.musicReport.fill}</a>
+						{:else if !gap.pieceId}
+							<!-- A guest piece: its details are on its programme row. -->
+							<a href="{concertUrl}/programm">{t.partners.fillInProgram}</a>
 						{/if}
 					</li>
 				{/each}
@@ -68,6 +84,7 @@
 		<header>
 			<p class="orchestra">{page.data.orchestraName}</p>
 			<h1>{data.concert.title}</h1>
+			{#if data.concert.partners.length}<p class="with">{t.partners.with(data.concert.partners)}</p>{/if}
 			{#if when || data.concert.location}
 				<p class="when">{[when, data.concert.location].filter(Boolean).join(' · ')}</p>
 			{/if}
@@ -78,6 +95,7 @@
 				<li>
 					<span class="piece">{item.title}</span>
 					{#if item.subtitle}<span class="composer">{item.subtitle}</span>{/if}
+					{#if item.performers}<span class="by">{item.performers}</span>{/if}
 					{#if item.notes}<span class="note">{item.notes}</span>{/if}
 				</li>
 			{/each}
@@ -90,7 +108,7 @@
 		<header>
 			<h1>{t.musicReport.title}</h1>
 			<dl>
-				<div><dt>{t.musicReport.organizer}</dt><dd>{page.data.orchestraName}</dd></div>
+				<div><dt>{t.musicReport.organizer}</dt><dd>{data.concert.organizer ?? page.data.orchestraName}</dd></div>
 				<div><dt>{t.musicReport.date}</dt><dd>{when || '–'}</dd></div>
 				<div><dt>{t.musicReport.venue}</dt><dd>{data.concert.location ?? '–'}</dd></div>
 			</dl>
@@ -179,6 +197,34 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: var(--space-2);
+	}
+
+	.scope {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-2) var(--space-3);
+		max-width: 720px;
+		margin: 0 auto var(--space-3);
+	}
+
+	.scope-label {
+		font-size: var(--text-sm);
+		font-weight: 600;
+	}
+
+	.scope-options {
+		display: flex;
+		gap: var(--space-2);
+	}
+
+	.scope .tab {
+		cursor: pointer;
+	}
+
+	.scope .hint {
+		flex-basis: 100%;
+		margin: 0;
 	}
 
 	.gaps {
@@ -331,6 +377,19 @@
 
 	.when {
 		color: var(--text-muted);
+	}
+
+	.with {
+		margin-bottom: var(--space-1);
+		font-size: var(--text-lg);
+		font-style: italic;
+	}
+
+	.by {
+		color: var(--text-muted);
+		font-size: var(--text-xs);
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
 	}
 
 	.handout h2 {

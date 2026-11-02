@@ -5,8 +5,8 @@
 	import { flip } from 'svelte/animate';
 	import { t } from '#lib/i18n/index.ts';
 	import { searchText } from '#lib/music/text.ts';
-	import { concertOrchestras, isJoint, programLabel } from '#lib/repertoire/orchestras.ts';
-	import { formatDuration, programLength, roundMinutes } from '#lib/repertoire/duration.ts';
+	import { isJoint, programLabel } from '#lib/repertoire/orchestras.ts';
+	import { formatDuration, parseDuration, programLength, roundMinutes } from '#lib/repertoire/duration.ts';
 	import { similarPieces } from '#lib/repertoire/archive-edit.ts';
 	import Crumbs from '#lib/components/Crumbs.svelte';
 	import Icon from '#lib/components/Icon.svelte';
@@ -21,6 +21,11 @@
 		subtitle?: string;
 		notes: string;
 		duration?: number;
+		/** A guest piece's own details, kept on its programme row. */
+		composer?: string;
+		arranger?: string;
+		publisher?: string;
+		durationText?: string;
 	}
 
 	let nextKey = 0;
@@ -53,7 +58,32 @@
 		entries.splice(to, 0, entry);
 	}
 
-	const payload = $derived(JSON.stringify(entries.map(({ piece, notes }) => ({ piece, notes }))));
+	const payload = $derived(
+		JSON.stringify(
+			entries.map(({ piece, notes, composer, arranger, publisher, durationText }) => ({ piece, notes, composer, arranger, publisher, duration: durationText }))
+		)
+	);
+
+	// A piece the guests bring: not in our archive, typed in with what the GEMA list needs.
+	let guestPiece = $state<{ title: string; composer: string; arranger: string; publisher: string; duration: string } | null>(null);
+	function addGuestPiece() {
+		if (!guestPiece?.title.trim()) return;
+		const { title, composer, arranger, publisher, duration } = guestPiece;
+		const clean = (text: string) => text.trim() || undefined;
+		entries.push({
+			key: nextKey++,
+			piece: title.trim(),
+			title: title.trim(),
+			subtitle: clean(composer),
+			duration: parseDuration(duration),
+			notes: '',
+			composer: clean(composer),
+			arranger: clean(arranger),
+			publisher: clean(publisher),
+			durationText: clean(duration)
+		});
+		guestPiece = null;
+	}
 	// svelte-ignore state_referenced_locally
 	const saved = payload;
 	guardUnsaved(() => payload !== saved && !saving.busy && !sharing.busy);
@@ -123,11 +153,11 @@
 					href="?orchester={encodeURIComponent(orchestra)}"
 					data-sveltekit-reload
 				>
-					{#if isJoint(orchestra)}<Icon name="link" size={14} />{/if}{programLabel(orchestra)}
+					{#if isJoint(orchestra)}<Icon name="link" size={14} />{/if}{data.labels[orchestra] ?? programLabel(orchestra)}
 				</a>
 			{/each}
 		</nav>
-		{#if isJoint(data.orchestra)}<p class="joint-hint">{t.editor.jointHint(concertOrchestras(data.orchestra))}</p>{/if}
+		{#if isJoint(data.orchestra)}<p class="joint-hint">{t.editor.jointHint(data.scopeNames)}</p>{/if}
 	{/if}
 
 	{#if data.sharedFrom}
@@ -250,6 +280,49 @@
 		</form>
 	{/if}
 
+	{#if data.guests}
+		{#if guestPiece}
+			<form
+				class="new-piece"
+				onsubmit={(event) => {
+					event.preventDefault();
+					addGuestPiece();
+				}}
+			>
+				<h2>{t.partners.guestPiece}</h2>
+				<p class="muted">{t.partners.guestPieceLead}</p>
+				<label class="input">
+					{t.partners.guestTitle}
+					<input required maxlength="300" bind:value={guestPiece.title} autocomplete="off" />
+				</label>
+				<label class="input">
+					{t.partners.guestComposer}
+					<input maxlength="300" bind:value={guestPiece.composer} autocomplete="off" />
+				</label>
+				<label class="input">
+					{t.partners.guestArranger}
+					<input maxlength="300" bind:value={guestPiece.arranger} autocomplete="off" />
+				</label>
+				<label class="input">
+					{t.partners.guestPublisher}
+					<input maxlength="300" bind:value={guestPiece.publisher} autocomplete="off" />
+				</label>
+				<label class="input">
+					{t.partners.guestDuration}
+					<input maxlength="20" bind:value={guestPiece.duration} inputmode="numeric" autocomplete="off" />
+				</label>
+				<div class="new-actions">
+					<button class="button"><Icon name="plus" size={16} />{t.partners.guestAdd}</button>
+					<button type="button" class="cancel link" onclick={() => (guestPiece = null)}>{t.reports.cancel}</button>
+				</div>
+			</form>
+		{:else}
+			<button type="button" class="guest-add" onclick={() => (guestPiece = { title: query.trim(), composer: '', arranger: '', publisher: '', duration: '' })}>
+				<Icon name="plus" size={16} />{t.partners.guestPiece}
+			</button>
+		{/if}
+	{/if}
+
 	{#if data.suggestions.wished.length || data.suggestions.longAgo.length}
 		<details class="suggestions" open={data.suggestions.wished.length > 0}>
 			<summary>
@@ -325,7 +398,7 @@
 					</span>
 					<span class="number">{i + 1}</span>
 					<span class="body">
-						<strong>{entry.title}</strong>
+						<strong>{entry.title}{#if entry.composer}<span class="tag">{t.partners.guestTag}</span>{/if}</strong>
 						{#if entry.subtitle || entry.duration}
 							<span class="muted">{[entry.subtitle, entry.duration && formatDuration(entry.duration)].filter(Boolean).join(' · ')}</span>
 						{/if}
@@ -670,6 +743,25 @@
 		border-color: var(--accent);
 		background: var(--accent);
 		color: var(--accent-contrast);
+	}
+
+	.guest-add {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
+		margin-bottom: var(--space-4);
+		padding: 0;
+		border: 0;
+		background: none;
+		color: var(--accent);
+		font: inherit;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.body strong .tag {
+		margin-left: var(--space-2);
+		vertical-align: middle;
 	}
 
 	.joint-hint {

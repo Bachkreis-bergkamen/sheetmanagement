@@ -5,6 +5,7 @@ import type { Catalog } from '#lib/music/catalog.ts';
 import { searchText } from '#lib/music/text.ts';
 import type { PieceDetail, PieceStatus, PieceSummary } from '#lib/music/types.ts';
 import { eventDay, formatFuzzyDate, fuzzyDateKey, parseFuzzyDate, type FuzzyDate, type FuzzyDateLabel } from '#lib/repertoire/dates.ts';
+import { onlyGuests, performerNames, type Ensemble } from '#lib/repertoire/ensembles.ts';
 import type { ReportPiece } from '#lib/repertoire/music-report.ts';
 import { eventOrchestra, isJoint, playedBy, sameOrchestra } from '#lib/repertoire/orchestras.ts';
 import { normalize, type SheetConcert, type SheetPiece } from '#lib/repertoire/sheet.ts';
@@ -30,8 +31,12 @@ export interface ProgramItem {
 	notes?: string;
 	/** Seconds, from the piece's "Dauer". */
 	duration?: number;
-	/** Which of the concert's orchestras plays it. */
+	/** Which of the concert's orchestras plays it; guest ensembles by their short name. */
 	orchestra?: string;
+	/** From the programme row, for pieces guests bring that aren't in "Stücke". */
+	composer?: string;
+	arranger?: string;
+	publisher?: string;
 }
 
 export interface LibraryConcert {
@@ -49,6 +54,10 @@ export interface LibraryConcert {
 	orchestra?: string;
 	/** Each with its own programme; empty when the sheet names none. */
 	orchestras: string[];
+	/** Guest choirs and orchestras ("Mitwirkende"). */
+	partners: Ensemble[];
+	/** Who organises and sells the tickets, when it isn't us ("Veranstalter"). */
+	organizer?: Ensemble;
 	event?: ShownEvent;
 	sheet?: SheetConcert;
 	program: ProgramItem[];
@@ -71,6 +80,8 @@ export interface Library {
 	/** Newest first. */
 	concerts: LibraryConcert[];
 	concertsById: Map<string, LibraryConcert>;
+	/** Choirs and orchestras from the "Ensembles" tab. */
+	ensembles: Ensemble[];
 	/** Today in the orchestra's time zone, e.g. "2026-10-18". */
 	today: string;
 }
@@ -168,6 +179,8 @@ function buildLibrary(
 				location: event?.location ?? row.location,
 				orchestra: row.orchestra,
 				orchestras: row.orchestras,
+				partners: row.partners,
+				...(row.organizer ? { organizer: row.organizer } : {}),
 				event,
 				sheet: row,
 				program: row.program.map((entry) => {
@@ -175,12 +188,16 @@ function buildLibrary(
 					return {
 						position: entry.position,
 						title: piece?.title ?? entry.pieceName,
-						subtitle: piece ? [piece.composer, piece.catalogue].filter(Boolean).join(' · ') || undefined : undefined,
+						subtitle: piece ? [piece.composer, piece.catalogue].filter(Boolean).join(' · ') || undefined : entry.composer,
 						pieceId: piece?.id,
 						status: piece?.status,
 						notes: entry.notes,
-						duration: piece?.sheet?.duration,
-						orchestra: entry.orchestra
+						// The row's own details win: a guest may play another arrangement than ours.
+						duration: entry.duration ?? piece?.sheet?.duration,
+						orchestra: entry.orchestra,
+						...(entry.composer ? { composer: entry.composer } : {}),
+						...(entry.arranger ? { arranger: entry.arranger } : {}),
+						...(entry.publisher ? { publisher: entry.publisher } : {})
 					};
 				})
 			})
@@ -190,7 +207,7 @@ function buildLibrary(
 	for (const event of events.values()) {
 		if (event.type !== 'konzert' || known.has(event.id)) continue;
 		concerts.push(
-			concert({ id: event.id, title: event.displayTitle, date: eventDate(event), location: event.location, orchestras: [], event, program: [] })
+			concert({ id: event.id, title: event.displayTitle, date: eventDate(event), location: event.location, orchestras: [], partners: [], event, program: [] })
 		);
 	}
 	concerts.sort((a, b) => b.dateKey.localeCompare(a.dateKey) || collator.compare(a.title, b.title));
@@ -222,6 +239,7 @@ function buildLibrary(
 		piecesByName,
 		concerts,
 		concertsById,
+		ensembles: sheet?.ensembles ?? [],
 		today
 	};
 }
@@ -261,10 +279,11 @@ export interface OrchestraProgram {
 /**
  * The programme per orchestra, in the order the concert names them; an orchestra without
  * pieces yet is there too, so it can get some. One entry for a concert of one orchestra.
- * Pieces played together ("EO, A") come after, once they are there.
+ * Guest ensembles follow ours; pieces played together ("EO, A") come after, once they are there.
  */
-export function programsOf(concert: Pick<LibraryConcert, 'orchestras' | 'program'>): OrchestraProgram[] {
-	const named = concert.orchestras.length ? concert.orchestras : [undefined];
+export function programsOf(concert: Pick<LibraryConcert, 'orchestras' | 'program'> & { partners?: Ensemble[] }): OrchestraProgram[] {
+	const guests = concert.orchestras.length ? (concert.partners ?? []).map((partner) => partner.shortName) : [];
+	const named = concert.orchestras.length ? [...concert.orchestras, ...guests] : [undefined];
 	const others = [...new Set(concert.program.map((item) => item.orchestra))].filter(
 		(orchestra) => !named.some((name) => sameOrchestra(name, orchestra))
 	);
@@ -311,20 +330,38 @@ export function namedItem(library: Library, name: string, notes?: string): Progr
 	};
 }
 
-/** A concert's programme as the music list for the collecting society needs it (#118). */
-export function reportPieces(library: Library, concert: LibraryConcert): ReportPiece[] {
-	return concert.program.map((item) => {
-		const piece = item.pieceId ? library.piecesById.get(item.pieceId) : undefined;
-		return {
-			pieceId: item.pieceId,
-			title: item.title,
-			composer: piece?.composer,
-			composerFull: piece?.sheet?.composerFull,
-			arranger: piece?.sheet?.arranger,
-			publisher: piece?.sheet?.publisher,
-			duration: item.duration
-		};
-	});
+/**
+ * Which pieces of a concert with guests go into its music list: all of them when we organise
+ * it, only ours when a guest does and reports theirs. Organisers can change it per concert.
+ */
+export type ReportScope = 'all' | 'ours';
+
+export const defaultReportScope = (concert: Pick<LibraryConcert, 'organizer'>): ReportScope => (concert.organizer ? 'ours' : 'all');
+
+/**
+ * A concert's programme as the music list for the collecting society needs it (#118). With
+ * guests, each piece says who performs it, and the guests' pieces bring their own details.
+ */
+export function reportPieces(library: Library, concert: LibraryConcert, scope: ReportScope = 'all'): ReportPiece[] {
+	const withPartners = concert.partners.length > 0;
+	return concert.program
+		.filter((item) => scope === 'all' || !onlyGuests(item.orchestra, concert.partners))
+		.map((item) => {
+			const piece = item.pieceId ? library.piecesById.get(item.pieceId) : undefined;
+			// A row naming no orchestra, of a concert naming none, is ours.
+			const performers = withPartners ? performerNames(item.orchestra ?? config.shortName, concert.partners) : [];
+			return {
+				pieceId: item.pieceId,
+				title: item.title,
+				composer: item.composer ?? piece?.composer,
+				// A guest piece's row names its composer in full, as the editor asks for it.
+				composerFull: item.composer ?? piece?.sheet?.composerFull,
+				arranger: item.arranger ?? piece?.sheet?.arranger,
+				publisher: item.publisher ?? piece?.sheet?.publisher,
+				duration: item.duration,
+				...(withPartners ? { performers: performers.join(', ') } : {})
+			};
+		});
 }
 
 /** Only what a concert list shows. */

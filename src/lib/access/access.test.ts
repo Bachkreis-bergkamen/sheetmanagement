@@ -83,6 +83,17 @@ describe('resolveAccess', () => {
 });
 
 describe('programme editor', () => {
+	const programColumns = {
+		concert: 'Konzert',
+		position: 'Nr.',
+		piece: 'Stück',
+		notes: 'Notiz',
+		orchestra: 'Orchester',
+		composer: 'Komponist',
+		arranger: 'Arrangeur',
+		publisher: 'Verlag',
+		duration: 'Dauer'
+	};
 	const table = readTable(
 		[
 			['Konzert', 'Nr.', 'Stück', 'Notiz', 'Orchester'],
@@ -91,7 +102,7 @@ describe('programme editor', () => {
 			['herbstkonzert 2026', '2', 'Jesu bleibet meine Freude', 'Zugabe'],
 			['Herbstkonzert 2026', '1', 'Fame', '', 'A']
 		],
-		{ concert: 'Konzert', position: 'Nr.', piece: 'Stück', notes: 'Notiz', orchestra: 'Orchester' }
+		programColumns
 	);
 	const eo = { orchestra: 'EO', orchestras: ['EO', 'A'] };
 	const a = { orchestra: 'A', orchestras: ['EO', 'A'] };
@@ -143,7 +154,7 @@ describe('programme editor', () => {
 				['Herbstkonzert 2026', '1', 'Bolero', ''],
 				['Herbstkonzert 2026', '1', 'Finale', '', 'A, EO']
 			],
-			{ concert: 'Konzert', position: 'Nr.', piece: 'Stück', notes: 'Notiz', orchestra: 'Orchester' }
+			programColumns
 		);
 		const together = { orchestra: 'EO, A', orchestras: ['EO', 'A'] };
 		// The row naming no orchestra is played together too, so EO's own programme is empty.
@@ -151,6 +162,45 @@ describe('programme editor', () => {
 		const plan = planProgramSave(joint, 'Herbstkonzert 2026', [{ piece: 'Radetzky', notes: '' }], together);
 		expect(plan.remove).toEqual([2, 3]);
 		expect(plan.append[0]).toMatchObject({ piece: 'Radetzky', orchestra: 'EO, A' });
+	});
+
+	it('keeps a guest ensemble’s rows apart and saves what a guest piece says itself', () => {
+		const shared = readTable(
+			[
+				['Konzert', 'Nr.', 'Stück', 'Notiz', 'Orchester', 'Komponist', 'Arrangeur', 'Verlag', 'Dauer'],
+				['Herbstkonzert 2026', '1', 'Bolero', ''],
+				['Herbstkonzert 2026', '1', 'Abendlied', '', 'kch', 'Josef Rheinberger', '', 'Carus', '3:10'],
+				['Herbstkonzert 2026', '1', 'Halleluja', '', 'KCH, EO']
+			],
+			programColumns
+		);
+		const guests = { orchestra: 'KCH', orchestras: ['EO'], partners: ['KCH'] };
+		const ours = { orchestra: 'EO', orchestras: ['EO'], partners: ['KCH'] };
+		// A row naming nobody stays ours; the guests' rows always name them.
+		expect(planProgramSave(shared, 'Herbstkonzert 2026', [], ours).remove).toEqual([2]);
+		expect(planProgramSave(shared, 'Herbstkonzert 2026', [], { ...ours, orchestra: 'EO, KCH' }).remove).toEqual([4]);
+		const plan = planProgramSave(
+			shared,
+			'Herbstkonzert 2026',
+			[{ piece: 'Abendlied', notes: '', composer: 'Josef Rheinberger', publisher: 'Carus', duration: '3:10' }],
+			guests
+		);
+		expect(plan.remove).toEqual([3]);
+		expect(plan.append).toEqual([
+			{ concert: 'Herbstkonzert 2026', position: '1', piece: 'Abendlied', notes: '', orchestra: 'KCH', composer: 'Josef Rheinberger', publisher: 'Carus', duration: '3:10' }
+		]);
+		// With guests, our own rows name us too, so "EO" and "EO, KCH" stay apart.
+		expect(planProgramSave(shared, 'Herbstkonzert 2026', [{ piece: 'Bolero', notes: '' }], ours).append[0]).toMatchObject({ orchestra: 'EO' });
+		// A guest piece's details count as a change.
+		const changed = { ...shared, rows: shared.rows.map((r) => (r.row === 3 ? { ...r, values: { ...r.values, publisher: 'Bärenreiter' } } : r)) };
+		expect(programVersion(changed, 'Herbstkonzert 2026', guests)).not.toBe(programVersion(shared, 'Herbstkonzert 2026', guests));
+	});
+
+	it('reads what a guest piece says about itself', () => {
+		expect(parseEntries('[{"piece":"Abendlied","notes":"","composer":" Josef Rheinberger ","arranger":"","duration":"3:10"}]')).toEqual([
+			{ piece: 'Abendlied', notes: '', composer: 'Josef Rheinberger', duration: '3:10' }
+		]);
+		expect(parseEntries('[{"piece":"Abendlied","composer":3}]')).toBeNull();
 	});
 
 	it('names no orchestra on the rows of a concert one orchestra plays', () => {

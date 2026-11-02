@@ -4,7 +4,9 @@ import { addPieceFromProgram, pickablePieces } from '#lib/server/archive.ts';
 import { requireRight } from '#lib/server/auth/index.ts';
 import { isOn } from '#lib/server/env.ts';
 import { getLibrary, type Library, type LibraryConcert } from '#lib/server/library.ts';
-import { concertOrchestras, pickOrchestra, programScopes, sameOrchestra } from '#lib/repertoire/orchestras.ts';
+import { concertOrchestras, pickOrchestra, programLabel, programScopes, sameOrchestra } from '#lib/repertoire/orchestras.ts';
+import { performerNames, withGuests } from '#lib/repertoire/ensembles.ts';
+import { formatDuration } from '#lib/repertoire/duration.ts';
 import { getFeedback, getRepertoire } from '#lib/server/repertoire.ts';
 import { planWishes } from '#lib/server/feedback.ts';
 import { programSuggestions } from '#lib/repertoire/suggestions.ts';
@@ -15,9 +17,13 @@ import { t } from '#lib/i18n/index.ts';
 import { currentProgramAvailable, isCurrentConcert, syncCurrentProgram } from '#lib/server/current-program.ts';
 import type { Actions, PageServerLoad } from './$types';
 
-/** The orchestra being edited ("?orchester=A"), for a concert several orchestras play; what they play together first. */
+/**
+ * The orchestra being edited ("?orchester=A"), for a concert several orchestras (or we and
+ * guests) play; what our orchestras play together first, else our first orchestra's.
+ */
 function scopeOf(concert: LibraryConcert, wanted: string | null): OrchestraScope {
-	return { orchestra: pickOrchestra(concert.orchestras, wanted || joinList(concert.orchestras)), orchestras: concert.orchestras };
+	const partners = concert.partners.map((partner) => partner.shortName);
+	return { orchestra: pickOrchestra(concert.orchestras, wanted || joinList(concert.orchestras), partners), orchestras: concert.orchestras, partners };
 }
 
 export const load: PageServerLoad = async ({ params, locals, url }) => {
@@ -33,19 +39,31 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 	const scope = scopeOf(concert, url.searchParams.get('orchester'));
 	// Sheet entries and library items are sorted alike, so they line up one by one.
 	const own = sheet.program.flatMap((entry, i) => (sameOrchestra(entry.orchestra, scope.orchestra) ? [{ entry, item: concert.program[i] }] : []));
+	const scopes = programScopes(concert.orchestras, scope.partners);
+	const names = (short: string) => performerNames(short, concert.partners)[0] ?? short;
 	return {
 		state: 'ready' as const,
 		concert: { id: concert.id, title: concert.title },
-		// Tabs only when several orchestras play the concert: one each, and one for playing together.
+		// Tabs only when several orchestras (or guests) play the concert: one each, and for playing together.
 		orchestra: scope.orchestra ?? '',
-		orchestras: concert.orchestras.length > 1 ? programScopes(concert.orchestras) : [],
+		orchestras: scopes.length > 1 ? scopes : [],
+		labels: Object.fromEntries(scopes.map((name) => [name, programLabel(name, names)])),
+		// Guests play in this tab: pieces not in our archive can be typed in with what the GEMA list needs.
+		guests: withGuests(scope.orchestra, concert.partners),
+		/** Who plays in this tab, guests by their full name: "EO", "Kammerchor Unna". */
+		scopeNames: performerNames(scope.orchestra, concert.partners),
 		version: programVersion(repertoire.repertoire.tables.program, sheet.title, scope),
 		entries: own.map(({ entry, item }) => ({
 			piece: entry.pieceName,
 			notes: entry.notes ?? '',
 			title: item?.title ?? entry.pieceName,
 			subtitle: item?.subtitle,
-			duration: item?.duration
+			duration: item?.duration,
+			// Sent back as they are, so saving keeps a guest piece's details.
+			...(entry.composer ? { composer: entry.composer } : {}),
+			...(entry.arranger ? { arranger: entry.arranger } : {}),
+			...(entry.publisher ? { publisher: entry.publisher } : {}),
+			...(entry.duration ? { durationText: formatDuration(entry.duration) } : {})
 		})),
 		suggestions: suggestions(library, concert.id, sheet.title, isOn('wishes') ? (feedback?.wishes ?? []) : []),
 		sharedFrom: concert.sharedFrom,
@@ -129,7 +147,8 @@ async function syncIfCurrent(id: string, scope: string | undefined): Promise<str
 	const library = await getLibrary();
 	const concert = library.concertsById.get(id);
 	if (!concert) return '';
-	const orchestras = scope ? concertOrchestras(scope) : [undefined];
+	// Guests have no Drive folder here: only our orchestras of the scope.
+	const orchestras = scope ? concertOrchestras(scope).filter((name) => concert.orchestras.some((own) => sameOrchestra(own, name))) : [undefined];
 	let result = '';
 	for (const orchestra of orchestras.filter((name) => isCurrentConcert(concert, library, name))) {
 		const done = await syncCurrentProgram(concert, library, orchestra).then(

@@ -19,6 +19,8 @@ export interface ReportPiece {
 	publisher?: string;
 	/** Seconds. */
 	duration?: number;
+	/** "EO, Kammerchor Unna": who performs it, for concerts with guests; the column is left out otherwise. */
+	performers?: string;
 }
 
 /** What the society needs for every piece; the arranger only exists for arrangements. */
@@ -45,18 +47,20 @@ export function reportGaps(pieces: ReportPiece[]): ReportGap[] {
 		.filter((gap) => gap.missing.length);
 }
 
-/** Header and one row per piece, as shown and exported. */
+/** Header and one row per piece, as shown and exported; with guests, who performs each piece last. */
 export function reportRows(pieces: ReportPiece[]): string[][] {
 	const columns = t.musicReport.columns;
+	const performers = pieces.some((piece) => piece.performers !== undefined);
 	return [
-		[columns.position, columns.title, columns.composer, columns.arranger, columns.publisher, columns.duration],
+		[columns.position, columns.title, columns.composer, columns.arranger, columns.publisher, columns.duration, ...(performers ? [columns.performers] : [])],
 		...pieces.map((piece, i) => [
 			String(i + 1),
 			piece.title,
 			piece.composerFull ?? piece.composer ?? '',
 			piece.arranger ?? '',
 			piece.publisher ?? '',
-			piece.duration ? formatDuration(piece.duration) : ''
+			piece.duration ? formatDuration(piece.duration) : '',
+			...(performers ? [piece.performers ?? ''] : [])
 		])
 	];
 }

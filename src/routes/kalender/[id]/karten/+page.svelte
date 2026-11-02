@@ -37,6 +37,7 @@
 </header>
 
 {#if data.concert.past}<p class="msg info">{t.tickets.setup.past}</p>{/if}
+{#if data.concert.organizer}<p class="msg info">{t.partners.ticketsElsewhere(data.concert.organizer)}</p>{/if}
 
 <div class="layout">
 	<form class="ui-card setup" method="POST" action="?/save" use:enhance={saving.submit()}>

@@ -317,7 +317,8 @@ export function demoSheet(now: number): Map<string, string[][]> {
 			{ date: at(-60), title: sommer, location: 'Stadthalle Musterstadt', orchestra: 'EO', eventId: 'demo-sommerkonzert' },
 			// Played together: each orchestra with its own programme.
 			{ date: at(25), title: herbst, location: 'Stadthalle Musterstadt', orchestra: 'EO, A', eventId: 'demo-herbstkonzert' },
-			{ date: at(60), title: weihnacht, location: 'Kirche am Markt', orchestra: 'EO', eventId: 'demo-weihnacht-1' },
+			// Given with a guest choir: its own pieces, and one they sing with us.
+			{ date: at(60), title: weihnacht, location: 'Kirche am Markt', orchestra: 'EO', eventId: 'demo-weihnacht-1', partners: 'KCH' },
 			{ date: at(61), title: weihnacht2, location: 'Kirche am Markt', orchestra: 'EO', eventId: 'demo-weihnacht-2', sameProgramAs: weihnacht }
 		]),
 		tab('program', [
@@ -333,7 +334,13 @@ export function demoSheet(now: number): Map<string, string[][]> {
 			...program(herbst, [titles['demo-cancan'], titles['demo-sleigh']], 'A'),
 			// The finale both play together.
 			...program(herbst, [titles['demo-jesu']], 'EO, A'),
-			...program(weihnacht, [titles['demo-sleigh'], titles['demo-jesu'], titles['demo-stille-nacht']])
+			...program(weihnacht, [titles['demo-sleigh'], titles['demo-stille-nacht']], 'EO'),
+			{ concert: weihnacht, position: '1', piece: 'Abendlied', orchestra: 'KCH', composer: 'Josef Gabriel Rheinberger', publisher: 'Carus', duration: '3:10' },
+			{ concert: weihnacht, position: '2', piece: 'Machet die Tore weit', orchestra: 'KCH', composer: 'Andreas Hammerschmidt', publisher: 'Bärenreiter', duration: '4:00' },
+			...program(weihnacht, [titles['demo-jesu']], 'EO, KCH')
+		]),
+		tab('ensembles', [
+			{ shortName: 'KCH', name: 'Kammerchor Musterstadt', kind: 'Chor', conductor: 'Clara Chorleiterin', website: 'https://example.org/kammerchor' }
 		]),
 		tab('rehearsals', [
 			{ rehearsal: label(-10), piece: titles['demo-egmont'], eventId: 'demo-probe-1' },

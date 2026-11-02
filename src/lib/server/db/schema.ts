@@ -64,6 +64,7 @@ export const SCHEMA: Record<TabKey, TableSpec> = {
 	attendance: { table: 'attendance' },
 	pieceNotes: { table: 'piece_notes', links: { piece: { tab: 'pieces', by: 'title' }, concert: { tab: 'concerts', by: 'title' } }, unique: [['id']], exact: ['id'] },
 	rehearsalNotes: { table: 'rehearsal_notes' },
+	ensembles: { table: 'ensembles', unique: [['shortName']], required: [['shortName', 'name']] },
 	instruments: { table: 'instruments', unique: [['name']], required: [['name']] },
 	settings: { table: 'settings', unique: [['key']], required: [['key']] }
 };

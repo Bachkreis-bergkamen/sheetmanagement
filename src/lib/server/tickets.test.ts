@@ -21,7 +21,18 @@ const concert = {
 	location: 'Aula',
 	date: { long: 'Samstag, 21. November 2026', time: '17:00 – 19:00' }
 };
-vi.mock('./library.ts', () => ({ getLibrary: async () => ({ schedule: { ok: true, byId: new Map([['herbst', concert]]) } }) }));
+// Given with a guest choir; "gast" is organised by it, so it sells its own tickets.
+const kch = { shortName: 'KCH', name: 'Kammerchor Unna', kind: 'Chor', website: 'https://kch.example.org' };
+const guestConcert = { ...concert, id: 'gast' };
+vi.mock('./library.ts', () => ({
+	getLibrary: async () => ({
+		schedule: { ok: true, byId: new Map([['herbst', concert], ['gast', guestConcert]]) },
+		concertsById: new Map([
+			['herbst', { partners: [kch] }],
+			['gast', { partners: [kch], organizer: kch }]
+		])
+	})
+}));
 
 const { publicSale, reserve, pruneTickets, giveFreeTickets, doorTickets, saleOverview } = await import('./tickets.ts');
 
@@ -55,6 +66,17 @@ describe('publicSale', () => {
 		]);
 		// Nothing about buyers.
 		expect(JSON.stringify(shown)).not.toContain('@');
+		// Who we play with, for "mit …" above the prices.
+		expect(shown?.partners).toEqual([{ name: 'Kammerchor Unna', kind: 'Chor' }]);
+	});
+
+	it('is gone when another ensemble organises the concert and sells its tickets', async () => {
+		await store.saveTicketSale({ ...sale, concertId: 'gast' });
+		expect(await publicSale('gast', now)).toBeNull();
+		expect(await reserve('gast', { name: 'Anna Bach', email: 'anna@example.org', tickets: { erwachsene: 1 } }, '1.2.3.4', now)).toMatchObject({
+			ok: false,
+			problem: 'noConcert'
+		});
 	});
 
 	it('is gone for a sale that isn’t open, and for other events', async () => {

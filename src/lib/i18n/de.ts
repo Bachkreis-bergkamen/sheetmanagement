@@ -1696,6 +1696,41 @@ export const de = {
 		totalLength: (minutes: number) => `Dauer ca. ${minutes} Minuten`
 	},
 	/** The music list for the collecting society (#118). Another country: other words here, or musicReport: false in the config. */
+	/** Concerts with other choirs and orchestras: who plays with us, who organises it. */
+	partners: {
+		/** "mit Kammerchor Unna und Posaunenchor Kamen". */
+		with: (names: string[]) => `mit ${names.length > 1 ? `${names.slice(0, -1).join(', ')} und ${names.at(-1)}` : (names[0] ?? '')}`,
+		over: 'Mitwirkende',
+		organizedBy: (name: string) => `Veranstalter: ${name}`,
+		conductor: (name: string) => `Leitung: ${name}`,
+		title: 'Mitwirkende und Veranstalter',
+		lead: 'Wer dieses Konzert spielt: unsere Orchester und die Chöre und Orchester, mit denen wir es geben. Sie stehen im Programm, in der Musikfolge und auf der Website.',
+		ours: 'Unsere Orchester',
+		known: 'Gäste aus dem Tab „Ensembles“',
+		others: 'Weitere',
+		othersHint: 'Volle Namen, mit Komma getrennt. Logo, Leitung und Website kommen aus dem Tab „Ensembles“.',
+		organizer: 'Veranstalter',
+		us: (name: string) => `${name} (wir)`,
+		organizerHint: 'Veranstaltet ein anderes Ensemble, verkauft es auch die Karten: Der Verkauf hier bleibt dann zu, und die Website verlinkt den Kartenlink unter „Für die Website“.',
+		save: 'Speichern',
+		saved: 'Gespeichert.',
+		needsSetup: 'In „Konzerte“ fehlen noch die Spalten „Mitwirkende“ und „Veranstalter“. Einmal „Tabelle einrichten“ ausführen.',
+		ticketsElsewhere: (name: string) => `${name} veranstaltet dieses Konzert und verkauft die Karten. Der Verkauf über die App ist deshalb zu.`,
+		guestPiece: 'Gaststück eintragen',
+		guestPieceLead: 'Ein Stück, das die Gäste mitbringen und das nicht in unserem Archiv ist. Für die Musikfolge braucht es Komponist, Verlag und Dauer.',
+		guestTitle: 'Titel',
+		guestComposer: 'Komponist (voller Name)',
+		guestArranger: 'Bearbeiter',
+		guestPublisher: 'Verlag',
+		guestDuration: 'Dauer, z. B. 4:30',
+		guestAdd: 'Ins Programm',
+		guestTag: 'Gaststück',
+		reportScope: 'In der Musikfolge',
+		reportAll: 'Alle Stücke',
+		reportOurs: 'Nur unsere',
+		reportScopeHint: 'Der Veranstalter meldet das Konzert. Meldet ein Gast-Ensemble seine Stücke selbst, stehen hier nur unsere.',
+		fillInProgram: 'Im Programm ergänzen'
+	},
 	musicReport: {
 		tab: 'Musikfolge (GEMA)',
 		title: 'Musikfolge',
@@ -1707,7 +1742,8 @@ export const de = {
 			composer: 'Komponist',
 			arranger: 'Bearbeiter',
 			publisher: 'Verlag',
-			duration: 'Dauer'
+			duration: 'Dauer',
+			performers: 'Ausführende'
 		},
 		gaps: (n: number) => (n === 1 ? 'Bei 1 Stück fehlen noch Angaben:' : `Bei ${n} Stücken fehlen noch Angaben:`),
 		missing: { composer: 'Komponist', composerFull: 'Komponist (voll)', publisher: 'Verlag', duration: 'Dauer' } as Record<string, string>,
@@ -2144,7 +2180,11 @@ export const de = {
 				orchestra: 'Orchester',
 				/** Another concert's "Anlass": this one plays the same programme (#70). */
 				sameProgramAs: 'Programm wie',
-				eventId: 'Kalender-Event-ID'
+				eventId: 'Kalender-Event-ID',
+				/** Guest choirs and orchestras by "Kurzname" from "Ensembles", or by their full name. */
+				partners: 'Mitwirkende',
+				/** Empty: we organise and sell the tickets; else the ensemble (or anyone) who does. */
+				organizer: 'Veranstalter'
 			}
 		},
 		program: {
@@ -2154,8 +2194,27 @@ export const de = {
 				position: 'Nr.',
 				piece: 'Stück',
 				notes: 'Notiz',
-				/** Which of the concert's orchestras plays it; empty: all of them together. */
-				orchestra: 'Orchester'
+				/** Which of the concert's orchestras plays it; empty: all of them together. Guests by their "Kurzname". */
+				orchestra: 'Orchester',
+				/** For pieces the guests bring, which aren't in "Stücke": what the GEMA list needs. */
+				composer: 'Komponist',
+				arranger: 'Arrangeur',
+				publisher: 'Verlag',
+				duration: 'Dauer'
+			}
+		},
+		/** Choirs and orchestras we play with: named under "Mitwirkende" in "Konzerte". */
+		ensembles: {
+			tab: 'Ensembles',
+			columns: {
+				shortName: 'Kurzname',
+				name: 'Name',
+				/** "Chor", "Orchester" …: shown before the name on the website. */
+				kind: 'Art',
+				conductor: 'Leitung',
+				website: 'Website',
+				/** A link to the logo image; only https. */
+				logo: 'Logo'
 			}
 		},
 		members: {
@@ -2366,7 +2425,9 @@ export const de = {
 	/** Words the app writes into cells and reads back. */
 	sheetValues: {
 		/** In "Hörbeispiel": there is none, so "Angaben ergänzen" stops asking. */
-		noRecording: 'keins'
+		noRecording: 'keins',
+		/** Offered under "Art" in "Ensembles"; any other word works too. */
+		ensembleKinds: { choir: 'Chor', orchestra: 'Orchester', band: 'Band', ensemble: 'Ensemble', soloist: 'Solist:in' }
 	},
 	feedbackValues: {
 		reportKind: {

@@ -45,13 +45,33 @@ export interface PublicConcert {
 	end?: string;
 	allDay?: boolean;
 	location?: string;
+	/** Our own orchestras' short names. */
 	orchestras: string[];
+	/** Choirs and orchestras we give it with; a program item names them by `shortName` under `orchestra`. */
+	partners: PublicPartner[];
+	/** Who organises it, when it isn't us; then tickets are sold there (`ticketUrl`), never through /api/karten. */
+	organizer?: { name: string; website?: string };
+	/** `orchestra`: "EO", "KCH", or "EO, KCH" for what we play together. */
 	program: { title: string; composer?: string; orchestra?: string }[];
 	text?: Bilingual;
 	ticketUrl?: string;
 	ticketNote?: Bilingual;
 	/** Tickets can be reserved through /api/karten/<id>; only on upcoming concerts. */
 	tickets?: boolean;
+}
+
+/** A guest choir or orchestra from the "Ensembles" tab; only what it would show on its own site. */
+export interface PublicPartner {
+	/** "KCH": how program items name it. */
+	shortName: string;
+	/** "Kammerchor Unna". */
+	name: string;
+	/** "Chor", "Orchester" … as entered. */
+	kind?: string;
+	conductor?: string;
+	website?: string;
+	/** An https image link. */
+	logo?: string;
 }
 
 export interface PublicFeed {
@@ -143,8 +163,11 @@ function publicConcert(concert: LibraryConcert, library: Library, details: Publi
 		...(event ? { start: event.start, end: event.end, allDay: event.allDay } : {}),
 		location: event?.location || concert.location || undefined,
 		orchestras: concert.orchestras,
+		partners: concert.partners.map((partner) => ({ ...partner })),
+		...(concert.organizer ? { organizer: { name: concert.organizer.name, ...(concert.organizer.website ? { website: concert.organizer.website } : {}) } } : {}),
 		program: concert.program.map((item) => {
-			const composer = item.pieceId ? library.piecesById.get(item.pieceId)?.composer : undefined;
+			// A guest piece names its composer on its row, ours in "Stücke".
+			const composer = item.composer ?? (item.pieceId ? library.piecesById.get(item.pieceId)?.composer : undefined);
 			return { title: item.title, ...(composer ? { composer } : {}), ...(item.orchestra ? { orchestra: item.orchestra } : {}) };
 		}),
 		...details
@@ -175,7 +198,7 @@ export function publicFeed(library: Library, published: Set<string>, details = n
 }
 
 /** The upcoming ones for calendar apps; past concerts without a time from the calendar can't be events. */
-export function feedEventsOf(feed: PublicFeed, programLabel: string): FeedEvent[] {
+export function feedEventsOf(feed: PublicFeed, programLabel: string, withLabel: (names: string[]) => string = (names) => names.join(', ')): FeedEvent[] {
 	return feed.upcoming
 		.filter((concert) => concert.start && concert.end)
 		.map((concert) => ({
@@ -185,8 +208,12 @@ export function feedEventsOf(feed: PublicFeed, programLabel: string): FeedEvent[
 			end: concert.end!,
 			allDay: !!concert.allDay,
 			location: concert.location,
-			description: concert.program.length
-				? `${programLabel}\n${concert.program.map((item) => (item.composer ? `${item.composer}: ${item.title}` : item.title)).join('\n')}`
-				: undefined
+			description:
+				[
+					concert.partners.length ? withLabel(concert.partners.map((partner) => partner.name)) : '',
+					concert.program.length ? `${programLabel}\n${concert.program.map((item) => (item.composer ? `${item.composer}: ${item.title}` : item.title)).join('\n')}` : ''
+				]
+					.filter(Boolean)
+					.join('\n\n') || undefined
 		}));
 }

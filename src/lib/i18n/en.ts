@@ -1680,6 +1680,39 @@ export const en: Texts = {
 		totalLength: (minutes: number) => `About ${minutes} minutes`
 	},
 	/** The music list for the collecting society (#118). */
+	partners: {
+		with: (names: string[]) => `with ${names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : (names[0] ?? '')}`,
+		over: 'Performing with us',
+		organizedBy: (name: string) => `Organiser: ${name}`,
+		conductor: (name: string) => `Conductor: ${name}`,
+		title: 'Guest ensembles and organiser',
+		lead: 'Who plays this concert: our orchestras and the choirs and orchestras we give it with. They appear in the programme, the music report and on the website.',
+		ours: 'Our orchestras',
+		known: 'Guests from the “Ensembles” tab',
+		others: 'Others',
+		othersHint: 'Full names, separated by commas. Logo, conductor and website come from the “Ensembles” tab.',
+		organizer: 'Organiser',
+		us: (name: string) => `${name} (us)`,
+		organizerHint: 'When another ensemble organises the concert, it sells the tickets too: the sale here stays closed, and the website links to the ticket link under “For the website”.',
+		save: 'Save',
+		saved: 'Saved.',
+		needsSetup: 'The “Guest ensembles” and “Organiser” columns are still missing in “Concerts”. Run “Set up sheet” once.',
+		ticketsElsewhere: (name: string) => `${name} organises this concert and sells the tickets, so the sale through the app is closed.`,
+		guestPiece: 'Add a guest piece',
+		guestPieceLead: 'A piece the guests bring that isn’t in our archive. The music report needs its composer, publisher and duration.',
+		guestTitle: 'Title',
+		guestComposer: 'Composer (full name)',
+		guestArranger: 'Arranger',
+		guestPublisher: 'Publisher',
+		guestDuration: 'Duration, e.g. 4:30',
+		guestAdd: 'Add to programme',
+		guestTag: 'Guest piece',
+		reportScope: 'In the music report',
+		reportAll: 'All pieces',
+		reportOurs: 'Only ours',
+		reportScopeHint: 'The organiser reports the concert. When a guest ensemble reports its pieces itself, only ours are listed here.',
+		fillInProgram: 'Fill in in the programme'
+	},
 	musicReport: {
 		tab: 'Music report',
 		title: 'Music report',
@@ -1691,7 +1724,8 @@ export const en: Texts = {
 			composer: 'Composer',
 			arranger: 'Arranger',
 			publisher: 'Publisher',
-			duration: 'Duration'
+			duration: 'Duration',
+			performers: 'Performers'
 		},
 		gaps: (n: number) => (n === 1 ? 'Details still missing for 1 piece:' : `Details still missing for ${n} pieces:`),
 		missing: { composer: 'Composer', composerFull: 'Composer (full name)', publisher: 'Publisher', duration: 'Duration' } as Record<string, string>,
@@ -2122,7 +2156,9 @@ export const en: Texts = {
 				location: 'Venue',
 				orchestra: 'Orchestra',
 				sameProgramAs: 'Same programme as',
-				eventId: 'Calendar event ID'
+				eventId: 'Calendar event ID',
+				partners: 'Guest ensembles',
+				organizer: 'Organiser'
 			}
 		},
 		program: {
@@ -2132,8 +2168,23 @@ export const en: Texts = {
 				position: 'No.',
 				piece: 'Piece',
 				notes: 'Note',
-				/** Which of the concert's orchestras plays it; empty: all of them together. */
-				orchestra: 'Orchestra'
+				/** Which of the concert's orchestras plays it; empty: all of them together. Guests by their short name. */
+				orchestra: 'Orchestra',
+				composer: 'Composer',
+				arranger: 'Arranger',
+				publisher: 'Publisher',
+				duration: 'Duration'
+			}
+		},
+		ensembles: {
+			tab: 'Ensembles',
+			columns: {
+				shortName: 'Short name',
+				name: 'Name',
+				kind: 'Type',
+				conductor: 'Conductor',
+				website: 'Website',
+				logo: 'Logo'
 			}
 		},
 		members: {
@@ -2334,7 +2385,9 @@ export const en: Texts = {
 	/** Words the app writes into cells and reads back. */
 	sheetValues: {
 		/** In "Recording": there is none, so "Complete details" stops asking. */
-		noRecording: 'none'
+		noRecording: 'none',
+		/** Offered under "Art" in "Ensembles"; any other word works too. */
+		ensembleKinds: { choir: 'Choir', orchestra: 'Orchestra', band: 'Band', ensemble: 'Ensemble', soloist: 'Soloist' }
 	},
 	feedbackValues: {
 		reportKind: {
