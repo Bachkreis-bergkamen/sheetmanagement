@@ -155,6 +155,18 @@ test('the Besetzung read from the score flags an instrument without a part (#249
 	await expect(page.getByText('laut Besetzung, keine Stimme')).toBeVisible();
 });
 
+test('every score read at once, counted by text layer, and taken over (#249)', async ({ page }) => {
+	await open(page, '/fehlende-stimmen');
+	const run = page.locator('.run');
+	await run.getByRole('button', { name: 'Partituren lesen' }).click();
+	await expect(run.getByRole('button', { name: '1 Besetzung übernehmen' })).toBeVisible();
+	await expect(run.locator('.stats')).toContainText('8 mit Textebene');
+	await expect(run.getByRole('textbox', { name: 'Egmont Ouvertüre' })).toHaveValue(/^Piccolo; Flöte 1 & 2/);
+	await run.getByRole('button', { name: '1 Besetzung übernehmen' }).click();
+	await expect(run.getByText('1 Besetzung gespeichert.')).toBeVisible();
+	await expect(page.getByText('laut Besetzung, keine Stimme')).toBeVisible();
+});
+
 test('several composers, separated by commas', async ({ page }) => {
 	await open(page, '/stuecke/demo-egmont/bearbeiten');
 	await page.getByLabel('Komponist', { exact: true }).fill('Beethoven ,Mozart;');

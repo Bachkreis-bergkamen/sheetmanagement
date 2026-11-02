@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { config } from '#lib/config/index.ts';
-import { instrumentationFromScore, missingVoices, readInstrumentation, voiceText } from './instrumentation.ts';
+import { instrumentationFromScore, missingVoices, readInstrumentation, tidyRecognised, voiceText } from './instrumentation.ts';
 import { createInstrumentMatcher, parsePartName } from './part-name.ts';
 import type { Part } from './types.ts';
 
@@ -26,6 +26,20 @@ describe('instrumentationFromScore', () => {
 
 	it('leaves the score itself out', () => {
 		expect(instrumentationFromScore(['Partitur', 'Violin 1'], config)).toBe('Geige 1');
+	});
+});
+
+describe('tidyRecognised', () => {
+	it('undoes the slips of text recognition, as it read a real score strip', () => {
+		const read = ['Partitur', 'Egmor', 'Ottavino', 'Flauti a 2', 'Oboia 2', 'Clarinetti in Ba 2', 'Fagotti a 2', 'Corni in F 1. Il.', 'Trombe in C', 'Timpani', 'Violino |', 'Violino II', 'Viola', 'Violoncello e Basso', 'Demo-Noten - Sheetr'];
+		expect(read.map(tidyRecognised).slice(4, 11)).toEqual(['Oboi a 2', 'Clarinetti in B a 2', 'Fagotti a 2', 'Corni in F 1. II.', 'Trombe in C', 'Timpani', 'Violino I']);
+		expect(instrumentationFromScore(read.map(tidyRecognised), config)).toBe(
+			'Piccolo; Flöte 1 & 2; Oboe 1 & 2; Klarinette 1 & 2; Fagott 1 & 2; Horn 1 & 2; Trompete; Pauke; Geige 1 & 2; Bratsche; Cello; Kontrabass'
+		);
+	});
+
+	it('leaves words that only end in "a" alone', () => {
+		expect(tidyRecognised('Viola 2')).toBe('Viola 2');
 	});
 });
 

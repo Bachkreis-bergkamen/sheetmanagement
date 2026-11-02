@@ -11,10 +11,18 @@ import { missingVoices, readInstrumentation, voiceText } from '#lib/music/instru
 import { playedParts } from '#lib/music/my-parts.ts';
 import { getFeedback, getMissingPartsDone, getMusicConfig, getScanTasks } from '#lib/server/repertoire.ts';
 import { planScans, scanners } from '#lib/server/scan-tasks.ts';
-import { readTab, refreshAfterWrite, SheetLayoutError, updateRecord } from '#lib/server/sheet-writes.ts';
+import { ensureColumns, readTab, refreshAfterWrite, SheetLayoutError, updateRecord, updateRecords } from '#lib/server/sheet-writes.ts';
+import { findPieceRow } from '#lib/repertoire/piece-edit.ts';
+import type { Part } from '#lib/music/types.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 const RIGHT = 'stuecke.bearbeiten';
+
+/** The score to read a piece's Besetzung from: the full score before a reduction. */
+const scoreOf = (parts: Part[]) =>
+	parts
+		.filter((part) => part.kind === 'partitur' && part.mimeType === 'application/pdf' && part.status === 'ok')
+		.sort((a, b) => Number(!a.instruments.includes('Partitur')) - Number(!b.instruments.includes('Partitur')))[0];
 
 /**
  * Every gap in the archive in one list, generated from the file names (FEHLT, LEER,
@@ -108,6 +116,13 @@ export const load: PageServerLoad = async ({ locals }) => {
 			unscored: pieces.reduce((sum, piece) => sum + piece.unscored.length, 0)
 		},
 		check: check ? { checked: check.checked, total: check.total } : undefined,
+		// Scores of pieces without a Besetzung yet, to read in the browser in one run (#249).
+		scores: canMark
+			? library.pieces.flatMap((piece) => {
+					const score = piece.sheet && !piece.sheet.instrumentation && piece.detail ? scoreOf(piece.detail.parts) : undefined;
+					return score ? [{ pieceId: piece.id, title: piece.title, fileId: score.id }] : [];
+				})
+			: [],
 		canMark,
 		scanners: people,
 		driveWrite: driveWriteEnabled()
@@ -143,6 +158,35 @@ export const actions: Actions = {
 	},
 	/** Plans scans: a priority and who scans, for one gap or every gap of a piece. */
 	planScan: ({ locals, request }) => planScans(locals, request),
+	/** The Besetzung read from many scores at once; only where none is entered, so a hand-set one wins. */
+	instrumentation: async ({ locals, request }) => {
+		requireRight(locals, RIGHT);
+		let entries: { id: string; text: string }[];
+		try {
+			entries = (JSON.parse(String((await request.formData()).get('entries') ?? '[]')) as { id: unknown; text: unknown }[])
+				.filter((entry) => typeof entry.id === 'string' && typeof entry.text === 'string' && entry.text.trim())
+				.map((entry) => ({ id: (entry.id as string).slice(0, 200), text: (entry.text as string).trim().slice(0, 1000) }))
+				.slice(0, 500);
+		} catch {
+			return fail(400, { message: t.gaps.scoresBad });
+		}
+		const library = await getLibrary();
+		try {
+			const table = await ensureColumns('pieces', ['instrumentation']);
+			const updates = entries.flatMap(({ id, text }) => {
+				const sheet = library.piecesById.get(id)?.sheet;
+				const row = sheet && findPieceRow(table, sheet);
+				return row && !row.values.instrumentation?.trim() ? [{ row: row.row, values: { instrumentation: text } }] : [];
+			});
+			await updateRecords('pieces', table, updates);
+			await refreshAfterWrite();
+			return { instrumentationSaved: updates.length };
+		} catch (cause) {
+			if (cause instanceof SheetLayoutError) return fail(409, { message: cause.message });
+			console.error('Saving read Besetzungen failed:', cause);
+			return fail(503, { message: t.messages.sheetFailed });
+		}
+	},
 	dismissHint: async ({ locals, request }) => {
 		requireRight(locals, RIGHT);
 		await dismissPartHint(String((await request.formData()).get('id') ?? '').slice(0, 100));

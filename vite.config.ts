@@ -31,6 +31,9 @@ export default defineConfig(({ mode }) => ({
 		__APP_COMMIT__: JSON.stringify(commit()),
 		__LANGUAGE__: JSON.stringify(language(mode))
 	},
+	// Loaded only on demand (#249), so the dev server would find it on first use and reload the
+	// page under the person (or test) using it.
+	optimizeDeps: { include: ['tesseract.js'] },
 	test: {
 		include: ['src/**/*.test.ts']
 	}

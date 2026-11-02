@@ -8,6 +8,7 @@
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import ScanPlan from '#lib/components/ScanPlan.svelte';
 	import Title from '#lib/components/Title.svelte';
+	import ScoreRun from './ScoreRun.svelte';
 
 	let { data, form } = $props();
 	const marking = new FormState();
@@ -145,6 +146,10 @@
 	{:else}
 		<p class="msg info">{t.gaps.noneHere}</p>
 	{/if}
+{/if}
+
+{#if data.ok && data.canMark && (data.scores.length || form?.instrumentationSaved !== undefined)}
+	<ScoreRun scores={data.scores} saved={form?.instrumentationSaved} />
 {/if}
 
 <style>

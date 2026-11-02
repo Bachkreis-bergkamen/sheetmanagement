@@ -93,6 +93,17 @@ export function readInstrumentation(text: string | undefined, config: OrchestraC
 	return merge((text ?? '').split(/[;\n]+/).flatMap((entry) => (entry.trim() ? voicesOf(entry, config) : [])));
 }
 
+/**
+ * A line as text recognition reads it, with its usual slips undone: "|" and "l" for the Roman
+ * I ("Violino |", "Corni 1. Il."), and "a 2" run into the word before ("Oboia 2", "in Ba 2").
+ */
+export function tidyRecognised(line: string): string {
+	return line
+		.replace(/\|/g, 'I')
+		.replace(/(?<![\p{L}])(?:Il|lI|ll|Ill|lll)(?![\p{L}])/gu, (match) => 'I'.repeat(match.length))
+		.replace(/(?<=\p{L}*(?:i|(?<![\p{L}])[A-H]))a\s+([2-4])(?!\d)/gu, ' a $1');
+}
+
 /** "Flöte 1 & 2", with the deployment's label for the instrument. */
 export function voiceText({ instrument, numbers }: ScoredVoice): string {
 	return numbers.length ? `${instrumentLabel(instrument)} ${numbers.join(' & ')}` : instrumentLabel(instrument);

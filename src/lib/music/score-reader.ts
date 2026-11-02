@@ -123,3 +123,39 @@ export async function renderPage({ doc }: OpenScore, number: number, canvas: HTM
 	canvas.style.width = `${width}px`;
 	await page.render({ canvas, viewport }).promise;
 }
+
+/** The left strip of page 1 is drawn this wide for text recognition: about 240 dpi on A4. */
+const OCR_WIDTH = 2000;
+
+/**
+ * Text recognition for scans without a text layer (#249), in the browser with Tesseract: only
+ * the left strip of the first page, where the instruments are named. Loaded on first use; its
+ * engine and the language data come from Tesseract's own servers (jsDelivr, tessdata), the
+ * score itself never leaves the browser. One reader for many scores; close() when done.
+ */
+export async function createLabelReader() {
+	const { createWorker } = await import('tesseract.js');
+	const worker = await createWorker('deu');
+	return {
+		async labels(fileId: string): Promise<string[]> {
+			const score = await openScore(fileId);
+			try {
+				const page = document.createElement('canvas');
+				await renderPage(score, 1, page, OCR_WIDTH / (window.devicePixelRatio || 1));
+				const strip = document.createElement('canvas');
+				strip.width = Math.round(page.width * LABEL_STRIP);
+				strip.height = page.height;
+				strip.getContext('2d')!.drawImage(page, 0, 0);
+				const { data } = await worker.recognize(strip);
+				const { tidyRecognised } = await import('./instrumentation.ts');
+				return data.text
+					.split('\n')
+					.map((line) => tidyRecognised(line.trim()))
+					.filter(Boolean);
+			} finally {
+				await score.destroy();
+			}
+		},
+		close: () => worker.terminate()
+	};
+}
