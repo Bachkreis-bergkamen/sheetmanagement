@@ -14,7 +14,8 @@ import { mailReady, sendMail } from './index.ts';
  */
 
 const PER_EMAIL = 3;
-const PER_IP = 10;
+// High enough for a whole school or rehearsal on one WLAN, which shares one address.
+const PER_IP = 150;
 const WINDOW_MINUTES = 60;
 
 export const looksLikeEmail = (value: string) => /^[^\s@<>,]+@[^\s@<>,]+\.[^\s@<>,]+$/.test(value);

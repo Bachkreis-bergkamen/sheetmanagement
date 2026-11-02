@@ -138,6 +138,16 @@ export async function cached<T>(options: CachedOptions<T>): Promise<CachedResult
 			return withTimeout(next, key, timeoutMs * 2);
 		}
 		const promise: Promise<Entry<T>> = (async () => {
+			// Another instance (or the cron job) may have refreshed it already: take that instead
+			// of asking Google again and rebuilding everything that depends on it.
+			if (!fresh && kv) {
+				const stored = (await kv.get(key, 'json').catch(() => null)) as Entry<T> | null;
+				const known = memory.get(key)?.storedAt ?? 0;
+				if (stored && typeof stored.storedAt === 'number' && stored.storedAt > known && isFresh(stored)) {
+					memory.set(key, stored);
+					return stored;
+				}
+			}
 			const entry: Entry<T> = { storedAt: now(), value: await options.build() };
 			memory.set(key, entry);
 			if (kv) await persist(kv, key, entry, waitUntil);

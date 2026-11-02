@@ -9,6 +9,12 @@ compatibility_flags = ["nodejs_als"]
 # Keep variables set in the Cloudflare dashboard when deploying.
 keep_vars = true
 
+# Workers Logs: CPU time and outcome per request with its path, so pages that run into the
+# free plan's 10 ms CPU limit (Error 1102) can be found. Free plan: 200,000 events a day, kept 3 days.
+[observability]
+enabled = true
+head_sampling_rate = 1
+
 # Cache for the Drive archive index. Wrangler creates the namespace on the first
 # deploy and may write its id below; that id is not secret.
 [[kv_namespaces]]
