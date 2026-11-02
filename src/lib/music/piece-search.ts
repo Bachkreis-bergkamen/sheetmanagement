@@ -30,7 +30,7 @@ const built = new WeakMap<object, Map<string, string>>();
 function instrumentText(name: string): string {
 	let map = built.get(config.instruments);
 	if (!map) {
-		map = new Map(config.instruments.map((instrument) => [instrument.name, searchText(instrumentLabel(instrument.name), instrument.name, ...(instrument.aliases ?? []))]));
+		map = new Map(config.instruments.map((instrument) => [instrument.name, searchText(instrumentLabel(instrument.name), instrument.name, ...(instrument.aliases ?? []), ...(instrument.variants ?? []))]));
 		built.set(config.instruments, map);
 	}
 	return map.get(name) ?? searchText(name);

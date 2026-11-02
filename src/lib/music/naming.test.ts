@@ -164,3 +164,51 @@ describe('classicalShortTitle with several composers', () => {
 		expect(classicalShortTitle('Sinfonie Nr. 9', { composer: 'Dvořák' })).toBe('Dvořák 9');
 	});
 });
+
+describe('names from the archive that needed a person (#271)', () => {
+	const run = (names: string[], short: string, titles: string[] = []) =>
+		checkSection(names.map((name) => pdf(name)), short, naming, matcher, { titles }).map((c) => c.suggested ?? c.state);
+
+	it('names small percussion after the instrument, so the parts stay apart', () => {
+		expect(run(['Ode_to_Joy-Low_Drum.pdf', 'Ode_to_Joy-Triangle.pdf', 'Ode_to_Joy-Agogo_Bells.pdf'], 'Ode to Joy', ['Ode to Joy'])).toEqual([
+			'Ode to Joy - Percussion Low Drum.pdf',
+			'Ode to Joy - Percussion Triangle.pdf',
+			'Ode to Joy - Percussion Agogo Bells.pdf'
+		]);
+		// Named that way, they stay.
+		expect(check(['Ode to Joy - Percussion Triangle.pdf'], 'Ode to Joy')).toEqual([['Ode to Joy - Percussion Triangle.pdf', 'ok', undefined]]);
+	});
+
+	it('reads a subfolder name before the part as title', () => {
+		const files = ['Sections II Baritonsax & Klarinette.pdf', 'Sections II Trompete 1.pdf', 'Section II Violine.pdf', 'Section II Violoncello.pdf'];
+		expect(run(files, 'Sections', ['Sections', 'Section II'])).toEqual([
+			'Sections - Bariton-Saxophon & Klarinette.pdf',
+			'Sections - Trompete I.pdf',
+			'Sections - Geige.pdf',
+			'Sections - Violoncello.pdf'
+		]);
+		expect(run(['Sections III Klarinette Zusatzstimme.pdf'], 'Sections', ['Sections', 'Section III'])).toEqual([
+			'Sections - Klarinette Zusatzstimme.pdf'
+		]);
+		// Without it, numbers on both sides of the part are left to a person.
+		expect(run(['II Trompete 1.pdf'], 'Sections')).toEqual(['unclear']);
+	});
+
+	it('reads keys, sources and spellings it missed', () => {
+		const files = ['@Schubert8_Partitur-IMSLP.pdf', 'Schubert8_Clarinets-inA+B.pdf', 'Schubert8_TrumpetI-E.pdf', 'Schubert8_TrumpetII-E.pdf'];
+		expect(run(files, 'Schubert 8')).toEqual([
+			'@Schubert 8 - Partitur.pdf',
+			'Schubert 8 - Klarinette in A & B.pdf',
+			'Schubert 8 - Trompete I in E.pdf',
+			'Schubert 8 - Trompete II in E.pdf'
+		]);
+		expect(run(['Sleepers Wake C Flöte.pdf'], 'Sleepers Wake', ['Sleepers Wake'])).toEqual(['Sleepers Wake - Flöte in C.pdf']);
+		expect(run(['SEVEN NATION ARMY-Alt_Saxophone.pdf'], 'Seven Nation Army', ['Seven Nation Army'])).toEqual([
+			'Seven Nation Army - Alt-Saxophon.pdf'
+		]);
+		expect(run(['Star_Trek-Mallet_Perc.pdf', 'Star_Trek-Roland_SP700.pdf'], 'Star Trek', ['Star Trek'])).toEqual([
+			'Star Trek - Mallet Percussion.pdf',
+			'Star Trek - Synthesizer.pdf'
+		]);
+	});
+});

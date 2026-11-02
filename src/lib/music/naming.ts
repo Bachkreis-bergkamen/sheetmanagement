@@ -28,6 +28,8 @@ export interface NameCheck {
 	label: string;
 	/** Why it's unclear: the words the parser couldn't place. */
 	unrecognized: string[];
+	/** Or why else: the name it would get belongs to another file already. */
+	taken?: string;
 }
 
 const GOOGLE_APPS = 'application/vnd.google-apps.';
@@ -260,7 +262,7 @@ export function checkSection(
 			let suggested = build(notes);
 			if (suggested === check.name) return { ...check, state: 'ok' };
 			if (taken.has(key(suggested)) && !notes.includes('Duplikat')) suggested = build([...notes, 'Duplikat']);
-			if (taken.has(key(suggested))) return check;
+			if (taken.has(key(suggested))) return { ...check, taken: suggested };
 			taken.add(key(suggested));
 			return { ...check, state: 'rename', suggested };
 		})();

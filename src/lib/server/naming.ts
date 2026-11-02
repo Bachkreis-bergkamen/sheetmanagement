@@ -49,6 +49,7 @@ function sectionsOf(detail: PieceDetail): NamingSection[] {
 		const files = detail.parts
 			.filter((part) => part.section === section.key)
 			.map(({ id, fileName, mimeType }) => ({ id, name: fileName, mimeType }));
+		const movement = Number(/^(\d+)\. Satz/.exec(section.label)?.[1]) || undefined;
 		return {
 			key: `${detail.id}:${section.key}`,
 			pieceId: detail.id,
@@ -57,8 +58,9 @@ function sectionsOf(detail: PieceDetail): NamingSection[] {
 			folderUrl: folderUrl(section.folderId),
 			files,
 			shortTitle: guessShortTitle(files, detail.title, config.naming, detail),
-			movement: Number(/^(\d+)\. Satz/.exec(section.label)?.[1]) || undefined,
-			titles: [detail.folderName, detail.title]
+			movement,
+			// A subfolder like "Section II" names its files too: "Section II Violine".
+			titles: [detail.folderName, detail.title, ...(movement ? [] : [section.label])]
 		};
 	});
 }
