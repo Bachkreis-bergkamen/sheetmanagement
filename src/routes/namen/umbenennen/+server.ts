@@ -13,7 +13,8 @@ import type { RequestHandler } from './$types';
  * any number of files: free Workers allow 50 Google requests per call. The names are worked
  * out again here, so only names the check suggests are ever written. `refresh` with the
  * new names writes them into the cached archive once at the end, instead of crawling the
- * whole archive again; without names it does crawl it.
+ * whole archive again; without names it does crawl it. When nothing is cached there's
+ * nothing to patch, and the next visitor reads the archive anyway.
  */
 export const POST: RequestHandler = async ({ request, locals }) => {
 	requireRight(locals, 'stuecke.bearbeiten');
@@ -27,8 +28,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				.filter((r): r is { id: string; name: string } => typeof r?.id === 'string' && typeof r?.name === 'string')
 				.map((r) => [r.id, r.name.slice(0, 300)])
 		);
-		const patched = names.size > 0 && (await renameInArchiveIndex(names).catch(() => false));
-		if (!patched) await getArchiveIndex({ force: true }).catch((cause) => console.error('Refreshing the archive failed:', cause));
+		// Only the renamed files: a crawl of the whole archive after every few renames costs dozens of Google requests.
+		if (names.size) await renameInArchiveIndex(names).catch((cause) => console.error('Updating the cached archive failed:', cause));
+		else await getArchiveIndex({ force: true }).catch((cause) => console.error('Refreshing the archive failed:', cause));
 		return json({ renamed: [], failed: [] });
 	}
 

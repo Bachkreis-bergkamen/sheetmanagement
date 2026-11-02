@@ -44,15 +44,26 @@ export const bachkreis: OrchestraConfig = {
 		{ name: 'Tuba', family: 'blech', common: true, aliases: ['Basstuba', 'Bass Tuba'] },
 		{ name: 'Blech', family: 'blech', aliases: ['Blechbläser', 'Brass'] },
 
-		{ name: 'Pauke', family: 'schlagwerk', common: true, aliases: ['Pauken', 'Timpani', 'Timp'] },
+		{ name: 'Pauke', family: 'schlagwerk', common: true, aliases: ['Pauken', 'Timpani', 'Timp', 'Timpano', 'Kettledrums'] },
 		{ name: 'Schlagwerk', family: 'schlagwerk', common: true, aliases: ['Schlagzeug', 'Drum Set', 'Drumset', 'Drums'] },
-		{ name: 'Percussion', family: 'schlagwerk', aliases: ['Perc'] },
-		{ name: 'Mallet Percussion', family: 'schlagwerk', aliases: ['Mallets'] },
-		{ name: 'Glockenspiel', family: 'schlagwerk', aliases: ['Bells'] },
+		{
+			name: 'Percussion',
+			family: 'schlagwerk',
+			// Small percussion: these rarely get a part of their own in the archive's convention.
+			aliases: [
+				'Perc', 'Kleines Schlagwerk', 'Agogo Bells', 'Agogo', 'Guiro', 'Güiro', 'Low Drum', 'Triangle', 'Triangel',
+				'Kastagnetten', 'Castanets', 'Claves', 'Woodblock', 'Wood Block', 'Holzblock', 'Temple Blocks', 'Tempelblocks',
+				'Shaker', 'Maracas', 'Cabasa', 'Bongos', 'Congas', 'Timbales', 'Cowbell', 'Kuhglocke', 'Wind Chimes', 'Windspiel',
+				'Mark Tree', 'Sleigh Bells', 'Schellen', 'Ratsche', 'Ratchet', 'Peitsche', 'Whip', 'Slapstick', 'Vibraslap',
+				'Tom-Toms', 'Tom Toms', 'Toms', 'Hi-Hat', 'Hihat', 'Rainstick', 'Regenmacher', 'Cajon', 'Djembe', 'Auxiliary Percussion', 'Aux Perc'
+			]
+		},
+		{ name: 'Mallet Percussion', family: 'schlagwerk', aliases: ['Mallets', 'Stabspiele', 'Marimba', 'Marimbaphon', 'Vibraphon', 'Vibraphone', 'Vibes', 'Röhrenglocken', 'Tubular Bells', 'Chimes', 'Crotales'] },
+		{ name: 'Glockenspiel', family: 'schlagwerk', aliases: ['Bells', 'Orchestra Bells', 'Orchestral Bells'] },
 		{ name: 'Xylophon', family: 'schlagwerk', aliases: ['Xylophone'] },
-		{ name: 'Becken', family: 'schlagwerk', aliases: ['Cymbals'] },
-		{ name: 'Große Trommel', family: 'schlagwerk', aliases: ['Gran Cassa', 'Bass Drum'] },
-		{ name: 'Trommel', family: 'schlagwerk', aliases: ['Kleine Trommel', 'Snare Drum', 'Snare'] },
+		{ name: 'Becken', family: 'schlagwerk', aliases: ['Cymbals', 'Cymbal', 'Piatti', 'Crash Cymbals', 'Suspended Cymbal', 'Hängendes Becken'] },
+		{ name: 'Große Trommel', family: 'schlagwerk', aliases: ['Gran Cassa', 'Bass Drum', 'Grosse Trommel', 'Bassdrum'] },
+		{ name: 'Trommel', family: 'schlagwerk', aliases: ['Kleine Trommel', 'Snare Drum', 'Snare', 'Rührtrommel', 'Marschtrommel', 'Field Drum', 'Tenor Drum'] },
 		{ name: 'Tamburin', family: 'schlagwerk', aliases: ['Tambourine'] },
 		{ name: 'Tamtam', family: 'schlagwerk', aliases: ['Tam Tam', 'Gong'] },
 
@@ -76,7 +87,7 @@ export const bachkreis: OrchestraConfig = {
 		// The app says Geige · Bratsche · Cello · Kontrabass; the files keep their words (Viola, Violoncello).
 		{ name: 'Geige', family: 'streicher', common: true, aliases: ['Geigen', 'Violine', 'Violinen', 'Violin', 'Violins'] },
 		{ name: 'Viola', label: 'Bratsche', family: 'streicher', common: true, aliases: ['Violen', 'Bratsche', 'Bratschen', 'Violas', 'Vioa'] },
-		{ name: 'Violoncello', label: 'Cello', family: 'streicher', common: true, aliases: ['Cello', 'Celli', 'Cellos', 'Violoncellos'] },
+		{ name: 'Violoncello', label: 'Cello', family: 'streicher', common: true, aliases: ['Cello', 'Celli', 'Cellos', 'Violoncellos', 'Violincello'] },
 		{
 			name: 'Kontrabass',
 			family: 'streicher',

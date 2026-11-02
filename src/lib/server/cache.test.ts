@@ -98,6 +98,46 @@ describe('cached', () => {
 		await cached({ ...options, build: async () => 'changed', force: true });
 		expect(put).toHaveBeenCalledTimes(2);
 	});
+
+	it('shares one more build among saves that come while a forced one runs', async () => {
+		let release!: (value: string) => void;
+		const build = vi.fn(() => new Promise<string>((r) => (release = r)));
+		const first = cached({ key: 'k', maxAgeMs: 1000, build, force: true });
+		await new Promise((r) => setTimeout(r, 0));
+		const second = cached({ key: 'k', maxAgeMs: 1000, build, force: true });
+		const third = cached({ key: 'k', maxAgeMs: 1000, build, force: true });
+		release('before');
+		await first;
+		await new Promise((r) => setTimeout(r, 0));
+		release('after');
+		expect((await second).value).toBe('after');
+		expect((await third).value).toBe('after');
+		expect(build).toHaveBeenCalledTimes(2);
+	});
+
+	it('writes KV at most once a second per key, the newest value last', async () => {
+		const kv = memoryKv();
+		const put = vi.spyOn(kv, 'put');
+		const background: Promise<unknown>[] = [];
+		const options = { key: 'k', maxAgeMs: 1000, kv, waitUntil: (p: Promise<unknown>) => background.push(p), force: true };
+		await cached({ ...options, build: async () => 'one' });
+		await cached({ ...options, build: async () => 'two' });
+		await cached({ ...options, build: async () => 'three' });
+		await Promise.all(background);
+		expect(put).toHaveBeenCalledTimes(2);
+		expect(JSON.parse(kv.data.get('k')!).value).toBe('three');
+	});
+
+	it('does not fail when KV refuses the write', async () => {
+		const kv = memoryKv();
+		kv.put = async () => {
+			throw new Error('KV PUT failed: 429 Too Many Requests');
+		};
+		const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+		expect(await cached({ key: 'k', maxAgeMs: 1000, build: async () => 'v', kv })).toMatchObject({ value: 'v' });
+		expect(await patchCached<string>({ key: 'k', kv, update: (value) => `${value}!` })).toBe(true);
+		error.mockRestore();
+	});
 });
 
 describe('patchCached', () => {
