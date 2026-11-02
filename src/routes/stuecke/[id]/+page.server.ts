@@ -7,7 +7,9 @@ import { commonInstruments, formatInstrument, matchParts, parseInstruments, play
 import { addReport, feedbackUser, formText, playAgain } from '#lib/server/feedback.ts';
 import { features, isOn } from '#lib/server/env.ts';
 import { requireRight } from '#lib/server/auth/index.ts';
-import { getAccessList, getFeedback, getLoans, getMusicConfig, getPartAssignments, getPieceNotes, getRehearsalPlan } from '#lib/server/repertoire.ts';
+import { getAccessList, getFeedback, getLoans, getMusicConfig, getPartAssignments, getPieceNotes, getRehearsalPlan, getScanTasks } from '#lib/server/repertoire.ts';
+import { isGap, priorityRank } from '#lib/repertoire/missing-parts.ts';
+import { planScans, scanners } from '#lib/server/scan-tasks.ts';
 import { addAssignment, assignmentEditor, comingConcerts, deleteAssignment } from '#lib/server/part-assignments.ts';
 import { choicesAt } from '#lib/music/part-assignments.ts';
 import { checkNote, notesOf, sectionOptions } from '#lib/notes/piece-notes.ts';
@@ -68,6 +70,10 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 			)
 		: [];
 	const played = detail && choices.length ? playedParts(detail) : [];
+	// "Zu scannen": the piece's gaps with their planned scans, for whoever plans them.
+	const gaps = canClose ? (detail?.parts ?? []).filter(isGap) : [];
+	const [tasks, people] = gaps.length ? await Promise.all([getScanTasks(), scanners().catch(() => [])]) : [new Map(), []];
+	const me = normalizeEmail(locals.access.user?.email ?? '');
 	const viewer = locals.auth === 'on' && !!member;
 	const mine = choices.flatMap((choice) => {
 		const { own, shared } = matchParts(played, choice, music);
@@ -83,6 +89,27 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 			}
 		},
 		canEdit: locals.access.rights.has('stuecke.bearbeiten') && !!sheet,
+		scans:
+			gaps.length && people.length
+				? {
+						scanners: people,
+						gaps: gaps
+							.map((part) => {
+								const task = tasks.get(part.id);
+								return {
+									id: part.id,
+									label: part.label,
+									status: part.status,
+									priority: task?.priority,
+									assignee: task?.assignee,
+									assigneeName: task?.assignee ? people.find((person) => person.email === task.assignee)?.name || task.assignee : undefined,
+									mine: !!me && task?.assignee === me,
+									done: !!task?.done
+								};
+							})
+							.sort((a, b) => priorityRank(a.priority) - priorityRank(b.priority))
+					}
+				: null,
 		// The Stimmensatz of this piece alone (#251), once there are parts to print.
 		canPrintSet: locals.access.rights.has('stuecke.bearbeiten') && !!piece.detail?.parts.length,
 		saved: url.searchParams.has('gespeichert'),
@@ -242,6 +269,8 @@ const sameComposer = listsOverlap;
 const summary = ({ id, title, catalogue, status, programs }: LibraryPiece) => ({ id, title, catalogue, status, programs });
 
 export const actions: Actions = {
+	/** Plans scans, as on "Fehlende Stimmen". */
+	planScan: ({ locals, request }) => planScans(locals, request),
 	createFolder: async ({ params, request, locals }) => {
 		const name = formText(await request.formData(), 'name', 150);
 		const id = await inDrive(() => createPieceFolder(locals, params.id, name), 'Creating a piece folder');

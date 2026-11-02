@@ -116,7 +116,8 @@
 					{ href: '/admin', count: data.todo.requests, text: t.home.todo.requests },
 					{ href: '/leihmaterial', count: data.todo.loans, text: t.home.todo.loans },
 					{ href: data.todo.attendanceUrl ?? '/kalender', count: data.todo.attendance, text: t.home.todo.attendance },
-					{ href: data.todo.pollsUrl ?? '/termine', count: data.todo.polls, text: t.home.todo.polls }
+					{ href: data.todo.pollsUrl ?? '/termine', count: data.todo.polls, text: t.home.todo.polls },
+					{ href: '/fehlende-stimmen?meine', count: data.todo.scans, text: t.home.todo.scans }
 				].filter((item) => item.count > 0)
 			: []
 	);

@@ -240,6 +240,7 @@ export async function setUpSheet(
 		['wishes', 'kind', list(t.feedbackValues.wishKind)],
 		['wishes', 'status', list(t.feedbackValues.wishStatus)],
 		['missingParts', 'done', { type: 'BOOLEAN' }],
+		['missingParts', 'priority', list(t.sheetValues.priority)],
 		['instrumentGroups', 'mutual', { type: 'BOOLEAN' }],
 		['signups', 'answer', list(t.signups.answerValues)],
 		['loans', 'piece', fromColumn('pieces', 'title')],

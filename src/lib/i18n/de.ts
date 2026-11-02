@@ -83,7 +83,8 @@ export const de = {
 			requests: (n: number) => (n === 1 ? 'Zugangsanfrage' : 'Zugangsanfragen'),
 			loans: (n: number) => (n === 1 ? 'Rückgabe steht an' : 'Rückgaben stehen an'),
 			attendance: (n: number) => (n === 1 ? 'Probe ohne Anwesenheit' : 'Proben ohne Anwesenheit'),
-			polls: (n: number) => (n === 1 ? 'Terminumfrage' : 'Terminumfragen')
+			polls: (n: number) => (n === 1 ? 'Terminumfrage' : 'Terminumfragen'),
+			scans: (n: number) => (n === 1 ? 'Stimme zum Scannen' : 'Stimmen zum Scannen')
 		},
 		/** One line under each page on the start page. */
 		describe: {
@@ -974,7 +975,31 @@ export const de = {
 		doneHint: 'Als erledigt markiert, z. B. bestellt. Die Lücke verschwindet, sobald die Datei umbenannt ist.',
 		markDone: 'Erledigt',
 		markOpen: 'Wieder offen',
-		markGone: 'Diese Lücke ist noch nicht in der Liste; gleich noch einmal versuchen.'
+		markGone: 'Diese Lücke ist noch nicht in der Liste; gleich noch einmal versuchen.',
+		/** Scan-Aufträge: Priorität und wer scannt, pro Lücke oder für alle Lücken eines Stücks. */
+		mine: 'Mir zugeteilt',
+		priority: 'Priorität',
+		priorities: { high: 'Priorität hoch', medium: 'Priorität mittel', low: 'Priorität niedrig' },
+		noPriority: 'ohne Priorität',
+		assignee: 'Wer scannt',
+		nobody: 'noch niemand',
+		assignedTo: (name: string) => `scannt: ${name}`,
+		assignedToMe: 'scannst du',
+		plan: 'Scan planen',
+		planAll: 'Für alle Lücken planen',
+		planAllHint: (n: number) => `Gilt für ${n === 1 ? 'die Lücke' : `alle ${n} Lücken`} dieses Stücks.`,
+		save: 'Speichern',
+		cancel: 'Abbrechen',
+		saved: 'Gespeichert.',
+		notScanner: 'Diese Person darf keine Noten bearbeiten. Gib ihr in „Mitglieder & Rechte“ die Rolle Notenwart.',
+		planGone: 'Diese Lücken sind noch nicht in der Liste; gleich noch einmal versuchen.',
+		push: {
+			title: 'Bitte scannen',
+			titleHigh: 'Bitte bald scannen',
+			body: (piece: string, parts: string[]) => `${piece}: ${parts.join(', ')}`
+		},
+		pieceTitle: 'Zu scannen',
+		pieceLead: 'Was in diesem Stück fehlt, wer es scannt und wie dringend.'
 	},
 	instrumentation: {
 		title: 'Besetzung',
@@ -2338,7 +2363,10 @@ export const de = {
 				part: 'Stimme',
 				status: 'Status',
 				fileId: 'Datei-ID',
-				done: 'erledigt'
+				done: 'erledigt',
+				/** Scan-Aufträge: welche Lücke zuerst, und wer sie scannt (E-Mail). */
+				priority: 'Priorität',
+				assignee: 'Wer scannt'
 			}
 		},
 		/** Who plays from which part: "B-Stimmen" are read by clarinets and trumpets. */
@@ -2482,7 +2510,9 @@ export const de = {
 		/** In "Hörbeispiel": there is none, so "Angaben ergänzen" stops asking. */
 		noRecording: 'keins',
 		/** Offered under "Art" in "Ensembles"; any other word works too. */
-		ensembleKinds: { choir: 'Chor', orchestra: 'Orchester', band: 'Band', ensemble: 'Ensemble', soloist: 'Solist:in' }
+		ensembleKinds: { choir: 'Chor', orchestra: 'Orchester', band: 'Band', ensemble: 'Ensemble', soloist: 'Solist:in' },
+		/** Under "Priorität" in "Fehlende Stimmen". */
+		priority: { high: 'hoch', medium: 'mittel', low: 'niedrig' }
 	},
 	feedbackValues: {
 		reportKind: {

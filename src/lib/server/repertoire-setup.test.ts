@@ -122,6 +122,7 @@ describe('setUpSheet', () => {
 			labels(t.feedbackValues.wishKind),
 			labels(t.feedbackValues.wishStatus),
 			undefined,
+			labels(t.sheetValues.priority),
 			undefined,
 			labels(t.signups.answerValues),
 			[{ userEnteredValue: "='Stücke'!$A$2:$A" }],
@@ -134,7 +135,7 @@ describe('setUpSheet', () => {
 			[{ userEnteredValue: 'EO' }, { userEnteredValue: 'A' }, { userEnteredValue: 'EO, A' }],
 			[{ userEnteredValue: 'EO' }, { userEnteredValue: 'A' }, { userEnteredValue: 'EO, A' }]
 		]);
-		expect(fake.tabs[10].values[0]).toEqual(['Stück', 'Stimme', 'Status', 'Datei-ID', 'erledigt']);
+		expect(fake.tabs[10].values[0]).toEqual(['Stück', 'Stimme', 'Status', 'Datei-ID', 'erledigt', 'Priorität', 'Wer scannt']);
 		// "erledigt" is a checkbox column.
 		const checkbox = dropdowns.find((r) => r.setDataValidation.rule.condition.type === 'BOOLEAN');
 		expect(checkbox.setDataValidation.range).toMatchObject({ sheetId: fake.tabs[10].sheetId, startColumnIndex: 4 });
