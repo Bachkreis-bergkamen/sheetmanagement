@@ -53,6 +53,14 @@
 		document.documentElement.dataset.app = 'ready';
 	});
 
+	// The music table and the pieces' pages kept offline for a signed-in member (#62); the worker
+	// does it at most once a day, and not on a connection that saves data.
+	$effect(() => {
+		if (!data.features.offline || data.auth !== 'on' || !data.user || !('serviceWorker' in navigator)) return;
+		if ((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData) return;
+		navigator.serviceWorker.ready.then((registration) => registration.active?.postMessage('warm')).catch(() => {});
+	});
+
 	// Pages cross-fade like in an app (#129): the browser animates between the old and the new
 	// page once its data is there, header and tab bar stay put. Without View Transitions the
 	// new page fades in (see .page). Filters and forms on the same page don't animate.

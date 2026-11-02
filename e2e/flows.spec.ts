@@ -255,7 +255,7 @@ test('a note on a piece reaches the section’s Meine Noten (#125)', async ({ pa
 	await page.getByText('Hinweis hinzufügen').click();
 	await page.getByRole('textbox', { name: 'Hinweis' }).fill('Takt 12 bis 20 nur die Hälfte der Geigen');
 	await page.locator('select[name="section"]').selectOption('Streicher');
-	await page.getByRole('button', { name: 'Speichern' }).click();
+	await page.getByRole('button', { name: 'Speichern', exact: true }).click();
 	await expect(page.getByText('Hinweis gespeichert.')).toBeVisible();
 	await expect(page.getByText('Für Streicher').first()).toBeVisible();
 	// Mia plays Geige II: the note shows next to her part.

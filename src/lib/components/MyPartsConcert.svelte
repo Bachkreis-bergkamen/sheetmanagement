@@ -2,6 +2,7 @@
 	import { page as app } from '$app/state';
 	import { t } from '#lib/i18n/index.ts';
 	import { mergedFileName } from '#lib/music/my-parts.ts';
+	import { offlineParts, pdfPath } from '#lib/offline/parts.svelte.ts';
 	import type { Stroke } from '#lib/practice/marks.ts';
 	import type { PageData } from '../../routes/meine-noten/$types';
 	import ConcertMode from './ConcertMode.svelte';
@@ -33,7 +34,7 @@
 	const files = $derived(
 		concert.pieces.flatMap((piece) => {
 			const parts = piece.matches.flatMap(playable).filter((part, i, all) => all.findIndex((p) => p.id === part.id) === i);
-			return parts.map((part) => ({ ...part, piece: piece.title }));
+			return parts.map((part) => ({ ...part, piece: piece.title, pieceId: piece.pieceId ?? undefined }));
 		})
 	);
 	const found = $derived(concert.pieces.filter((piece) => piece.matches.some(hasPart)).length);
@@ -81,62 +82,27 @@
 	}
 
 	// Offline in the rehearsal hall (#62): the parts saved in the service worker's cache, opened
-	// from there while there's no connection. The cache name matches src/service-worker.ts.
-	const NOTEN = 'noten-v1';
-	const pdfPath = (id: string) => `/api/noten/${encodeURIComponent(id)}`;
-	let supported = $state(false);
-	let online = $state(true);
-	let saved = $state<Set<string>>(new Set());
+	// from there while there's no connection; off for orchestras that don't use it (#134).
+	const supported = $derived(offlineParts.supported);
+	const online = $derived(offlineParts.online);
 	let saving = $state<string | null>(null);
 	let saveFailed = $state(0);
-	const savedHere = $derived(files.filter((file) => saved.has(file.id)).length);
+	const savedHere = $derived(files.filter((file) => offlineParts.has(file.id)).length);
 
-	async function readSaved() {
-		const cache = await caches.open(NOTEN);
-		const found = new Set<string>();
-		for (const file of files) if (await cache.match(pdfPath(file.id))) found.add(file.id);
-		saved = found;
-	}
-
-	$effect(() => {
-		// Off for orchestras that don't use it (#134); copies saved earlier still open offline.
-		supported = app.data.features.offline && 'caches' in window && 'serviceWorker' in navigator;
-		const update = () => (online = navigator.onLine);
-		update();
-		addEventListener('online', update);
-		addEventListener('offline', update);
-		if (supported && canMerge) readSaved().catch(() => {});
-		return () => {
-			removeEventListener('online', update);
-			removeEventListener('offline', update);
-		};
-	});
+	$effect(() => offlineParts.start(app.data.features.offline));
 
 	async function saveOffline() {
-		saveFailed = 0;
-		const cache = await caches.open(NOTEN);
-		for (const [i, file] of files.entries()) {
-			saving = t.pwa.saving(i + 1, files.length);
-			try {
-				const response = await fetch(pdfPath(file.id));
-				if (response.ok) await cache.put(pdfPath(file.id), response);
-				else saveFailed++;
-			} catch {
-				saveFailed++;
-			}
-		}
+		saveFailed = await offlineParts.save(
+			files.map((file) => ({ id: file.id, label: file.label, piece: file.piece, pieceId: file.pieceId, glyph: file.glyph })),
+			(done, total) => (saving = t.pwa.saving(done, total))
+		);
 		saving = null;
-		await readSaved();
 	}
 
-	async function removeOffline() {
-		const cache = await caches.open(NOTEN);
-		for (const file of files) await cache.delete(pdfPath(file.id));
-		await readSaved();
-	}
+	const removeOffline = () => offlineParts.remove(files.map((file) => file.id));
 
 	/** Online the usual place (Drive); offline the saved copy, if there is one. */
-	const partHref = (part: { id: string; url: string }) => (!online && saved.has(part.id) ? pdfPath(part.id) : part.url);
+	const partHref = (part: { id: string; url: string }) => (!online && offlineParts.has(part.id) ? pdfPath(part.id) : part.url);
 
 	/** The member's notes in these parts, by file and page; none when they can't be loaded. */
 	async function ownMarks(ids: string[]): Promise<Record<string, Record<number, Stroke[]>>> {
@@ -300,7 +266,7 @@
 														{#if part.shared}<span class="tag">{t.myParts.shared}</span>{/if}
 														{#if part.status !== 'ok'}<span class="tag warn">{t.piece.partStatus[part.status]}</span>{/if}
 														{#each part.notes as note (note)}<span class="tag">{note}</span>{/each}
-														{#if saved.has(part.id)}<span class="tag ok">{t.pwa.offlineBadge}</span>{/if}
+														{#if offlineParts.has(part.id)}<span class="tag ok">{t.pwa.offlineBadge}</span>{/if}
 													</svelte:element>
 												</li>
 											{/each}
