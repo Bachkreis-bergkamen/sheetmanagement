@@ -47,6 +47,23 @@ describe('cached', () => {
 		expect(await cached(options)).toMatchObject({ value: 'v2' });
 	});
 
+	it('takes a newer value another instance put in KV instead of rebuilding a stale one', async () => {
+		const kv = memoryKv();
+		const background: Promise<unknown>[] = [];
+		let time = 0;
+		const build = vi.fn(async () => 'own');
+		const options = { key: 'k', maxAgeMs: 1000, build, kv, now: () => time, waitUntil: (p: Promise<unknown>) => background.push(p) };
+		await cached(options);
+		await Promise.all(background);
+		kv.data.set('k', JSON.stringify({ storedAt: 4500, value: 'theirs' }));
+
+		time = 5000;
+		await cached(options);
+		await Promise.all(background);
+		expect(await cached(options)).toMatchObject({ value: 'theirs' });
+		expect(build).toHaveBeenCalledTimes(1);
+	});
+
 	it('uses KV when memory is empty, e.g. in a new Worker instance', async () => {
 		const kv = memoryKv();
 		await cached({ key: 'k', maxAgeMs: 1000, build: async () => 'shared', kv, now: () => 0 });
