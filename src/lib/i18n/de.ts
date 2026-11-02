@@ -1631,7 +1631,12 @@ export const de = {
 			exitFullscreen: 'Vollbild beenden',
 			turnHint: 'Blättern: an den linken oder rechten Rand tippen, mit den Pfeiltasten oder einem Blätterpedal.',
 			tools: 'Werkzeuge',
-			closeTools: 'Werkzeuge schließen'
+			closeTools: 'Werkzeuge schließen',
+			moveTools: 'Werkzeuge verschieben (Pfeiltasten, Escape: automatisch)',
+			autoPlace: 'Automatisch platzieren',
+			fold: 'Einklappen',
+			toolsAt: (x: number, y: number) => `Werkzeuge bei ${x} % von links, ${y} % von oben`,
+			toolsAuto: 'Werkzeuge automatisch platziert'
 		},
 		recording: {
 			title: 'Hörbeispiel',

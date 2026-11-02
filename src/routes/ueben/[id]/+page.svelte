@@ -227,12 +227,12 @@
 		font-weight: 600;
 	}
 
-	/* Clear of the panel's close button; three short words, wrapping in a very narrow panel. */
+	/* Three short words, wrapping in a very narrow panel. */
 	.tabs {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 2px;
-		margin: 0 34px var(--space-3) 0;
+		margin: 0 0 var(--space-3);
 		padding: 3px;
 		border-radius: var(--radius-control);
 		background: color-mix(in oklab, var(--text) 6%, transparent);

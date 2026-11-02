@@ -614,8 +614,116 @@
 		const centred = Math.max(0, (stageWidth - (size?.width ?? width)) / 2);
 		return { place: 'above', page: centred, left: undefined, top: undefined, width: undefined, height: undefined };
 	});
-	/** The page's left edge in the stage: centred, or moved aside for the tools. */
-	const pageLeft = $derived(active ? dock.page : Math.max(0, ((size ? stageWidth - size.width : 0) / 2)));
+	/**
+	 * The tools where the player put them (#248): picked up by the grip and kept per device, apart
+	 * for portrait, landscape and full screen, since the stand differs. Over the page, so where
+	 * they cover the music is the player's choice; folded to a pill they cover little. Without a
+	 * saved spot `dock` places them, as before.
+	 */
+	const SPOTS_KEY = 'practice-tools-spot';
+	const SNAP = 16;
+	type Spot = { x: number; y: number };
+	function readSpots(): Record<string, Spot> {
+		try {
+			const value = JSON.parse(localStorage.getItem(SPOTS_KEY) ?? '{}');
+			return value && typeof value === 'object' ? value : {};
+		} catch {
+			return {};
+		}
+	}
+	let spots = $state<Record<string, Spot>>(typeof localStorage === 'undefined' ? {} : readSpots());
+	let windowWidth = $state(0);
+	let windowHeight = $state(0);
+	let areaWidth = $state(0);
+	let dockWidth = $state(0);
+	let dockHeight = $state(0);
+	let dockBox = $state<HTMLDivElement>();
+	let areaBox = $state<HTMLDivElement>();
+	let folded = $state(false);
+	let placeNote = $state('');
+	const layout = $derived(`${full ? 'full' : 'page'}-${windowWidth > windowHeight ? 'landscape' : 'portrait'}`);
+	/** Inside the area, also after a rotation or resize made it smaller. */
+	const clamp = ({ x, y }: Spot): Spot => ({
+		x: Math.round(Math.min(Math.max(0, x), Math.max(0, areaWidth - dockWidth))),
+		y: Math.round(Math.min(Math.max(0, y), Math.max(0, areaHeight - dockHeight)))
+	});
+	const spot = $derived(spots[layout] && areaWidth ? clamp(spots[layout]) : null);
+
+	function saveSpots() {
+		try {
+			localStorage.setItem(SPOTS_KEY, JSON.stringify(spots));
+		} catch {
+			// Private mode or full storage: the tools stay put until the page is left.
+		}
+	}
+	function place(next: Spot | null, save: boolean) {
+		const { [layout]: _, ...rest } = spots;
+		spots = next ? { ...rest, [layout]: clamp(next) } : rest;
+		if (!next) folded = false;
+		if (save) {
+			saveSpots();
+			placeNote = next ? t.practice.viewer.toolsAt(...percent(clamp(next))) : t.practice.viewer.toolsAuto;
+		}
+	}
+	const percent = ({ x, y }: Spot): [number, number] => [Math.round((x / Math.max(1, areaWidth)) * 100), Math.round((y / Math.max(1, areaHeight)) * 100)];
+	/** A light pull to the edges and corners. */
+	const snap = ({ x, y }: Spot): Spot => {
+		const right = areaWidth - dockWidth;
+		const bottom = areaHeight - dockHeight;
+		return { x: x < SNAP ? 0 : right - x < SNAP ? right : x, y: y < SNAP ? 0 : bottom - y < SNAP ? bottom : y };
+	};
+	/** Where the panel is now, docked or moved, in the area's coordinates. */
+	function spotNow(): Spot {
+		if (spot) return spot;
+		const box = dockBox!.getBoundingClientRect();
+		const area = areaBox!.getBoundingClientRect();
+		return { x: box.left - area.left, y: box.top - area.top };
+	}
+
+	let drag: { id: number; from: Spot; startX: number; startY: number; moved: boolean } | null = null;
+	let lastTap = 0;
+	function grab(event: PointerEvent) {
+		if (event.button !== 0 || !dockBox || !areaBox) return;
+		drag = { id: event.pointerId, from: spotNow(), startX: event.clientX, startY: event.clientY, moved: false };
+		try {
+			(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+		} catch {
+			// The pointer is gone already; the move still follows it while it's over the grip.
+		}
+		event.preventDefault();
+	}
+	function pull(event: PointerEvent) {
+		if (drag?.id !== event.pointerId) return;
+		const dx = event.clientX - drag.startX;
+		const dy = event.clientY - drag.startY;
+		if (!drag.moved && Math.hypot(dx, dy) < 4) return;
+		drag.moved = true;
+		place({ x: drag.from.x + dx, y: drag.from.y + dy }, false);
+	}
+	function drop(event: PointerEvent) {
+		if (drag?.id !== event.pointerId) return;
+		const moved = drag.moved;
+		drag = null;
+		if (moved) return place(snap(spot ?? spotNow()), true);
+		// A double tap, also by finger, where dblclick doesn't come: back to automatic.
+		if (event.timeStamp - lastTap < 350) place(null, true);
+		lastTap = event.timeStamp;
+	}
+	function nudge(event: KeyboardEvent) {
+		const step = event.shiftKey ? 48 : 12;
+		const by: Record<string, [number, number]> = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
+		if (event.key === 'Escape') place(null, true);
+		else if (by[event.key]) {
+			const from = spotNow();
+			place({ x: from.x + by[event.key][0], y: from.y + by[event.key][1] }, true);
+		} else return;
+		// Not a page turn, and not leaving full screen.
+		event.preventDefault();
+		event.stopPropagation();
+	}
+
+	/** The page's left edge in the stage: centred, or moved aside for the docked tools. */
+	const pageLeft = $derived(active && !spot ? dock.page : Math.max(0, ((size ? stageWidth - size.width : 0) / 2)));
 
 	const STROKE: Record<MarkColor, string> = { graphite: 'var(--mark-graphite)', red: 'var(--mark-red)', blue: 'var(--mark-blue)' };
 	/** A symbol's button: its glyph in a 24 × 24 box, 10 to a symbol unit. */
@@ -623,7 +731,7 @@
 	const strokeWidth = $derived(Math.max(1.5, (size?.width ?? 600) * 0.0032));
 </script>
 
-<svelte:window {onkeydown} />
+<svelte:window {onkeydown} bind:innerWidth={windowWidth} bind:innerHeight={windowHeight} />
 
 <!-- In full screen the controls take a row of their own above the page, which gets the rest. -->
 <div class="score" class:full class:night bind:this={root}>
@@ -748,16 +856,49 @@
 	{#if shareNote}<p class="share-note" role="status">{shareNote}</p>{/if}
 	</div>
 
-	<div class="area" class:docked={!!active} bind:clientHeight={areaHeight}>
-	<!-- The tools: rendered once, so a running metronome or drone carries on when the panel moves or closes. -->
+	<div class="area" class:docked={!!active} bind:this={areaBox} bind:clientHeight={areaHeight} bind:clientWidth={areaWidth}>
+	<!-- The tools: rendered once, so a running metronome or drone carries on when the panel moves, folds or closes. -->
 	{#if panel && opened.length}
-		<div class="dock {dock.place}" hidden={!active} style:top={dock.top} style:left={dock.left} style:width={dock.width} style:max-height={dock.height}>
-			<button type="button" class="close" onclick={() => (active = null)} aria-label={t.practice.viewer.closeTools}>×</button>
-			{#each opened as tool (tool)}
-				<div class="tool-panel" hidden={active !== tool}>{@render panel(tool)}</div>
-			{/each}
+		<div
+			class="dock {spot ? 'free' : dock.place}"
+			class:folded={spot && folded}
+			hidden={!active}
+			bind:this={dockBox}
+			bind:offsetWidth={dockWidth}
+			bind:offsetHeight={dockHeight}
+			style:top={spot ? `${spot.y}px` : dock.top}
+			style:left={spot ? `${spot.x}px` : dock.left}
+			style:width={spot ? (folded ? undefined : `${Math.min(PANEL + 40, areaWidth)}px`) : dock.width}
+			style:max-height={spot ? `${areaHeight}px` : dock.height}
+		>
+			<div class="handle">
+				<button
+					type="button"
+					class="grip"
+					aria-label={t.practice.viewer.moveTools}
+					onpointerdown={grab}
+					onpointermove={pull}
+					onpointerup={drop}
+					onpointercancel={() => (drag = null)}
+					onkeydown={nudge}><Icon name="grip" size={18} /></button>
+				{#if spot && folded}
+					<button type="button" class="pill" onclick={() => (folded = false)} aria-expanded="false">{tools.find((each) => each.value === active)?.label}</button>
+				{:else if spot}
+					<button type="button" class="icon" onclick={() => (folded = true)} aria-expanded="true" aria-label={t.practice.viewer.fold} title={t.practice.viewer.fold}><Icon name="minus" size={16} /></button>
+					<button type="button" class="icon" onclick={() => place(null, true)} aria-label={t.practice.viewer.autoPlace} title={t.practice.viewer.autoPlace}><Icon name="refresh" size={16} /></button>
+				{/if}
+				{#if !(spot && folded)}
+					<button type="button" class="close" onclick={() => (active = null)} aria-label={t.practice.viewer.closeTools}>×</button>
+				{/if}
+			</div>
+			<div class="panels" hidden={!!spot && folded}>
+				{#each opened as tool (tool)}
+					<div class="tool-panel" hidden={active !== tool}>{@render panel(tool)}</div>
+				{/each}
+			</div>
 		</div>
 	{/if}
+	<p class="sr-only" role="status">{placeNote}</p>
 
 	<!-- Taps on the page turn it; the keys and pedals work anywhere on the page. -->
 	<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
@@ -924,14 +1065,89 @@
 		margin: var(--space-2) var(--space-2) 0;
 	}
 
-	.close {
+	/* The grip, the moved panel's own buttons and the close button, staying in view while it scrolls. */
+	.handle {
 		position: sticky;
-		top: 0;
+		top: calc(-1 * var(--space-3));
 		z-index: 1;
-		float: right;
+		display: flex;
+		align-items: center;
+		gap: var(--space-1);
+		margin: calc(-1 * var(--space-2)) calc(-1 * var(--space-2)) var(--space-2);
+		background: var(--surface);
+	}
+
+	.grip {
+		display: grid;
+		place-items: center;
 		width: 30px;
 		height: 30px;
-		margin: calc(-1 * var(--space-2)) calc(-1 * var(--space-2)) 0 var(--space-1);
+		border: 0;
+		border-radius: var(--radius-s, 6px);
+		background: none;
+		color: var(--text-muted);
+		font-size: var(--text-lg);
+		line-height: 1;
+		cursor: grab;
+		/* The finger moves the panel, not the page. */
+		touch-action: none;
+	}
+
+	.grip:active {
+		cursor: grabbing;
+	}
+
+	.icon {
+		display: grid;
+		place-items: center;
+		width: 30px;
+		height: 30px;
+		border: 0;
+		border-radius: 50%;
+		background: none;
+		color: var(--text-muted);
+		cursor: pointer;
+	}
+
+	.pill {
+		min-height: 30px;
+		padding: 0 var(--space-3);
+		border: 1px solid var(--hairline);
+		border-radius: 999px;
+		background: none;
+		color: var(--text);
+		font: inherit;
+		font-size: var(--text-sm);
+		font-weight: 600;
+		white-space: nowrap;
+		cursor: pointer;
+	}
+
+	.panels[hidden] {
+		display: none;
+	}
+
+	/* Moved by the player: over the page, where they put it. */
+	.dock.free {
+		z-index: 4;
+	}
+
+	.dock.folded {
+		/* Sized by its pill, which a size container wouldn't be. */
+		container-type: normal;
+		overflow: visible;
+		padding: var(--space-2) var(--space-3);
+	}
+
+	.dock.folded .handle {
+		margin: 0;
+	}
+
+	.close {
+		flex: none;
+		width: 30px;
+		height: 30px;
+		margin-left: auto;
 		border: 0;
 		border-radius: 50%;
 		background: color-mix(in oklab, var(--text) 8%, transparent);

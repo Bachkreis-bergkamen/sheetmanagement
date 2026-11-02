@@ -373,6 +373,73 @@ test('the tools never cover the music, and only in full screen without room does
 	}
 });
 
+/** Drags by the grip, by finger on the phone (as touch sends it) and with the mouse on the desktop. */
+async function dragGrip(page: Page, by: { x: number; y: number }) {
+	const grip = page.getByRole('button', { name: /Werkzeuge verschieben/ });
+	const box = (await grip.boundingBox())!;
+	const from = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+	const steps = Array.from({ length: 9 }, (_, i) => ({ x: from.x + (by.x * i) / 8, y: from.y + (by.y * i) / 8 }));
+	if (test.info().project.name === 'phone') {
+		await grip.evaluate((element, points) => {
+			const send = (type: string, point: { x: number; y: number }) =>
+				element.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 9, pointerType: 'touch', isPrimary: true, button: 0, buttons: type === 'pointerup' ? 0 : 1, clientX: point.x, clientY: point.y }));
+			send('pointerdown', points[0]);
+			for (const point of points.slice(1)) send('pointermove', point);
+			send('pointerup', points.at(-1)!);
+		}, steps);
+		return;
+	}
+	await page.mouse.move(from.x, from.y);
+	await page.mouse.down();
+	for (const step of steps.slice(1)) await page.mouse.move(step.x, step.y);
+	await page.mouse.up();
+}
+
+test('the tools can be moved, keep running, stay put after a reload and go back on request (#248)', async ({ page }) => {
+	await open(page, PART);
+	await expect(page.locator('.slot canvas')).toHaveCount(1);
+	await tool(page, 'Metronom');
+	await page.getByRole('button', { name: 'Start' }).click();
+	const dock = page.locator('.dock');
+	const before = (await dock.boundingBox())!;
+
+	await dragGrip(page, { x: -120, y: 60 });
+	await expect(dock).toHaveClass(/free/);
+	const moved = (await dock.boundingBox())!;
+	expect(Math.abs(moved.x - before.x) + Math.abs(moved.y - before.y)).toBeGreaterThan(40);
+	// Moving it neither stops the metronome nor turns the page.
+	await expect(page.getByRole('button', { name: 'Stopp' })).toBeVisible();
+	await expect(page.getByText('Seite 1 von 1')).toBeVisible();
+
+	// Folded to a pill, still running, and open again with a tap.
+	await page.getByRole('button', { name: 'Einklappen' }).click();
+	await expect(dock.getByRole('button', { name: 'Werkzeuge', exact: true })).toBeVisible();
+	await dock.getByRole('button', { name: 'Werkzeuge', exact: true }).click();
+	await expect(page.getByRole('button', { name: 'Stopp' })).toBeVisible();
+	await page.getByRole('button', { name: 'Stopp' }).click();
+	await expectAccessible(page);
+
+	await open(page, PART);
+	await tool(page, 'Metronom');
+	await expect(dock).toHaveClass(/free/);
+	const again = (await dock.boundingBox())!;
+	expect(Math.round(again.x)).toBe(Math.round(moved.x));
+	expect(Math.round(again.y)).toBe(Math.round(moved.y));
+
+	// Dragged far past the edge, it stays on screen.
+	await dragGrip(page, { x: -2000, y: -2000 });
+	const clamped = (await dock.boundingBox())!;
+	const area = (await page.locator('.area').boundingBox())!;
+	expect(clamped.x).toBeGreaterThanOrEqual(area.x - 1);
+	expect(clamped.y).toBeGreaterThanOrEqual(area.y - 1);
+
+	await page.getByRole('button', { name: 'Automatisch platzieren' }).click();
+	await expect(dock).not.toHaveClass(/free/);
+	await open(page, PART);
+	await tool(page, 'Metronom');
+	await expect(dock).not.toHaveClass(/free/);
+});
+
 test('two fingers on the glass draw one line, and symbols go on with a tap (#235, #236)', async ({ page }) => {
 	await open(page, PART);
 	await expect(page.locator('.slot canvas')).toHaveCount(1);
