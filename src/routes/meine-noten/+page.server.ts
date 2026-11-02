@@ -10,7 +10,8 @@ import type { Part } from '#lib/music/types.ts';
 import { partUrl } from '#lib/server/catalog.ts';
 import { plannedInProgramOrder, programPositions } from '#lib/rehearsals/plan.ts';
 import { getLibrary, isPastConcert, namedItem, orchestraOf, type Library, type LibraryConcert, type ProgramItem } from '#lib/server/library.ts';
-import { getAccessList, getMusicConfig, getPieceNotes, getRehearsalPlan } from '#lib/server/repertoire.ts';
+import { getAccessList, getMusicConfig, getPartAssignments, getPieceNotes, getRehearsalPlan } from '#lib/server/repertoire.ts';
+import { choicesAt } from '#lib/music/part-assignments.ts';
 import { appliesTo, forConcert, notesOf } from '#lib/notes/piece-notes.ts';
 import { readTab, refreshAfterWrite, updateRecord } from '#lib/server/sheet-writes.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -81,7 +82,7 @@ async function rehearsalOf(library: Library, id: string | null, member: Member |
 }
 
 export const load: PageServerLoad = async ({ url, cookies, locals }) => {
-	const [library, access, music, pieceNotes] = await Promise.all([getLibrary(), getAccessList(), getMusicConfig(), getPieceNotes()]);
+	const [library, access, music, pieceNotes, assignments] = await Promise.all([getLibrary(), getAccessList(), getMusicConfig(), getPieceNotes(), getPartAssignments()]);
 	const member = locals.access.user ? access?.membersByEmail.get(normalizeEmail(locals.access.user.email)) : undefined;
 	const rehearsal = await rehearsalOf(library, url.searchParams.get('probe'), member);
 	const viewer = locals.auth === 'on' && !!member;
@@ -113,11 +114,16 @@ export const load: PageServerLoad = async ({ url, cookies, locals }) => {
 				pieceId: item.pieceId,
 				hasMusic: parts.length > 0,
 				recording: piece?.sheet?.recording,
-				// One block per instrument the member plays.
-				matches: choices.map((choice) => {
+				// One block per instrument the member plays, or per part assigned to them instead (#262).
+				matches: choicesAt(
+					{ email: member?.email, choices },
+					assignments.assignments,
+					{ piece: piece?.sheet?.title ?? item.title, concerts: concert?.sheet ? [concert.sheet.title] : [] },
+					config
+				).map((choice) => {
 					const match = parts.length ? matchParts(parts, choice, music) : { own: [], shared: [] };
 					const show = (part: Part) => shown(part, locals.access.viaLink, viewer);
-					return { label: formatInstrument(choice), own: match.own.map(show), shared: match.shared.map(show) };
+					return { label: formatInstrument(choice), assigned: !!choice.assigned, own: match.own.map(show), shared: match.shared.map(show) };
 				})
 			};
 		});

@@ -12,6 +12,7 @@
 	import PieceArt from '#lib/components/PieceArt.svelte';
 	import PieceFolder from '#lib/components/PieceFolder.svelte';
 	import PieceNotes from '#lib/components/PieceNotes.svelte';
+	import PartAssignments from '#lib/components/PartAssignments.svelte';
 	import Title from '#lib/components/Title.svelte';
 
 	let { data, form } = $props();
@@ -236,6 +237,8 @@
 />
 
 <PieceNotes notes={data.notes} result={form} />
+
+<PartAssignments assignments={data.assignments} result={form} />
 
 {#if data.upcoming.length}
 	<!-- Where the piece is next: the concert it's played at and the rehearsals that plan it. -->

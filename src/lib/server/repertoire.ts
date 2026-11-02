@@ -12,6 +12,7 @@ import { buildRehearsalPlan, type RehearsalPlan } from '#lib/rehearsals/plan.ts'
 import { buildLoans, type Loans } from '#lib/loans/loans.ts';
 import { buildAttendance, type Attendance } from '#lib/attendance/attendance.ts';
 import { buildPieceNotes, type PieceNotes } from '#lib/notes/piece-notes.ts';
+import { buildPartAssignments, type PartAssignments } from '#lib/music/part-assignments.ts';
 import { buildRehearsalNotes, type RehearsalNotes } from '#lib/notes/rehearsal-notes.ts';
 import { buildRepertoire, LAYOUT, readTable, REPERTOIRE_TABS, type Repertoire, type SheetValues, type TabKey } from '#lib/repertoire/sheet.ts';
 import { readInstrumentOverrides, readSettings, type StoredSettings } from '#lib/settings.ts';
@@ -38,7 +39,7 @@ export class SheetNotSetUpError extends Error {
 }
 
 /** The tabs the app reads besides the repertoire; each only when present, so an older sheet keeps working. */
-export const OPTIONAL_TABS = [...ACCESS_TABS, ...FEEDBACK_TABS, 'missingParts', 'instrumentGroups', 'signups', 'rehearsals', 'loans', 'attendance', 'settings', 'instruments', 'pieceNotes', 'rehearsalNotes', 'ensembles'] as const;
+export const OPTIONAL_TABS = [...ACCESS_TABS, ...FEEDBACK_TABS, 'missingParts', 'instrumentGroups', 'signups', 'rehearsals', 'loans', 'attendance', 'settings', 'instruments', 'pieceNotes', 'partAssignments', 'rehearsalNotes', 'ensembles'] as const;
 
 /** Every tab the sheet has, as raw values with the header row, in one request. */
 export async function readSheetGrids(client: GoogleClient, spreadsheetId: string): Promise<Partial<Record<TabKey, string[][]>>> {
@@ -55,7 +56,7 @@ export async function readSheetGrids(client: GoogleClient, spreadsheetId: string
 function rawFromGrids(grids: Partial<Record<TabKey, string[][]>>) {
 	const missing = REPERTOIRE_TABS.filter((key) => !grids[key]).map((key) => LAYOUT[key].tab);
 	if (missing.length) throw new SheetNotSetUpError(missing);
-	const { pieces, concerts, program, ensembles, reports, wishes, missingParts, instrumentGroups, signups, rehearsals, loans, attendance, settings, instruments, pieceNotes, rehearsalNotes, ...access } = grids as Record<TabKey, string[][]>;
+	const { pieces, concerts, program, ensembles, reports, wishes, missingParts, instrumentGroups, signups, rehearsals, loans, attendance, settings, instruments, pieceNotes, partAssignments, rehearsalNotes, ...access } = grids as Record<TabKey, string[][]>;
 	return {
 		values: { pieces, concerts, program, ensembles } as SheetValues,
 		access: access as AccessValues,
@@ -69,6 +70,7 @@ function rawFromGrids(grids: Partial<Record<TabKey, string[][]>>) {
 		settings: settings as string[][] | undefined,
 		instruments: instruments as string[][] | undefined,
 		pieceNotes: pieceNotes as string[][] | undefined,
+		partAssignments: partAssignments as string[][] | undefined,
 		rehearsalNotes: rehearsalNotes as string[][] | undefined
 	};
 }
@@ -196,6 +198,8 @@ interface SheetSnapshot {
 	instruments: Record<string, InstrumentOverride>;
 	/** From "Hinweise" (#125); empty when the tab is missing. */
 	pieceNotes: PieceNotes;
+	/** From "Stimmenzuteilung" (#262); empty when the tab is missing. */
+	partAssignments: PartAssignments;
 	/** From "Probennotizen" (#145); empty when the tab is missing. */
 	rehearsalNotes: RehearsalNotes;
 }
@@ -258,6 +262,7 @@ async function loadSheet(force: boolean): Promise<{ value: SheetSnapshot; sheet:
 				PRESET_INSTRUMENTS.map((instrument) => instrument.name)
 			),
 			pieceNotes: buildPieceNotes(sheet.pieceNotes ?? []),
+			partAssignments: buildPartAssignments(sheet.partAssignments ?? []),
 			rehearsalNotes: buildRehearsalNotes(sheet.rehearsalNotes ?? [])
 		};
 		snapshots.set(sheet, snapshot);
@@ -410,6 +415,16 @@ export async function getAttendance({ force = false } = {}): Promise<Attendance 
 	} catch {
 		// getLibrary already logs why the sheet failed.
 		return null;
+	}
+}
+
+/** Who plays which part instead of their own (#262); empty when the tab is missing or the sheet can't be read. */
+export async function getPartAssignments({ force = false } = {}): Promise<PartAssignments> {
+	try {
+		return (await loadSheet(force)).value.partAssignments;
+	} catch {
+		// getLibrary already logs why the sheet failed.
+		return buildPartAssignments([]);
 	}
 }
 

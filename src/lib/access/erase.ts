@@ -51,6 +51,8 @@ const PLANS: Partial<Record<TabKey, Plan>> = {
 		};
 	},
 	pieceNotes: (v, who) => (named(v.by, who) ? { by: '' } : undefined),
+	// An assignment for the member is only about them; one they made keeps its part, without their name.
+	partAssignments: (v, who) => (mine(v.who, who) ? 'remove' : named(v.by, who) ? { by: '' } : undefined),
 	rehearsalNotes: (v, who) => (named(v.by, who) ? { by: '' } : undefined)
 };
 

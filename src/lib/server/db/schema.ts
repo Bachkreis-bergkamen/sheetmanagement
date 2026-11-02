@@ -63,6 +63,7 @@ export const SCHEMA: Record<TabKey, TableSpec> = {
 	loans: { table: 'loans', links: { piece: { tab: 'pieces', by: 'title' } } },
 	attendance: { table: 'attendance' },
 	pieceNotes: { table: 'piece_notes', links: { piece: { tab: 'pieces', by: 'title' }, concert: { tab: 'concerts', by: 'title' } }, unique: [['id']], exact: ['id'] },
+	partAssignments: { table: 'part_assignments', links: { piece: { tab: 'pieces', by: 'title' }, concert: { tab: 'concerts', by: 'title' } }, unique: [['id']], exact: ['id'] },
 	rehearsalNotes: { table: 'rehearsal_notes' },
 	ensembles: { table: 'ensembles', unique: [['shortName']], required: [['shortName', 'name']] },
 	instruments: { table: 'instruments', unique: [['name']], required: [['name']] },

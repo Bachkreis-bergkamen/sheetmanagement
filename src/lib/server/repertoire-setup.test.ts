@@ -96,6 +96,7 @@ describe('setUpSheet', () => {
 			'Leihmaterial',
 			'Anwesenheit',
 			'Hinweise',
+			'Stimmenzuteilung',
 			'Probennotizen',
 			'Instrumente',
 			'Einstellungen'
@@ -128,6 +129,8 @@ describe('setUpSheet', () => {
 			undefined,
 			[{ userEnteredValue: "='Stücke'!$A$2:$A" }],
 			[{ userEnteredValue: "='Konzerte'!$B$2:$B" }],
+			[{ userEnteredValue: "='Stücke'!$A$2:$A" }],
+			[{ userEnteredValue: "='Konzerte'!$B$2:$B" }],
 			[{ userEnteredValue: 'EO' }, { userEnteredValue: 'A' }, { userEnteredValue: 'EO, A' }],
 			[{ userEnteredValue: 'EO' }, { userEnteredValue: 'A' }, { userEnteredValue: 'EO, A' }]
 		]);
@@ -139,8 +142,8 @@ describe('setUpSheet', () => {
 		expect(fake.tabs[11].values[0]).toEqual(['Stimme', 'Gespielt von', 'Gegenseitig', 'Notiz']);
 
 		const protections = (fake.requests as any[]).filter((r) => r.addProtectedRange).map((r) => r.addProtectedRange.protectedRange);
-		// Drive folder id, event id, report id, wish id, file id, the sign-ups', rehearsals' and attendance's event ids, note id and rehearsal note event id …
-		expect(protections.filter((p) => p.description === 'sheetmanagement: id column')).toHaveLength(10);
+		// Drive folder id, event id, report id, wish id, file id, the sign-ups', rehearsals' and attendance's event ids, note id, assignment id and rehearsal note event id …
+		expect(protections.filter((p) => p.description === 'sheetmanagement: id column')).toHaveLength(11);
 		// … and piece, part and status of "Fehlende Stimmen", all warning only.
 		const generated = protections.filter((p) => p.description === 'sheetmanagement: generated column');
 		expect(generated.map((p) => p.range.startColumnIndex)).toEqual([0, 1, 2]);
