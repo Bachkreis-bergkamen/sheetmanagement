@@ -10,8 +10,11 @@ import { today } from '#lib/server/members.ts';
 import { saveSignup, withdrawSignup } from '#lib/server/signups.ts';
 import { currentProgramAvailable, currentProgramStatus, isCurrentConcert, NoProgramFolderError, syncCurrentProgram } from '#lib/server/current-program.ts';
 import { getLibrary, isPastConcert, namedItem, orchestraOf, programsOf, reportPieces, type Library, type LibraryConcert, type ProgramItem } from '#lib/server/library.ts';
-import { pickOrchestra, programScopes, sameOrchestra } from '#lib/repertoire/orchestras.ts';
-import { splitList } from '#lib/repertoire/lists.ts';
+import { pickOrchestra, programLabel, programScopes, sameOrchestra } from '#lib/repertoire/orchestras.ts';
+import { onlyGuests, performerNames } from '#lib/repertoire/ensembles.ts';
+import { reportScopeOf } from '#lib/server/report-scope.ts';
+import { orchestra as deployment } from '#lib/server/env.ts';
+import { joinList, splitList } from '#lib/repertoire/lists.ts';
 import { orchestraTitle } from '#lib/events/new-event.ts';
 import { calendarWriteEnabled } from '#lib/server/services.ts';
 import { setEventOrchestras } from '#lib/server/schedule.ts';
@@ -212,14 +215,17 @@ async function check(concert: LibraryConcert | undefined, event: ShownEvent | un
 	if (past && (!event || event.daysUntil < -CHECK_AFTER_DAYS)) return null;
 	const on = features();
 	const loans = on.loans ? ((await getLoans())?.loans ?? []) : [];
-	const names = concert.sheet.program.map((entry) => entry.pieceName);
+	// What guests play isn't ours to rehearse or borrow.
+	const names = concert.sheet.program.filter((entry) => !onlyGuests(entry.orchestra, concert.partners)).map((entry) => entry.pieceName);
 	const rehearsalIds = event?.rehearsalIds ?? [];
 	const planned = new Set(rehearsalIds.flatMap((id) => (plan?.byEvent.get(id) ?? []).map((entry) => normalize(entry.pieceName))));
-	const gaps = new Set(reportGaps(reportPieces(library, concert)).map((gap) => gap.title));
+	const gaps = new Set(reportGaps(reportPieces(library, concert, await reportScopeOf(concert))).map((gap) => gap.title));
 	const id = encodeURIComponent(concert.id);
 	const items = concertCheck({
 		past,
-		program: concert.program.map((item) => ({ title: item.title, status: item.status, duration: item.duration, inReport: !gaps.has(item.title) })),
+		program: concert.program
+			.filter((item) => !onlyGuests(item.orchestra, concert.partners))
+			.map((item) => ({ title: item.title, status: item.status, duration: item.duration, inReport: !gaps.has(item.title) })),
 		rehearsals: rehearsalIds.length,
 		unplanned: [...new Set(names.map(normalize))].filter((name) => !planned.has(name)).length,
 		loans: [...new Set(names)].flatMap((name) =>
@@ -295,11 +301,13 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 	}
 
 	const items = concert?.program ?? [];
-	const several = (concert?.orchestras.length ?? 0) > 1;
+	const partners = concert?.partners ?? [];
+	const scopes = concert ? programScopes(concert.orchestras, partners.map((partner) => partner.shortName)) : [];
+	const several = scopes.length > 1;
 	const editUrl = (orchestra: string | undefined) =>
 		`/kalender/${encodeURIComponent(params.id)}/programm${orchestra && several ? `?orchester=${encodeURIComponent(orchestra)}` : ''}`;
 	// For several orchestras: the editor's tab for pieces they play together.
-	const together = several ? programScopes(concert!.orchestras).at(-1) : undefined;
+	const together = several ? scopes.at(-1) : undefined;
 	// "01 | Aktuelles Programm" in Drive (#60), for upcoming concerts once Drive may be written to.
 	const showDrive = locals.access.rights.has('programme.bearbeiten') && !!concert && currentProgramAvailable() && !isPastConcert(concert, library.today);
 	const program = {
@@ -308,10 +316,13 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		// what they play together after, its pieces in each of their folders.
 		groups: (concert ? programsOf(concert) : [{ orchestra: undefined, joint: false, items }]).map((group) => ({
 			orchestra: group.orchestra ?? '',
+			// Guests by their full name: "Programm Kammerchor Unna", "Gemeinsam: EO + Kammerchor Unna".
+			label: group.orchestra ? programLabel(group.orchestra, (short) => performerNames(short, partners)[0] ?? short) : '',
 			joint: group.joint,
 			items: group.items,
 			editUrl: editUrl(group.orchestra),
-			drive: showDrive && !group.joint
+			// Guests have no Drive folder here.
+			drive: showDrive && !group.joint && !onlyGuests(group.orchestra, partners)
 				? {
 						...currentProgramStatus(concert!, library, group.orchestra),
 						orchestra: group.orchestra ?? concert!.title,
@@ -325,8 +336,16 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		// Where to add pieces the orchestras play together, while there are none yet.
 		jointUrl: together && !concert!.program.some((item) => sameOrchestra(item.orchestra, together)) ? editUrl(together) : undefined,
 		jointLabel: together ?? '',
+		jointNames: together ? performerNames(together, partners) : [],
 		// For whoever plans programmes; it reads every piece's parts.
-		instrumentation: locals.access.rights.has('programme.bearbeiten') && items.length ? await instrumentation(items, library, concert?.orchestra) : null,
+		instrumentation:
+			locals.access.rights.has('programme.bearbeiten') && items.length
+				? await instrumentation(
+						items.filter((item) => !onlyGuests(item.orchestra, partners)),
+						library,
+						concert?.orchestra
+					)
+				: null,
 		saved: url.searchParams.has('gespeichert'),
 		sheet: library.sheet,
 		sharedFrom: concert?.sharedFrom,
@@ -339,7 +358,25 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		// On the orchestra's website (#197): whether this concert is in the public feed; null for those who can't change it.
 		published: concert && locals.access.rights.has('programme.bearbeiten') ? (await publishedIds()).has(concert.id) : null,
 		// What the website shows with it: texts, where to get tickets.
-		publicDetails: concert && locals.access.rights.has('programme.bearbeiten') ? ((await publicDetails()).get(concert.id) ?? {}) : null
+		publicDetails: concert && locals.access.rights.has('programme.bearbeiten') ? ((await publicDetails()).get(concert.id) ?? {}) : null,
+		// Who plays it: our orchestras ("Orchester"), those we give it with ("Mitwirkende"), and who organises it when it isn't us.
+		ours: concert?.orchestras ?? [],
+		partners: partners.map(({ name, kind, conductor, website }) => ({ name, kind, conductor, website })),
+		organizer: concert?.organizer?.name,
+		// For planners: the form to change both, from the "Ensembles" tab and free names.
+		partnerForm:
+			concert?.sheet && locals.access.rights.has('programme.bearbeiten')
+				? {
+						// Our own orchestras, written to "Orchester" like the sheet's dropdown does.
+						orchestras: config.orchestras,
+						ours: concert.orchestras,
+						ensembles: library.ensembles.map(({ shortName, name }) => ({ shortName, name })),
+						chosen: partners.filter((partner) => library.ensembles.some((e) => e.shortName === partner.shortName)).map((partner) => partner.shortName),
+						others: joinList(partners.filter((partner) => !library.ensembles.some((e) => e.shortName === partner.shortName)).map((partner) => partner.name)),
+						organizer: concert.organizer?.shortName ?? '',
+						us: deployment().name
+					}
+				: null
 	};
 
 	if (!event) {
@@ -482,6 +519,32 @@ export const actions: Actions = {
 		if (badLink) return fail(400, { publicDetailsError: t.concert.publish.badLink });
 		await setPublicDetails(concert.id, details);
 		return { publicDetailsSaved: true };
+	},
+
+	/** Who we give the concert with ("Mitwirkende") and who organises it ("Veranstalter"), in "Konzerte". */
+	partners: async ({ request, locals, params }) => {
+		requireRight(locals, 'programme.bearbeiten');
+		const concert = (await getLibrary()).concertsById.get(params.id);
+		if (!concert?.sheet) error(404, t.messages.noEvent);
+		const data = await request.formData();
+		const chosen = data.getAll('partner').map(String);
+		const partners = joinList(splitList([...chosen, formText(data, 'others')].join(', ')).slice(0, 20));
+		const organizer = formText(data, 'organizer').slice(0, 200);
+		// Our orchestras only when the form offered them; in the configured order, "EO, A".
+		const ticked = new Set(data.getAll('orchestra').map(String));
+		const own = data.has('ours') ? { orchestra: joinList(config.orchestras.filter((name) => ticked.has(name))) } : {};
+		try {
+			const concerts = await readTab('concerts');
+			const row = concerts.rows.find((r) => normalize(r.values.title) === normalize(concert.sheet!.title));
+			if (!row) return fail(409, { partnersError: t.editor.notInSheet });
+			await updateRecord('concerts', concerts, row.row, { ...own, partners, organizer });
+			await refreshAfterWrite();
+		} catch (cause) {
+			if (cause instanceof SheetLayoutError) return fail(409, { partnersError: t.partners.needsSetup });
+			console.error('Saving guest ensembles failed:', cause);
+			return fail(503, { partnersError: t.messages.sheetFailed });
+		}
+		return { partnersSaved: true };
 	},
 
 	withdraw: ({ locals, params }) => signupChange(locals, params.id, (event, user) => withdrawSignup(event.id, user)),

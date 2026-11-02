@@ -8,7 +8,7 @@ import type { RequestHandler } from './$types';
 /** The published upcoming concerts as a calendar to subscribe to (#197), e.g. from the orchestra's website. */
 export const GET: RequestHandler = async () => {
 	const [library, published] = await Promise.all([getLibrary(), publishedIds()]);
-	const events = feedEventsOf(publicFeed(library, published), t.feed.publicProgram);
+	const events = feedEventsOf(publicFeed(library, published), t.feed.publicProgram, t.partners.with);
 	return new Response(buildCalendar(t.feed.publicCalendarName(orchestra().name), events), {
 		headers: {
 			'content-type': 'text/calendar; charset=utf-8',

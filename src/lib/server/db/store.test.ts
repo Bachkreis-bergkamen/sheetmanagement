@@ -416,10 +416,40 @@ describe('the import', () => {
 });
 
 describe('migrations', () => {
-	it('0009 is the schema in schema.ts', () => {
+	it('give the tables of the schema in schema.ts', () => {
+		// 0009 created them, later ones add columns and tables: the result must be what schema.ts describes.
+		const tablesOf = (db: DatabaseSync) => {
+			const names = (db.prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND sql LIKE '%"rev" INTEGER%' ORDER BY name`).all() as { name: string }[]).map((row) => row.name);
+			return Object.fromEntries(
+				names.map((name) => [
+					name,
+					{
+						columns: (db.prepare(`PRAGMA table_info("${name}")`).all() as { name: string; type: string; notnull: number; dflt_value: unknown; pk: number }[])
+							.map(({ name, type, notnull, dflt_value, pk }) => ({ name, type, notnull, dflt_value, pk }))
+							.sort((a, b) => a.name.localeCompare(b.name)),
+						unique: (db.prepare(`PRAGMA index_list("${name}")`).all() as { name: string; unique: number }[])
+							.filter((index) => index.unique)
+							.map((index) => (db.prepare(`PRAGMA index_info("${index.name}")`).all() as { name: string }[]).map((column) => column.name).join(','))
+							.sort(),
+						foreignKeys: (db.prepare(`PRAGMA foreign_key_list("${name}")`).all() as { from: string; table: string; on_delete: string }[])
+							.map(({ from, table, on_delete }) => `${from}→${table} ${on_delete}`)
+							.sort()
+					}
+				])
+			);
+		};
+		const migrated = new DatabaseSync(':memory:');
+		for (const [, sql] of MIGRATIONS) for (const statement of statements(sql)) migrated.exec(statement);
+		const fresh = new DatabaseSync(':memory:');
+		for (const statement of schemaSql()) fresh.exec(statement);
+		expect(tablesOf(migrated)).toEqual(tablesOf(fresh));
+	});
+
+	it('0009 creates its tables as schema.ts did then', () => {
 		const migration = MIGRATIONS.find(([name]) => name === '0009_data.sql')![1];
 		const tables = statements(migration).filter((statement) => statement.includes('"id" INTEGER PRIMARY KEY'));
-		expect(tables).toEqual(schemaSql());
+		expect(tables.length).toBeGreaterThan(10);
+		expect(tables.every((statement) => statement.startsWith('CREATE TABLE IF NOT EXISTS'))).toBe(true);
 	});
 
 	it('are found and split into statements', () => {

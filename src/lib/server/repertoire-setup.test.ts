@@ -82,6 +82,7 @@ describe('setUpSheet', () => {
 			'Stücke',
 			'Konzerte',
 			'Programm',
+			'Ensembles',
 			'Mitglieder',
 			'Gruppen',
 			'Rechte',
@@ -101,14 +102,17 @@ describe('setUpSheet', () => {
 		];
 		expect(result).toEqual({ createdTabs: all, addedColumns: [], removedTab: 'Tabellenblatt1' });
 		expect(fake.tabs.map((tab) => tab.title)).toEqual(all);
-		expect(fake.tabs[1].values[0]).toEqual(['Datum', 'Anlass', 'Ort', 'Orchester', 'Programm wie', 'Kalender-Event-ID']);
-		expect(fake.tabs[2].values[0]).toEqual(['Konzert', 'Nr.', 'Stück', 'Notiz', 'Orchester']);
+		expect(fake.tabs[1].values[0]).toEqual(['Datum', 'Anlass', 'Ort', 'Orchester', 'Programm wie', 'Kalender-Event-ID', 'Mitwirkende', 'Veranstalter']);
+		expect(fake.tabs[2].values[0]).toEqual(['Konzert', 'Nr.', 'Stück', 'Notiz', 'Orchester', 'Komponist', 'Arrangeur', 'Verlag', 'Dauer']);
+		expect(fake.tabs[3].values[0]).toEqual(['Kurzname', 'Name', 'Art', 'Leitung', 'Website', 'Logo']);
 
 		const dropdowns = fake.requests.filter((r) => 'setDataValidation' in r) as any[];
 		expect(dropdowns.map((r) => r.setDataValidation.rule.condition.values)).toEqual([
 			[{ userEnteredValue: "='Konzerte'!$B$2:$B" }],
 			[{ userEnteredValue: "='Stücke'!$A$2:$A" }],
 			[{ userEnteredValue: "='Konzerte'!$B$2:$B" }],
+			[{ userEnteredValue: "='Ensembles'!$A$2:$A" }],
+			labels(t.sheetValues.ensembleKinds),
 			[{ userEnteredValue: "='Stücke'!$A$2:$A" }],
 			RIGHTS.map((right) => ({ userEnteredValue: right })),
 			MEMBER_STATUSES.map((status) => ({ userEnteredValue: status })),
@@ -127,12 +131,12 @@ describe('setUpSheet', () => {
 			[{ userEnteredValue: 'EO' }, { userEnteredValue: 'A' }, { userEnteredValue: 'EO, A' }],
 			[{ userEnteredValue: 'EO' }, { userEnteredValue: 'A' }, { userEnteredValue: 'EO, A' }]
 		]);
-		expect(fake.tabs[9].values[0]).toEqual(['Stück', 'Stimme', 'Status', 'Datei-ID', 'erledigt']);
+		expect(fake.tabs[10].values[0]).toEqual(['Stück', 'Stimme', 'Status', 'Datei-ID', 'erledigt']);
 		// "erledigt" is a checkbox column.
 		const checkbox = dropdowns.find((r) => r.setDataValidation.rule.condition.type === 'BOOLEAN');
-		expect(checkbox.setDataValidation.range).toMatchObject({ sheetId: fake.tabs[9].sheetId, startColumnIndex: 4 });
+		expect(checkbox.setDataValidation.range).toMatchObject({ sheetId: fake.tabs[10].sheetId, startColumnIndex: 4 });
 
-		expect(fake.tabs[10].values[0]).toEqual(['Stimme', 'Gespielt von', 'Gegenseitig', 'Notiz']);
+		expect(fake.tabs[11].values[0]).toEqual(['Stimme', 'Gespielt von', 'Gegenseitig', 'Notiz']);
 
 		const protections = (fake.requests as any[]).filter((r) => r.addProtectedRange).map((r) => r.addProtectedRange.protectedRange);
 		// Drive folder id, event id, report id, wish id, file id, the sign-ups', rehearsals' and attendance's event ids, note id and rehearsal note event id …

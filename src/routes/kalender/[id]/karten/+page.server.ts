@@ -26,7 +26,8 @@ async function concertOf(id: string) {
 	const event = library.schedule.byId.get(id);
 	if (!event) error(404, t.messages.noEvent);
 	if (event.type !== 'konzert') error(404, t.tickets.notAConcert);
-	return event;
+	// Another ensemble organises it and sells the tickets ("Veranstalter"): the website can't sell here.
+	return { ...event, organizer: library.concertsById.get(id)?.organizer?.name };
 }
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -39,7 +40,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	// The first price as the example of what the surcharge does.
 	const example = sale?.prices.find((price) => price.cents > 0);
 	return {
-		concert: { id: event.id, title: event.displayTitle, date: event.date, past: event.past },
+		concert: { id: event.id, title: event.displayTitle, date: event.date, past: event.past, organizer: event.organizer },
 		values: {
 			open: sale?.open ?? false,
 			capacity: String(sale?.capacity ?? ''),

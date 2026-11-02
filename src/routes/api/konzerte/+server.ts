@@ -13,7 +13,8 @@ export const GET: RequestHandler = async () => {
 	const [library, published, details, sales] = await Promise.all([getLibrary(), publishedIds(), publicDetails(), isOn('tickets') ? openSales() : new Set<string>()]);
 	const feed = publicFeed(library, published, details);
 	// Tickets on sale through /api/karten/<id> (docs/tickets-plan.md): the website links to its own sale page.
-	for (const concert of feed.upcoming) if (sales.has(concert.id)) concert.tickets = true;
+	// A concert another ensemble organises sells elsewhere: the website shows its ticket link instead.
+	for (const concert of feed.upcoming) if (sales.has(concert.id) && !concert.organizer) concert.tickets = true;
 	return new Response(JSON.stringify({ version: FEED_VERSION, orchestra: orchestra().name, ...feed }), {
 		headers: {
 			'content-type': 'application/json; charset=utf-8',

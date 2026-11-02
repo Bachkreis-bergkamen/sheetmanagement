@@ -3,6 +3,7 @@ import { t } from '#lib/i18n/index.ts';
 import { searchText } from '#lib/music/text.ts';
 import { fuzzyDateKey, parseFuzzyDate, type FuzzyDate } from './dates.ts';
 import { parseDuration } from './duration.ts';
+import { concertPartners, readEnsembles, withGuests, type Ensemble } from './ensembles.ts';
 import { concertOrchestras, rowOrchestra, sameOrchestra } from './orchestras.ts';
 
 /** Tab and column names of the Repertoire sheet, in the order /setup creates them. */
@@ -15,12 +16,12 @@ export type ColumnKey<T extends TabKey> = keyof (typeof LAYOUT)[T]['columns'];
 /** Columns added later that an older sheet works without, so they aren't reported missing. */
 const OPTIONAL_COLUMNS: Partial<Record<RepertoireTab, string[]>> = {
 	pieces: ['duration', 'publisher', 'composerFull'],
-	concerts: ['sameProgramAs'],
-	program: ['orchestra']
+	concerts: ['sameProgramAs', 'partners', 'organizer'],
+	program: ['orchestra', 'composer', 'arranger', 'publisher', 'duration']
 };
 
-/** The raw cell values of the repertoire tabs, header row included. */
-export type SheetValues = Record<RepertoireTab, string[][]>;
+/** The raw cell values of the repertoire tabs, header row included; "Ensembles" when the sheet has it. */
+export type SheetValues = Record<RepertoireTab, string[][]> & { ensembles?: string[][] };
 
 export interface TableRow<K extends string> {
 	/** Row number in the sheet, starting at 1 for the header. */
@@ -102,8 +103,14 @@ export interface ProgramEntry {
 	/** The name as entered. */
 	pieceName: string;
 	notes?: string;
-	/** Which of the concert's orchestras plays it; undefined when the concert names none. */
+	/** Which of the concert's orchestras plays it; undefined when the concert names none. Guests by short name. */
 	orchestra?: string;
+	/** For a guest piece that isn't in "Stücke": what the GEMA list needs, from the row itself. */
+	composer?: string;
+	arranger?: string;
+	publisher?: string;
+	/** Seconds. */
+	duration?: number;
 }
 
 export interface SheetConcert {
@@ -119,6 +126,10 @@ export interface SheetConcert {
 	orchestra?: string;
 	/** "EO, A" → ["EO", "A"]: each has its own programme. */
 	orchestras: string[];
+	/** Guest choirs and orchestras ("Mitwirkende"), in the order the concert names them. */
+	partners: Ensemble[];
+	/** Who organises and sells the tickets when it isn't us ("Veranstalter"). */
+	organizer?: Ensemble;
 	eventId?: string;
 	/** "Programm wie" as entered: the concert whose programme this one plays too. */
 	sameProgramAs?: string;
@@ -149,6 +160,8 @@ export interface Problem {
 export interface Repertoire {
 	pieces: SheetPiece[];
 	concerts: SheetConcert[];
+	/** From the "Ensembles" tab; empty without it. */
+	ensembles: Ensemble[];
 	piecesByKey: Map<string, SheetPiece>;
 	piecesByFolder: Map<string, SheetPiece>;
 	/** Pieces by normalised title, for matching programme rows. */
@@ -232,6 +245,8 @@ export function buildRepertoire(values: SheetValues): Repertoire {
 		}
 	}
 
+	const ensembles = readEnsembles(readTable(values.ensembles ?? [], LAYOUT.ensembles.columns).rows.map((row) => row.values));
+
 	// Concerts. Programme rows refer to them by "Anlass", so that has to be unique.
 	const concerts: SheetConcert[] = [];
 	const concertsByKey = new Map<string, SheetConcert>();
@@ -256,6 +271,8 @@ export function buildRepertoire(values: SheetValues): Repertoire {
 			location: optional(v.location),
 			orchestra: optional(v.orchestra),
 			orchestras: concertOrchestras(v.orchestra),
+			partners: concertPartners(v.partners, ensembles),
+			...(v.organizer ? { organizer: concertPartners(v.organizer, ensembles)[0] } : {}),
 			eventId: optional(event),
 			sameProgramAs: optional(v.sameProgramAs),
 			program: []
@@ -275,15 +292,23 @@ export function buildRepertoire(values: SheetValues): Repertoire {
 			continue;
 		}
 		const piece = v.piece ? piecesByTitle.get(normalize(v.piece)) : undefined;
-		if (v.piece && !piece) problems.push({ kind: 'unknown-piece', tab: LAYOUT.program.tab, row, value: v.piece });
+		const orchestra = rowOrchestra(v.orchestra, concert.orchestras, concert.partners.map((partner) => partner.shortName));
+		// What guests bring isn't in our archive; their rows say what the GEMA list needs themselves.
+		const guest = withGuests(orchestra, concert.partners) || !!v.composer;
+		if (v.piece && !piece && !guest) problems.push({ kind: 'unknown-piece', tab: LAYOUT.program.tab, row, value: v.piece });
 		const position = Number.parseFloat(v.position.replace(',', '.'));
+		const duration = parseDuration(v.duration);
 		concert.program.push({
 			row,
 			position: Number.isFinite(position) ? position : undefined,
 			pieceKey: piece?.key,
 			pieceName: v.piece,
 			notes: optional(v.notes),
-			orchestra: rowOrchestra(v.orchestra, concert.orchestras)
+			orchestra,
+			...(v.composer ? { composer: v.composer } : {}),
+			...(v.arranger ? { arranger: v.arranger } : {}),
+			...(v.publisher ? { publisher: v.publisher } : {}),
+			...(duration ? { duration } : {})
 		});
 	}
 
@@ -305,6 +330,8 @@ export function buildRepertoire(values: SheetValues): Repertoire {
 		if (!owners.has(source.key)) continue;
 		concert.programFrom = source.key;
 		concert.program = source.program;
+		// The same programme has the same guests, unless the concert names its own.
+		if (!concert.partners.length) concert.partners = source.partners;
 	}
 
 	const playedAt = new Map<string, string[]>();
@@ -312,10 +339,11 @@ export function buildRepertoire(values: SheetValues): Repertoire {
 		(a.date ? fuzzyDateKey(a.date) : '~').localeCompare(b.date ? fuzzyDateKey(b.date) : '~')
 	);
 	for (const concert of byDate) {
-		// Each orchestra's programme together, in the order the concert names them.
+		// Each orchestra's programme together, in the order the concert names them; guests after ours.
+		const performers = [...concert.orchestras, ...concert.partners.map((partner) => partner.shortName)];
 		const rank = (entry: ProgramEntry) => {
-			const index = concert.orchestras.findIndex((orchestra) => sameOrchestra(orchestra, entry.orchestra));
-			return index === -1 ? concert.orchestras.length : index;
+			const index = performers.findIndex((orchestra) => sameOrchestra(orchestra, entry.orchestra));
+			return index === -1 ? performers.length : index;
 		};
 		concert.program.sort(
 			(a, b) => rank(a) - rank(b) || (a.position ?? Infinity) - (b.position ?? Infinity) || a.row - b.row
@@ -331,6 +359,7 @@ export function buildRepertoire(values: SheetValues): Repertoire {
 	return {
 		pieces,
 		concerts,
+		ensembles,
 		piecesByKey,
 		piecesByFolder,
 		piecesByTitle,

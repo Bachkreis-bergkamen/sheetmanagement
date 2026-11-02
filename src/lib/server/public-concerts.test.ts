@@ -10,7 +10,7 @@ const { concertSlug, feedEventsOf, publicDetails, publicFeed, publishedIds, read
 const event = (start: string, past: boolean) => ({ start, end: start.replace('T19', 'T21'), allDay: false, location: 'Aula', displayTitle: 'Herbstkonzert', past });
 
 const concert = (id: string, fields: Partial<LibraryConcert>): LibraryConcert =>
-	({ id, title: id, date: null, dateKey: '', label: null, orchestras: [], program: [], sharedWith: [], ...fields }) as LibraryConcert;
+	({ id, title: id, date: null, dateKey: '', label: null, orchestras: [], partners: [], program: [], sharedWith: [], ...fields }) as LibraryConcert;
 
 const library = {
 	today: '2026-10-30',
@@ -57,6 +57,7 @@ describe('publicFeed', () => {
 			allDay: false,
 			location: 'Aula',
 			orchestras: ['EO'],
+			partners: [],
 			program: [{ title: 'Eine kleine Nachtmusik', composer: 'Mozart' }, { title: 'Zugabe' }]
 		});
 	});
@@ -65,6 +66,46 @@ describe('publicFeed', () => {
 		const events = feedEventsOf(feed, 'Programm:');
 		expect(events.map((e) => e.uid)).toEqual(['herbst@sheetmanagement-public', 'winter@sheetmanagement-public']);
 		expect(events[0].description).toBe('Programm:\nMozart: Eine kleine Nachtmusik\nZugabe');
+	});
+});
+
+describe('concerts with guests', () => {
+	const kch = { shortName: 'KCH', name: 'Kammerchor Unna', kind: 'Chor', conductor: 'Anna Müller', website: 'https://kch.example.org', logo: 'https://kch.example.org/logo.png' };
+	const shared = {
+		...library,
+		concertsById: new Map([
+			[
+				'gemeinsam',
+				concert('gemeinsam', {
+					event: event('2026-11-22T19:00:00+01:00', false) as LibraryConcert['event'],
+					orchestras: ['EO'],
+					partners: [kch],
+					organizer: kch,
+					program: [
+						{ title: 'Eine kleine Nachtmusik', pieceId: 'p1', orchestra: 'EO' },
+						{ title: 'Abendlied', composer: 'Josef Rheinberger', orchestra: 'KCH' },
+						{ title: 'Halleluja', orchestra: 'EO, KCH' }
+					]
+				})
+			]
+		])
+	} as unknown as Library;
+	const feed = publicFeed(shared, new Set(['gemeinsam']));
+
+	it('names the guests, who plays what, and who organises it', () => {
+		const [gemeinsam] = feed.upcoming;
+		expect(gemeinsam.partners).toEqual([kch]);
+		expect(gemeinsam.organizer).toEqual({ name: 'Kammerchor Unna', website: 'https://kch.example.org' });
+		expect(gemeinsam.program).toEqual([
+			{ title: 'Eine kleine Nachtmusik', composer: 'Mozart', orchestra: 'EO' },
+			{ title: 'Abendlied', composer: 'Josef Rheinberger', orchestra: 'KCH' },
+			{ title: 'Halleluja', orchestra: 'EO, KCH' }
+		]);
+	});
+
+	it('says who plays with us in calendar apps', () => {
+		const [gemeinsam] = feedEventsOf(feed, 'Programm:', (names) => `mit ${names.join(', ')}`);
+		expect(gemeinsam.description?.split('\n')[0]).toBe('mit Kammerchor Unna');
 	});
 });
 

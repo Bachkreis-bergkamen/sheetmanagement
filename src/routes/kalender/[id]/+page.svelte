@@ -13,7 +13,6 @@
 	import ShareButton from '#lib/components/ShareButton.svelte';
 	import Signups from '#lib/components/Signups.svelte';
 	import Title from '#lib/components/Title.svelte';
-	import { concertOrchestras, programLabel } from '#lib/repertoire/orchestras.ts';
 	import { splitTrailingEmoji } from '#lib/events/format.ts';
 	import { FormState } from '#lib/forms.svelte.ts';
 
@@ -21,6 +20,7 @@
 	const orchestraSave = new FormState();
 	const publishSave = new FormState();
 	const detailsSave = new FormState();
+	const partnersSave = new FormState();
 	/** The orchestra whose Drive folder is being synced. */
 	let syncing = $state<string | null>(null);
 	const several = $derived(data.program.groups.length > 1);
@@ -223,6 +223,28 @@
 			{/if}
 		</li>
 	{/if}
+	{#if isConcert && (data.program.ours.length || data.program.partners.length || data.program.organizer)}
+		<!-- Who plays it: our orchestras, the choirs and orchestras we give it with, and who organises it when it isn't us. -->
+		<li>
+			<div class="fact">
+				<span class="icon"><Icon name="users" size={18} /></span>
+				<span class="fact-body">
+					{#if data.program.ours.length || data.program.partners.length}
+						<span class="over">{t.partners.over}</span>
+						<strong>
+							{data.program.ours.join(', ')}{#each data.program.partners as partner, i (partner.name)}{i || data.program.ours.length ? ', ' : ''}{#if partner.website}<a href={partner.website} target="_blank" rel="noopener noreferrer">{partner.name}</a>{:else}{partner.name}{/if}{/each}
+						</strong>
+						{@const conductors = data.program.partners.filter((partner) => partner.conductor)}
+						{#if conductors.length}
+							<!-- With one guest its conductor is plain; with several, each by name. -->
+							<span>{conductors.map((partner) => (data.program.partners.length > 1 ? `${partner.name}: ` : '') + t.partners.conductor(partner.conductor!)).join(' · ')}</span>
+						{/if}
+					{/if}
+					{#if data.program.organizer}<span>{t.partners.organizedBy(data.program.organizer)}</span>{/if}
+				</span>
+			</div>
+		</li>
+	{/if}
 	{#if data.kind === 'event' && data.event.url}
 		<li>
 			<a class="fact quiet" href={data.event.url} target="_blank" rel="noopener noreferrer">
@@ -306,6 +328,62 @@
 				<li><a href={data.tickets.manageUrl}><Icon name="list" size={18} /><span>{t.tickets.manage}<small>{t.tickets.manageHint}</small></span><Icon name="chevron" size={18} /></a></li>
 			{/if}
 		</ul>
+	</section>
+{/if}
+
+{#if planner && data.program.partnerForm}
+	{@const partnerForm = data.program.partnerForm}
+	<!-- Concerts with other choirs and orchestras: kept in "Konzerte", the details in "Ensembles". -->
+	<section class="block">
+		<h2 class="ui-label">{t.partners.title}</h2>
+		<form class="partners" method="POST" action="?/partners" use:enhance={partnersSave.submit()}>
+			<p class="details-hint">{t.partners.lead}</p>
+			{#if partnerForm.orchestras.length}
+				<input type="hidden" name="ours" value="1" />
+				<fieldset>
+					<legend>{t.partners.ours}</legend>
+					{#each partnerForm.orchestras as name (name)}
+						<label class="pick">
+							<input type="checkbox" name="orchestra" value={name} checked={partnerForm.ours.includes(name)} />{name}
+						</label>
+					{/each}
+				</fieldset>
+			{/if}
+			{#if partnerForm.ensembles.length}
+				<fieldset>
+					<legend>{t.partners.known}</legend>
+					{#each partnerForm.ensembles as ensemble (ensemble.shortName)}
+						<label class="pick">
+							<input type="checkbox" name="partner" value={ensemble.shortName} checked={partnerForm.chosen.includes(ensemble.shortName)} />
+							{ensemble.name}{#if ensemble.shortName !== ensemble.name}<span class="muted">{ensemble.shortName}</span>{/if}
+						</label>
+					{/each}
+				</fieldset>
+			{/if}
+			<label class="field">
+				<span>{partnerForm.ensembles.length ? t.partners.others : t.partners.over}</span>
+				<input name="others" maxlength="200" value={partnerForm.others} autocomplete="off" />
+				<small>{t.partners.othersHint}</small>
+			</label>
+			<label class="field">
+				<span>{t.partners.organizer}</span>
+				<select name="organizer">
+					<option value="" selected={!partnerForm.organizer}>{t.partners.us(partnerForm.us)}</option>
+					{#each partnerForm.ensembles as ensemble (ensemble.shortName)}
+						<option value={ensemble.shortName} selected={partnerForm.organizer === ensemble.shortName}>{ensemble.name}</option>
+					{/each}
+					{#if partnerForm.organizer && !partnerForm.ensembles.some((e) => e.shortName === partnerForm.organizer)}
+						<option value={partnerForm.organizer} selected>{partnerForm.organizer}</option>
+					{/if}
+				</select>
+				<small>{t.partners.organizerHint}</small>
+			</label>
+			{#if form?.partnersError}<p class="msg error" role="alert">{form.partnersError}</p>{/if}
+			<div class="details-actions">
+				<button class="btn small" disabled={partnersSave.busy}>{t.partners.save}</button>
+				{#if form?.partnersSaved}<span class="saved-inline" role="status"><Icon name="check" size={16} />{t.partners.saved}</span>{/if}
+			</div>
+		</form>
 	</section>
 {/if}
 
@@ -432,7 +510,7 @@
 			<!-- Several orchestras: each programme under its own heading, edited on its own. -->
 			{#if several}
 				<div class="group-head" class:joint={group.joint}>
-					<h3>{#if group.joint}<Icon name="link" size={16} />{/if}{programLabel(group.orchestra)}</h3>
+					<h3>{#if group.joint}<Icon name="link" size={16} />{/if}{group.label}</h3>
 					{#if data.program.canEdit}
 						<a href={group.editUrl}><Icon name="edit" size={16} />{t.editor.edit}</a>
 					{/if}
@@ -485,7 +563,7 @@
 		{/each}
 		{#if data.program.canEdit && data.program.jointUrl}
 			<!-- Nothing played together yet: one click to the editor's tab for it. -->
-			<a class="add-joint" href={data.program.jointUrl}><Icon name="link" size={16} />{t.editor.addJoint(concertOrchestras(data.program.jointLabel))}</a>
+			<a class="add-joint" href={data.program.jointUrl}><Icon name="link" size={16} />{t.editor.addJoint(data.program.jointNames)}</a>
 		{/if}
 		<!-- Where it's kept only matters to those who keep it. -->
 		{#if data.program.canEdit && data.program.items.length}<p class="hint">{t.concert.programHint}</p>{/if}
@@ -1202,6 +1280,60 @@
 
 	.publish-state.on :global(svg) {
 		color: var(--ok);
+	}
+
+	.partners {
+		display: grid;
+		gap: var(--space-3);
+		padding: var(--space-3);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-m);
+		font-size: var(--text-sm);
+	}
+
+	.partners fieldset {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-1) var(--space-4);
+		margin: 0;
+		padding: 0;
+		border: 0;
+	}
+
+	.partners legend {
+		margin-bottom: var(--space-1);
+		font-weight: 600;
+	}
+
+	.pick {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
+		min-height: 36px;
+		cursor: pointer;
+	}
+
+	.pick input {
+		width: 18px;
+		height: 18px;
+		accent-color: var(--accent);
+	}
+
+	.pick .muted {
+		color: var(--text-muted);
+		font-size: var(--text-xs);
+	}
+
+	.partners small {
+		color: var(--text-muted);
+		font-size: var(--text-xs);
+	}
+
+	.fact-body a {
+		color: inherit;
+		text-decoration: underline;
+		text-decoration-color: var(--border);
+		text-underline-offset: 3px;
 	}
 
 	.public-details {
