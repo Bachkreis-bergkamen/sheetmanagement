@@ -76,7 +76,8 @@ export async function createPieceFolder(locals: App.Locals, pieceId: string, wan
 
 	const folder = await createFolder(getGoogle().client, name, requireSetting('DRIVE_ARCHIVE_FOLDER_ID'));
 	await updateRecord('pieces', table, row.row, { driveFolderId: folder.id });
-	if (!(await putInArchiveIndex({ folderId: folder.id, name: folder.name, files: [] }).catch(() => false))) await getArchiveIndex({ force: true });
+	// Nothing cached means nothing to patch: the next visitor reads the archive anyway.
+	await putInArchiveIndex({ folderId: folder.id, name: folder.name, files: [] }).catch((cause) => console.error('Updating the cached archive failed:', cause));
 	await refreshAfterWrite();
 	return folder.id;
 }
@@ -146,8 +147,7 @@ export async function refreshPieceFolder(locals: App.Locals, pieceId: string): P
 	const files: IndexedFile[] = entries
 		.filter((entry) => !gone.has(entry.id))
 		.map((entry) => ({ id: entry.id, name: entry.name, mimeType: entry.mimeType, modifiedTime: entry.modifiedTime, size: entry.size ? Number(entry.size) : undefined }));
-	const patched = await putInArchiveIndex({ ...indexed, files: [...files, ...indexed.files.filter((file) => file.subfolder)] }).catch(() => false);
-	if (!patched) await getArchiveIndex({ force: true });
+	await putInArchiveIndex({ ...indexed, files: [...files, ...indexed.files.filter((file) => file.subfolder)] }).catch((cause) => console.error('Updating the cached archive failed:', cause));
 }
 
 /** "Stimme fehlt": the convention's placeholder, a Google Doc "<Kurztitel> - <Stimme> - FEHLT". */

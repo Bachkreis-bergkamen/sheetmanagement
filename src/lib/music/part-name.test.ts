@@ -59,7 +59,22 @@ describe('parsePartName', () => {
 		['Egmont_String_Reduction.pdf', 'Streicherauszug', 'partitur'],
 		// Clefs written "BC"/"TC", before or after the instrument
 		['Phantom-BC-Baritone.pdf', 'Bariton', 'stimme'],
-		['SEVEN NATION ARMY-BaritoneTC.pdf', 'Bariton', 'stimme']
+		['SEVEN NATION ARMY-BaritoneTC.pdf', 'Bariton', 'stimme'],
+		// Small percussion goes to "Percussion"; a common misspelling of the cello
+		['Ode_to_Joy-Agogo_Bells.pdf', 'Percussion', 'stimme'],
+		['Ode_to_Joy-Guiro.pdf', 'Percussion', 'stimme'],
+		['Ode_to_Joy-Low_Drum.pdf', 'Percussion', 'stimme'],
+		['Ode_to_Joy-Triangle.pdf', 'Percussion', 'stimme'],
+		['Ode_to_Joy-Violincello.pdf', 'Cello', 'stimme'],
+		['Ode_to_Joy-Wood_Block.pdf', 'Percussion', 'stimme'],
+		['Ode_to_Joy-Sleigh_Bells.pdf', 'Percussion', 'stimme'],
+		['Ode_to_Joy-Marimba.pdf', 'Mallet Percussion', 'stimme'],
+		['Ode_to_Joy-Tubular_Bells.pdf', 'Mallet Percussion', 'stimme'],
+		['Ode_to_Joy-Bells.pdf', 'Glockenspiel', 'stimme'],
+		['Ode_to_Joy-Suspended_Cymbal.pdf', 'Becken', 'stimme'],
+		['Ode_to_Joy-Bass_Drum.pdf', 'Große Trommel', 'stimme'],
+		['Ode_to_Joy-Snare_Drum.pdf', 'Trommel', 'stimme'],
+		['Ode_to_Joy-Timpani.pdf', 'Pauke', 'stimme']
 	])('%s → %s', (fileName, label, kind) => {
 		const part = parse(fileName);
 		expect(part.label).toBe(label);

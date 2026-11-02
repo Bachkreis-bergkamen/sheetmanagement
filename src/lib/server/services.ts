@@ -110,6 +110,7 @@ export async function renameInArchiveIndex(names: Map<string, string>): Promise<
 	return patchCached<DriveIndex>({
 		key: archiveIndexKey(requireSetting('DRIVE_ARCHIVE_FOLDER_ID'), programFolderIds()),
 		kv: appEnv().CACHE,
+		waitUntil: runInBackground,
 		update: (index) => ({
 			...index,
 			pieces: index.pieces.map((piece) => ({ ...piece, files: piece.files.map(rename) })),
@@ -127,6 +128,7 @@ export async function putInArchiveIndex(piece: IndexedPiece): Promise<boolean> {
 	return patchCached<DriveIndex>({
 		key: archiveIndexKey(requireSetting('DRIVE_ARCHIVE_FOLDER_ID'), programFolderIds()),
 		kv: appEnv().CACHE,
+		waitUntil: runInBackground,
 		update: (index) => ({
 			...index,
 			pieces: [...index.pieces.filter((other) => other.folderId !== piece.folderId), piece].sort((a, b) => collator.compare(a.name, b.name))
@@ -147,6 +149,7 @@ export async function programInArchiveIndex(program: string, linked: string[], u
 	return patchCached<DriveIndex>({
 		key: archiveIndexKey(requireSetting('DRIVE_ARCHIVE_FOLDER_ID'), programFolderIds()),
 		kv: appEnv().CACHE,
+		waitUntil: runInBackground,
 		update: (index) => ({
 			...index,
 			programs: index.programs.includes(program) || !added.size ? index.programs : [...index.programs, program],
