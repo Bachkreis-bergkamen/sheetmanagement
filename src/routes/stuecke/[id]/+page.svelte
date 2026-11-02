@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { splitList } from '#lib/repertoire/lists.ts';
 	import { enhance } from '$app/forms';
+	import ConcertMode from '#lib/components/ConcertMode.svelte';
+	import { offlineParts, type OfflinePart } from '#lib/offline/parts.svelte.ts';
 	import { t } from '#lib/i18n/index.ts';
 	import ConcertRow from '#lib/components/ConcertRow.svelte';
 	import Crumbs from '#lib/components/Crumbs.svelte';
@@ -103,7 +105,30 @@
 	const gaps = $derived(
 		piece.parts.filter((part) => part.status !== 'ok' && part.kind !== 'sonstiges' && part.kind !== 'audio').length
 	);
+
+	// Any part kept on this device (#62), one at a time, opened in the app's viewer without a connection.
+	$effect(() => offlineParts.start(data.features.offline));
+	const canKeep = (part: Part) =>
+		offlineParts.supported && data.auth === 'on' && part.mimeType === 'application/pdf' && part.status !== 'missing';
+	let keeping = $state<string | null>(null);
+	let keepFailed = $state(false);
+	async function toggleKeep(part: Part) {
+		keeping = part.id;
+		keepFailed = false;
+		if (offlineParts.has(part.id)) await offlineParts.remove([part.id]);
+		else keepFailed = (await offlineParts.save([{ id: part.id, label: part.label, piece: piece.title, pieceId: piece.id, glyph: partGlyph(part) }])) > 0;
+		keeping = null;
+	}
+	let viewing = $state<OfflinePart | null>(null);
+	/** Offline, a saved part opens in the app's viewer: Drive and the practice page need a connection. */
+	function openKept(event: MouseEvent, part: { id: string; label: string }) {
+		if (offlineParts.online || !offlineParts.has(part.id)) return;
+		event.preventDefault();
+		viewing = { id: part.id, label: part.label, piece: piece.title };
+	}
 </script>
+
+{#if viewing}<ConcertMode files={[viewing]} marks={{}} onclose={() => (viewing = null)} />{/if}
 
 <Title title={piece.title} />
 
@@ -158,6 +183,7 @@
 				href={part.url}
 				target={external ? '_blank' : undefined}
 				rel={external ? 'noopener noreferrer' : undefined}
+				onclick={(event) => openKept(event, part)}
 			>
 				<Icon name="parts" size={18} />{part.shared ? t.piece.alsoPart(part.label) : t.piece.yourPart(part.label)}
 			</a>
@@ -284,28 +310,33 @@
 	{/if}
 {/if}
 
+{#if keepFailed}<p class="msg error" role="alert">{t.pwa.failed(1)}</p>{/if}
+
 {#each groups as group (`${current?.key}:${group.key}`)}
 	<section class="block">
 		<h2 class="ui-label">{t.piece.groups[group.key]}</h2>
 		<ul class="parts">
 			{#each group.parts as part (part.id)}
 				<li class:flagged={reported.has(part.id)}>
-					<!-- A missing part is only a placeholder: nothing to open, so it isn't a link. -->
+					<!-- A missing part is only a placeholder: nothing to open, so it isn't a link (and has no click handler). -->
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
 					<svelte:element
 						this={part.status === 'missing' ? 'div' : 'a'}
 						class="part"
 						class:with-flag={canReport && part.status !== 'missing'}
+						class:with-keep={canKeep(part)}
 						class:missing={part.status === 'missing'}
 						href={part.status === 'missing' ? undefined : part.url}
 						target={part.status === 'missing' ? undefined : '_blank'}
 						rel={part.status === 'missing' ? undefined : 'noopener noreferrer'}
 						title={part.fileName}
+						onclick={part.status === 'missing' ? undefined : (event: MouseEvent) => openKept(event, part)}
 					>
 						<span class="icon">
 							{#if part.kind === 'audio'}<Icon name="headphones" size={16} />{:else}<InstrumentGlyph glyph={partGlyph(part)} size={20} />{/if}
 						</span>
 						<span class="label">
-							<span class="name">{part.label}{#if mineIds.has(part.id)}<span class="yours">{t.piece.yours}</span>{/if}</span>
+							<span class="name">{part.label}{#if mineIds.has(part.id)}<span class="yours">{t.piece.yours}</span>{/if}{#if offlineParts.has(part.id)}<span class="yours kept">{t.pwa.offlineBadge}</span>{/if}</span>
 							{#if part.notes.length || (part.subfolder && sections.length < 2)}
 								<span class="notes">
 									{#each part.notes as note (note)}<span class="note">{note}</span>{/each}
@@ -327,6 +358,21 @@
 							onclick={() => reportPart(part.id)}
 						>
 							<Icon name="flag" size={15} />
+						</button>
+					{/if}
+					{#if canKeep(part)}
+						{@const kept = offlineParts.has(part.id)}
+						<button
+							class="keep"
+							class:kept
+							class:beside-flag={canReport}
+							title={kept ? t.pwa.removePart(part.label) : t.pwa.savePart(part.label)}
+							aria-label={kept ? t.pwa.removePart(part.label) : t.pwa.savePart(part.label)}
+							aria-pressed={kept}
+							disabled={keeping === part.id || (!kept && !offlineParts.online)}
+							onclick={() => toggleKeep(part)}
+						>
+							<Icon name={kept ? 'check' : 'download'} size={15} />
 						</button>
 					{/if}
 				</li>
@@ -835,8 +881,63 @@
 		background: var(--surface-2);
 	}
 
-	.part.with-flag {
+	.part.with-flag,
+	.part.with-keep {
 		padding-right: 48px;
+	}
+
+	.part.with-flag.with-keep {
+		padding-right: 88px;
+	}
+
+	/* Keeping the part on the device (#62): left of the flag, green once it's there. */
+	.keep {
+		position: absolute;
+		top: 50%;
+		right: 8px;
+		display: grid;
+		place-items: center;
+		width: 34px;
+		height: 34px;
+		border: 0;
+		border-radius: var(--radius-control);
+		background: none;
+		color: var(--text-muted);
+		cursor: pointer;
+		transform: translateY(-50%);
+		opacity: 0.75;
+		transition:
+			opacity var(--fast) var(--ease),
+			background var(--fast) var(--ease);
+	}
+
+	.keep.beside-flag {
+		right: 46px;
+	}
+
+	li:hover .keep,
+	.keep:focus-visible {
+		opacity: 1;
+	}
+
+	.keep:hover {
+		background: var(--accent-soft);
+		color: var(--accent);
+	}
+
+	.keep.kept {
+		color: var(--ok);
+		opacity: 1;
+	}
+
+	.keep:disabled {
+		cursor: default;
+		opacity: 0.4;
+	}
+
+	.yours.kept {
+		background: color-mix(in oklab, var(--ok) 14%, transparent);
+		color: var(--ok);
 	}
 
 	.flag {

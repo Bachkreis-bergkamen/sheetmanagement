@@ -7,6 +7,7 @@
 	import InstrumentPicker from '#lib/components/InstrumentPicker.svelte';
 	import { glyphOf } from '#lib/music/instrument-glyph.ts';
 	import MyPartsConcert from '#lib/components/MyPartsConcert.svelte';
+	import OfflineShelf from '#lib/components/OfflineShelf.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import Title from '#lib/components/Title.svelte';
 	import { config } from '#lib/config/index.ts';
@@ -109,6 +110,7 @@
 	{/if}
 </div>
 
+<OfflineShelf offline={data.features.offline} />
 
 {#if !data.concerts.length}
 	<p class="msg info">{t.myParts.noConcert}</p>

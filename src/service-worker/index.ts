@@ -5,16 +5,24 @@ import { self as sw } from '$app/service-worker';
 /**
  * Offline mode for rehearsal halls with bad reception (#62). The app's own files come from
  * the cache; pages are fetched fresh and kept, so the last version of every page a member
- * opened still shows without a connection. Parts saved on "Meine Noten" are kept too.
- * Signing out deletes everything personal. It also shows reminders (#157).
+ * opened still shows without a connection. The music table, every piece's page and "Meine Noten"
+ * are kept ahead of time, once a day, so they open offline without having been opened. Parts
+ * saved on "Meine Noten" or a piece page are kept too. Signing out deletes everything personal.
+ * It also shows reminders (#157).
  */
 
 const APP = `app-${version}`;
 /** Pages as last seen, including SvelteKit's page data for navigating inside the app. */
 const PAGES = 'pages-v1';
-/** Part PDFs saved on "Meine Noten". */
+/** The music table, the pieces' pages and "Meine Noten": not trimmed, refreshed once a day. */
+const LIBRARY = 'library-v1';
+/** Part PDFs saved on "Meine Noten" or a piece page; the header holds piece and label (src/lib/offline/parts.svelte.ts). */
 const NOTEN = 'noten-v1';
+const META = 'x-offline-part';
 const MAX_PAGES = 80;
+/** When the library was last kept, and by which version: page data changes shape between versions. */
+const WARMED = '/__offline-warmed';
+const DAY = 24 * 60 * 60 * 1000;
 /** Paths come relative to the base path; requests are matched by their absolute path. */
 const ASSETS = new Set([...immutable, ...assets].map(({ path }) => `/${path.replace(/^\//, '')}`));
 /** Big files only the door's phones need (the code reader for iPhones): kept once fetched, not on install. */
@@ -34,9 +42,58 @@ sw.addEventListener('activate', (event) => {
 });
 
 // A new version waits until a page asks for it (#140); pages take it over quietly, and open tabs aren't reloaded.
+// A signed-in member's page asks to keep the library offline.
 sw.addEventListener('message', (event) => {
 	if (event.data === 'skip-waiting') sw.skipWaiting();
+	if (event.data === 'warm') event.waitUntil(warm());
 });
+
+/** The page a path belongs to: "/stuecke/x/__data.json" → "/stuecke/x". */
+const pageOf = (path: string) => (path.endsWith('/__data.json') ? path.slice(0, -'/__data.json'.length) || '/' : path);
+/** Pages kept in LIBRARY instead of the trimmed page cache. */
+const kept = (page: string) => page === '/' || page === '/meine-noten' || page === '/stuecke' || /^\/stuecke\/[^/]+$/.test(page);
+const keepable = (response: Response) =>
+	response.ok && !response.redirected && !/no-store/i.test(response.headers.get('cache-control') ?? '');
+
+let warming: Promise<void> | null = null;
+/**
+ * Keeps the overview, the table, "Meine Noten" and every piece's page, a few at a time, at most
+ * once a day per version. As pages, not their data: SvelteKit sends page data with "no-store",
+ * and without a connection the app falls back to loading the page itself.
+ */
+function warm() {
+	warming ??= (async () => {
+		const cache = await caches.open(LIBRARY);
+		const [stamp, at] = (await (await cache.match(WARMED))?.text())?.split(' ') ?? [];
+		if (stamp === version && Date.now() - Number(at) < DAY) return;
+		const response = await fetch('/api/offline');
+		if (!response.ok) return;
+		const { pieces } = (await response.json()) as { pieces: string[] };
+		const piecePages = pieces.map((id) => `/stuecke/${encodeURIComponent(id)}`);
+		const paths = ['/', '/stuecke', '/meine-noten', ...piecePages];
+		let next = 0;
+		let failed = 0;
+		const worker = async () => {
+			while (next < paths.length) {
+				const path = paths[next++];
+				const page = await fetch(path, { headers: { accept: 'text/html' } }).catch(() => null);
+				if (page && keepable(page)) await cache.put(sw.location.origin + path, page);
+				else failed++;
+			}
+		};
+		await Promise.all([worker(), worker(), worker()]);
+		// Pieces no longer in the archive go.
+		const wanted = new Set(piecePages);
+		for (const request of await cache.keys()) {
+			const page = pageOf(new URL(request.url).pathname);
+			if (/^\/stuecke\/[^/]+$/.test(page) && !wanted.has(page)) await cache.delete(request);
+		}
+		if (!failed) await cache.put(WARMED, new Response(`${version} ${Date.now()}`));
+	})()
+		.catch(() => undefined)
+		.finally(() => (warming = null));
+	return warming;
+}
 
 /** Keeps the page cache small: the oldest entries go first. */
 async function trim(cache: Cache) {
@@ -83,7 +140,7 @@ sw.addEventListener('fetch', (event) => {
 	// Signing out: nothing personal stays on the device, and it gets no more reminders. The
 	// device is taken off first, while the member is still signed in.
 	if (request.method === 'POST' && url.pathname === '/auth/logout') {
-		event.waitUntil(Promise.all([caches.delete(PAGES), caches.delete(NOTEN)]));
+		event.waitUntil(Promise.all([caches.delete(PAGES), caches.delete(LIBRARY), caches.delete(NOTEN)]));
 		event.respondWith(
 			(async () => {
 				const subscription = await sw.registration.pushManager?.getSubscription().catch(() => null);
@@ -117,14 +174,32 @@ sw.addEventListener('fetch', (event) => {
 		return;
 	}
 
-	// A part's PDF: fresh when online, updating a saved copy; the saved copy offline.
+	// pdf.js's decoders for scanned pages (src/routes/pdfjs-wasm) point to the app's own files;
+	// taken from there straight away, so scanned parts open offline too.
+	if (url.pathname.startsWith('/pdfjs-wasm/')) {
+		const name = url.pathname.slice('/pdfjs-wasm/'.length).replace(/\.wasm$/, '');
+		// Bundled as e.g. "_app/immutable/assets/jbig2.BUnLb-NU.wasm".
+		const asset = [...ASSETS].find((path) => path.endsWith('.wasm') && path.split('/').pop()!.startsWith(`${name}.`));
+		if (asset) {
+			event.respondWith(caches.match(asset).then((cached) => cached ?? fetch(request)));
+			return;
+		}
+	}
+
+	// A part's PDF: fresh when online, updating a saved copy (with its piece and label); the saved copy offline.
 	if (url.pathname.startsWith('/api/noten/')) {
 		event.respondWith(
 			(async () => {
 				const cache = await caches.open(NOTEN);
 				try {
 					const response = await fetch(request);
-					if (response.ok && (await cache.match(url.pathname))) await cache.put(url.pathname, response.clone());
+					const saved = response.ok && (await cache.match(url.pathname));
+					if (saved) {
+						const headers = new Headers(response.headers);
+						const meta = saved.headers.get(META);
+						if (meta) headers.set(META, meta);
+						event.waitUntil(response.clone().blob().then((body) => cache.put(url.pathname, new Response(body, { headers }))));
+					}
 					return response;
 				} catch {
 					return (await cache.match(url.pathname)) ?? Response.error();
@@ -141,19 +216,21 @@ sw.addEventListener('fetch', (event) => {
 
 	event.respondWith(
 		(async () => {
-			const cache = await caches.open(PAGES);
+			const library = kept(pageOf(url.pathname));
+			const cache = await caches.open(library ? LIBRARY : PAGES);
 			// Page data carries a changing "x-sveltekit-invalidated" parameter; the path is what counts.
 			const key = data ? url.origin + url.pathname : request.url;
 			try {
 				const response = await fetch(request);
 				// Files sent with "no-store" (a member's data export, the music list) are never kept.
-				if (response.ok && !response.redirected && !/no-store/i.test(response.headers.get('cache-control') ?? '')) {
+				if (keepable(response)) {
 					await cache.put(key, response.clone());
-					event.waitUntil(trim(cache));
+					if (!library) event.waitUntil(trim(cache));
 				}
 				return response;
 			} catch {
-				const cached = (await cache.match(key)) ?? (data ? undefined : await cache.match(request, { ignoreSearch: true }));
+				// Either cache: a page may have been kept before it moved to the library.
+				const cached = (await caches.match(key)) ?? (data ? undefined : await caches.match(request, { ignoreSearch: true }));
 				if (cached) return cached;
 				return data ? Response.error() : offlinePage();
 			}

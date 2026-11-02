@@ -832,6 +832,16 @@ export const en: Texts = {
 		hint: 'Your parts on this device, for a rehearsal room without a connection.',
 		unsupported: "This browser can't save music offline.",
 		offlineBadge: 'offline',
+		savePart: (label: string) => `Save ${label} offline`,
+		removePart: (label: string) => `${label}: delete offline copy`,
+		shelf: {
+			title: 'Offline on this device',
+			lead: 'These parts open without a connection too. You can save any part on its piece’s page.',
+			viewAll: 'View all',
+			view: (label: string) => `View ${label}`,
+			removeAll: 'Delete all',
+			confirmRemoveAll: 'Delete all parts saved offline from this device?'
+		},
 		install: 'As an app on the home screen',
 		installHint: 'Opens like an app and shows loaded pages without a connection too.',
 		installManual: 'iPhone: Safari → Share → Add to Home Screen. Android: menu → Install app.',

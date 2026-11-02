@@ -837,6 +837,16 @@ export const de = {
 		hint: 'Deine Stimmen auf diesem Gerät, für den Probenraum ohne Netz.',
 		unsupported: 'Dieser Browser kann Noten nicht offline speichern.',
 		offlineBadge: 'offline da',
+		savePart: (label: string) => `${label} offline speichern`,
+		removePart: (label: string) => `${label}: Offline-Kopie löschen`,
+		shelf: {
+			title: 'Offline auf diesem Gerät',
+			lead: 'Diese Stimmen öffnen sich auch ohne Netz. Speichern kannst du jede Stimme auf der Seite ihres Stücks.',
+			viewAll: 'Alle ansehen',
+			view: (label: string) => `${label} ansehen`,
+			removeAll: 'Alle löschen',
+			confirmRemoveAll: 'Alle offline gespeicherten Stimmen von diesem Gerät löschen?'
+		},
 		install: 'Als App auf dem Startbildschirm',
 		installHint: 'Öffnet sich wie eine App und zeigt geladene Seiten auch ohne Netz.',
 		installManual: 'iPhone: Safari → Teilen → Zum Home-Bildschirm. Android: Menü → App installieren.',
