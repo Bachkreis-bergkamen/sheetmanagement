@@ -1,11 +1,13 @@
+import { normalizeEmail } from '#lib/access/access.ts';
 import { SUGGESTED_STATUS, type Report } from '#lib/feedback/feedback.ts';
 import { t } from '#lib/i18n/index.ts';
 import type { Part, PartStatus } from '#lib/music/types.ts';
-import { LAYOUT, readTable } from './sheet.ts';
+import { LAYOUT, normalize, readTable } from './sheet.ts';
 
 /**
  * The "Fehlende Stimmen" tab: a generated mirror of the gaps in the archive's file
- * names. The app rewrites it; people only tick "erledigt".
+ * names. The app rewrites it; people tick "erledigt", and the Notenwart plans scans
+ * there: a priority and who scans.
  */
 
 export type GapStatus = Exclude<PartStatus, 'ok'>;
@@ -80,6 +82,39 @@ export function isDone(value: string): boolean {
 
 const COLUMNS = LAYOUT.missingParts.columns;
 type Column = keyof typeof COLUMNS;
+/** What the sync writes. "Priorität" and "Wer scannt" came later: a tab without them still syncs, and keeps them where it has them. */
+const SYNCED: Column[] = ['piece', 'part', 'status', 'fileId', 'done'];
+
+export const PRIORITIES = ['high', 'medium', 'low'] as const;
+export type Priority = (typeof PRIORITIES)[number];
+
+/** "hoch" (or "high", "High") as a priority; anything else is none. */
+export function parsePriority(value: string): Priority | undefined {
+	const word = normalize(value);
+	if (!word) return undefined;
+	return PRIORITIES.find((priority) => normalize(t.sheetValues.priority[priority]) === word || priority === word);
+}
+
+/** Sorts by priority, high first; none after low. */
+export const priorityRank = (priority: Priority | undefined) => (priority ? PRIORITIES.indexOf(priority) : PRIORITIES.length);
+
+export interface ScanTask {
+	priority?: Priority;
+	/** Who scans it, as an e-mail. */
+	assignee?: string;
+	done: boolean;
+}
+
+/** The planned scans by file id: gaps with a priority or someone to scan them. */
+export function scanTasks(values: string[][]): Map<string, ScanTask> {
+	const tasks = new Map<string, ScanTask>();
+	for (const { values: cells } of readTable(values, COLUMNS).rows) {
+		const priority = parsePriority(cells.priority);
+		const assignee = normalizeEmail(cells.assignee) || undefined;
+		if (cells.fileId && (priority || assignee)) tasks.set(cells.fileId, { priority, assignee, done: isDone(cells.done) });
+	}
+	return tasks;
+}
 
 /** File ids ticked "erledigt" in the tab as it is, for when there's no sync. */
 export function doneFileIds(values: string[][]): string[] {
@@ -111,7 +146,7 @@ export interface MissingPartsPlan {
  */
 export function planMissingParts(values: string[][], gaps: Gap[]): MissingPartsPlan {
 	const table = readTable(values, COLUMNS);
-	if (table.missing.length) return { ok: false, added: [], removed: [], kept: [], changed: false, body: [], done: doneFileIds(values) };
+	if (table.missing.some((column) => SYNCED.includes(column))) return { ok: false, added: [], removed: [], kept: [], changed: false, body: [], done: doneFileIds(values) };
 
 	const byId = new Map(gaps.map((gap) => [gap.fileId, gap]));
 	const seen = new Set<string>();

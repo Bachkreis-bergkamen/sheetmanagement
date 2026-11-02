@@ -13,6 +13,7 @@
 	import PieceFolder from '#lib/components/PieceFolder.svelte';
 	import PieceNotes from '#lib/components/PieceNotes.svelte';
 	import PartAssignments from '#lib/components/PartAssignments.svelte';
+	import ScanList from '#lib/components/ScanList.svelte';
 	import Title from '#lib/components/Title.svelte';
 
 	let { data, form } = $props();
@@ -237,6 +238,8 @@
 />
 
 <PieceNotes notes={data.notes} result={form} />
+
+<ScanList scans={data.scans} />
 
 <PartAssignments assignments={data.assignments} result={form} />
 

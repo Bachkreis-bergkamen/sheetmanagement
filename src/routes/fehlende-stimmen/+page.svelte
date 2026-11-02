@@ -1,24 +1,32 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { page } from '$app/state';
 	import { config } from '#lib/config/index.ts';
 	import { FormState } from '#lib/forms.svelte.ts';
 	import { t } from '#lib/i18n/index.ts';
 	import Icon from '#lib/components/Icon.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
+	import ScanPlan from '#lib/components/ScanPlan.svelte';
 	import Title from '#lib/components/Title.svelte';
 
 	let { data, form } = $props();
 	const marking = new FormState();
 
-	/** "" = all pieces, "*" = any current programme, else one programme. */
-	let filter = $state('');
+	/** "" = all pieces, "@" = scans assigned to me, "*" = any current programme, else one programme. */
+	let filter = $state(page.url.searchParams.has('meine') ? '@' : '');
+	const anyMine = $derived(data.pieces.some((piece) => piece.gaps.some((gap) => gap.mine)));
 	const shown = $derived(
-		data.pieces.filter((piece) =>
-			filter === '' ? true : filter === '*' ? piece.programs.length > 0 : piece.programs.includes(filter)
-		)
+		filter === '@'
+			? data.pieces
+					.map((piece) => ({ ...piece, gaps: piece.gaps.filter((gap) => gap.mine), reports: [], hints: [] }))
+					.filter((piece) => piece.gaps.length)
+			: data.pieces.filter((piece) =>
+					filter === '' ? true : filter === '*' ? piece.programs.length > 0 : piece.programs.includes(filter)
+				)
 	);
 	const filters = $derived([
 		{ key: '', label: t.gaps.all },
+		...(anyMine || filter === '@' ? [{ key: '@', label: t.gaps.mine }] : []),
 		...(data.programs.length ? [{ key: '*', label: t.gaps.current }] : []),
 		...(data.programs.length > 1 ? data.programs.map((program) => ({ key: program, label: program })) : [])
 	]);
@@ -61,6 +69,14 @@
 						<a class="title" href="/stuecke/{encodeURIComponent(piece.id)}">{piece.title}</a>
 						{#if piece.composer}<span class="muted">{piece.composer}</span>{/if}
 						{#each piece.programs as program (program)}<span class="tag program">{program}</span>{/each}
+						{#if data.canMark && data.scanners.length && piece.gaps.length > 1}
+							<ScanPlan
+								ids={piece.gaps.map((gap) => gap.id)}
+								scanners={data.scanners}
+								label={t.gaps.planAll}
+								hint={t.gaps.planAllHint(piece.gaps.length)}
+							/>
+						{/if}
 					</div>
 					<ul class="gaps">
 						{#each piece.gaps as gap (gap.id)}
@@ -69,6 +85,13 @@
 								<span class="status {gap.status}">{t.piece.partStatus[gap.status]}</span>
 								{#if gap.reported}<span class="status reported" title={t.gaps.reportedHint}><Icon name="flag" size={12} />{t.gaps.reported}</span>{/if}
 								{#if gap.done}<span class="status done" title={t.gaps.doneHint}><Icon name="check" size={12} />{t.gaps.done}</span>{/if}
+								{#if gap.priority}<span class="status priority {gap.priority}">{t.gaps.priorities[gap.priority]}</span>{/if}
+								{#if gap.assigneeName}
+									<span class="status assignee" class:mine={gap.mine}><Icon name="user" size={12} />{gap.mine ? t.gaps.assignedToMe : t.gaps.assignedTo(gap.assigneeName)}</span>
+								{/if}
+								{#if data.canMark && data.scanners.length && !gap.done}
+									<ScanPlan ids={[gap.id]} priority={gap.priority} assignee={gap.assignee} scanners={data.scanners} />
+								{/if}
 								{#if data.canMark}
 									<form method="POST" action="?/markDone" use:enhance={marking.submit()}>
 										<input type="hidden" name="id" value={gap.id} />
@@ -298,6 +321,28 @@
 
 	.progress {
 		margin: calc(-1 * var(--space-2)) 0 var(--space-4);
+	}
+
+	.status.priority.high {
+		background: var(--danger);
+		color: var(--accent-contrast);
+	}
+
+	.status.priority.medium {
+		background: color-mix(in oklab, var(--warn) 14%, transparent);
+		color: var(--warn);
+	}
+
+	.status.priority.low,
+	.status.assignee {
+		background: var(--surface-2);
+		color: var(--text);
+		font-weight: 600;
+	}
+
+	.status.assignee.mine {
+		background: var(--accent-soft);
+		color: var(--accent);
 	}
 
 	.status.done {

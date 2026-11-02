@@ -1,12 +1,14 @@
 import { fail } from '@sveltejs/kit';
+import { normalizeEmail } from '#lib/access/access.ts';
 import { t } from '#lib/i18n/index.ts';
 import { requireRight } from '#lib/server/auth/index.ts';
 import { fileUrl } from '#lib/server/catalog.ts';
 import { getLibrary } from '#lib/server/library.ts';
 import { confirmPartHint, dismissPartHint, getPartHints } from '#lib/server/part-checks.ts';
 import { driveWriteEnabled, getArchiveIndex } from '#lib/server/services.ts';
-import { isGap, reportedGaps } from '#lib/repertoire/missing-parts.ts';
-import { getFeedback, getMissingPartsDone } from '#lib/server/repertoire.ts';
+import { isGap, priorityRank, reportedGaps } from '#lib/repertoire/missing-parts.ts';
+import { getFeedback, getMissingPartsDone, getScanTasks } from '#lib/server/repertoire.ts';
+import { planScans, scanners } from '#lib/server/scan-tasks.ts';
 import { readTab, refreshAfterWrite, SheetLayoutError, updateRecord } from '#lib/server/sheet-writes.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -17,7 +19,16 @@ const RIGHT = 'stuecke.bearbeiten';
  * UNVOLLSTÄNDIG) plus open problem reports. Replaces the hand-kept lists in Drive.
  */
 export const load: PageServerLoad = async ({ locals }) => {
-	const [library, feedback, done] = await Promise.all([getLibrary(), getFeedback(), getMissingPartsDone()]);
+	const canMark = locals.access.rights.has(RIGHT);
+	const [library, feedback, done, tasks, people] = await Promise.all([
+		getLibrary(),
+		getFeedback(),
+		getMissingPartsDone(),
+		getScanTasks(),
+		canMark ? scanners().catch(() => []) : []
+	]);
+	const me = normalizeEmail(locals.access.user?.email ?? '');
+	const nameOf = new Map(people.map((person) => [person.email, person.name]));
 	const openReports = (feedback?.reports ?? []).filter((report) => report.status === 'open');
 	// What the completeness check found (#93); the page works without it.
 	const catalog = library.catalog;
@@ -31,15 +42,26 @@ export const load: PageServerLoad = async ({ locals }) => {
 		.map((piece) => {
 			const pieceReports = openReports.filter((report) => report.pieceId === piece.id);
 			const reportedFiles = new Set(pieceReports.map((report) => report.fileId));
-			const gaps = (piece.detail?.parts ?? []).filter(isGap).map((part) => ({
-				id: part.id,
-				label: part.label,
-				status: part.status,
-				url: fileUrl(part.id, part.mimeType),
-				// Ticked here or in "Fehlende Stimmen"; stays listed until the file is renamed.
-				done: done.has(part.id),
-				reported: reportedFiles.has(part.id)
-			}));
+			const gaps = (piece.detail?.parts ?? [])
+				.filter(isGap)
+				.map((part) => {
+					// The planned scan: how urgent, and who does it.
+					const task = tasks.get(part.id);
+					return {
+						id: part.id,
+						label: part.label,
+						status: part.status,
+						url: fileUrl(part.id, part.mimeType),
+						// Ticked here or in "Fehlende Stimmen"; stays listed until the file is renamed.
+						done: done.has(part.id),
+						reported: reportedFiles.has(part.id),
+						priority: task?.priority,
+						assignee: task?.assignee,
+						assigneeName: task?.assignee ? nameOf.get(task.assignee) || task.assignee : undefined,
+						mine: !!me && task?.assignee === me
+					};
+				})
+				.sort((a, b) => priorityRank(a.priority) - priorityRank(b.priority));
 			// Reports the file name doesn't show yet count with the status they stand for.
 			const mimeTypes = new Map((piece.detail?.parts ?? []).map((part) => [part.id, part.mimeType]));
 			const reports = reportedGaps(
@@ -53,9 +75,12 @@ export const load: PageServerLoad = async ({ locals }) => {
 				const hint = check?.hints.get(part.id);
 				return hint ? [{ ...hint, label: part.label, url: fileUrl(part.id, part.mimeType) }] : [];
 			});
-			return { id: piece.id, title: piece.title, composer: piece.composer, programs: piece.programs, gaps, reports, hints };
+			// A piece is as urgent as its most urgent open gap.
+			const rank = Math.min(priorityRank(undefined), ...gaps.filter((gap) => !gap.done).map((gap) => priorityRank(gap.priority)));
+			return { id: piece.id, title: piece.title, composer: piece.composer, programs: piece.programs, gaps, reports, hints, rank };
 		})
-		.filter((piece) => piece.gaps.length || piece.reports.length || piece.hints.length);
+		.filter((piece) => piece.gaps.length || piece.reports.length || piece.hints.length)
+		.sort((a, b) => a.rank - b.rank);
 
 	const count = (status: string) =>
 		pieces.reduce(
@@ -75,7 +100,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 			hints: pieces.reduce((sum, piece) => sum + piece.hints.length, 0)
 		},
 		check: check ? { checked: check.checked, total: check.total } : undefined,
-		canMark: locals.access.rights.has(RIGHT),
+		canMark,
+		scanners: people,
 		driveWrite: driveWriteEnabled()
 	};
 };
@@ -107,6 +133,8 @@ export const actions: Actions = {
 			return fail(503, { message: t.gaps.hintDriveFailed });
 		}
 	},
+	/** Plans scans: a priority and who scans, for one gap or every gap of a piece. */
+	planScan: ({ locals, request }) => planScans(locals, request),
 	dismissHint: async ({ locals, request }) => {
 		requireRight(locals, RIGHT);
 		await dismissPartHint(String((await request.formData()).get('id') ?? '').slice(0, 100));

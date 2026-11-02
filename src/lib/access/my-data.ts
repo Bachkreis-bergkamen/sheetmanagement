@@ -31,6 +31,7 @@ const OWNERS: Partial<Record<TabKey, Owner>> = {
 	reports: (values, who) => submitterEmail(values.reportedBy ?? '') === who.email,
 	wishes: (values, who) => submitterEmail(values.submittedBy ?? '') === who.email || parseVotes(values.votes ?? '').includes(who.email),
 	pieceNotes: byName('by'),
+	missingParts: byEmail('assignee'),
 	partAssignments: (values, who) => byEmail('who')(values, who) || byName('by')(values, who),
 	rehearsalNotes: byName('by')
 };

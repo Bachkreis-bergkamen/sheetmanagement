@@ -20,7 +20,7 @@ Each feature an orchestra doesn't use can be turned off; see [[Configuration]].
 
 ## For organisers
 
-**Library.** The Drive archive as a searchable list. One page per piece with all parts, duration, publisher, composer portrait, rented music and notes. A background check flags parts that are missing, empty or much shorter than the others (*Missing parts*); it never renames a file by itself.
+**Library.** The Drive archive as a searchable list. One page per piece with all parts, duration, publisher, composer portrait, rented music and notes. A background check flags parts that are missing, empty or much shorter than the others (*Missing parts*); it never renames a file by itself. The librarian gives gaps a priority and someone to scan them, one part or a whole piece at once; that person gets a push notification and sees them under *Waiting for you*.
 
 ![A piece](https://raw.githubusercontent.com/lgreil/sheetmanagement/main/docs/screenshots/piece.png)
 

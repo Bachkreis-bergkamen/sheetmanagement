@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { archiveGaps, doneFileIds, isDone, planMissingParts, reportedGaps, type Gap } from './missing-parts.ts';
+import { archiveGaps, doneFileIds, isDone, parsePriority, planMissingParts, priorityRank, reportedGaps, scanTasks, type Gap } from './missing-parts.ts';
 
 const HEADER = ['Stück', 'Stimme', 'Status', 'Datei-ID', 'erledigt'];
 const gap = (fileId: string, status: Gap['status'] = 'missing', piece = 'Bolero', part = `Stimme ${fileId}`): Gap => ({
@@ -117,6 +117,18 @@ describe('planMissingParts', () => {
 		]);
 	});
 
+	it('keeps the planned scan with its row, and syncs a tab without those columns', () => {
+		const header = [...HEADER, 'Priorität', 'Wer scannt'];
+		const [a, b] = [gap('a'), gap('b')];
+		const plan = planMissingParts([header, [...row(a), 'hoch', 'nora@example.org'], [...row(gap('x')), 'mittel', 'tom@example.org']], [a, b]);
+		expect(plan.ok).toBe(true);
+		expect(plan.body).toEqual([
+			['Bolero', 'Stimme a', 'fehlt', 'a', false, 'hoch', 'nora@example.org'],
+			['Bolero', 'Stimme b', 'fehlt', 'b', false, '', '']
+		]);
+		expect(planMissingParts([HEADER], [a]).ok).toBe(true);
+	});
+
 	it('writes nothing when a column is missing', () => {
 		const plan = planMissingParts([['Stück', 'Stimme', 'Status', 'erledigt']], [gap('a')]);
 		expect(plan.ok).toBe(false);
@@ -165,5 +177,34 @@ describe('reportedGaps', () => {
 
 	it('uses the word the app put in the file name when the archive index has not caught up yet', () => {
 		expect(reportedGaps([], [report('r1', 'a', 'missing', 'empty')])[0].status).toBe('empty');
+	});
+});
+
+describe('scan jobs', () => {
+	it('reads priorities in German and English, and nothing else', () => {
+		expect(['hoch', ' Hoch ', 'high'].map(parsePriority)).toEqual(['high', 'high', 'high']);
+		expect(parsePriority('niedrig')).toBe('low');
+		expect(parsePriority('')).toBeUndefined();
+		expect(parsePriority('sofort')).toBeUndefined();
+	});
+
+	it('sorts high first and no priority last', () => {
+		const sorted = [undefined, 'low', 'high', 'medium'].sort((a, b) => priorityRank(a as never) - priorityRank(b as never));
+		expect(sorted).toEqual(['high', 'medium', 'low', undefined]);
+	});
+
+	it('reads the planned scans by file id, e-mails as e-mails', () => {
+		const header = [...HEADER, 'Priorität', 'Wer scannt'];
+		const tasks = scanTasks([
+			header,
+			[...row(gap('a'), 'TRUE'), 'hoch', ' Nora@Example.org '],
+			[...row(gap('b')), '', ''],
+			[...row(gap('c')), '', 'tom@example.org']
+		]);
+		expect([...tasks]).toEqual([
+			['a', { priority: 'high', assignee: 'nora@example.org', done: true }],
+			['c', { priority: undefined, assignee: 'tom@example.org', done: false }]
+		]);
+		expect(scanTasks([HEADER, row(gap('a'))]).size).toBe(0);
 	});
 });

@@ -6,7 +6,7 @@ import { ACCESS_TABS, buildAccessList, type AccessList, type AccessValues } from
 import { buildFeedback, FEEDBACK_TABS, type Feedback, type FeedbackValues } from '#lib/feedback/feedback.ts';
 import { readInstrumentGroups, type InstrumentGroups } from '#lib/music/instrument-groups.ts';
 import type { PieceDetail } from '#lib/music/types.ts';
-import { archiveGaps, doneFileIds, planMissingParts } from '#lib/repertoire/missing-parts.ts';
+import { archiveGaps, doneFileIds, planMissingParts, scanTasks, type ScanTask } from '#lib/repertoire/missing-parts.ts';
 import { buildSignups, type Signups } from '#lib/signups/signups.ts';
 import { buildRehearsalPlan, type RehearsalPlan } from '#lib/rehearsals/plan.ts';
 import { buildLoans, type Loans } from '#lib/loans/loans.ts';
@@ -182,6 +182,8 @@ interface SheetSnapshot {
 	feedback: Feedback;
 	/** File ids ticked "erledigt" in "Fehlende Stimmen". */
 	missingPartsDone: string[];
+	/** Planned scans in "Fehlende Stimmen", by file id. */
+	scanTasks: Map<string, ScanTask>;
 	/** null: the tab is missing or empty, so the preset's groups apply. */
 	instrumentGroups: InstrumentGroups | null;
 	/** null: the "Anmeldungen" tab is missing. */
@@ -248,6 +250,7 @@ async function loadSheet(force: boolean): Promise<{ value: SheetSnapshot; sheet:
 			access: buildAccessList(sheet.access),
 			feedback: buildFeedback(sheet.feedback),
 			missingPartsDone: doneFileIds(sheet.missingParts ?? []),
+			scanTasks: scanTasks(sheet.missingParts ?? []),
 			instrumentGroups: readInstrumentGroups(
 				sheet.instrumentGroups,
 				config.instruments.map((instrument) => instrument.name)
@@ -363,6 +366,15 @@ export async function getMissingPartsDone(): Promise<Set<string>> {
 	} catch {
 		// getLibrary already logs why the sheet failed.
 		return new Set();
+	}
+}
+
+/** Planned scans by file id; empty when the sheet can't be read. */
+export async function getScanTasks(): Promise<Map<string, ScanTask>> {
+	try {
+		return (await loadSheet(false)).value.scanTasks;
+	} catch {
+		return new Map();
 	}
 }
 
