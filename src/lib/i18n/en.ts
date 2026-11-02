@@ -81,7 +81,8 @@ export const en: Texts = {
 			requests: (n: number) => (n === 1 ? 'access request' : 'access requests'),
 			loans: (n: number) => (n === 1 ? 'return due' : 'returns due'),
 			attendance: (n: number) => (n === 1 ? 'rehearsal without attendance' : 'rehearsals without attendance'),
-			polls: (n: number) => (n === 1 ? 'date poll' : 'date polls')
+			polls: (n: number) => (n === 1 ? 'date poll' : 'date polls'),
+			scans: (n: number) => (n === 1 ? 'part to scan' : 'parts to scan')
 		},
 		/** One line under each page on the start page. */
 		describe: {
@@ -969,7 +970,31 @@ export const en: Texts = {
 		doneHint: 'Marked as done, e.g. ordered. The gap disappears once the file is renamed.',
 		markDone: 'Done',
 		markOpen: 'Open again',
-		markGone: 'This gap isn’t in the list yet; try again in a moment.'
+		markGone: 'This gap isn’t in the list yet; try again in a moment.',
+		/** Scan jobs: priority and who scans, per gap or for every gap of a piece. */
+		mine: 'Assigned to me',
+		priority: 'Priority',
+		priorities: { high: 'High priority', medium: 'Medium priority', low: 'Low priority' },
+		noPriority: 'no priority',
+		assignee: 'Scanned by',
+		nobody: 'nobody yet',
+		assignedTo: (name: string) => `scanned by ${name}`,
+		assignedToMe: 'yours to scan',
+		plan: 'Plan scan',
+		planAll: 'Plan for every gap',
+		planAllHint: (n: number) => `Applies to ${n === 1 ? 'the gap' : `all ${n} gaps`} of this piece.`,
+		save: 'Save',
+		cancel: 'Cancel',
+		saved: 'Saved.',
+		notScanner: 'This person may not edit music. Give them the librarian role under “Members & rights”.',
+		planGone: 'These gaps aren’t in the list yet; try again in a moment.',
+		push: {
+			title: 'Please scan',
+			titleHigh: 'Please scan soon',
+			body: (piece: string, parts: string[]) => `${piece}: ${parts.join(', ')}`
+		},
+		pieceTitle: 'To scan',
+		pieceLead: 'What this piece is missing, who scans it and how urgent it is.'
 	},
 	instrumentation: {
 		title: 'Instrumentation',
@@ -2304,7 +2329,10 @@ export const en: Texts = {
 				part: 'Part',
 				status: 'Status',
 				fileId: 'File ID',
-				done: 'done'
+				done: 'done',
+				/** Scan jobs: which gap comes first, and who scans it (e-mail). */
+				priority: 'Priority',
+				assignee: 'Scanned by'
 			}
 		},
 		instrumentGroups: {
@@ -2435,7 +2463,9 @@ export const en: Texts = {
 		/** In "Recording": there is none, so "Complete details" stops asking. */
 		noRecording: 'none',
 		/** Offered under "Art" in "Ensembles"; any other word works too. */
-		ensembleKinds: { choir: 'Choir', orchestra: 'Orchestra', band: 'Band', ensemble: 'Ensemble', soloist: 'Soloist' }
+		ensembleKinds: { choir: 'Choir', orchestra: 'Orchestra', band: 'Band', ensemble: 'Ensemble', soloist: 'Soloist' },
+		/** Under "Priority" in "Missing parts". */
+		priority: { high: 'high', medium: 'medium', low: 'low' }
 	},
 	feedbackValues: {
 		reportKind: {

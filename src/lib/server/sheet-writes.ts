@@ -104,6 +104,26 @@ export function ensureTab(key: TabKey): Promise<void> {
 	});
 }
 
+/**
+ * Adds header cells for columns the tab lacks, after its last one, and returns the tab read
+ * again: for columns that came after a tab was set up, like "Priorität" in "Fehlende Stimmen".
+ * D1 has them from its migrations.
+ */
+export async function ensureColumns<K extends TabKey>(key: K, columns: Columns<K>[]): Promise<Table<Columns<K>>> {
+	if (await usingD1()) return readTab(key);
+	await withSheetLock(async () => {
+		const table = await readTab(key);
+		const missing = columns.filter((column) => table.missing.includes(column));
+		if (!missing.length) return;
+		const names = LAYOUT[key].columns as Record<string, string>;
+		const { client, spreadsheetId } = target();
+		await updateValues(client, spreadsheetId, [
+			{ range: tabRange(LAYOUT[key].tab, `${columnLetter(table.width)}1`), values: [missing.map((column) => names[column])] }
+		]);
+	});
+	return readTab(key);
+}
+
 /** Appends rows in the tab's own column order. Values for columns the tab lacks would be lost, so that throws. */
 export async function appendRecords<K extends TabKey>(
 	key: K,
