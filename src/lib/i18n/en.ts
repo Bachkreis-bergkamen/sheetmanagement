@@ -941,6 +941,8 @@ export const en: Texts = {
 		long: 'long for phones',
 		unclear: 'unclear',
 		unclearHint: (words: string) => `Not recognised: ${words}. Please rename by hand.`,
+		takenHint: (name: string) => `“${name}” already exists. Please rename by hand.`,
+		nothingHint: 'No part recognised. Please rename by hand.',
 		rename: (n: number) => (n === 1 ? 'Rename 1 file' : `Rename ${n} files`),
 		renamedIn: (n: number, folder: string) => `${n === 1 ? '1 file' : `${n} files`} renamed in “${folder}”.`,
 		all: 'Select all',

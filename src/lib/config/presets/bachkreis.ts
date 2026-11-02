@@ -29,10 +29,10 @@ export const bachkreis: OrchestraConfig = {
 		{ name: 'Klarinette', family: 'holz', common: true, aliases: ['Klarinetten', 'Clarinet', 'Clarinets', 'Clarinette', 'Clarinettes', 'Clarinett', 'Calarinet', 'Clari'] },
 		{ name: 'Bassklarinette', family: 'holz', aliases: ['Bass Clarinet', 'Bass Clari', 'Bass Klarinette'] },
 		{ name: 'Fagott', family: 'holz', common: true, aliases: ['Fagotte', 'Bassoon', 'Bassoons', 'Bassoonpdf', 'Basson', 'Bassons'] },
-		{ name: 'Sopran-Saxophon', family: 'holz', aliases: ['Sopransaxophon', 'Soprano Sax'] },
-		{ name: 'Alt-Saxophon', family: 'holz', aliases: ['Altsaxophon', 'Alt Sax', 'Alto Sax', 'Alto Saxophone', 'Altsax', 'Alt Saxphone'] },
-		{ name: 'Tenor-Saxophon', family: 'holz', aliases: ['Tenorsaxophon', 'Tenor Sax', 'Tenor Saxophone', 'Tenorsax'] },
-		{ name: 'Bariton-Saxophon', family: 'holz', aliases: ['Baritonsaxophon', 'Bari Sax', 'Baritone Sax'] },
+		{ name: 'Sopran-Saxophon', family: 'holz', aliases: ['Sopransaxophon', 'Soprano Sax', 'Sopransax', 'Soprano Saxophone'] },
+		{ name: 'Alt-Saxophon', family: 'holz', aliases: ['Altsaxophon', 'Alt Sax', 'Alto Sax', 'Alto Saxophone', 'Altsax', 'Alt Saxphone', 'Alt Saxophone', 'Alt Saxophon', 'Alto Saxophon'] },
+		{ name: 'Tenor-Saxophon', family: 'holz', aliases: ['Tenorsaxophon', 'Tenor Sax', 'Tenor Saxophone', 'Tenorsax', 'Tenor Saxophon'] },
+		{ name: 'Bariton-Saxophon', family: 'holz', aliases: ['Baritonsaxophon', 'Bari Sax', 'Baritone Sax', 'Baritonsax', 'Bariton Sax', 'Baritone Saxophone', 'Bariton Saxophon'] },
 		{ name: 'Saxophon', family: 'holz', aliases: ['Sax', 'Saxophone', 'Saxphone'] },
 		{ name: 'Holz', family: 'holz', aliases: ['Holzbläser', 'Woodwinds'] },
 
@@ -49,16 +49,22 @@ export const bachkreis: OrchestraConfig = {
 		{
 			name: 'Percussion',
 			family: 'schlagwerk',
-			// Small percussion: these rarely get a part of their own in the archive's convention.
-			aliases: [
-				'Perc', 'Kleines Schlagwerk', 'Agogo Bells', 'Agogo', 'Guiro', 'Güiro', 'Low Drum', 'Triangle', 'Triangel',
+			aliases: ['Perc', 'Kleines Schlagwerk', 'Auxiliary Percussion', 'Aux Perc'],
+			// Small percussion: no instrument of its own, but named, since a piece often has several.
+			variants: [
+				'Agogo Bells', 'Agogo', 'Guiro', 'Güiro', 'Low Drum', 'Triangle', 'Triangel',
 				'Kastagnetten', 'Castanets', 'Claves', 'Woodblock', 'Wood Block', 'Holzblock', 'Temple Blocks', 'Tempelblocks',
 				'Shaker', 'Maracas', 'Cabasa', 'Bongos', 'Congas', 'Timbales', 'Cowbell', 'Kuhglocke', 'Wind Chimes', 'Windspiel',
 				'Mark Tree', 'Sleigh Bells', 'Schellen', 'Ratsche', 'Ratchet', 'Peitsche', 'Whip', 'Slapstick', 'Vibraslap',
-				'Tom-Toms', 'Tom Toms', 'Toms', 'Hi-Hat', 'Hihat', 'Rainstick', 'Regenmacher', 'Cajon', 'Djembe', 'Auxiliary Percussion', 'Aux Perc'
+				'Tom-Toms', 'Tom Toms', 'Toms', 'Hi-Hat', 'Hihat', 'Rainstick', 'Regenmacher', 'Cajon', 'Djembe'
 			]
 		},
-		{ name: 'Mallet Percussion', family: 'schlagwerk', aliases: ['Mallets', 'Stabspiele', 'Marimba', 'Marimbaphon', 'Vibraphon', 'Vibraphone', 'Vibes', 'Röhrenglocken', 'Tubular Bells', 'Chimes', 'Crotales'] },
+		{
+			name: 'Mallet Percussion',
+			family: 'schlagwerk',
+			aliases: ['Mallets', 'Mallet Perc', 'Stabspiele'],
+			variants: ['Marimba', 'Marimbaphon', 'Vibraphon', 'Vibraphone', 'Vibes', 'Röhrenglocken', 'Tubular Bells', 'Chimes', 'Crotales']
+		},
 		{ name: 'Glockenspiel', family: 'schlagwerk', aliases: ['Bells', 'Orchestra Bells', 'Orchestral Bells'] },
 		{ name: 'Xylophon', family: 'schlagwerk', aliases: ['Xylophone'] },
 		{ name: 'Becken', family: 'schlagwerk', aliases: ['Cymbals', 'Cymbal', 'Piatti', 'Crash Cymbals', 'Suspended Cymbal', 'Hängendes Becken'] },
@@ -70,7 +76,7 @@ export const bachkreis: OrchestraConfig = {
 		{ name: 'Cembalo', family: 'tasten', aliases: ['Harpsichord'] },
 		{ name: 'Klavier', family: 'tasten', aliases: ['Piano'] },
 		{ name: 'Orgel', family: 'tasten', aliases: ['Organ'] },
-		{ name: 'Synthesizer', family: 'tasten', aliases: ['Synth', 'Keyboard', 'Roland'] },
+		{ name: 'Synthesizer', family: 'tasten', aliases: ['Synth', 'Keyboard', 'Roland', 'Roland SP700', 'Roland SP 700'] },
 		{ name: 'Harfe', family: 'tasten', aliases: ['Harp'] },
 		{ name: 'Continuo', family: 'tasten', aliases: ['Basso Continuo'] },
 
@@ -167,6 +173,7 @@ export const bachkreis: OrchestraConfig = {
 			a: 'A',
 			c: 'C',
 			d: 'D',
+			e: 'E',
 			'hoch b': 'hoch B',
 			'b flat': 'B',
 			'e flat': 'Es'
@@ -180,9 +187,11 @@ export const bachkreis: OrchestraConfig = {
 			solo: 'Solo',
 			notizen: 'mit Notizen',
 			zusatzstimmen: 'Zusatzstimmen',
+			zusatzstimme: 'Zusatzstimme',
 			fassung: 'Fassung'
 		},
-		movementNote: 'Satz'
+		movementNote: 'Satz',
+		ignoredWords: ['imslp']
 	},
 
 	events: {

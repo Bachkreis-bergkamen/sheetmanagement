@@ -203,7 +203,15 @@
 										<span class="badge">{t.naming.unclear}</span>
 										<span class="names">
 											<span>{check.name}</span>
-											<span class="muted">{t.naming.unclearHint(check.unrecognized.join(', '))}</span>
+											<span class="muted">
+												{#if check.unrecognized.length}
+													{t.naming.unclearHint(check.unrecognized.join(', '))}
+												{:else if check.taken}
+													{t.naming.takenHint(check.taken)}
+												{:else}
+													{t.naming.nothingHint}
+												{/if}
+											</span>
 										</span>
 									</div>
 								{/if}

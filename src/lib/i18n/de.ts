@@ -946,6 +946,8 @@ export const de = {
 		long: 'lang fürs Handy',
 		unclear: 'unklar',
 		unclearHint: (words: string) => `Nicht erkannt: ${words}. Bitte von Hand umbenennen.`,
+		takenHint: (name: string) => `„${name}“ gibt es schon. Bitte von Hand umbenennen.`,
+		nothingHint: 'Keine Stimme erkannt. Bitte von Hand umbenennen.',
 		rename: (n: number) => (n === 1 ? '1 Datei umbenennen' : `${n} Dateien umbenennen`),
 		renamedIn: (n: number, folder: string) => `${n === 1 ? '1 Datei' : `${n} Dateien`} in „${folder}“ umbenannt.`,
 		all: 'Alle auswählen',

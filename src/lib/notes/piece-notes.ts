@@ -82,7 +82,7 @@ export function appliesTo(note: Pick<PieceNote, 'section'>, instruments: string[
 	const byName = new Map(config.instruments.map((instrument) => [instrument.name, instrument]));
 	const known = new Set<string>(FAMILIES.map((family) => normalize(t.piece.groups[family])));
 	for (const instrument of config.instruments) {
-		for (const word of [instrument.name, instrumentLabel(instrument.name), ...(instrument.aliases ?? [])]) known.add(normalize(word));
+		for (const word of [instrument.name, instrumentLabel(instrument.name), ...(instrument.aliases ?? []), ...(instrument.variants ?? [])]) known.add(normalize(word));
 	}
 	if (!items.some((item) => known.has(item))) return true;
 	const mine = new Set<string>();
@@ -90,7 +90,7 @@ export function appliesTo(note: Pick<PieceNote, 'section'>, instruments: string[
 		const instrument = byName.get(name);
 		mine.add(normalize(name));
 		mine.add(normalize(instrumentLabel(name)));
-		for (const alias of instrument?.aliases ?? []) mine.add(normalize(alias));
+		for (const alias of [...(instrument?.aliases ?? []), ...(instrument?.variants ?? [])]) mine.add(normalize(alias));
 		if (instrument && instrument.family in t.piece.groups) mine.add(normalize(t.piece.groups[instrument.family as SectionFamily]));
 	}
 	return items.some((item) => mine.has(item));

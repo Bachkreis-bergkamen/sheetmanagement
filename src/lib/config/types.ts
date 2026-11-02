@@ -32,6 +32,12 @@ export interface Instrument {
 	 */
 	aliases?: string[];
 	/**
+	 * Specific instruments filed under this one, matched like aliases but kept in the
+	 * part's name as a note, so they don't all end up with the same name: a "Triangle"
+	 * part is "Percussion Triangle", next to "Percussion Low Drum".
+	 */
+	variants?: string[];
+	/**
 	 * A numbered voice in flexible arrangements ("Stimme 3 in B", "Part 2 Violin")
 	 * rather than an instrument. Shown as "Stimme 3" with the instruments that follow.
 	 */
@@ -83,6 +89,8 @@ export interface NamingRules {
 	partNotes: Record<string, string>;
 	/** Word for a movement number glued to the front of a file name ("4_Viola" → "Satz 4"). */
 	movementNote?: string;
+	/** Words a part file name may carry that say nothing about the part, e.g. the source "IMSLP". Lower case. */
+	ignoredWords?: string[];
 	/**
 	 * Longest short title before the part ("<Kurztitel> - <Stimme>"), so names stay readable on
 	 * a phone. Longer ones are shortened in the suggestions. Default 18.

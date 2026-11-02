@@ -54,7 +54,7 @@
 			.toLowerCase()
 			.normalize('NFD')
 			.replace(/\p{M}/gu, '');
-	const words = (n: string) => [instrumentLabel(n), n, ...(info.get(n)?.aliases ?? [])].map(fold);
+	const words = (n: string) => [instrumentLabel(n), n, ...(info.get(n)?.aliases ?? []), ...(info.get(n)?.variants ?? [])].map(fold);
 
 	const sections = $derived.by(() => {
 		const q = fold(query.trim());

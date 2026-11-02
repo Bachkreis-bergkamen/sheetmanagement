@@ -6,6 +6,8 @@ interface AliasEntry {
 	tokens: string[];
 	instrument: Instrument;
 	index: number;
+	/** For a variant ("Triangle" of "Percussion"): the note it leaves in the part's name. */
+	note?: string;
 }
 
 /** Instrument names and aliases as token lists, longest first, so "bass clarinet" wins over "bass". */
@@ -21,6 +23,9 @@ export function createInstrumentMatcher(instruments: Instrument[]): InstrumentMa
 	instruments.forEach((instrument, index) => {
 		for (const label of [instrument.name, ...(instrument.aliases ?? [])]) {
 			aliases.push({ tokens: tokenize(label), instrument, index });
+		}
+		for (const variant of instrument.variants ?? []) {
+			aliases.push({ tokens: tokenize(variant), instrument, index, note: variant });
 		}
 	});
 	aliases.sort((a, b) => b.tokens.length - a.tokens.length);
@@ -77,6 +82,7 @@ interface NamingWords {
 	statusWords: Record<string, PartStatus>;
 	transpositionKeys: string[][];
 	noteKeys: { tokens: string[]; text: string }[];
+	ignored: Set<string>;
 }
 
 const wordsByNaming = new WeakMap<NamingRules, NamingWords>();
@@ -101,7 +107,8 @@ function wordsOf(naming: NamingRules): NamingWords {
 			// Notes can span several words ("mit Notizen"), so they are matched like instruments.
 			noteKeys: Object.keys(naming.partNotes)
 				.map((key) => ({ tokens: tokenize(key), text: naming.partNotes[key] }))
-				.sort((a, b) => b.tokens.length - a.tokens.length)
+				.sort((a, b) => b.tokens.length - a.tokens.length),
+			ignored: new Set(naming.ignoredWords?.map((word) => word.toLowerCase()))
 		};
 		wordsByNaming.set(naming, words);
 	}
@@ -141,7 +148,7 @@ export function parsePartName(
 	}
 
 	const tokens = tokenize(name);
-	const { statusWords, transpositionKeys, noteKeys } = wordsOf(naming);
+	const { statusWords, transpositionKeys, noteKeys, ignored } = wordsOf(naming);
 	const noteAt = (at: number) => noteKeys.find((note) => note.tokens.every((t, k) => tokens[at + k] === t));
 
 	const voice = matcher.aliases.find((alias) => alias.instrument.voice)?.instrument;
@@ -177,10 +184,16 @@ export function parsePartName(
 		return undefined;
 	};
 
-	/** An unambiguous key directly followed by an instrument: [key, index of the instrument]. */
+	/**
+	 * A key directly followed by an instrument: [key, index of the instrument]. "C Flöte"
+	 * counts too, but not an article ("a Violin") or a letter before strings, which don't transpose.
+	 */
 	const keyBeforeInstrument = (at: number): [string, number] | undefined => {
 		const [transposition, after] = readTransposition(at, false);
-		return transposition && matchAt(tokens, after, matcher) ? [transposition, after] : undefined;
+		if (transposition) return matchAt(tokens, after, matcher) ? [transposition, after] : undefined;
+		const [loose, next] = readTransposition(at, false, tokens[at] !== 'a');
+		const instrument = loose ? matchAt(tokens, next, matcher)?.instrument : undefined;
+		return instrument && instrument.family !== 'streicher' ? [loose!, next] : undefined;
 	};
 
 	/** Part numbers before the instrument, maybe with a key: "1. Violine", "1. und 2. F Horn", "2nd B-flat Trumpet". */
@@ -213,6 +226,7 @@ export function parsePartName(
 
 		if (match) {
 			afterUnknownWord = false;
+			if (match.note && !notes.includes(match.note)) notes.push(match.note);
 			const item: Item = {
 				instrument: match.instrument,
 				numbers: pendingNumbers,
@@ -223,6 +237,7 @@ export function parsePartName(
 			pendingTransposition = undefined;
 			joiner = '&';
 			i += match.tokens.length;
+			const leadingNumbers = item.numbers.length;
 
 			// Numbers and transposition may come in either order: "Horn in F 2", "Saxophon Eb 1+2".
 			for (let round = 0; round < 2; round++) {
@@ -251,13 +266,23 @@ export function parsePartName(
 				}
 				// Singers aren't transposed: "Gesang B" means the bass voice, kept as a note below.
 				if (!item.transposition && item.instrument.family !== 'gesang') {
-					const [transposition, after] = readTransposition(i, false, false, item.instrument.family === 'streicher');
+					const strings = item.instrument.family === 'streicher';
+					const [transposition, after] = readTransposition(i, false, false, strings);
 					if (transposition) {
 						item.transposition = transposition;
 						i = after;
+						// One part for two keys: "Clarinets in A+B".
+						while (['+', '&', '/', 'und'].includes(tokens[i]) && !matchAt(tokens, i + 1, matcher)) {
+							const [also, next] = readTransposition(i + 1, false, true, strings);
+							if (!also) break;
+							item.transposition += ` & ${also}`;
+							i = next;
+						}
 					}
 				}
 			}
+			// "II Trompete 1": numbers on both sides, so one of them belongs to something else.
+			if (leadingNumbers && item.numbers.length > leadingNumbers) unknown.push(...item.numbers.slice(leadingNumbers).map(String));
 			items.push(item);
 			continue;
 		}
@@ -287,6 +312,8 @@ export function parsePartName(
 			continue;
 		} else if (JOINERS.has(token)) {
 			if (token === '/') joiner = '/';
+		} else if (ignored.has(token)) {
+			// A source like "IMSLP": says nothing about the part.
 		} else if (token === 'in' && items.length > 0) {
 			const [transposition, after] = readTransposition(i, true);
 			if (transposition && !items[items.length - 1].transposition) {
