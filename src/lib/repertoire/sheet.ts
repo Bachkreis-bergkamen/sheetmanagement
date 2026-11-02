@@ -15,7 +15,7 @@ export type RepertoireTab = (typeof REPERTOIRE_TABS)[number];
 export type ColumnKey<T extends TabKey> = keyof (typeof LAYOUT)[T]['columns'];
 /** Columns added later that an older sheet works without, so they aren't reported missing. */
 const OPTIONAL_COLUMNS: Partial<Record<RepertoireTab, string[]>> = {
-	pieces: ['duration', 'publisher', 'composerFull'],
+	pieces: ['duration', 'publisher', 'composerFull', 'instrumentation'],
 	concerts: ['sameProgramAs', 'partners', 'organizer'],
 	program: ['orchestra', 'composer', 'arranger', 'publisher', 'duration']
 };
@@ -92,6 +92,8 @@ export interface SheetPiece {
 	/** In seconds, read from "Dauer"; undefined when empty or unreadable. */
 	duration?: number;
 	publisher?: string;
+	/** The instruments the score is written for (#249), as written: "Flöte 1 & 2; Oboe". */
+	instrumentation?: string;
 	driveFolderId?: string;
 }
 
@@ -232,6 +234,7 @@ export function buildRepertoire(values: SheetValues): Repertoire {
 			noRecording: isNoRecording(v.recording) || undefined,
 			duration: parseDuration(v.duration),
 			publisher: optional(v.publisher),
+			instrumentation: optional(v.instrumentation),
 			driveFolderId: optional(folder)
 		};
 		pieces.push(piece);

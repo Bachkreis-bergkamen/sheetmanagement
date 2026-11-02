@@ -195,6 +195,8 @@ export const en: Texts = {
 			genre: 'Genre',
 			difficulty: 'Difficulty',
 			reviewedAt: 'Checked on',
+			instrumentation: 'Instrumentation',
+			unscored: 'Without a part',
 			notes: 'Note'
 		},
 		driveHint: 'Opens in Google Drive (needs access to the music folder).',
@@ -960,7 +962,9 @@ export const en: Texts = {
 		lead: 'Every gap in the library: from the file names and the open reports.',
 		all: 'All',
 		current: 'Current programmes',
-		counts: { missing: 'missing', empty: 'empty', incomplete: 'with missing pages', reports: 'of which only reported', hints: 'hints from the check' },
+		counts: { missing: 'missing', empty: 'empty', incomplete: 'with missing pages', reports: 'of which only reported', hints: 'hints from the check', unscored: 'in the instrumentation without a part' },
+		unscored: 'in the instrumentation, no part',
+		unscoredTitle: 'The piece’s instrumentation names this instrument, but the archive has no part for it, not even a shared one.',
 		hint: {
 			empty: 'may be empty',
 			incomplete: (pages: number, usual: number) => `may be incomplete: ${pages} ${pages === 1 ? 'page' : 'pages'}, the others mostly ${usual}`
@@ -1873,6 +1877,7 @@ export const en: Texts = {
 		composerFullHint: 'e.g. Ludwig van Beethoven, for the music report',
 		listHint: 'separate several with commas',
 		publisherHint: 'e.g. Bärenreiter – for the music report',
+		instrumentationHint: 'as in the score, with semicolons: Flute 1 & 2; Oboe; Violin 1 & 2',
 		missingColumns: (columns: string) => `${columns}: these columns aren't in the sheet yet. Run “Set up sheet” once, then they can be entered here.`
 	},
 	editor: {
@@ -2218,6 +2223,8 @@ export const en: Texts = {
 				recording: 'Recording',
 				duration: 'Duration',
 				publisher: 'Publisher',
+				/** The instruments the score is written for, "Flute 1 & 2; Oboe; Violin 1 & 2" (#249). */
+				instrumentation: 'Instrumentation',
 				driveFolderId: 'Drive folder ID'
 			}
 		},

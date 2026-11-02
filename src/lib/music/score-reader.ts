@@ -65,14 +65,32 @@ export async function openScore(fileId: string) {
 export type OpenScore = Awaited<ReturnType<typeof openScore>>;
 
 export async function readScoreLines(fileId: string, pages = 2): Promise<string[]> {
+	return (await readScorePages(fileId, pages)).lines;
+}
+
+/** How far into the page the names at the left of the first system reach. */
+const LABEL_STRIP = 0.22;
+
+/**
+ * The text lines of the first pages, and the first page's left strip on its own: there a
+ * score names the instruments of its first system ("Flauto I, II", "Violino I"), for the
+ * Besetzung (#249).
+ */
+export async function readScorePages(fileId: string, pages = 2): Promise<{ lines: string[]; labels: string[] }> {
 	const { doc, destroy } = await openScore(fileId);
 	try {
 		const lines: string[] = [];
+		let labels: string[] = [];
 		for (let number = 1; number <= Math.min(pages, doc.numPages); number++) {
-			const content = await (await doc.getPage(number)).getTextContent();
-			lines.push(...groupLines(content.items as { str: string; transform: number[] }[]));
+			const page = await doc.getPage(number);
+			const items = (await page.getTextContent()).items as { str: string; transform: number[] }[];
+			lines.push(...groupLines(items));
+			if (number === 1) {
+				const [left, , right] = page.view;
+				labels = groupLines(items.filter((item) => item.transform?.[4] - left < (right - left) * LABEL_STRIP));
+			}
 		}
-		return lines;
+		return { lines, labels };
 	} catch {
 		throw new ScoreReadError('unreadable');
 	} finally {

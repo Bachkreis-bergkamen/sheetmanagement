@@ -138,6 +138,23 @@ test('a YouTube link is saved clean (#133)', async ({ page }) => {
 	await expect(page.getByRole('link', { name: /Hörbeispiel/ })).toHaveAttribute('href', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
 });
 
+test('the Besetzung read from the score flags an instrument without a part (#249)', async ({ page }) => {
+	await open(page, '/stuecke/demo-egmont/bearbeiten');
+	await page.getByRole('button', { name: 'Aus den Noten lesen' }).click();
+	// The names at the left of the score, Italian as scores print them, in the orchestra's words.
+	const suggestion = page.locator('.suggest li').filter({ hasText: 'Besetzung' });
+	await expect(suggestion).toContainText('Piccolo; Flöte 1 & 2; Oboe 1 & 2');
+	await suggestion.getByRole('button', { name: 'Übernehmen' }).click();
+	await expect(page.getByLabel('Besetzung')).toHaveValue(/^Piccolo; Flöte 1 & 2/);
+	await page.getByRole('button', { name: 'Speichern' }).click();
+	await expect(page).toHaveURL(/\/stuecke\/demo-egmont(\?|$)/);
+	// No piccolo part in the archive; the double bass has its own gap (FEHLT) and isn't named twice.
+	await expect(page.locator('.detail').filter({ hasText: 'Ohne Stimme' })).toContainText('Piccolo');
+	await expect(page.locator('.detail').filter({ hasText: 'Ohne Stimme' })).not.toContainText('Kontrabass');
+	await open(page, '/fehlende-stimmen');
+	await expect(page.getByText('laut Besetzung, keine Stimme')).toBeVisible();
+});
+
 test('several composers, separated by commas', async ({ page }) => {
 	await open(page, '/stuecke/demo-egmont/bearbeiten');
 	await page.getByLabel('Komponist', { exact: true }).fill('Beethoven ,Mozart;');

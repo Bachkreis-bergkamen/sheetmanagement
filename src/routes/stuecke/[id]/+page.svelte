@@ -63,7 +63,9 @@
 		arranger: 'user',
 		genre: 'tag',
 		difficulty: 'gauge',
-		reviewedAt: 'check'
+		reviewedAt: 'check',
+		instrumentation: 'users',
+		unscored: 'alert'
 	};
 	const info = $derived(
 		(Object.keys(t.piece.info) as (keyof typeof t.piece.info)[])
@@ -166,7 +168,7 @@
 	<dl class="details" aria-label={t.piece.details}>
 		{#each info as item (item.key)}
 			<!-- The icon belongs to the label, so the list keeps only labels and values (for screen readers). -->
-			<div class="detail">
+			<div class="detail" class:warn={item.key === 'unscored'}>
 				<dt><span class="detail-icon" aria-hidden="true"><Icon name={item.icon} size={18} /></span>{item.label}</dt>
 				<dd>{item.value}</dd>
 			</div>
@@ -643,6 +645,11 @@
 		display: flex;
 		flex-wrap: wrap;
 		margin: 0;
+	}
+
+	/* Instruments of the Besetzung without a part (#249). */
+	.detail.warn dd {
+		color: var(--danger);
 	}
 
 	.detail {

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { t } from '#lib/i18n/index.ts';
 	import { readScoreText } from '#lib/music/score-text.ts';
+	import { instrumentationFromScore } from '#lib/music/instrumentation.ts';
+	import { config } from '#lib/config/index.ts';
 	import { composerAsUsual, searchWorks, suggestGenre, WikidataBusyError, workDetails, type WorkCandidate } from '#lib/music/wikidata.ts';
 	import type { NamingRules } from '#lib/config/index.ts';
 	import { formatDuration } from '#lib/repertoire/duration.ts';
@@ -13,7 +15,7 @@
 	 * Suggestions for a piece's details, each from a source someone asks for: the text on the
 	 * score (read in the browser) or Wikidata. Nothing is saved until the form is.
 	 */
-	type Field = 'composer' | 'composerFull' | 'arranger' | 'catalogue' | 'genre' | 'recording' | 'duration';
+	type Field = 'composer' | 'composerFull' | 'arranger' | 'catalogue' | 'genre' | 'recording' | 'duration' | 'instrumentation';
 	let {
 		values,
 		apply,
@@ -75,8 +77,8 @@
 		busy = 'score';
 		message = null;
 		try {
-			const { readScoreLines } = await import('#lib/music/score-reader.ts');
-			const lines = await readScoreLines(file);
+			const { readScorePages } = await import('#lib/music/score-reader.ts');
+			const { lines, labels } = await readScorePages(file);
 			if (!lines.length) {
 				message = t.suggest.scanOnly;
 				viewing = true;
@@ -92,6 +94,9 @@
 			}
 			if (found.arranger) list.push({ field: 'arranger', value: found.arranger, source: 'score' });
 			if (found.catalogue) list.push({ field: 'catalogue', value: found.catalogue, source: 'score' });
+			// The names at the left of the first system: the instruments the score is written for (#249).
+			const instrumentation = instrumentationFromScore(labels, config);
+			if (instrumentation) list.push({ field: 'instrumentation', value: instrumentation, source: 'score' });
 			if (!list.length) {
 				message = t.suggest.nothingInScore;
 				viewing = true;

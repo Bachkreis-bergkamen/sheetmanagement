@@ -12,7 +12,8 @@ export function samplePdf({
 	composer,
 	arranger,
 	part,
-	pages = 1
+	pages = 1,
+	staves = []
 }: {
 	title: string;
 	composer?: string;
@@ -20,6 +21,8 @@ export function samplePdf({
 	part: string;
 	/** The same page this many times, for the completeness check (#93). */
 	pages?: number;
+	/** A score's instruments, one staff each with its name at the left, as scores print them (#249). */
+	staves?: string[];
 }): Uint8Array<ArrayBuffer> {
 	const width = 595;
 	const height = 842;
@@ -31,10 +34,14 @@ export function samplePdf({
 	if (composer) text(400, 724, 11, composer);
 	if (arranger) text(400, 708, 10, `arr. ${arranger}`);
 	text(56, 40, 8, 'Demo-Noten · Sheetmanagement');
-	// Staves: five lines each, 7 pt apart.
-	for (let staff = 0; staff < 9; staff++) {
-		const top = 660 - staff * 68;
-		for (let line = 0; line < 5; line++) lines.push(`56 ${top - line * 7} m ${width - 56} ${top - line * 7} l S`);
+	// Staves: five lines each, 7 pt apart; a score's closer together, its names left of them.
+	const count = staves.length || 9;
+	const gap = staves.length ? Math.min(68, 600 / count) : 68;
+	const left = staves.length ? 130 : 56;
+	for (let staff = 0; staff < count; staff++) {
+		const top = 660 - staff * gap;
+		if (staves[staff]) text(56, top - 20, 8, staves[staff]);
+		for (let line = 0; line < 5; line++) lines.push(`${left} ${top - line * 7} m ${width - 56} ${top - line * 7} l S`);
 	}
 	const content = `0.4 w\n${lines.join('\n')}`;
 

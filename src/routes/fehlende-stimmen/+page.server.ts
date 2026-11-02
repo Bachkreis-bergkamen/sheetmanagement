@@ -7,7 +7,9 @@ import { getLibrary } from '#lib/server/library.ts';
 import { confirmPartHint, dismissPartHint, getPartHints } from '#lib/server/part-checks.ts';
 import { driveWriteEnabled, getArchiveIndex } from '#lib/server/services.ts';
 import { isGap, priorityRank, reportedGaps } from '#lib/repertoire/missing-parts.ts';
-import { getFeedback, getMissingPartsDone, getScanTasks } from '#lib/server/repertoire.ts';
+import { missingVoices, readInstrumentation, voiceText } from '#lib/music/instrumentation.ts';
+import { playedParts } from '#lib/music/my-parts.ts';
+import { getFeedback, getMissingPartsDone, getMusicConfig, getScanTasks } from '#lib/server/repertoire.ts';
 import { planScans, scanners } from '#lib/server/scan-tasks.ts';
 import { readTab, refreshAfterWrite, SheetLayoutError, updateRecord } from '#lib/server/sheet-writes.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -20,12 +22,13 @@ const RIGHT = 'stuecke.bearbeiten';
  */
 export const load: PageServerLoad = async ({ locals }) => {
 	const canMark = locals.access.rights.has(RIGHT);
-	const [library, feedback, done, tasks, people] = await Promise.all([
+	const [library, feedback, done, tasks, people, music] = await Promise.all([
 		getLibrary(),
 		getFeedback(),
 		getMissingPartsDone(),
 		getScanTasks(),
-		canMark ? scanners().catch(() => []) : []
+		canMark ? scanners().catch(() => []) : [],
+		getMusicConfig()
 	]);
 	const me = normalizeEmail(locals.access.user?.email ?? '');
 	const nameOf = new Map(people.map((person) => [person.email, person.name]));
@@ -75,11 +78,15 @@ export const load: PageServerLoad = async ({ locals }) => {
 				const hint = check?.hints.get(part.id);
 				return hint ? [{ ...hint, label: part.label, url: fileUrl(part.id, part.mimeType) }] : [];
 			});
+			// Instruments the Besetzung names without a part to play from (#249).
+			const unscored = piece.detail?.parts.length
+				? missingVoices(readInstrumentation(piece.sheet?.instrumentation, music), playedParts(piece.detail), music).map(voiceText)
+				: [];
 			// A piece is as urgent as its most urgent open gap.
 			const rank = Math.min(priorityRank(undefined), ...gaps.filter((gap) => !gap.done).map((gap) => priorityRank(gap.priority)));
-			return { id: piece.id, title: piece.title, composer: piece.composer, programs: piece.programs, gaps, reports, hints, rank };
+			return { id: piece.id, title: piece.title, composer: piece.composer, programs: piece.programs, gaps, reports, hints, unscored, rank };
 		})
-		.filter((piece) => piece.gaps.length || piece.reports.length || piece.hints.length)
+		.filter((piece) => piece.gaps.length || piece.reports.length || piece.hints.length || piece.unscored.length)
 		.sort((a, b) => a.rank - b.rank);
 
 	const count = (status: string) =>
@@ -97,7 +104,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 			empty: count('empty'),
 			incomplete: count('incomplete'),
 			reports: pieces.reduce((sum, piece) => sum + piece.reports.length, 0),
-			hints: pieces.reduce((sum, piece) => sum + piece.hints.length, 0)
+			hints: pieces.reduce((sum, piece) => sum + piece.hints.length, 0),
+			unscored: pieces.reduce((sum, piece) => sum + piece.unscored.length, 0)
 		},
 		check: check ? { checked: check.checked, total: check.total } : undefined,
 		canMark,
