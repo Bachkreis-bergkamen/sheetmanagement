@@ -36,4 +36,4 @@ German by default; English with `APP_LANGUAGE=en` when building. One language pe
 
 ## Optional sheet tabs
 
-"Hinweise" (notes on pieces) and "Probennotizen" (notes after a rehearsal) are created by the first note, or by /setup with dropdowns. "Komponist (voll)" in "Stücke" holds the full composer name for the GEMA list; "Online nachschlagen" on a piece's edit page fills it from Wikidata.
+"Hinweise" (notes on pieces) and "Probennotizen" (notes after a rehearsal) are created by the first note, or by /setup with dropdowns. "Stimmenzuteilung" (who plays which part instead of their own: Wer is a member's e-mail or an instrument, Spielt the part, Stück and Konzert empty for every piece and always) is created by the first assignment on a piece's page. "Komponist (voll)" in "Stücke" holds the full composer name for the GEMA list; "Online nachschlagen" on a piece's edit page fills it from Wikidata.

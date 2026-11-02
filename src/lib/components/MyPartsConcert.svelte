@@ -280,7 +280,7 @@
 						{:else}
 							{#each piece.matches as match (match.label)}
 								<div class="match">
-									{#if several}<span class="instrument">{match.label}</span>{/if}
+									{#if several || match.assigned}<span class="instrument">{match.label}{#if match.assigned}<span class="tag">{t.partAssignments.assigned}</span>{/if}</span>{/if}
 									{#if hasPart(match)}
 										<ul class="parts">
 											{#each [...match.own.map((p) => ({ ...p, shared: false })), ...match.shared.map((p) => ({ ...p, shared: true }))] as part (part.id)}
@@ -546,6 +546,14 @@
 		font-weight: 700;
 		letter-spacing: 0.04em;
 		text-transform: uppercase;
+	}
+
+	.instrument .tag {
+		margin-left: var(--space-1);
+		background: var(--accent-soft);
+		color: var(--accent);
+		letter-spacing: 0;
+		text-transform: none;
 	}
 
 	.parts {

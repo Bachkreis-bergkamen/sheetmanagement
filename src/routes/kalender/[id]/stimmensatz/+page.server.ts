@@ -5,7 +5,8 @@ import { parseInstruments, playedParts } from '#lib/music/my-parts.ts';
 import { partSet } from '#lib/music/part-set.ts';
 import { requireRight } from '#lib/server/auth/index.ts';
 import { getLibrary } from '#lib/server/library.ts';
-import { getAccessList, getMusicConfig } from '#lib/server/repertoire.ts';
+import { getAccessList, getMusicConfig, getPartAssignments } from '#lib/server/repertoire.ts';
+import { choicesAt } from '#lib/music/part-assignments.ts';
 import type { PageServerLoad } from './$types';
 
 /**
@@ -14,12 +15,11 @@ import type { PageServerLoad } from './$types';
  */
 export const load: PageServerLoad = async ({ params, locals }) => {
 	requireRight(locals, 'stuecke.bearbeiten');
-	const [library, access, music] = await Promise.all([getLibrary(), getAccessList(), getMusicConfig()]);
+	const [library, access, music, assignments] = await Promise.all([getLibrary(), getAccessList(), getMusicConfig(), getPartAssignments()]);
 	const concert = library.concertsById.get(params.id);
 	if (!concert) error(404, t.messages.noConcert);
 	// Everyone active in the concert's orchestra, with each of their instruments.
 	const members = countingMembers(access?.members ?? [], concert.orchestra, library.today);
-	const players = members.flatMap((member) => parseInstruments(member.instrument ?? '', music));
 	return {
 		back: { href: `/kalender/${encodeURIComponent(concert.id)}`, label: concert.title },
 		title: concert.title,
@@ -28,6 +28,11 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		pieces: concert.program.map((item) => {
 			const piece = item.pieceId ? library.piecesById.get(item.pieceId) : undefined;
 			const parts = piece?.detail ? playedParts(piece.detail) : [];
+			// Each player with what they play in this piece: their own instruments, or the part assigned to them (#262).
+			const occasion = { piece: piece?.sheet?.title ?? item.title, concerts: concert.sheet ? [concert.sheet.title] : [] };
+			const players = members.flatMap((member) =>
+				choicesAt({ email: member.email, choices: parseInstruments(member.instrument ?? '', music) }, assignments.assignments, occasion, music)
+			);
 			return { title: item.title, pieceId: item.pieceId ?? undefined, parts: partSet(parts, players, music) };
 		})
 	};

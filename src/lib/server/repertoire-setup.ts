@@ -22,6 +22,7 @@ const ID_COLUMNS: Partial<Record<TabKey, string>> = {
 	rehearsals: 'eventId',
 	attendance: 'eventId',
 	pieceNotes: 'id',
+	partAssignments: 'id',
 	rehearsalNotes: 'eventId'
 };
 /** Filled by the app; edits there are overwritten, so they get a warning. */
@@ -40,6 +41,7 @@ const TEXT_COLUMNS: Partial<Record<TabKey, string[]>> = {
 	signups: ['answeredAt'],
 	loans: ['borrowedAt', 'dueAt'],
 	pieceNotes: ['at'],
+	partAssignments: ['at'],
 	rehearsalNotes: ['at']
 };
 const WIDTHS: Record<string, number> = {
@@ -244,7 +246,9 @@ export async function setUpSheet(
 		['loans', 'returned', { type: 'BOOLEAN' }],
 		['attendance', 'present', { type: 'BOOLEAN' }],
 		['pieceNotes', 'piece', fromColumn('pieces', 'title')],
-		['pieceNotes', 'concert', fromColumn('concerts', 'title')]
+		['pieceNotes', 'concert', fromColumn('concerts', 'title')],
+		['partAssignments', 'piece', fromColumn('pieces', 'title')],
+		['partAssignments', 'concert', fromColumn('concerts', 'title')]
 	];
 	if (orchestras.length) {
 		// Each orchestra and the combinations ("EO, A"): concerts and pieces they play together.

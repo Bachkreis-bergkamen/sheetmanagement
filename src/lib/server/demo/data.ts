@@ -364,7 +364,8 @@ export function demoSheet(now: number): Map<string, string[][]> {
 			{ email: 'ida@example.org', name: 'Ida Ibach', instrument: 'Flöte', orchestras: 'EO', status: 'aktiv' },
 			{ email: 'tim@example.org', name: 'Tim Trompeter', instrument: 'Trompete', groups: 'Orga', orchestras: 'EO, A', status: 'aktiv' },
 			{ email: 'karl@example.org', name: 'Karl Klarinette', instrument: 'Klarinette', orchestras: 'EO', status: 'pausiert', pausedUntil: at(90) },
-			{ email: 'bea@example.org', name: 'Bea Bass', instrument: 'Kontrabass', orchestras: 'EO', status: 'aktiv' }
+			{ email: 'bea@example.org', name: 'Bea Bass', instrument: 'Kontrabass', orchestras: 'EO', status: 'aktiv' },
+			{ email: 'sven@example.org', name: 'Sven Saxer', instrument: 'Alt-Saxophon', orchestras: 'EO', status: 'aktiv' }
 		]),
 		tab(
 			'groups',
@@ -454,6 +455,11 @@ export function demoSheet(now: number): Map<string, string[][]> {
 			{ piece: titles['demo-egmont'], section: t.piece.groups.streicher, note: 'Takt 82–96: Bogen ab Saite, kurz und leicht.', by: 'David Dirigent', at: at(-10), id: 'demo-note-1' },
 			{ piece: titles['demo-egmont'], concert: herbst, note: 'Ohne Wiederholung der Exposition, Sprung von Takt 117 nach 135.', by: 'David Dirigent', at: at(-3), id: 'demo-note-2' },
 			{ piece: titles['demo-nachtmusik'], concert: sommer, note: 'Menuett ohne Wiederholungen.', by: 'David Dirigent', at: at(-70), id: 'demo-note-3' }
+		]),
+		// Parts played instead of one's own (#262): the saxophone on the bassoon part this autumn, Paul on the bass in one piece.
+		tab('partAssignments', [
+			{ who: 'Alt-Saxophon', part: 'Fagott', concert: herbst, by: 'David Dirigent', at: at(-5), id: 'demo-assign-1' },
+			{ who: 'paul@example.org', part: 'Kontrabass', piece: titles['demo-007'], concert: herbst, by: 'Nora Notenwart', at: at(-2), id: 'demo-assign-2' }
 		]),
 		// What the last rehearsal did (#145), for those who missed it.
 		tab('rehearsalNotes', [

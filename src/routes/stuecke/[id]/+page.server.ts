@@ -7,7 +7,9 @@ import { commonInstruments, formatInstrument, matchParts, parseInstruments, play
 import { addReport, feedbackUser, formText, playAgain } from '#lib/server/feedback.ts';
 import { features, isOn } from '#lib/server/env.ts';
 import { requireRight } from '#lib/server/auth/index.ts';
-import { getAccessList, getFeedback, getLoans, getMusicConfig, getPieceNotes, getRehearsalPlan } from '#lib/server/repertoire.ts';
+import { getAccessList, getFeedback, getLoans, getMusicConfig, getPartAssignments, getPieceNotes, getRehearsalPlan } from '#lib/server/repertoire.ts';
+import { addAssignment, assignmentEditor, comingConcerts, deleteAssignment } from '#lib/server/part-assignments.ts';
+import { choicesAt } from '#lib/music/part-assignments.ts';
 import { checkNote, notesOf, sectionOptions } from '#lib/notes/piece-notes.ts';
 import { today } from '#lib/server/members.ts';
 import { normalize } from '#lib/repertoire/sheet.ts';
@@ -27,14 +29,15 @@ import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals, url }) => {
 	const on = features();
-	const [library, feedback, plan, loans, pieceNotes, access, music] = await Promise.all([
+	const [library, feedback, plan, loans, pieceNotes, access, music, assignments] = await Promise.all([
 		getLibrary(),
 		getFeedback(),
 		getRehearsalPlan(),
 		on.loans ? getLoans() : null,
 		getPieceNotes(),
 		locals.access.user ? getAccessList() : null,
-		getMusicConfig()
+		getMusicConfig(),
+		getPartAssignments()
 	]);
 	const piece = library.piecesById.get(params.id);
 	if (!piece) {
@@ -55,9 +58,18 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 	const portrait = await portraitFor(piece.composer);
 	// The member's own parts (#216), matched like "Meine Noten": from their instruments in "Mitglieder".
 	const member = locals.access.user ? access?.membersByEmail.get(normalizeEmail(locals.access.user.email)) : undefined;
-	const played = detail && member?.instrument ? playedParts(detail) : [];
+	// What they play here: their own instruments, or the part assigned to them (#262) for this piece and its coming concerts.
+	const choices = member
+		? choicesAt(
+				{ email: member.email, choices: parseInstruments(member.instrument ?? '', config) },
+				assignments.assignments,
+				{ piece: sheet?.title ?? piece.title, concerts: comingConcerts(library, piece) },
+				config
+			)
+		: [];
+	const played = detail && choices.length ? playedParts(detail) : [];
 	const viewer = locals.auth === 'on' && !!member;
-	const mine = parseInstruments(member?.instrument ?? '', config).flatMap((choice) => {
+	const mine = choices.flatMap((choice) => {
 		const { own, shared } = matchParts(played, choice, music);
 		return [...own.map((part) => ({ part, shared: false })), ...shared.map((part) => ({ part, shared: true }))];
 	});
@@ -170,7 +182,8 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		// New sheet music from the app (#193): the folder to create, or uploads into it.
 		folder: await folderTools(locals, piece),
 		folderCreated: url.searchParams.has('ordner'),
-		notes: notesFor(library, piece, pieceNotes.notes, locals)
+		notes: notesFor(library, piece, pieceNotes.notes, locals),
+		assignments: assignmentEditor(library, piece, assignments.assignments, access, locals)
 	};
 };
 
@@ -282,6 +295,10 @@ export const actions: Actions = {
 		}
 		return { noteSaved: true };
 	},
+
+	addAssignment: ({ params, request, locals }) => addAssignment(params.id, request, locals),
+
+	deleteAssignment: ({ request, locals }) => deleteAssignment(request, locals),
 
 	deleteNote: async ({ request, locals }) => {
 		requireRight(locals, 'programme.bearbeiten');
