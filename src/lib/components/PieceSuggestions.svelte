@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { t } from '#lib/i18n/index.ts';
 	import { readScoreText } from '#lib/music/score-text.ts';
+	import { instrumentationFromScore } from '#lib/music/instrumentation.ts';
+	import { config } from '#lib/config/index.ts';
 	import { composerAsUsual, searchWorks, suggestGenre, WikidataBusyError, workDetails, type WorkCandidate } from '#lib/music/wikidata.ts';
 	import type { NamingRules } from '#lib/config/index.ts';
 	import { formatDuration } from '#lib/repertoire/duration.ts';
@@ -13,7 +15,7 @@
 	 * Suggestions for a piece's details, each from a source someone asks for: the text on the
 	 * score (read in the browser) or Wikidata. Nothing is saved until the form is.
 	 */
-	type Field = 'composer' | 'composerFull' | 'arranger' | 'catalogue' | 'genre' | 'recording' | 'duration';
+	type Field = 'composer' | 'composerFull' | 'arranger' | 'catalogue' | 'genre' | 'recording' | 'duration' | 'instrumentation';
 	let {
 		values,
 		apply,
@@ -47,7 +49,9 @@
 	}
 
 	let suggestions = $state<Suggestion[]>([]);
-	let busy = $state<'score' | 'wikidata' | 'video' | null>(null);
+	let busy = $state<'score' | 'ocr' | 'wikidata' | 'video' | null>(null);
+	/** The file read last is a scan: its instruments can still be read by text recognition (#249). */
+	let scanned = $state(false);
 	let message = $state<string | null>(null);
 	let candidates = $state<WorkCandidate[]>([]);
 	let chosen = $state<string | null>(null);
@@ -75,10 +79,11 @@
 		busy = 'score';
 		message = null;
 		try {
-			const { readScoreLines } = await import('#lib/music/score-reader.ts');
-			const lines = await readScoreLines(file);
+			const { readScorePages } = await import('#lib/music/score-reader.ts');
+			const { lines, labels } = await readScorePages(file);
 			if (!lines.length) {
 				message = t.suggest.scanOnly;
+				scanned = true;
 				viewing = true;
 				return;
 			}
@@ -92,6 +97,9 @@
 			}
 			if (found.arranger) list.push({ field: 'arranger', value: found.arranger, source: 'score' });
 			if (found.catalogue) list.push({ field: 'catalogue', value: found.catalogue, source: 'score' });
+			// The names at the left of the first system: the instruments the score is written for (#249).
+			const instrumentation = instrumentationFromScore(labels, config);
+			if (instrumentation) list.push({ field: 'instrumentation', value: instrumentation, source: 'score' });
 			if (!list.length) {
 				message = t.suggest.nothingInScore;
 				viewing = true;
@@ -99,6 +107,27 @@
 			add(list);
 		} catch (error) {
 			message = (error as { reason?: string }).reason === 'download' ? t.suggest.downloadFailed : t.suggest.unreadable;
+		} finally {
+			busy = null;
+		}
+	}
+
+	/** The Besetzung of a scan, by text recognition of the names left of the first system. */
+	async function fromScan() {
+		busy = 'ocr';
+		message = null;
+		try {
+			const { createLabelReader } = await import('#lib/music/score-reader.ts');
+			const reader = await createLabelReader();
+			try {
+				const instrumentation = instrumentationFromScore(await reader.labels(file), config);
+				if (instrumentation) add([{ field: 'instrumentation', value: instrumentation, source: 'score' }]);
+				else message = t.suggest.nothingInScan;
+			} finally {
+				await reader.close();
+			}
+		} catch {
+			message = t.suggest.ocrFailed;
 		} finally {
 			busy = null;
 		}
@@ -206,6 +235,11 @@
 				<button class="btn ghost small" type="button" onclick={fromScore} disabled={!!busy}>
 					<Icon name="file" size={16} />{busy === 'score' ? t.suggest.reading : t.suggest.fromScore}
 				</button>
+				{#if scanned}
+					<button class="btn ghost small" type="button" onclick={fromScan} disabled={!!busy} title={t.suggest.ocrHint}>
+						<Icon name="text" size={16} />{busy === 'ocr' ? t.suggest.ocrReading : t.suggest.ocr}
+					</button>
+				{/if}
 				<button class="btn ghost small" type="button" onclick={() => (viewing = !viewing)} aria-pressed={viewing}>
 					<Icon name="eye" size={16} />{viewing ? t.viewer.hide : t.viewer.show}
 				</button>

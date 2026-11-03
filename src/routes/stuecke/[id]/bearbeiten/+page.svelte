@@ -38,6 +38,7 @@
 		{ name: 'duration', placeholder: t.pieceEditor.durationHint },
 		{ name: 'publisher', list: 'publishers', placeholder: t.pieceEditor.publisherHint },
 		{ name: 'reviewedAt', placeholder: t.pieceEditor.reviewedHint },
+		{ name: 'instrumentation', wide: true, placeholder: t.pieceEditor.instrumentationHint },
 		// Text, not url: "keins" says there is none.
 		{ name: 'recording', wide: true, inputmode: 'url', placeholder: t.pieceEditor.recordingHint }
 	] as const;

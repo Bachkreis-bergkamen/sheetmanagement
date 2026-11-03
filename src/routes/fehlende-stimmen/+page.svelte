@@ -8,6 +8,7 @@
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import ScanPlan from '#lib/components/ScanPlan.svelte';
 	import Title from '#lib/components/Title.svelte';
+	import ScoreRun from './ScoreRun.svelte';
 
 	let { data, form } = $props();
 	const marking = new FormState();
@@ -18,7 +19,7 @@
 	const shown = $derived(
 		filter === '@'
 			? data.pieces
-					.map((piece) => ({ ...piece, gaps: piece.gaps.filter((gap) => gap.mine), reports: [], hints: [] }))
+					.map((piece) => ({ ...piece, gaps: piece.gaps.filter((gap) => gap.mine), reports: [], hints: [], unscored: [] }))
 					.filter((piece) => piece.gaps.length)
 			: data.pieces.filter((piece) =>
 					filter === '' ? true : filter === '*' ? piece.programs.length > 0 : piece.programs.includes(filter)
@@ -43,7 +44,7 @@
 {:else}
 	{#if form?.message}<p class="msg error" role="alert">{form.message}</p>{/if}
 	<ul class="counts">
-		{#each ['missing', 'empty', 'incomplete', 'reports', 'hints'] as const as kind (kind)}
+		{#each ['missing', 'empty', 'incomplete', 'reports', 'hints', 'unscored'] as const as kind (kind)}
 			{#if data.counts[kind]}
 				<li class={kind}><strong>{data.counts[kind]}</strong> {t.gaps.counts[kind]}</li>
 			{/if}
@@ -113,6 +114,12 @@
 								{#if report.comment}<span class="muted">{t.common.quote(report.comment)}</span>{/if}
 							</li>
 						{/each}
+						{#each piece.unscored as voice (voice)}
+							<li class="hint">
+								<span>{voice}</span>
+								<span class="status hinted missing" title={t.gaps.unscoredTitle}><Icon name="music" size={12} />{t.gaps.unscored}</span>
+							</li>
+						{/each}
 						{#each piece.hints as hint (hint.id)}
 							<li class="hint">
 								<a href={hint.url} target="_blank" rel="noopener noreferrer">{hint.label}</a>
@@ -139,6 +146,10 @@
 	{:else}
 		<p class="msg info">{t.gaps.noneHere}</p>
 	{/if}
+{/if}
+
+{#if data.ok && data.canMark && (data.scores.length || form?.instrumentationSaved !== undefined)}
+	<ScoreRun scores={data.scores} saved={form?.instrumentationSaved} />
 {/if}
 
 <style>
@@ -169,7 +180,8 @@
 
 	.counts .incomplete,
 	.counts .reports,
-	.counts .hints {
+	.counts .hints,
+	.counts .unscored {
 		background: color-mix(in oklab, var(--warn) 12%, transparent);
 	}
 

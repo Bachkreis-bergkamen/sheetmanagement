@@ -2,6 +2,7 @@ import { error, fail } from '@sveltejs/kit';
 import { countingMembers, isAdminOnly, normalizeEmail } from '#lib/access/access.ts';
 import { config } from '#lib/config/index.ts';
 import { coverage, formatInstrument, parseInstruments, playableInstruments, playedParts, programInstruments } from '#lib/music/my-parts.ts';
+import { missingVoices, readInstrumentation } from '#lib/music/instrumentation.ts';
 import { t } from '#lib/i18n/index.ts';
 import { ANSWERS, coverage as signupCoverage, groupSections, totals, type Answer, type SectionCoverage } from '#lib/signups/signups.ts';
 import { feedbackUser, formText } from '#lib/server/feedback.ts';
@@ -220,12 +221,23 @@ async function check(concert: LibraryConcert | undefined, event: ShownEvent | un
 	const rehearsalIds = event?.rehearsalIds ?? [];
 	const planned = new Set(rehearsalIds.flatMap((id) => (plan?.byEvent.get(id) ?? []).map((entry) => normalize(entry.pieceName))));
 	const gaps = new Set(reportGaps(reportPieces(library, concert, await reportScopeOf(concert))).map((gap) => gap.title));
+	// A piece whose Besetzung names an instrument without a part counts as one with gaps (#249).
+	const music = await getMusicConfig();
+	const unscored = (pieceId: string | undefined) => {
+		const piece = pieceId ? library.piecesById.get(pieceId) : undefined;
+		return !!piece?.detail?.parts.length && missingVoices(readInstrumentation(piece.sheet?.instrumentation, music), playedParts(piece.detail), music).length > 0;
+	};
 	const id = encodeURIComponent(concert.id);
 	const items = concertCheck({
 		past,
 		program: concert.program
 			.filter((item) => !onlyGuests(item.orchestra, concert.partners))
-			.map((item) => ({ title: item.title, status: item.status, duration: item.duration, inReport: !gaps.has(item.title) })),
+			.map((item) => ({
+				title: item.title,
+				status: item.status === 'ok' && unscored(item.pieceId) ? 'missing' : item.status,
+				duration: item.duration,
+				inReport: !gaps.has(item.title)
+			})),
 		rehearsals: rehearsalIds.length,
 		unplanned: [...new Set(names.map(normalize))].filter((name) => !planned.has(name)).length,
 		loans: [...new Set(names)].flatMap((name) =>

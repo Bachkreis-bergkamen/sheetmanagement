@@ -198,6 +198,9 @@ export const de = {
 			genre: 'Genre',
 			difficulty: 'Schwierigkeit',
 			reviewedAt: 'Geprüft am',
+			instrumentation: 'Besetzung',
+			/** Instruments of the Besetzung without a part (#249). */
+			unscored: 'Ohne Stimme',
 			notes: 'Notiz'
 		},
 		driveHint: 'Öffnet sich in Google Drive (Zugriff auf den Noten-Ordner nötig).',
@@ -965,7 +968,29 @@ export const de = {
 		lead: 'Alle Lücken im Archiv: aus den Dateinamen und den offenen Meldungen.',
 		all: 'Alle',
 		current: 'Aktuelle Programme',
-		counts: { missing: 'fehlen', empty: 'leer', incomplete: 'mit fehlenden Seiten', reports: 'davon nur gemeldet', hints: 'Hinweise aus der Prüfung' },
+		counts: { missing: 'fehlen', empty: 'leer', incomplete: 'mit fehlenden Seiten', reports: 'davon nur gemeldet', hints: 'Hinweise aus der Prüfung', unscored: 'laut Besetzung ohne Stimme' },
+		unscored: 'laut Besetzung, keine Stimme',
+		scoresBad: 'Die gelesenen Besetzungen ließen sich nicht verarbeiten.',
+		/** Reading every score's Besetzung in the browser (#249). */
+		scores: {
+			title: 'Besetzung aus den Partituren lesen',
+			lead: (count: number) =>
+				`${count === 1 ? '1 Stück hat' : `${count} Stücke haben`} eine Partitur, aber noch keine Besetzung. Der Browser liest die Instrumentennamen am linken Rand der ersten Seite, eine Partitur nach der anderen. Gespeichert wird erst, was du übernimmst; eine eingetragene Besetzung bleibt.`,
+			ocr: 'Scans ohne Text per Texterkennung lesen (langsamer; lädt beim ersten Mal einige MB von jsDelivr, die Noten bleiben im Browser)',
+			start: 'Partituren lesen',
+			stop: 'Anhalten',
+			progress: (done: number, total: number) => `${done} von ${total} gelesen`,
+			withText: 'mit Textebene',
+			scans: 'Scans ohne Text',
+			byOcr: 'davon per Texterkennung gelesen',
+			found: 'Besetzung erkannt',
+			failed: 'nicht lesbar',
+			nothing: 'nichts erkannt',
+			scan: 'Scan, nicht gelesen',
+			take: (count: number) => (count === 1 ? '1 Besetzung übernehmen' : `${count} Besetzungen übernehmen`),
+			saved: (count: number) => (count === 1 ? '1 Besetzung gespeichert.' : `${count} Besetzungen gespeichert.`)
+		},
+		unscoredTitle: 'Die Besetzung des Stücks nennt dieses Instrument, aber im Archiv gibt es keine Stimme dafür, auch keine gemeinsame.',
 		hint: {
 			empty: 'vielleicht leer',
 			incomplete: (pages: number, usual: number) => `vielleicht unvollständig: ${pages} ${pages === 1 ? 'Seite' : 'Seiten'}, die anderen meist ${usual}`
@@ -1269,6 +1294,11 @@ export const de = {
 		openWikidata: 'Bei Wikidata ansehen',
 		sources: { score: 'aus den Noten', wikidata: 'Wikidata', archive: 'aus dem Archiv', youtube: 'Video' } as Record<string, string>,
 		scanOnly: 'Ein Scan ohne Text. Vielleicht hilft eine andere Stimme oder „Online nachschlagen“.',
+		ocr: 'Besetzung per Texterkennung',
+		ocrReading: 'Erkenne Text …',
+		ocrHint: 'Liest die Instrumentennamen am linken Rand der ersten Seite. Die Texterkennung lädt beim ersten Mal einige MB von jsDelivr; die Noten selbst bleiben im Browser.',
+		nothingInScan: 'Am linken Rand der ersten Seite ließen sich keine Instrumente erkennen.',
+		ocrFailed: 'Die Texterkennung ließ sich nicht laden oder ist fehlgeschlagen.',
 		nothingInScore: 'In den Noten steht kein Komponist, Arrangeur oder Werkverzeichnis, das sich sicher lesen lässt.',
 		downloadFailed: 'Die Datei konnte nicht geladen werden.',
 		unreadable: 'Die Datei ist keine lesbare PDF.',
@@ -1893,6 +1923,7 @@ export const de = {
 		composerFullHint: 'z. B. Ludwig van Beethoven – für die GEMA-Meldung',
 		listHint: 'mehrere mit Komma trennen',
 		publisherHint: 'z. B. Bärenreiter – für die GEMA-Meldung',
+		instrumentationHint: 'laut Partitur, mit Semikolon: Flöte 1 & 2; Oboe; Geige 1 & 2',
 		missingColumns: (columns: string) => `${columns}: Die Spalten fehlen noch in der Tabelle. Einmal „Tabelle einrichten“ ausführen, dann lassen sie sich hier eintragen.`
 	},
 	editor: {
@@ -2243,6 +2274,8 @@ export const de = {
 				duration: 'Dauer',
 				/** For the GEMA music list (#118). */
 				publisher: 'Verlag',
+				/** The instruments the score is written for, "Flöte 1 & 2; Oboe; Geige 1 & 2" (#249). */
+				instrumentation: 'Besetzung',
 				driveFolderId: 'Drive-Ordner-ID'
 			}
 		},

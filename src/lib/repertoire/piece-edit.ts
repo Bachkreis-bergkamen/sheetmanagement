@@ -26,7 +26,8 @@ export const EDITABLE = [
 	'reviewedAt',
 	'recording',
 	'duration',
-	'publisher'
+	'publisher',
+	'instrumentation'
 ] as const;
 export type EditableColumn = (typeof EDITABLE)[number];
 export type PieceValues = Record<EditableColumn, string>;

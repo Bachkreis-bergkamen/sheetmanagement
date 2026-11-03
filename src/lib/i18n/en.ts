@@ -195,6 +195,8 @@ export const en: Texts = {
 			genre: 'Genre',
 			difficulty: 'Difficulty',
 			reviewedAt: 'Checked on',
+			instrumentation: 'Instrumentation',
+			unscored: 'Without a part',
 			notes: 'Note'
 		},
 		driveHint: 'Opens in Google Drive (needs access to the music folder).',
@@ -960,7 +962,28 @@ export const en: Texts = {
 		lead: 'Every gap in the library: from the file names and the open reports.',
 		all: 'All',
 		current: 'Current programmes',
-		counts: { missing: 'missing', empty: 'empty', incomplete: 'with missing pages', reports: 'of which only reported', hints: 'hints from the check' },
+		counts: { missing: 'missing', empty: 'empty', incomplete: 'with missing pages', reports: 'of which only reported', hints: 'hints from the check', unscored: 'in the instrumentation without a part' },
+		unscored: 'in the instrumentation, no part',
+		scoresBad: 'The instrumentations read couldn’t be processed.',
+		scores: {
+			title: 'Read the instrumentation from the scores',
+			lead: (count: number) =>
+				`${count === 1 ? '1 piece has' : `${count} pieces have`} a score but no instrumentation yet. The browser reads the instrument names at the left of the first page, one score after another. Only what you take over is saved; an instrumentation already entered stays.`,
+			ocr: 'Read scans without text by text recognition (slower; the first time it loads a few MB from jsDelivr, the music stays in the browser)',
+			start: 'Read the scores',
+			stop: 'Stop',
+			progress: (done: number, total: number) => `${done} of ${total} read`,
+			withText: 'with a text layer',
+			scans: 'scans without text',
+			byOcr: 'of them read by text recognition',
+			found: 'instrumentation found',
+			failed: 'unreadable',
+			nothing: 'nothing found',
+			scan: 'scan, not read',
+			take: (count: number) => (count === 1 ? 'Take over 1 instrumentation' : `Take over ${count} instrumentations`),
+			saved: (count: number) => (count === 1 ? '1 instrumentation saved.' : `${count} instrumentations saved.`)
+		},
+		unscoredTitle: 'The piece’s instrumentation names this instrument, but the archive has no part for it, not even a shared one.',
 		hint: {
 			empty: 'may be empty',
 			incomplete: (pages: number, usual: number) => `may be incomplete: ${pages} ${pages === 1 ? 'page' : 'pages'}, the others mostly ${usual}`
@@ -1258,6 +1281,11 @@ export const en: Texts = {
 		openWikidata: 'View on Wikidata',
 		sources: { score: 'from the music', wikidata: 'Wikidata', archive: 'from the library', youtube: 'Video' } as Record<string, string>,
 		scanOnly: 'A scan without text. Perhaps another part or “Look up online” helps.',
+		ocr: 'Instrumentation by text recognition',
+		ocrReading: 'Recognising text …',
+		ocrHint: 'Reads the instrument names at the left of the first page. The first time, text recognition loads a few MB from jsDelivr; the music itself stays in the browser.',
+		nothingInScan: 'No instruments could be recognised at the left of the first page.',
+		ocrFailed: 'Text recognition couldn’t be loaded or failed.',
 		nothingInScore: "The music names no composer, arranger or catalogue number that can be read reliably.",
 		downloadFailed: "The file couldn't be loaded.",
 		unreadable: 'The file is not a readable PDF.',
@@ -1873,6 +1901,7 @@ export const en: Texts = {
 		composerFullHint: 'e.g. Ludwig van Beethoven, for the music report',
 		listHint: 'separate several with commas',
 		publisherHint: 'e.g. Bärenreiter – for the music report',
+		instrumentationHint: 'as in the score, with semicolons: Flute 1 & 2; Oboe; Violin 1 & 2',
 		missingColumns: (columns: string) => `${columns}: these columns aren't in the sheet yet. Run “Set up sheet” once, then they can be entered here.`
 	},
 	editor: {
@@ -2218,6 +2247,8 @@ export const en: Texts = {
 				recording: 'Recording',
 				duration: 'Duration',
 				publisher: 'Publisher',
+				/** The instruments the score is written for, "Flute 1 & 2; Oboe; Violin 1 & 2" (#249). */
+				instrumentation: 'Instrumentation',
 				driveFolderId: 'Drive folder ID'
 			}
 		},

@@ -29,7 +29,7 @@ export interface DemoFile {
 	modifiedTime: string;
 	shortcutDetails?: { targetId: string; targetMimeType: string };
 	/** For the generated PDF. */
-	pdf?: { title: string; composer?: string; arranger?: string; part: string; pages?: number };
+	pdf?: { title: string; composer?: string; arranger?: string; part: string; pages?: number; staves?: string[] };
 }
 
 export interface DemoEvent {
@@ -67,6 +67,8 @@ interface SamplePiece {
 	parts: string[];
 	/** Parts with a status word: a placeholder doc for FEHLT, a PDF otherwise. */
 	gaps?: Record<string, 'FEHLT' | 'LEER' | 'UNVOLLSTÄNDIG'>;
+	/** A score's instrument names, at the left of its staves (#249). */
+	staves?: string[];
 	/** Old file names as scanned years ago, for trying the naming check on /namen. */
 	rawNames?: string[];
 	/** Pages per part (one without), and parts with fewer, so the completeness check (#93) has something to find. */
@@ -119,7 +121,9 @@ const PIECES: SamplePiece[] = [
 		duration: '8:30',
 		publisher: 'Breitkopf & Härtel',
 		parts: ['Partitur', ...WINDS, 'Pauke', ...STRINGS],
-		gaps: { Kontrabass: 'FEHLT' }
+		gaps: { Kontrabass: 'FEHLT' },
+		// As the score names them: with a piccolo the archive has no part for (#249).
+		staves: ['Ottavino', 'Flauti a 2', 'Oboi a 2', 'Clarinetti in B a 2', 'Fagotti a 2', 'Corni in F I. II.', 'Trombe in C', 'Timpani', 'Violino I', 'Violino II', 'Viola', 'Violoncello e Basso']
 	},
 	{
 		id: 'demo-jesu',
@@ -218,7 +222,14 @@ export function demoFiles(): DemoFile[] {
 				pdf:
 					gap === 'FEHLT'
 						? undefined
-						: { title: piece.title, composer: piece.composer, arranger: piece.arranger, part, pages: piece.pages?.short?.[part] ?? piece.pages?.all }
+						: {
+								title: piece.title,
+								composer: piece.composer,
+								arranger: piece.arranger,
+								part,
+								pages: piece.pages?.short?.[part] ?? piece.pages?.all,
+								...(part === 'Partitur' && piece.staves ? { staves: piece.staves } : {})
+							}
 			});
 		});
 	}
