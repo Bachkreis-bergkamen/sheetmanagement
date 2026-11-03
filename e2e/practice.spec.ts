@@ -402,11 +402,17 @@ test('the tools can be moved, keep running, stay put after a reload and go back 
 	await page.getByRole('button', { name: 'Start' }).click();
 	const dock = page.locator('.dock');
 	const before = (await dock.boundingBox())!;
+	// Where the panel is in the music's area, as it's kept: the page above it may scroll or grow.
+	const inArea = async () => {
+		const [box, area] = [(await dock.boundingBox())!, (await page.locator('.area').boundingBox())!];
+		return { x: Math.round(box.x - area.x), y: Math.round(box.y - area.y) };
+	};
 
 	await dragGrip(page, { x: -120, y: 60 });
 	await expect(dock).toHaveClass(/free/);
-	const moved = (await dock.boundingBox())!;
-	expect(Math.abs(moved.x - before.x) + Math.abs(moved.y - before.y)).toBeGreaterThan(40);
+	const box = (await dock.boundingBox())!;
+	expect(Math.abs(box.x - before.x) + Math.abs(box.y - before.y)).toBeGreaterThan(40);
+	const moved = await inArea();
 	// Moving it neither stops the metronome nor turns the page.
 	await expect(page.getByRole('button', { name: 'Stopp' })).toBeVisible();
 	await expect(page.getByText('Seite 1 von 1')).toBeVisible();
@@ -422,9 +428,8 @@ test('the tools can be moved, keep running, stay put after a reload and go back 
 	await open(page, PART);
 	await tool(page, 'Metronom');
 	await expect(dock).toHaveClass(/free/);
-	const again = (await dock.boundingBox())!;
-	expect(Math.round(again.x)).toBe(Math.round(moved.x));
-	expect(Math.round(again.y)).toBe(Math.round(moved.y));
+	await expect(page.locator('.slot canvas')).toHaveCount(1);
+	await expect.poll(inArea).toEqual(moved);
 
 	// Dragged far past the edge, it stays on screen.
 	await dragGrip(page, { x: -2000, y: -2000 });
