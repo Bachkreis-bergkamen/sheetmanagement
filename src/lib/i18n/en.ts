@@ -1645,7 +1645,12 @@ export const en: Texts = {
 			exitFullscreen: 'Exit full screen',
 			turnHint: 'Turn pages by tapping the left or right edge, with the arrow keys or a page-turn pedal.',
 			tools: 'Tools',
-			closeTools: 'Close tools'
+			closeTools: 'Close tools',
+			moveTools: 'Move the tools (arrow keys, Escape: automatic)',
+			autoPlace: 'Place automatically',
+			fold: 'Fold',
+			toolsAt: (x: number, y: number) => `Tools at ${x} % from the left, ${y} % from the top`,
+			toolsAuto: 'Tools placed automatically'
 		},
 		recording: {
 			title: 'Recording',
