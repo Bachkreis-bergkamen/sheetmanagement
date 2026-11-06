@@ -174,7 +174,13 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 			sections: (detail?.sections ?? []).map((section) => ({ ...section, folderUrl: folderUrl(section.folderId) })),
 			// The Besetzung as a seating plan, and what of it has no part (#249).
 			// The conductor's score is always needed: present unless no file is there (#249).
-			besetzung: { voices: scored, missing: unscored, score: !!detail?.parts.some((part) => part.kind === 'partitur' && part.status !== 'missing') },
+			besetzung: {
+				voices: scored,
+				missing: unscored,
+				score: !!detail?.parts.some((part) => part.kind === 'partitur' && part.status !== 'missing'),
+				// Solo parts ("@Geige", "Solo"): beside the conductor on the plan.
+				soloists: [...new Set((detail?.parts ?? []).filter((part) => part.kind === 'solo').flatMap((part) => part.instruments))]
+			},
 			info: {
 				duration: sheet?.duration ? formatDuration(sheet.duration) : undefined,
 				publisher: sheet?.publisher,

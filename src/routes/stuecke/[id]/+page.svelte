@@ -179,7 +179,7 @@
 	<section class="block" aria-labelledby="besetzung-title">
 		<h2 class="ui-label" id="besetzung-title">{t.seating.title}</h2>
 		<div class="ui-card besetzung">
-			<OrchestraSeating voices={piece.besetzung.voices} missing={piece.besetzung.missing} score={piece.besetzung.score} />
+			<OrchestraSeating voices={piece.besetzung.voices} missing={piece.besetzung.missing} score={piece.besetzung.score} soloists={piece.besetzung.soloists} />
 		</div>
 	</section>
 {/if}

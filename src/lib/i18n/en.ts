@@ -1123,6 +1123,8 @@ export const en: Texts = {
 	seating: {
 		title: 'Instrumentation',
 		noPart: 'no part',
+		noFixedPlace: 'no fixed place',
+		solo: 'Solo',
 		score: 'Score',
 		scoreShort: 'Score',
 		missing: (names: string) => `No part in the archive: ${names}`,

@@ -1134,6 +1134,8 @@ export const de = {
 	seating: {
 		title: 'Besetzung',
 		noPart: 'keine Stimme',
+		noFixedPlace: 'kein fester Platz',
+		solo: 'Solo',
 		score: 'Partitur',
 		scoreShort: 'Part.',
 		missing: (names: string) => `Ohne Stimme im Archiv: ${names}`,
