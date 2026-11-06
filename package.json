@@ -30,7 +30,7 @@
 		"pdfjs-dist": "6.4.299",
 		"svelte": "^5.57.3",
 		"svelte-check": "^4.7.7",
-		"tesseract.js": "6.0.1",
+		"tesseract.js": "7.0.0",
 		"typescript": "^6.0.0",
 		"vite": "^8.3.5",
 		"vitest": "^5.0.5",
