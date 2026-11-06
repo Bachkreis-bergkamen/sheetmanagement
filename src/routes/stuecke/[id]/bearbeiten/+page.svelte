@@ -9,6 +9,7 @@
 	import { listCompletions } from '#lib/repertoire/lists.ts';
 	import Crumbs from '#lib/components/Crumbs.svelte';
 	import Icon from '#lib/components/Icon.svelte';
+	import InstrumentationField from '#lib/components/InstrumentationField.svelte';
 	import PieceSuggestions from '#lib/components/PieceSuggestions.svelte';
 	import Title from '#lib/components/Title.svelte';
 
@@ -38,7 +39,7 @@
 		{ name: 'duration', placeholder: t.pieceEditor.durationHint },
 		{ name: 'publisher', list: 'publishers', placeholder: t.pieceEditor.publisherHint },
 		{ name: 'reviewedAt', placeholder: t.pieceEditor.reviewedHint },
-		{ name: 'instrumentation', wide: true, placeholder: t.pieceEditor.instrumentationHint },
+		{ name: 'instrumentation', wide: true },
 		// Text, not url: "keins" says there is none.
 		{ name: 'recording', wide: true, inputmode: 'url', placeholder: t.pieceEditor.recordingHint }
 	] as const;
@@ -75,6 +76,12 @@
 	>
 		<input type="hidden" name="version" value={data.version} />
 		{#each fields as field (field.name)}
+			{#if field.name === 'instrumentation'}
+				<!-- The instrument picker, as on the profile; the sheet keeps it as text (#249). -->
+				<div class="field wide">
+					<InstrumentationField name="instrumentation" label={columns.instrumentation} bind:value={current.instrumentation} instruments={data.instruments} />
+				</div>
+			{:else}
 			<label class="field" class:wide={'wide' in field}>
 				{columns[field.name]}
 				<span class="input">
@@ -99,6 +106,7 @@
 					{/if}
 				</span>
 			</label>
+			{/if}
 		{/each}
 		<label class="field wide">
 			{columns.notes}

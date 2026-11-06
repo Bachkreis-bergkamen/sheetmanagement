@@ -6,6 +6,7 @@ import { searchText } from '#lib/music/text.ts';
 import { checkPieceValues, EDITABLE, findPieceRow, pieceValues, pieceVersion, renameInProgram, writableValues, type PieceValues } from '#lib/repertoire/piece-edit.ts';
 import { requireRight } from '#lib/server/auth/index.ts';
 import { getLibrary } from '#lib/server/library.ts';
+import { playableInstruments } from '#lib/music/my-parts.ts';
 import { getRepertoire } from '#lib/server/repertoire.ts';
 import { youtubeEnabled } from '#lib/server/youtube.ts';
 import { listItems } from '#lib/repertoire/lists.ts';
@@ -52,7 +53,9 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		canRead: locals.auth === 'on' && locals.access.member,
 		// A duration from the Hörbeispiel's video, with a YouTube key (#133).
 		videoLength: youtubeEnabled(),
-		list: list ? { filter: list, open: library.pieces.filter((p) => gapsOf(p, list).length).length } : null
+		list: list ? { filter: list, open: library.pieces.filter((p) => gapsOf(p, list).length).length } : null,
+		// The Besetzung's instrument picker, as on the profile.
+		instruments: playableInstruments(config)
 	};
 };
 

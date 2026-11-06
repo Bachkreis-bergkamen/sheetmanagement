@@ -30,8 +30,8 @@ export default defineConfig({
 	projects: [
 		{ name: 'desktop', use: { ...devices['Desktop Chrome'] } },
 		// The flows test what a click saves, the same on any screen; the phone checks the pages' layout,
-		// navigation and accessibility, the tour's cards over them, and the practice viewer by touch.
-		{ name: 'phone', use: { ...devices['Pixel 7'] }, testMatch: ['pages.spec.ts', 'tour.spec.ts', 'practice.spec.ts'] }
+		// navigation and accessibility, the tour's cards over them, the practice viewer by touch, and installing on the home screen.
+		{ name: 'phone', use: { ...devices['Pixel 7'] }, testMatch: ['pages.spec.ts', 'tour.spec.ts', 'practice.spec.ts', 'install.spec.ts'] }
 	],
 	webServer: Array.from({ length: DEMO_SERVERS }, (_, index) => ({
 		command: `pnpm exec vite dev --mode demo --port ${DEMO_PORT + index} --strictPort`,

@@ -18,6 +18,7 @@
 	import { currentItem, navGroups, primaryNav, workspaceOf } from '#lib/nav.ts';
 	import { orchestraLinks, safeLink } from '#lib/links.ts';
 	import { versionLabel } from '#lib/version.ts';
+	import { watchInstall } from '#lib/install/state.svelte.ts';
 
 	let { data, children } = $props();
 
@@ -47,6 +48,9 @@
 	const sourceUrl = safeLink(config.sourceUrl ?? '');
 
 	afterNavigate(() => (menuOpen = false));
+
+	// Whether the app is on the home screen, and the browser's own install dialog where it has one (#279).
+	$effect(() => watchInstall());
 
 	// Buttons and forms work from here on; the end-to-end tests wait for it (#142).
 	$effect(() => {
@@ -110,7 +114,7 @@
 		display: flex;
 		justify-content: center;
 		margin-top: var(--space-3);
-		color: color-mix(in oklab, var(--accent) 45%, transparent);
+		color: color-mix(in oklab, var(--accent) 60%, transparent);
 	}
 </style>`}
 </svelte:head>
@@ -118,7 +122,7 @@
 <div class="app">
 	<a class="skip" href="#inhalt">{t.nav.skip}</a>
 	<!-- Early in the page, so the keyboard reaches the tour's card right after the skip link. -->
-	<Tour status={data.tour} account={data.auth === 'on' && !!data.user} name={data.user?.name ?? ''} />
+	<Tour status={data.tour} account={data.auth === 'on' && !!data.user} name={data.user?.name ?? ''} logo={data.logo} bold={data.brand.look === 'bold'} />
 	{#if loading}
 		<div class="progress" role="progressbar" aria-label={t.common.loading}></div>
 	{/if}
@@ -201,8 +205,6 @@
 					{t.nav.appName} {versionLabel()} · <a href={sourceUrl} target="_blank" rel="noopener noreferrer">{t.footer.source}</a>
 				</p>
 			{/if}
-			<!-- The instrument drawings are CC BY: credited where everyone sees them. -->
-			<p class="source"><a href="/licenses/game-icons-CC-BY-3.0.txt">{t.footer.instruments}</a></p>
 			<span class="season-mark"><SeasonMark variant="pair" size={22} /></span>
 		</footer>
 	</main>

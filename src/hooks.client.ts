@@ -12,8 +12,9 @@ const sent = new Set<string>();
 
 function report(error: unknown) {
 	const message = error instanceof Error ? `${error.name}: ${error.message}` : typeof error === 'string' ? error : '';
-	// Extensions, aborted fetches and cross-origin scripts say nothing the app can act on.
-	if (!message || /^Script error\.?$/.test(message) || (error instanceof Error && error.name === 'AbortError')) return;
+	// Extensions, aborted fetches and cross-origin scripts say nothing the app can act on, nor does
+	// the browser's harmless note that a resize took one more frame (seen in the practice viewer).
+	if (!message || /^Script error\.?$|^ResizeObserver loop/.test(message) || (error instanceof Error && error.name === 'AbortError')) return;
 	const place = page.route.id ?? location.pathname;
 	const key = `${place}\n${message}`;
 	if (sent.has(key) || sent.size >= MAX_PER_VISIT) return;

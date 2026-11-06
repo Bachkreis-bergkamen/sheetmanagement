@@ -3,21 +3,26 @@ import { t } from '#lib/i18n/index.ts';
 import { placeCard, readOutcome, shouldOffer, tourSteps } from './tour.ts';
 
 describe('tourSteps', () => {
-	it('goes through the main pages, then the profile', () => {
-		expect(tourSteps({ account: true }).map((step) => step.key)).toEqual(['home', 'calendar', 'parts', 'pieces', 'more', 'profile', 'theme', 'notifications', 'done']);
-		expect(tourSteps({ account: true }).map((step) => step.path)).toEqual(['/', '/kalender', '/meine-noten', '/stuecke', '/stuecke', '/profil', '/profil', '/profil', '/profil']);
+	it('shows the essentials, pauses, then offers setting up on the profile', () => {
+		const steps = tourSteps({ account: true });
+		expect(steps.map((step) => step.key)).toEqual(['home', 'parts', 'calendar', 'pieces', 'more', 'setupOffer', 'instruments', 'view', 'notifications', 'install', 'done']);
+		expect(steps.filter((step) => step.chapter === 'basics' && step.key !== 'setupOffer').map((step) => step.path)).toEqual(['/', '/meine-noten', '/kalender', '/stuecke', '/stuecke']);
+		expect(steps.filter((step) => step.chapter === 'setup').every((step) => step.path === '/profil')).toBe(true);
+		// The pause stays where the tour is.
+		expect(steps.find((step) => step.key === 'setupOffer')?.path).toBeUndefined();
 	});
 
-	it('leaves out the profile without an account', () => {
+	it('leaves out setting up without an account', () => {
 		const steps = tourSteps({ account: false });
-		expect(steps.map((step) => step.key)).toEqual(['home', 'calendar', 'parts', 'pieces', 'more', 'doneOpen']);
+		expect(steps.map((step) => step.key)).toEqual(['home', 'parts', 'calendar', 'pieces', 'more', 'doneOpen']);
 		expect(steps.some((step) => step.path === '/profil')).toBe(false);
 	});
 
 	it('has a title and a text for every step', () => {
 		for (const step of [...tourSteps({ account: true }), ...tourSteps({ account: false })]) {
-			expect(t.tour.steps[step.key].title).toBeTruthy();
-			expect(t.tour.steps[step.key].body).toBeTruthy();
+			const texts = step.key === 'setupOffer' ? t.tour.setupOffer : t.tour.steps[step.key];
+			expect(texts.title).toBeTruthy();
+			expect(texts.body).toBeTruthy();
 		}
 	});
 });

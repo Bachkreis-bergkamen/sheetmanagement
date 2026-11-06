@@ -37,7 +37,12 @@ export const en: Texts = {
 	footer: {
 		links: 'The orchestra online',
 		source: 'Source code',
-		instruments: 'Instruments: game-icons.net (CC BY 3.0)'
+		/** The instrument drawings are CC BY: credited on the terms page, not on every page. */
+		credits: {
+			heading: 'Image credits',
+			text: 'The instrument drawings are by Lorc, Delapouite and other contributors to game-icons.net, licensed under CC BY 3.0.',
+			license: 'License text'
+		}
 	},
 	theme: {
 		label: 'Colour scheme',
@@ -110,11 +115,10 @@ export const en: Texts = {
 		empty: 'Once Google Drive is connected, every piece in the library shows here.',
 		failed: "The library couldn't be loaded just now. Please try again in a moment.",
 		checkStatus: 'Check connection',
-		search: 'Title, composer, instrument, note …',
-		all: 'All',
+		search: 'Filter the archive: title, composer, part, note …',
+		searchLabel: 'Filter the archive',
 		needsWork: 'With gaps',
 		noMusic: 'Without music',
-		withRecording: (n: number) => `With recording · ${n}`,
 		byComposer: (composer: string) => `Works by ${composer}`,
 		clearComposer: 'Remove composer filter',
 		categoryFiles: 'Files for this category',
@@ -125,6 +129,11 @@ export const en: Texts = {
 		foundParts: (instruments: string) => `Part: ${instruments}`,
 		foundNote: (excerpt: string) => `Note: ${excerpt}`,
 		filter: 'Filter',
+		filterGroups: { mine: 'For me', programs: 'Orchestra', categories: 'Category', state: 'Status' },
+		myPart: 'With my part',
+		assigned: 'Assigned to me',
+		coming: 'In coming concerts',
+		withRecording: 'With recording',
 		status: {
 			ok: '',
 			missing: 'Parts missing',
@@ -212,7 +221,7 @@ export const en: Texts = {
 		noUpcoming: 'There are no dates in the calendar right now.',
 		subscribe: 'Subscribe in Google Calendar',
 		ownCalendar: 'Dates in my calendar',
-		filters: { all: 'All', concerts: 'Concerts', rehearsals: 'Rehearsals' },
+		filters: { kind: 'Type', answer: 'My answer', concerts: 'Concerts', rehearsals: 'Rehearsals' },
 		view: 'View',
 		list: 'List',
 		calendar: 'Month',
@@ -843,12 +852,7 @@ export const en: Texts = {
 			view: (label: string) => `View ${label}`,
 			removeAll: 'Delete all',
 			confirmRemoveAll: 'Delete all parts saved offline from this device?'
-		},
-		install: 'As an app on the home screen',
-		installHint: 'Opens like an app and shows loaded pages without a connection too.',
-		installManual: 'iPhone: Safari → Share → Add to Home Screen. Android: menu → Install app.',
-		installButton: 'Install',
-		installSamsung: 'Samsung Internet warns about an old Android version when installing; that comes from the browser, not the app. Open the page in Chrome and choose menu → Install app there.'
+		}
 	},
 	/** The personal calendar feed (#122), on /profil and in the feed itself. */
 	feed: {
@@ -1101,14 +1105,28 @@ export const en: Texts = {
 		none: (query: string) => `No instrument matches “${query}”.`,
 		add: 'Another instrument',
 		remove: 'Remove instrument',
+		removeNamed: (name: string) => `Remove ${name}`,
+		change: 'Change',
+		done: 'Done',
+		chosen: (n: number) => (n === 1 ? '1 instrument' : `${n} instruments`),
 		numbers: 'Parts',
 		numbersHint: 'none chosen: all parts'
+	},
+	/** Filters for a list, several at once (archive, calendar). */
+	filters: {
+		button: 'Filter',
+		active: (label: string, n: number) => `${label}, ${n} on`,
+		close: 'Close',
+		reset: 'Reset',
+		show: (n: number) => (n === 1 ? 'Show 1 entry' : `Show ${n}`),
+		would: (n: number) => (n === 1 ? '1 entry' : `${n} entries`)
 	},
 	quickSearch: {
 		label: 'Quick search',
 		open: 'Search',
 		shortcut: 'Ctrl K',
-		placeholder: 'Piece, concert or page …',
+		placeholder: 'Piece, part, concert or page …',
+		inArchive: (n: number) => (n === 1 ? 'Show in the archive' : `Show all ${n} in the archive`),
 		pages: 'Pages',
 		pieces: 'Pieces',
 		concerts: 'Concerts',
@@ -1522,11 +1540,18 @@ export const en: Texts = {
 		unknownStatus: "This status doesn't exist.",
 		badDate: "The date can't be read."
 	},
-	/** The tour for new members: the main pages, then their profile; retaken from /profil. */
+	/** The tour for new members: the essentials, then setting the app up on their profile; retaken from /profil. */
 	tour: {
 		label: 'Tour of the app',
 		welcome: (name: string) => (name ? `Welcome, ${name}!` : 'Welcome!'),
-		offer: 'Would you like a short tour? In a minute you’ll see the main pages and set up your profile.',
+		offer: 'In two minutes you’ll see where your dates and parts are, and set the app up for yourself.',
+		offerOpen: 'In a minute you’ll see where the dates and parts are.',
+		chapters: {
+			basics: 'The essentials',
+			basicsHint: (n: number) => `${n} short steps`,
+			setup: 'Set it up for you',
+			setupHint: 'Instrument, look, reminders'
+		},
 		start: 'Start the tour',
 		skip: 'Skip',
 		end: 'End the tour',
@@ -1534,20 +1559,104 @@ export const en: Texts = {
 		next: 'Next',
 		finish: 'Done',
 		step: (n: number, of: number) => `Step ${n} of ${of}`,
+		setupOffer: {
+			title: 'You know the essentials',
+			body: 'Would you like to set the app up for yourself? It takes a minute.',
+			start: 'Set it up',
+			later: 'Later'
+		},
 		steps: {
-			home: { title: 'Overview', body: 'The start page shows what’s coming up: the next rehearsal, the next concert and what’s waiting for you right now.' },
-			calendar: { title: 'Calendar', body: 'Every rehearsal and concert. Say whether you’re coming and see the programme; date polls are right next to them.' },
-			parts: { title: 'My parts', body: 'Your parts for the next concerts, matching your instrument. Is the instrument right? If not, pick yours and save.' },
-			pieces: { title: 'Archive', body: 'Every piece in the sheet music archive, with parts, recordings and notes. The search at the top finds any piece quickly.' },
-			more: { title: 'More', body: 'All the other pages, such as the chronicle. At the bottom you choose whether the app is light or dark.' },
-			profile: { title: 'Your profile', body: 'Enter the instruments you play and the orchestras you’re in. Once saved, it counts everywhere in the app.' },
-			theme: { title: 'Light or dark', body: 'How the app looks for you: like your device, always light or always dark. Try it right away.' },
-			notifications: { title: 'Notifications', body: 'Get reminders about replies, rehearsals and borrowed music: as a notification on this device or by email.' },
-			done: { title: 'All set!', body: 'Enjoy playing. You can take the tour again any time from your profile.' },
-			doneOpen: { title: 'All set!', body: 'Enjoy playing.' }
+			home: { title: 'Your next date', body: 'This always shows what’s coming up next. One tap says whether you’re coming and opens your parts for it.' },
+			parts: { title: 'My parts', body: 'Your parts for the next rehearsals and concerts, matching your instrument. Saved offline, they work in the rehearsal hall without reception too.' },
+			calendar: { title: 'Calendar', body: 'Every rehearsal and concert with time, place and programme. You answer later dates here too.' },
+			pieces: { title: 'Archive', body: 'Every piece with parts, recordings and notes. The field above filters the list, by part too; the magnifier at the top finds anything in the app.' },
+			more: { title: 'More', body: 'All the other pages, such as the chronicle. At the very bottom you choose light or dark and the text size.' },
+			instruments: { title: 'Your instrument', body: 'Enter what you play; “My parts” follows it. Once saved, it counts everywhere.' },
+			view: { title: 'Look and text', body: 'Light, dark or like your device, and larger text if you like. Try it right away.' },
+			notifications: { title: 'Reminders', body: 'Get reminders about replies, rehearsals and borrowed music: on this device or by email.' },
+			install: { title: 'On your phone', body: 'As an app on the home screen, everything opens with one tap, even without reception. The guide shows you how.' },
+			done: { title: 'All set!', body: 'Enjoy playing. You’ll find the tour here any time.' },
+			doneOpen: { title: 'All set!', body: 'Enjoy playing. Light, dark and the text size are under “More”.' }
 		},
 		retake: 'Take the tour again',
-		retakeHint: 'The main pages and your profile, step by step.'
+		retakeHint: 'The essentials and your settings, step by step.'
+	},
+	/** The app on the home screen (#279): the start page's hint, /install and the profile's entry. */
+	install: {
+		title: (name: string) => `${name} on your phone`,
+		entryHint: 'Installing and help',
+		entryInstalled: 'Installed · guide and help',
+		pageTitle: 'Install the app',
+		lead: (name: string) => `Put ${name} on your home screen. Then it opens with one tap, like any other app.`,
+		shareDescription: 'Parts, rehearsals and concerts as an app on your phone, set up in a minute.',
+		benefits: {
+			parts: { title: 'Your parts in one tap', body: 'Dates and parts open at once, without searching in the browser.' },
+			offline: { title: 'Without reception too', body: 'Saved parts and recently opened pages work in the rehearsal hall without reception.' },
+			reminders: { title: 'Reminders', body: 'On the iPhone, notifications only work for the app on the home screen.' }
+		},
+		hint: {
+			title: (name: string) => `Install the ${name} app`,
+			body: 'Your parts, dates and concert details, always at hand.',
+			install: 'Install now',
+			later: 'Later',
+			never: 'Don’t ask again'
+		},
+		device: 'Your device',
+		platforms: { ios: 'iPhone, iPad', android: 'Android', desktop: 'Computer' },
+		oneTap: {
+			title: 'Install with one tap',
+			body: 'Your browser can install the app directly. It asks once, then the app is on your home screen.',
+			button: 'Install now',
+			manual: 'Step by step instead'
+		},
+		step: (n: number, of: number) => `Step ${n} of ${of}`,
+		back: 'Back',
+		next: 'Next',
+		finish: 'Done',
+		restart: 'Start again',
+		notSafari: 'On the iPhone this works most reliably in Safari. Copy the link and open it there.',
+		fromApp: 'Coming from WhatsApp? Tap the compass icon at the bottom right or “Open in Safari”.',
+		otherAndroid: 'This page is open in another app’s browser. Tap the three dots and “Open in browser” to continue in Chrome.',
+		samsung: 'Samsung Internet warns about an old Android version when installing; that comes from the browser, not the app. It’s best to open the page in Chrome.',
+		firefox: 'Firefox can’t install web apps on a computer. Open the page in Chrome or Edge, or bookmark it.',
+		copyLink: 'Copy link',
+		copied: 'Copied',
+		steps: {
+			ios: [
+				{ title: 'Tap “Share”', body: 'The square with an arrow pointing up, in Safari’s bar. If you don’t see it, tap the three dots at the bottom right first.' },
+				{ title: 'Choose “Add to Home Screen”', body: 'Swipe the list up a little until you see “Add to Home Screen”, and tap it.' },
+				{ title: 'Tap “Add”', body: 'At the top right. You can keep the name.' }
+			],
+			iosMenu: [
+				{ title: 'Tap the three dots', body: 'At the bottom right, next to the address.' },
+				{ title: 'Tap “Share”', body: 'At the top of the menu.' },
+				{ title: 'Choose “Add to Home Screen”', body: 'Swipe the list up. If it isn’t there, tap “More” first.' },
+				{ title: 'Tap “Add”', body: 'Leave “Open as Web App” on. Then tap “Add” at the top right.' }
+			],
+			android: [
+				{ title: 'Open the menu', body: 'Tap the three dots at the top right.' },
+				{ title: 'Choose “Install app”', body: 'Depending on the version it’s called “Add to Home screen”.' },
+				{ title: 'Tap “Install”', body: 'Wait a moment: the icon appears on your home screen.' }
+			],
+			desktop: [
+				{ title: 'Click the install icon', body: 'On the right of the address bar: a screen with an arrow. Or in the menu (three dots), “Install page as app”.' },
+				{ title: 'Click “Install”', body: 'The app opens in its own window and is then in the start menu or the dock.' }
+			],
+			mac: [
+				{ title: 'Open the “File” menu', body: 'In Safari’s menu bar at the top.' },
+				{ title: 'Choose “Add to Dock”', body: 'Then click “Add”. This works from macOS Sonoma on.' }
+			]
+		},
+		done: {
+			title: 'All done!',
+			body: (name: string) => `${name} is now on your home screen. Open it directly any time and use your parts offline too.`
+		},
+		standalone: { title: 'You’re already using the app', body: 'You opened it from the home screen. There’s nothing left to do.' },
+		manualDone: {
+			title: 'Look at your home screen',
+			body: (name: string) => `The ${name} icon should be there now. Open the app from it from now on: everything is one tap away, even without reception.`
+		},
+		open: 'Go to the app'
 	},
 	/** Everything the sheet keeps about a member, as one file (#158). */
 	myData: {
@@ -1906,7 +2015,7 @@ export const en: Texts = {
 		composerFullHint: 'e.g. Ludwig van Beethoven, for the music report',
 		listHint: 'separate several with commas',
 		publisherHint: 'e.g. Bärenreiter – for the music report',
-		instrumentationHint: 'as in the score, with semicolons: Flute 1 & 2; Oboe; Violin 1 & 2',
+		unreadInstrumentation: (text: string) => `Not recognised as an instrument, kept as written: ${text}`,
 		missingColumns: (columns: string) => `${columns}: these columns aren't in the sheet yet. Run “Set up sheet” once, then they can be entered here.`
 	},
 	editor: {

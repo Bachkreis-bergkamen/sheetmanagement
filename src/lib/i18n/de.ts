@@ -1,5 +1,8 @@
 import { legal } from './legal.de.ts';
 
+/** The install guide's steps (#279): a list, not a fixed tuple, so other languages may differ. */
+type InstallSteps = { title: string; body: string }[];
+
 /** All user-facing texts. To translate the app, copy this file and change the strings. */
 export const de = {
 	nav: {
@@ -36,7 +39,12 @@ export const de = {
 	footer: {
 		links: 'Das Orchester im Netz',
 		source: 'Quellcode',
-		instruments: 'Instrumente: game-icons.net (CC BY 3.0)'
+		/** The instrument drawings are CC BY: credited on the terms page, not on every page. */
+		credits: {
+			heading: 'Bildnachweise',
+			text: 'Die Zeichnungen der Instrumente sind von Lorc, Delapouite und weiteren Mitwirkenden von game-icons.net, unter der Lizenz CC BY 3.0.',
+			license: 'Lizenztext'
+		}
 	},
 	theme: {
 		label: 'Farbschema',
@@ -112,11 +120,10 @@ export const de = {
 		empty: 'Sobald Google Drive verbunden ist, erscheinen hier alle Stücke aus dem Notenarchiv.',
 		failed: 'Das Notenarchiv konnte gerade nicht geladen werden. Versuch es gleich noch einmal.',
 		checkStatus: 'Verbindung prüfen',
-		search: 'Titel, Komponist, Instrument, Notiz …',
-		all: 'Alle',
+		search: 'Archiv filtern: Titel, Komponist, Stimme, Notiz …',
+		searchLabel: 'Archiv filtern',
 		needsWork: 'Mit Lücken',
 		noMusic: 'Ohne Noten',
-		withRecording: (n: number) => `Mit Hörbeispiel · ${n}`,
 		byComposer: (composer: string) => `Werke von ${composer}`,
 		clearComposer: 'Komponisten-Filter entfernen',
 		categoryFiles: 'Dateien zu dieser Kategorie',
@@ -128,6 +135,11 @@ export const de = {
 		foundParts: (instruments: string) => `Stimme: ${instruments}`,
 		foundNote: (excerpt: string) => `Notiz: ${excerpt}`,
 		filter: 'Filter',
+		filterGroups: { mine: 'Für mich', programs: 'Orchester', categories: 'Kategorie', state: 'Zustand' },
+		myPart: 'Mit meiner Stimme',
+		assigned: 'Mir zugeteilt',
+		coming: 'In kommenden Konzerten',
+		withRecording: 'Mit Hörbeispiel',
 		status: {
 			ok: '',
 			missing: 'Stimmen fehlen',
@@ -216,7 +228,7 @@ export const de = {
 		noUpcoming: 'Gerade stehen keine Termine im Kalender.',
 		subscribe: 'Google Kalender abonnieren',
 		ownCalendar: 'Termine in meinen Kalender',
-		filters: { all: 'Alle', concerts: 'Konzerte', rehearsals: 'Proben' },
+		filters: { kind: 'Art', answer: 'Meine Antwort', concerts: 'Konzerte', rehearsals: 'Proben' },
 		view: 'Ansicht',
 		list: 'Liste',
 		calendar: 'Monat',
@@ -849,12 +861,7 @@ export const de = {
 			view: (label: string) => `${label} ansehen`,
 			removeAll: 'Alle löschen',
 			confirmRemoveAll: 'Alle offline gespeicherten Stimmen von diesem Gerät löschen?'
-		},
-		install: 'Als App auf dem Startbildschirm',
-		installHint: 'Öffnet sich wie eine App und zeigt geladene Seiten auch ohne Netz.',
-		installManual: 'iPhone: Safari → Teilen → Zum Home-Bildschirm. Android: Menü → App installieren.',
-		installButton: 'Installieren',
-		installSamsung: 'Samsung Internet warnt beim Installieren vor einer alten Android-Version; das liegt am Browser, nicht an der App. Öffne die Seite in Chrome und wähle dort Menü → App installieren.'
+		}
 	},
 	/** The personal calendar feed (#122), on /profil and in the feed itself. */
 	feed: {
@@ -1110,14 +1117,28 @@ export const de = {
 		none: (query: string) => `Kein Instrument passt zu „${query}“.`,
 		add: 'Weiteres Instrument',
 		remove: 'Instrument entfernen',
+		removeNamed: (name: string) => `${name} entfernen`,
+		change: 'Ändern',
+		done: 'Fertig',
+		chosen: (n: number) => (n === 1 ? '1 Instrument' : `${n} Instrumente`),
 		numbers: 'Stimmen',
 		numbersHint: 'keine Auswahl: alle Stimmen'
+	},
+	/** Filters for a list, several at once (archive, calendar). */
+	filters: {
+		button: 'Filter',
+		active: (label: string, n: number) => `${label}, ${n} aktiv`,
+		close: 'Schließen',
+		reset: 'Zurücksetzen',
+		show: (n: number) => (n === 1 ? '1 Eintrag anzeigen' : `${n} anzeigen`),
+		would: (n: number) => (n === 1 ? '1 Eintrag' : `${n} Einträge`)
 	},
 	quickSearch: {
 		label: 'Schnellsuche',
 		open: 'Suchen',
 		shortcut: 'Strg K',
-		placeholder: 'Stück, Konzert oder Seite …',
+		placeholder: 'Stück, Stimme, Konzert oder Seite …',
+		inArchive: (n: number) => (n === 1 ? 'Im Archiv zeigen' : `Alle ${n} im Archiv zeigen`),
 		pages: 'Seiten',
 		pieces: 'Stücke',
 		concerts: 'Konzerte',
@@ -1536,11 +1557,18 @@ export const de = {
 		unknownStatus: 'Diesen Status gibt es nicht.',
 		badDate: 'Das Datum ist nicht lesbar.'
 	},
-	/** The tour for new members: the main pages, then their profile; retaken from /profil. */
+	/** The tour for new members: the essentials, then setting the app up on their profile; retaken from /profil. */
 	tour: {
 		label: 'Tour durch die App',
 		welcome: (name: string) => (name ? `Willkommen, ${name}!` : 'Willkommen!'),
-		offer: 'Magst du eine kurze Tour machen? In einer Minute siehst du die wichtigsten Seiten und richtest dein Profil ein.',
+		offer: 'In zwei Minuten siehst du, wo deine Termine und Noten sind, und richtest die App für dich ein.',
+		offerOpen: 'In einer Minute siehst du, wo die Termine und Noten sind.',
+		chapters: {
+			basics: 'Das Wichtigste',
+			basicsHint: (n: number) => `${n} kurze Schritte`,
+			setup: 'Für dich einrichten',
+			setupHint: 'Instrument, Ansicht, Erinnerungen'
+		},
 		start: 'Tour starten',
 		skip: 'Überspringen',
 		end: 'Tour beenden',
@@ -1548,20 +1576,104 @@ export const de = {
 		next: 'Weiter',
 		finish: 'Fertig',
 		step: (n: number, of: number) => `Schritt ${n} von ${of}`,
+		setupOffer: {
+			title: 'Das Wichtigste kennst du',
+			body: 'Magst du die App noch kurz für dich einrichten? Das dauert eine Minute.',
+			start: 'Einrichten',
+			later: 'Später'
+		},
 		steps: {
-			home: { title: 'Übersicht', body: 'Die Startseite zeigt, was als Nächstes ansteht: die nächste Probe, das nächste Konzert und was gerade auf dich wartet.' },
-			calendar: { title: 'Kalender', body: 'Alle Proben und Konzerte. Hier sagst du zu oder ab und siehst das Programm; Terminumfragen stehen gleich daneben.' },
-			parts: { title: 'Meine Noten', body: 'Deine Stimmen für die nächsten Konzerte, passend zu deinem Instrument. Stimmt das Instrument hier? Sonst wähl es aus und speichere.' },
-			pieces: { title: 'Archiv', body: 'Alle Stücke des Notenarchivs mit Noten, Hörbeispielen und Hinweisen. Mit der Suche oben findest du jedes Stück schnell.' },
-			more: { title: 'Mehr', body: 'Hier findest du alle weiteren Seiten, zum Beispiel die Chronik. Unten stellst du ein, ob die App hell oder dunkel ist.' },
-			profile: { title: 'Dein Profil', body: 'Trag ein, welche Instrumente du spielst und in welchen Orchestern. Mit „Speichern“ gilt es überall in der App.' },
-			theme: { title: 'Hell oder dunkel', body: 'So sieht die App für dich aus: wie dein Gerät eingestellt ist, immer hell oder immer dunkel. Probier es gleich aus.' },
-			notifications: { title: 'Benachrichtigungen', body: 'Lass dich an Zusagen, Proben und Leihmaterial erinnern: als Benachrichtigung auf diesem Gerät oder per E-Mail.' },
-			done: { title: 'Fertig!', body: 'Viel Spaß beim Spielen. Die Tour kannst du im Profil jederzeit noch einmal machen.' },
-			doneOpen: { title: 'Fertig!', body: 'Viel Spaß beim Spielen.' }
+			home: { title: 'Dein nächster Termin', body: 'Hier steht immer, was als Nächstes ansteht. Mit einem Tipp sagst du zu oder ab und öffnest deine Noten dafür.' },
+			parts: { title: 'Meine Noten', body: 'Deine Stimmen für die nächsten Proben und Konzerte, passend zu deinem Instrument. Offline gespeichert gehen sie auch im Probenraum ohne Netz.' },
+			calendar: { title: 'Kalender', body: 'Alle Proben und Konzerte mit Zeit, Ort und Programm. Hier antwortest du auch auf spätere Termine.' },
+			pieces: { title: 'Archiv', body: 'Jedes Stück mit Noten, Hörbeispielen und Hinweisen. Das Feld darüber filtert die Liste, auch nach Stimme; die Lupe oben findet alles in der App.' },
+			more: { title: 'Mehr', body: 'Alle weiteren Seiten, zum Beispiel die Chronik. Ganz unten stellst du hell oder dunkel und die Schriftgröße ein.' },
+			instruments: { title: 'Dein Instrument', body: 'Trag ein, was du spielst; danach richtet sich „Meine Noten“. Mit „Speichern“ gilt es überall.' },
+			view: { title: 'Ansicht und Schrift', body: 'Hell, dunkel oder wie dein Gerät, und die Schrift größer, wenn du magst. Probier es gleich aus.' },
+			notifications: { title: 'Erinnerungen', body: 'Lass dich an Antworten, Proben und Leihmaterial erinnern: auf diesem Gerät oder per E-Mail.' },
+			install: { title: 'Aufs Handy', body: 'Als App auf dem Startbildschirm öffnet sich alles mit einem Tipp, auch ohne Netz. Die Anleitung zeigt dir, wie.' },
+			done: { title: 'Fertig!', body: 'Viel Spaß beim Spielen. Die Tour findest du hier jederzeit wieder.' },
+			doneOpen: { title: 'Fertig!', body: 'Viel Spaß beim Spielen. Hell, dunkel und die Schriftgröße findest du unter „Mehr“.' }
 		},
 		retake: 'Tour noch einmal machen',
-		retakeHint: 'Die wichtigsten Seiten und dein Profil, Schritt für Schritt.'
+		retakeHint: 'Das Wichtigste und deine Einstellungen, Schritt für Schritt.'
+	},
+	/** The app on the home screen (#279): the start page's hint, /install and the profile's entry. */
+	install: {
+		title: (name: string) => `${name} auf deinem Handy`,
+		entryHint: 'Installation und Hilfe',
+		entryInstalled: 'Installiert · Anleitung und Hilfe',
+		pageTitle: 'App installieren',
+		lead: (name: string) => `Leg ${name} auf deinen Startbildschirm. Dann öffnet es sich mit einem Tipp, wie jede andere App.`,
+		shareDescription: 'Noten, Proben und Konzerte als App auf dem Handy, in einer Minute eingerichtet.',
+		benefits: {
+			parts: { title: 'Deine Noten mit einem Tipp', body: 'Termine und Stimmen öffnen sich sofort, ohne Suchen im Browser.' },
+			offline: { title: 'Auch ohne Netz', body: 'Gespeicherte Stimmen und zuletzt geöffnete Seiten gehen im Probenraum ohne Empfang.' },
+			reminders: { title: 'Erinnerungen', body: 'Auf dem iPhone gibt es Benachrichtigungen nur für die App auf dem Startbildschirm.' }
+		},
+		hint: {
+			title: (name: string) => `Installiere die ${name}-App`,
+			body: 'Deine Noten, Termine und Konzertinformationen, jederzeit griffbereit.',
+			install: 'Jetzt installieren',
+			later: 'Später',
+			never: 'Nicht mehr fragen'
+		},
+		device: 'Dein Gerät',
+		platforms: { ios: 'iPhone, iPad', android: 'Android', desktop: 'Computer' },
+		oneTap: {
+			title: 'Mit einem Tipp installieren',
+			body: 'Dein Browser kann die App direkt installieren. Er fragt einmal nach, dann liegt sie auf deinem Startbildschirm.',
+			button: 'Jetzt installieren',
+			manual: 'Lieber Schritt für Schritt'
+		},
+		step: (n: number, of: number) => `Schritt ${n} von ${of}`,
+		back: 'Zurück',
+		next: 'Weiter',
+		finish: 'Erledigt',
+		restart: 'Noch einmal von vorn',
+		notSafari: 'Auf dem iPhone klappt das am sichersten in Safari. Kopiere den Link und öffne ihn dort.',
+		fromApp: 'Kommst du aus WhatsApp? Tippe unten rechts auf das Kompass-Symbol oder auf „In Safari öffnen“.',
+		otherAndroid: 'Diese Seite ist im Browser einer anderen App offen. Tippe auf die drei Punkte und „Im Browser öffnen“, dann geht es in Chrome weiter.',
+		samsung: 'Samsung Internet warnt beim Installieren vor einer alten Android-Version; das liegt am Browser, nicht an der App. Am besten öffnest du die Seite in Chrome.',
+		firefox: 'Firefox kann Web-Apps auf dem Computer nicht installieren. Öffne die Seite in Chrome oder Edge, oder leg dir ein Lesezeichen an.',
+		copyLink: 'Link kopieren',
+		copied: 'Kopiert',
+		steps: {
+			ios: [
+				{ title: 'Tippe auf „Teilen“', body: 'Das Quadrat mit dem Pfeil nach oben, in der Leiste von Safari. Siehst du es nicht, tippe zuerst auf die drei Punkte unten rechts.' },
+				{ title: '„Zum Home-Bildschirm“ wählen', body: 'Schieb die Liste etwas nach oben, bis du „Zum Home-Bildschirm“ siehst, und tippe darauf.' },
+				{ title: 'Auf „Hinzufügen“ tippen', body: 'Oben rechts. Den Namen kannst du so lassen.' }
+			] as InstallSteps,
+			iosMenu: [
+				{ title: 'Tippe auf die drei Punkte', body: 'Unten rechts, neben der Adresse.' },
+				{ title: 'Tippe auf „Teilen“', body: 'Ganz oben im Menü.' },
+				{ title: '„Zum Home-Bildschirm“ wählen', body: 'Schieb die Liste nach oben. Steht es nicht da, tippe zuerst auf „Mehr“.' },
+				{ title: 'Auf „Hinzufügen“ tippen', body: '„Als Web-App öffnen“ bleibt an. Dann oben rechts auf „Hinzufügen“.' }
+			] as InstallSteps,
+			android: [
+				{ title: 'Öffne das Menü', body: 'Tippe oben rechts auf die drei Punkte.' },
+				{ title: '„App installieren“ wählen', body: 'Je nach Version heißt es auch „Zum Startbildschirm hinzufügen“.' },
+				{ title: 'Auf „Installieren“ tippen', body: 'Kurz warten: Das Symbol erscheint auf deinem Startbildschirm.' }
+			] as InstallSteps,
+			desktop: [
+				{ title: 'Auf das Installieren-Symbol klicken', body: 'Rechts in der Adressleiste: ein Bildschirm mit einem Pfeil. Oder im Menü (drei Punkte) „Seite als App installieren“.' },
+				{ title: 'Auf „Installieren“ klicken', body: 'Die App öffnet sich in einem eigenen Fenster und liegt danach im Startmenü oder im Dock.' }
+			] as InstallSteps,
+			mac: [
+				{ title: 'Menü „Ablage“ öffnen', body: 'Oben in der Menüleiste von Safari.' },
+				{ title: '„Zum Dock hinzufügen“ wählen', body: 'Dann auf „Hinzufügen“ klicken. Das geht ab macOS Sonoma.' }
+			] as InstallSteps
+		},
+		done: {
+			title: 'Geschafft!',
+			body: (name: string) => `${name} ist jetzt auf deinem Startbildschirm. Du kannst die App jederzeit direkt öffnen und deine Noten auch offline nutzen.`
+		},
+		standalone: { title: 'Du nutzt schon die App', body: 'Du hast sie vom Startbildschirm aus geöffnet. Hier ist nichts mehr zu tun.' },
+		manualDone: {
+			title: 'Schau auf deinen Startbildschirm',
+			body: (name: string) => `Dort sollte jetzt das Symbol von ${name} liegen. Öffne die App künftig darüber, dann geht alles mit einem Tipp, auch ohne Netz.`
+		},
+		open: 'Zur App'
 	},
 	/** Everything the sheet keeps about a member, as one file (#158). */
 	myData: {
@@ -1928,7 +2040,7 @@ export const de = {
 		composerFullHint: 'z. B. Ludwig van Beethoven – für die GEMA-Meldung',
 		listHint: 'mehrere mit Komma trennen',
 		publisherHint: 'z. B. Bärenreiter – für die GEMA-Meldung',
-		instrumentationHint: 'laut Partitur, mit Semikolon: Flöte 1 & 2; Oboe; Geige 1 & 2',
+		unreadInstrumentation: (text: string) => `Nicht als Instrument erkannt, bleibt so stehen: ${text}`,
 		missingColumns: (columns: string) => `${columns}: Die Spalten fehlen noch in der Tabelle. Einmal „Tabelle einrichten“ ausführen, dann lassen sie sich hier eintragen.`
 	},
 	editor: {

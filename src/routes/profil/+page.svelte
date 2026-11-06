@@ -12,6 +12,7 @@
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import Title from '#lib/components/Title.svelte';
 	import { startTour } from '#lib/tour/state.svelte.ts';
+	import { install } from '#lib/install/state.svelte.ts';
 
 	let { data, form } = $props();
 	const saving = new FormState();
@@ -19,27 +20,6 @@
 	const feeds = new FormState();
 	const mails = new FormState();
 
-	// Chrome and Android offer installing through an event; Safari only through its share menu.
-	type InstallPrompt = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
-	let installPrompt = $state<InstallPrompt | null>(null);
-	let installed = $state(false);
-	// Samsung Internet builds its own package for Android, which Android warns is outdated; Chrome's isn't.
-	let samsung = $state(false);
-	$effect(() => {
-		installed = matchMedia('(display-mode: standalone)').matches;
-		samsung = navigator.userAgent.includes('SamsungBrowser');
-		const offer = (event: Event) => {
-			event.preventDefault();
-			installPrompt = event as InstallPrompt;
-		};
-		addEventListener('beforeinstallprompt', offer);
-		return () => removeEventListener('beforeinstallprompt', offer);
-	});
-	async function install() {
-		await installPrompt?.prompt();
-		if ((await installPrompt?.userChoice)?.outcome === 'accepted') installed = true;
-		installPrompt = null;
-	}
 	let copied = $state(false);
 	async function copy(text: string) {
 		try {
@@ -166,26 +146,25 @@
 	<section>
 		<h2 class="ui-label">{t.profile.settings}</h2>
 		<div class="ui-list settings">
-			<div class="setting" data-tour="theme">
+			<div class="setting" data-tour="view">
 				<span>{t.theme.label}</span>
 				<ThemeToggle />
 			</div>
-			<div class="setting">
+			<div class="setting" data-tour="view">
 				<span>{t.textSize.label}<small class="muted">{t.textSize.hint}</small></span>
 				<TextSize />
 			</div>
+			<!-- The app on the home screen (#279): the guide, also once it's installed. -->
+			<a class="setting entry" href="/install" data-tour={install.installed ? undefined : 'install'}>
+				<span class="entry-icon" aria-hidden="true"><Icon name={install.installed ? 'check' : 'download'} size={18} /></span>
+				<span>{t.install.title(data.orchestraShortName)}<small class="muted">{install.installed ? t.install.entryInstalled : t.install.entryHint}</small></span>
+				<Icon name="chevron" size={16} />
+			</a>
 			<!-- The tour for new members, once more from the start. -->
 			<div class="setting" data-tour="retake">
 				<span>{t.tour.label}<small class="muted">{t.tour.retakeHint}</small></span>
 				<button class="btn small secondary" onclick={startTour}><Icon name="sparkle" size={14} />{t.tour.retake}</button>
 			</div>
-			<!-- On the home screen it opens like an app and works offline in the rehearsal hall (#62). -->
-			{#if !installed}
-				<div class="setting">
-					<span>{t.pwa.install}<small class="muted">{samsung ? t.pwa.installSamsung : installPrompt ? t.pwa.installHint : t.pwa.installManual}</small></span>
-					{#if installPrompt && !samsung}<button class="btn small secondary" onclick={install}><Icon name="download" size={14} />{t.pwa.installButton}</button>{/if}
-				</div>
-			{/if}
 			<form class="setting" method="POST" action="/auth/logout">
 				<span>{t.auth.signedInAs(data.email)}</span>
 				<button class="logout"><Icon name="logout" size={16} />{t.auth.logout}</button>
@@ -336,6 +315,35 @@
 	form.setting span {
 		color: var(--text-muted);
 		font-size: var(--text-sm);
+	}
+
+	/* A row that opens a page: the whole row is the link. */
+	.entry {
+		flex-wrap: nowrap;
+		color: inherit;
+		text-decoration: none;
+		transition: background var(--fast) var(--ease);
+	}
+
+	.entry:hover {
+		background: var(--surface-2);
+	}
+
+	.entry > :global(svg) {
+		flex: none;
+		color: var(--text-muted);
+	}
+
+	.setting > .entry-icon {
+		display: grid;
+		flex: none;
+		min-width: 0;
+		place-items: center;
+		width: 36px;
+		height: 36px;
+		border-radius: var(--radius-control);
+		background: var(--accent-soft);
+		color: var(--accent);
 	}
 
 	.logout {
