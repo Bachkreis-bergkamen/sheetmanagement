@@ -2,6 +2,7 @@
 	import SeasonMark from '#lib/components/SeasonMark.svelte';
 	import { t } from '#lib/i18n/index.ts';
 	import Icon from '#lib/components/Icon.svelte';
+	import InstallHint from '#lib/components/InstallHint.svelte';
 	import SignupAnswers from '#lib/components/SignupAnswers.svelte';
 	import Title from '#lib/components/Title.svelte';
 	import { navGroups } from '#lib/nav.ts';
@@ -191,7 +192,7 @@
 		{#if first}
 			{@const [titleStart, titleEnd] = splitTrailingEmoji(first.event.displayTitle)}
 			<article class="ui-card next {first.kind}" bind:this={nextCard}>
-				<a class="event" href={eventUrl(first.event)}>
+				<a class="event" href={eventUrl(first.event)} data-tour="next">
 					<h2 class="when">{dateHeading(first.event)}</h2>
 					<span class="what">
 						<strong>{titleStart}{#if titleEnd}<span class="keep">{titleEnd}</span>{/if}</strong>
@@ -223,6 +224,9 @@
 			</div>
 		{/if}
 	</section>
+
+	<!-- Below the next date, not above it: on phones, until the app is on the home screen or the member said no (#279). -->
+	<InstallHint name={data.orchestraShortName} logo={data.logo} />
 
 	{#if later.length || todo.length}
 		<div class="side">
@@ -912,6 +916,11 @@
 
 		.watermark {
 			width: min(50%, 200px);
+		}
+
+		/* On a phone the season's drawing shares the logo's corner: the logo steps back for it. */
+		.story:has(:global(.scene)) .watermark {
+			opacity: 0.1;
 		}
 
 		.next {

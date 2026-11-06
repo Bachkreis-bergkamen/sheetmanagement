@@ -19,7 +19,7 @@ import { cleanLink } from '#lib/links.ts';
 import { daysUntilDue, loanState, loansOf } from '#lib/loans/loans.ts';
 import { formatDay } from '#lib/events/format.ts';
 import { pieceArt } from '#lib/music/piece-art.ts';
-import { missingVoices, readInstrumentation, voiceText } from '#lib/music/instrumentation.ts';
+import { missingVoices, readInstrumentation } from '#lib/music/instrumentation.ts';
 import { portraitFor, portraitPageUrl } from '#lib/server/portraits.ts';
 import { appendRecords, deleteRows, ensureTab, readTab, refreshAfterWrite, SheetLayoutError } from '#lib/server/sheet-writes.ts';
 import { folderUrl, partUrl } from '#lib/server/catalog.ts';
@@ -172,6 +172,9 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 			recording: sheet?.recording,
 			parts: (detail?.parts ?? []).map((part) => ({ ...part, url: partUrl(part.id, part.mimeType, locals.access.viaLink) })),
 			sections: (detail?.sections ?? []).map((section) => ({ ...section, folderUrl: folderUrl(section.folderId) })),
+			// The Besetzung as a seating plan, and what of it has no part (#249).
+			// The conductor's score is always needed: present unless no file is there (#249).
+			besetzung: { voices: scored, missing: unscored, score: !!detail?.parts.some((part) => part.kind === 'partitur' && part.status !== 'missing') },
 			info: {
 				duration: sheet?.duration ? formatDuration(sheet.duration) : undefined,
 				publisher: sheet?.publisher,
@@ -180,8 +183,6 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 				difficulty: sheet?.difficulty,
 				// "2026-10-22" reads "22. Oktober 2026"; anything else as entered.
 				reviewedAt: sheet?.reviewedAt && /^\d{4}-\d{2}-\d{2}$/.test(sheet.reviewedAt) ? formatDay(sheet.reviewedAt, config.locale) : sheet?.reviewedAt,
-				instrumentation: scored.map(voiceText).join(', ') || undefined,
-				unscored: unscored.map(voiceText).join(', ') || undefined,
 				notes: sheet?.notes
 			}
 		},

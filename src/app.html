@@ -18,6 +18,12 @@
 				const size = localStorage.getItem('text-size');
 				if (size === 'large' || size === 'larger') document.documentElement.dataset.textSize = size;
 			} catch {}
+			// The browser's install offer can come before the app has started (#279): kept for it.
+			addEventListener('beforeinstallprompt', (event) => {
+				event.preventDefault();
+				window.__installPrompt = event;
+			});
+			addEventListener('appinstalled', () => (window.__installed = true));
 		</script>
 		%sveltekit.head%
 	</head>

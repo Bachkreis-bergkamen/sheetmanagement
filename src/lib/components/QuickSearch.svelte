@@ -1,6 +1,6 @@
 <script lang="ts" module>
 	interface Index {
-		pieces: { id: string; title: string; composer?: string; search: string }[];
+		pieces: { id: string; title: string; composer?: string; search: string; instruments: string[]; notes: string[] }[];
 		concerts: { id: string; title: string; when: string; dateKey: string; search: string }[];
 		today: string;
 	}
@@ -23,6 +23,7 @@
 	import { goto } from '$app/navigation';
 	import { t } from '#lib/i18n/index.ts';
 	import { searchText } from '#lib/music/text.ts';
+	import { findPiece } from '#lib/music/piece-search.ts';
 	import type { NavGroup } from '#lib/nav.ts';
 	import Icon, { type IconName } from './Icon.svelte';
 	import Nothing from './Nothing.svelte';
@@ -38,6 +39,8 @@
 		title: string;
 		sub?: string;
 		icon: IconName;
+		/** The way on to a whole list, not a single thing: not kept under "Zuletzt geöffnet". */
+		more?: boolean;
 	}
 
 	const RECENT = 'quick-search-recent';
@@ -93,6 +96,20 @@
 				{ label: t.quickSearch.pages, hits: pages }
 			].filter((section) => section.hits.length);
 		}
+		// The archive's own matching: by title, composer, a part or a note, with the reason shown.
+		const pieces = byStart(
+			(data?.pieces ?? []).flatMap((piece) => {
+				// An index cached from before parts and notes were in it (up to 5 minutes) still searches titles.
+				const by = findPiece({ search: piece.search, instruments: piece.instruments ?? [], notes: piece.notes ?? [] }, words);
+				if (!by) return [];
+				const why = by.instruments.length ? t.pieces.foundParts(by.instruments.join(', ')) : by.note ? t.pieces.foundNote(by.note) : undefined;
+				return [{ ...piece, why }];
+			})
+		);
+		// More than fit here, or found by a part or a note: the archive's list shows them all, with filters.
+		const archive: Hit[] = pieces.length
+			? [{ href: `/stuecke?suche=${encodeURIComponent(query.trim())}`, title: t.quickSearch.inArchive(pieces.length), icon: 'list', more: true }]
+			: [];
 		return [
 			{
 				label: t.quickSearch.pages,
@@ -100,9 +117,12 @@
 			},
 			{
 				label: t.quickSearch.pieces,
-				hits: byStart((data?.pieces ?? []).filter((piece) => matches(piece.search)))
-					.slice(0, 8)
-					.map((piece): Hit => ({ href: `/stuecke/${encodeURIComponent(piece.id)}`, title: piece.title, sub: piece.composer, icon: 'music' }))
+				hits: [
+					...pieces
+						.slice(0, 6)
+						.map((piece): Hit => ({ href: `/stuecke/${encodeURIComponent(piece.id)}`, title: piece.title, sub: piece.why ?? piece.composer, icon: 'music' })),
+					...archive
+				]
 			},
 			{
 				label: t.quickSearch.concerts,
@@ -125,7 +145,7 @@
 	function choose(hit: Hit | undefined) {
 		if (!hit) return;
 		// Pieces and concerts are remembered for next time; pages are always listed anyway.
-		if (!pages.some((page) => page.href === hit.href)) {
+		if (!hit.more && !pages.some((page) => page.href === hit.href)) {
 			const next = [hit, ...recent.filter((other) => other.href !== hit.href)].slice(0, 4);
 			try {
 				localStorage.setItem(RECENT, JSON.stringify(next));
@@ -211,7 +231,7 @@
 						>
 							<span class="icon"><Icon name={hit.icon} size={18} /></span>
 							<span class="text">
-								<span class="title">{hit.title}</span>
+								<span class="title" class:more={hit.more}>{hit.title}</span>
 								{#if hit.sub}<span class="sub">{hit.sub}</span>{/if}
 							</span>
 							<span class="enter" aria-hidden="true"><Icon name="arrow" size={14} /></span>
@@ -355,6 +375,11 @@
 
 	.title {
 		font-weight: 600;
+	}
+
+	/* The way on to the archive's whole list, in the accent like a link. */
+	.title.more {
+		color: var(--accent);
 	}
 
 	.sub {

@@ -98,6 +98,8 @@ export function isPublicPath(path: string): boolean {
 		// Linked from Google's sign-in screen, so they must be readable without an account.
 		path === '/datenschutz' ||
 		path === '/nutzungsbedingungen' ||
+		// How to put the app on the home screen (#279): shared in the orchestra's chat before anyone signs in.
+		path === '/install' ||
 		path.startsWith('/auth/') ||
 		// Answering a sign-up from a reminder email (#123): the signed link is the proof.
 		path.startsWith('/antwort/') ||

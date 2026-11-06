@@ -93,6 +93,19 @@ export function readInstrumentation(text: string | undefined, config: OrchestraC
 	return merge((text ?? '').split(/[;\n]+/).flatMap((entry) => (entry.trim() ? voicesOf(entry, config) : [])));
 }
 
+/** Entries of the Besetzung that name no instrument the app knows: kept as written when it's edited. */
+export function unreadEntries(text: string | undefined, config: OrchestraConfig): string[] {
+	return (text ?? '')
+		.split(/[;\n]+/)
+		.map((entry) => entry.trim())
+		.filter((entry) => entry && !voicesOf(entry, config).length);
+}
+
+/** The Besetzung written back as the sheet keeps it: "Flöte 1 & 2; Oboe", then what wasn't read. */
+export function writeInstrumentation(voices: ScoredVoice[], unread: string[] = []): string {
+	return [...merge(voices.filter((voice) => voice.instrument)).map(voiceText), ...unread].join('; ');
+}
+
 /**
  * A line as text recognition reads it, with its usual slips undone: "|" and "l" for the Roman
  * I ("Violino |", "Corni 1. Il."), and "a 2" run into the word before ("Oboia 2", "in Ba 2").

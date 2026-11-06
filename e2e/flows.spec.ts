@@ -26,9 +26,10 @@ test('answering from the start page', async ({ page }) => {
 	await change.click();
 	await expect(page.getByRole('form', { name: /^Bist du dabei\?/ }).first().getByRole('button', { name: 'Ich komme' })).toHaveAttribute('aria-pressed', 'true');
 	// The calendar list says which dates are answered and which still wait.
+	// The list, not the filter panel's options of the same name.
 	await open(page, '/kalender');
-	await expect(page.getByText('Du kommst').first()).toBeVisible();
-	await expect(page.getByText('Antwort fehlt').first()).toBeVisible();
+	await expect(page.getByText('Du kommst').filter({ visible: true }).first()).toBeVisible();
+	await expect(page.getByText('Antwort fehlt').filter({ visible: true }).first()).toBeVisible();
 });
 
 test('the programme editor saves', async ({ page }) => {
@@ -145,12 +146,17 @@ test('the Besetzung read from the score flags an instrument without a part (#249
 	const suggestion = page.locator('.suggest li').filter({ hasText: 'Besetzung' });
 	await expect(suggestion).toContainText('Piccolo; Flöte 1 & 2; Oboe 1 & 2');
 	await suggestion.getByRole('button', { name: 'Übernehmen' }).click();
-	await expect(page.getByLabel('Besetzung')).toHaveValue(/^Piccolo; Flöte 1 & 2/);
+	// Taken over into the instrument picker, one chip per instrument.
+	const besetzung = page.getByRole('group', { name: 'Besetzung' });
+	await expect(besetzung).toContainText('Piccolo');
+	await expect(besetzung).toContainText('Flöte 1 & 2');
 	await page.getByRole('button', { name: 'Speichern' }).click();
 	await expect(page).toHaveURL(/\/stuecke\/demo-egmont(\?|$)/);
 	// No piccolo part in the archive; the double bass has its own gap (FEHLT) and isn't named twice.
-	await expect(page.locator('.detail').filter({ hasText: 'Ohne Stimme' })).toContainText('Piccolo');
-	await expect(page.locator('.detail').filter({ hasText: 'Ohne Stimme' })).not.toContainText('Kontrabass');
+	// The seating plan rings it and names it underneath.
+	const missing = page.getByText(/^Ohne Stimme im Archiv:/);
+	await expect(missing).toContainText('Piccolo');
+	await expect(missing).not.toContainText('Kontrabass');
 	await open(page, '/fehlende-stimmen');
 	await expect(page.getByText('laut Besetzung, keine Stimme')).toBeVisible();
 });
@@ -329,8 +335,9 @@ test.describe('installing from Samsung Internet', () => {
 	test.use({ userAgent: 'Mozilla/5.0 (Linux; Android 15; SM-S931B) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/28.0 Chrome/130.0.0.0 Mobile Safari/537.36' });
 
 	test('points to Chrome, whose install Android does not warn about', async ({ page }) => {
-		await open(page, '/profil');
-		await expect(page.getByText('Öffne die Seite in Chrome')).toBeVisible();
-		await expect(page.getByRole('button', { name: 'Installieren' })).toHaveCount(0);
+		await open(page, '/install');
+		await expect(page.getByRole('radio', { name: 'Android' })).toBeChecked();
+		await expect(page.getByText('Am besten öffnest du die Seite in Chrome')).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Jetzt installieren' })).toHaveCount(0);
 	});
 });

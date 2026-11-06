@@ -1,12 +1,15 @@
 <script lang="ts">
 	import { listHas } from '#lib/repertoire/lists.ts';
 	import { onMount } from 'svelte';
+	import { replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import { t } from '#lib/i18n/index.ts';
 	import { searchText } from '#lib/music/text.ts';
 	import { findPiece, type FoundBy } from '#lib/music/piece-search.ts';
 	import AddToArchive from '#lib/components/AddToArchive.svelte';
 	import EmptyState from '#lib/components/EmptyState.svelte';
+	import FilterPanel from '#lib/components/FilterPanel.svelte';
+	import { applyFilters, type FilterGroup, type FilterOption } from '#lib/filters.ts';
 	import Icon from '#lib/components/Icon.svelte';
 	import Nothing from '#lib/components/Nothing.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
@@ -14,55 +17,81 @@
 
 	let { data, form } = $props();
 
-	const NEEDS_WORK = '__needs-work';
-	const NO_MUSIC = '__no-music';
-	const RECORDING = '__recording';
-	let query = $state('');
-	let filter = $state('');
+	type Piece = (typeof data.pieces)[number];
+	const NEEDS_WORK = 'zustand:luecken';
+	// "/stuecke?suche=Bariton", from the quick search's "Alle im Archiv" or a shared link.
+	// svelte-ignore state_referenced_locally
+	let query = $state(page.url.searchParams.get('suche') ?? '');
+	/** Several at once: any within a group, all across groups (#lib/filters.ts). */
+	let chosen = $state<string[]>([]);
 	let input: HTMLInputElement | undefined = $state();
 
-	// Keep search and filter when coming back from a piece.
+	// Keep search and filters when coming back from a piece.
 	export const snapshot = {
-		capture: () => ({ query, filter }),
-		restore: (value: { query: string; filter: string }) => ({ query, filter } = value)
+		capture: () => ({ query, chosen }),
+		restore: (value: { query: string; chosen?: string[] }) => ((query = value.query), (chosen = value.chosen ?? []))
 	};
 
-	const recordings = $derived(data.pieces.filter((piece) => piece.recording).length);
-
-	// Programmes first ("A-Orchester", "Ehemaligenorchester"), then categories like "Weihnachtsstücke".
-	const filters = $derived([
-		{ value: '', label: t.pieces.all },
-		...data.programs.map((program) => ({ value: `program:${program}`, label: program })),
-		...data.categories.map((category) => ({ value: `category:${category}`, label: category })),
-		{ value: NEEDS_WORK, label: t.pieces.needsWork },
-		...(data.pieces.some((piece) => piece.status === 'none') ? [{ value: NO_MUSIC, label: t.pieces.noMusic }] : []),
-		...(recordings ? [{ value: RECORDING, label: t.pieces.withRecording(recordings) }] : [])
-	]);
+	const option = (value: string, label: string, test: (piece: Piece) => boolean) => ({ value, label, test });
+	/** Only options some piece has: an empty "Mir zugeteilt" would just be noise. */
+	const some = (options: FilterOption<Piece>[]) => options.filter((each) => data.pieces.some(each.test));
+	const filterGroups = $derived(
+		[
+			{
+				key: 'mine',
+				label: t.pieces.filterGroups.mine,
+				options: some([
+					option('ich:stimme', t.pieces.myPart, (piece) => piece.mine),
+					option('ich:zugeteilt', t.pieces.assigned, (piece) => piece.assigned),
+					option('ich:konzerte', t.pieces.coming, (piece) => piece.coming)
+				])
+			},
+			{
+				key: 'programs',
+				label: t.pieces.filterGroups.programs,
+				options: data.programs.map((program) => option(`programm:${program}`, program, (piece) => piece.programs.includes(program)))
+			},
+			{
+				key: 'categories',
+				label: t.pieces.filterGroups.categories,
+				options: data.categories.map((category) => option(`kategorie:${category}`, category, (piece) => piece.category === category))
+			},
+			{
+				key: 'state',
+				label: t.pieces.filterGroups.state,
+				options: some([
+					option(NEEDS_WORK, t.pieces.needsWork, (piece) => piece.status !== 'ok' && piece.status !== 'none'),
+					option('zustand:ohne', t.pieces.noMusic, (piece) => piece.status === 'none'),
+					option('zustand:hoerbeispiel', t.pieces.withRecording, (piece) => piece.recording)
+				])
+			}
+		].filter((group) => group.options.length) satisfies FilterGroup<Piece>[]
+	);
 
 	// "/stuecke?komponist=Bach", linked from a piece page: all works by one composer.
 	const composer = $derived(page.url.searchParams.get('komponist')?.trim() || null);
-	const activeCategory = $derived(filter.startsWith('category:') ? filter.slice('category:'.length) : null);
+	/** The loose files of a category, when exactly that one is chosen. */
+	const activeCategory = $derived.by(() => {
+		const categories = chosen.filter((value) => value.startsWith('kategorie:'));
+		return categories.length === 1 ? categories[0].slice('kategorie:'.length) : null;
+	});
 
-	const matches = $derived.by(() => {
+	// First the search (and the composer), then the filters: their counts count what the search left.
+	const searched = $derived.by(() => {
 		const words = searchText(query).split(/\s+/).filter(Boolean);
 		const found = new Map<string, FoundBy>();
 		const result = data.pieces.filter((piece) => {
 			// Also the works this composer wrote with others ("Mozart, Haydn").
 			if (composer && !listHas(piece.composer, composer)) return false;
-			if (filter === NEEDS_WORK && (piece.status === 'ok' || piece.status === 'none')) return false;
-			if (filter === NO_MUSIC && piece.status !== 'none') return false;
-			if (filter === RECORDING && !piece.recording) return false;
-			if (filter.startsWith('program:') && !piece.programs.includes(filter.slice('program:'.length))) return false;
-			if (filter.startsWith('category:') && piece.category !== filter.slice('category:'.length)) return false;
 			const by = findPiece(piece, words);
 			if (by && (by.instruments.length || by.note)) found.set(piece.id, by);
 			return !!by;
 		});
 		return { result, found };
 	});
-	const visible = $derived(matches.result);
+	const visible = $derived(applyFilters(searched.result, filterGroups, chosen));
 	// Why a piece was found, when only by a part or a note ("Bariton", "Goldfinger").
-	const foundBy = $derived(matches.found);
+	const foundBy = $derived(searched.found);
 
 	const letterOf = (title: string) => {
 		const first = searchText(title.charAt(0)).toUpperCase();
@@ -79,7 +108,20 @@
 		return result;
 	});
 
+	// The address follows the search, so it can be shared and survives a reload; no new history entry.
+	let mounted = $state(false);
+	$effect(() => {
+		const wanted = query.trim();
+		if (!mounted || wanted === (page.url.searchParams.get('suche') ?? '')) return;
+		const url = new URL(page.url.href);
+		if (wanted) url.searchParams.set('suche', wanted);
+		else url.searchParams.delete('suche');
+		const timer = setTimeout(() => replaceState(url, page.state), 300);
+		return () => clearTimeout(timer);
+	});
+
 	onMount(() => {
+		mounted = true;
 		// "/" jumps to the search field, like on many sites.
 		const onKey = (event: KeyboardEvent) => {
 			if (event.key === '/' && document.activeElement?.tagName !== 'INPUT') {
@@ -104,6 +146,7 @@
 	</div>
 {:else}
 	<div class="tools">
+		<div class="row">
 		<label class="search">
 			<Icon name="search" size={18} />
 			<input
@@ -111,7 +154,7 @@
 				bind:value={query}
 				type="search"
 				placeholder={t.pieces.search}
-				aria-label={t.pieces.search}
+				aria-label={t.pieces.searchLabel}
 				autocomplete="off"
 				spellcheck="false"
 			/>
@@ -122,6 +165,9 @@
 			{/if}
 		</label>
 
+		<FilterPanel bind:value={chosen} items={searched.result} groups={filterGroups} label={t.pieces.filter} size="large" />
+		</div>
+
 		{#if composer}
 			<a class="composer" href="/stuecke" aria-label={t.pieces.clearComposer} title={t.pieces.clearComposer}>
 				{t.pieces.byComposer(composer)}
@@ -129,19 +175,6 @@
 			</a>
 		{/if}
 
-		<div class="chips" role="radiogroup" aria-label={t.pieces.filter}>
-			{#each filters as option (option.value)}
-				<button
-					class="chip"
-					class:active={filter === option.value}
-					role="radio"
-					aria-checked={filter === option.value}
-					onclick={() => (filter = option.value)}
-				>
-					{option.label}
-				</button>
-			{/each}
-		</div>
 	</div>
 
 	{#if activeCategory && data.categoryFiles[activeCategory]?.length}
@@ -155,12 +188,12 @@
 
 	<p class="count" aria-live="polite">
 		{t.pieces.count(visible.length)}
-		{#if filter === NEEDS_WORK}· <a class="gaps-link" href="/fehlende-stimmen">{t.gaps.link} →</a>{/if}
+		{#if chosen.includes(NEEDS_WORK)}· <a class="gaps-link" href="/fehlende-stimmen">{t.gaps.link} →</a>{/if}
 	</p>
 
 	{#if visible.length === 0}
 		<Nothing text={t.pieces.noResults} glyphs={['violin', 'clarinet', 'trumpet']}>
-			{#if query || filter}<button class="btn secondary" onclick={() => ((query = ''), (filter = ''))}>{t.pieces.clearSearch}</button>{/if}
+			{#if query || chosen.length}<button class="btn secondary" onclick={() => ((query = ''), (chosen = []))}>{t.pieces.clearSearch}</button>{/if}
 		</Nothing>
 	{:else}
 		{#each groups as group (group.letter)}
@@ -287,43 +320,14 @@
 		cursor: pointer;
 	}
 
-	.chips {
+	.row {
 		display: flex;
 		gap: var(--space-2);
-		overflow-x: auto;
-		scrollbar-width: none;
-		margin: 0 calc(-1 * var(--space-4));
-		padding: 0 var(--space-4);
 	}
 
-	.chips::-webkit-scrollbar {
-		display: none;
-	}
-
-	.chip {
-		flex: none;
-		min-height: 34px;
-		padding: 0 14px;
-		border: 0;
-		border-radius: var(--radius-pill);
-		background: var(--surface-2);
-		color: var(--text-muted);
-		font: inherit;
-		font-size: var(--text-sm);
-		font-weight: 600;
-		cursor: pointer;
-		transition:
-			background var(--fast) var(--ease),
-			color var(--fast) var(--ease);
-	}
-
-	.chip:hover {
-		color: var(--text);
-	}
-
-	.chip.active {
-		background: var(--accent);
-		color: var(--accent-contrast);
+	.row .search {
+		flex: 1;
+		min-width: 0;
 	}
 
 	.composer {

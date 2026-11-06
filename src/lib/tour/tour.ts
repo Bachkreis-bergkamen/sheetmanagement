@@ -1,44 +1,52 @@
 import { t } from '#lib/i18n/index.ts';
 
 /**
- * The tour for new members: the main pages one after another, pointing at their entries in
- * the navigation, then the member's own profile, where they set their instruments, the
- * colour scheme and notifications with the profile's own controls. Offered once; finishing
- * or skipping it is remembered (D1 for those signed in, the browser otherwise).
+ * The tour for new members, in two short chapters: first the few places a member needs (the
+ * next date, their parts, the calendar, the archive, "Mehr"), each pointing at the real thing;
+ * then, if they like, setting the app up for themselves on their profile with its own controls
+ * (instrument, look and text size, reminders, the app on the home screen). Offered once;
+ * finishing or skipping it is remembered (D1 for those signed in, the browser otherwise).
  */
 
 /** How the tour ended: taken to the end, or skipped. */
 export type TourOutcome = 'done' | 'skipped';
 
+export type TourChapter = 'basics' | 'setup';
+
 export interface TourStep {
-	key: keyof typeof t.tour.steps;
-	/** The page the step is shown on; the tour goes there first. */
-	path: string;
+	key: keyof typeof t.tour.steps | 'setupOffer';
+	chapter: TourChapter;
+	/** The page the step is shown on; the tour goes there first. None: wherever the tour is. */
+	path?: string;
 	/**
-	 * What the step points at, as a CSS selector; the first visible match counts, so the
-	 * header's link on wide screens and the tab bar's on phones. None: the card alone.
+	 * What the step points at, as CSS selectors tried in turn; all visible matches of the first
+	 * that has any are ringed together (the header's link on wide screens, the tab bar's on
+	 * phones; two rows of settings at once). None: the card alone.
 	 */
-	target?: string;
+	target?: string | string[];
 	/** Left out when its target isn't on the page, e.g. notifications that aren't set up. */
 	optional?: boolean;
 }
 
-/** The steps; those about the profile only for someone signed in, who has one. */
+/** The steps; setting things up only for someone signed in, who has a profile. */
 export function tourSteps({ account }: { account: boolean }): TourStep[] {
+	const basics: TourStep[] = [
+		{ key: 'home', chapter: 'basics', path: '/', target: ['[data-tour="next"]', '[data-tour="/"]'] },
+		{ key: 'parts', chapter: 'basics', path: '/meine-noten', target: ['[data-tour="instrument"]', '[data-tour="/meine-noten"]'] },
+		{ key: 'calendar', chapter: 'basics', path: '/kalender', target: '[data-tour="/kalender"]' },
+		{ key: 'pieces', chapter: 'basics', path: '/stuecke', target: '[data-tour="/stuecke"]' },
+		{ key: 'more', chapter: 'basics', path: '/stuecke', target: '[data-tour="more"]' }
+	];
+	if (!account) return [...basics, { key: 'doneOpen', chapter: 'basics', path: '/' }];
 	return [
-		{ key: 'home', path: '/', target: '[data-tour="/"]' },
-		{ key: 'calendar', path: '/kalender', target: '[data-tour="/kalender"]' },
-		{ key: 'parts', path: '/meine-noten', target: '[data-tour="instrument"]' },
-		{ key: 'pieces', path: '/stuecke', target: '[data-tour="/stuecke"]' },
-		{ key: 'more', path: '/stuecke', target: '[data-tour="more"]' },
-		...(account
-			? ([
-					{ key: 'profile', path: '/profil', target: '[data-tour="profile"]', optional: true },
-					{ key: 'theme', path: '/profil', target: '[data-tour="theme"]' },
-					{ key: 'notifications', path: '/profil', target: '#benachrichtigungen, #email', optional: true },
-					{ key: 'done', path: '/profil', target: '[data-tour="retake"]' }
-				] satisfies TourStep[])
-			: ([{ key: 'doneOpen', path: '/' }] satisfies TourStep[]))
+		...basics,
+		// A pause between the chapters: setting up is offered, not pressed on anyone.
+		{ key: 'setupOffer', chapter: 'basics' },
+		{ key: 'instruments', chapter: 'setup', path: '/profil', target: '[data-tour="instruments"]', optional: true },
+		{ key: 'view', chapter: 'setup', path: '/profil', target: '[data-tour="view"]' },
+		{ key: 'notifications', chapter: 'setup', path: '/profil', target: '#benachrichtigungen, #email', optional: true },
+		{ key: 'install', chapter: 'setup', path: '/profil', target: '[data-tour="install"]', optional: true },
+		{ key: 'done', chapter: 'setup', path: '/profil', target: '[data-tour="retake"]' }
 	];
 }
 

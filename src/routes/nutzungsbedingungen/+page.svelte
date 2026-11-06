@@ -12,5 +12,6 @@
 	sections={t.legal.terms.sections(context)}
 	contact={data.contact}
 	showContact={false}
+	credits
 	other={{ href: '/datenschutz', label: t.legal.links.privacy }}
 />

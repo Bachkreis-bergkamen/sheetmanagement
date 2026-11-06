@@ -10,7 +10,8 @@
 		sections,
 		contact,
 		showContact,
-		other
+		other,
+		credits = false
 	}: {
 		title: string;
 		lead: string;
@@ -19,6 +20,8 @@
 		/** The privacy notice must name who is responsible. */
 		showContact: boolean;
 		other: { href: string; label: string };
+		/** The instrument drawings' CC BY credit (on the terms page). */
+		credits?: boolean;
 	} = $props();
 
 	// Name and email are enough contact details; the postal address is optional.
@@ -54,6 +57,13 @@
 			{/if}
 		</section>
 	{/each}
+
+	{#if credits}
+		<section>
+			<h2>{t.footer.credits.heading}</h2>
+			<p>{t.footer.credits.text} <a href="/licenses/game-icons-CC-BY-3.0.txt">{t.footer.credits.license}</a></p>
+		</section>
+	{/if}
 
 	<p class="footer">{t.legal.updated} · <a href={other.href}>{other.label}</a></p>
 </article>

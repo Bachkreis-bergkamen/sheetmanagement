@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { config } from '#lib/config/index.ts';
-import { instrumentationFromScore, missingVoices, readInstrumentation, tidyRecognised, voiceText } from './instrumentation.ts';
+import { instrumentationFromScore, missingVoices, readInstrumentation, tidyRecognised, unreadEntries, voiceText, writeInstrumentation } from './instrumentation.ts';
 import { createInstrumentMatcher, parsePartName } from './part-name.ts';
 import type { Part } from './types.ts';
 
@@ -61,5 +61,22 @@ describe('missingVoices', () => {
 	it('counts a part for several instruments, and a shared part, for each', () => {
 		const parts = [part('Flöte 1 & 2.pdf'), part('Oboe.pdf'), part('C-Stimmen.pdf'), part('Viola.pdf'), part('Violoncello & Kontrabass.pdf')];
 		expect(missingVoices(voices, parts, config)).toEqual([]);
+	});
+});
+
+describe('editing the Besetzung with the instrument picker', () => {
+	it('writes it back as the sheet keeps it, the same instrument once', () => {
+		expect(
+			writeInstrumentation([
+				{ instrument: 'Flöte', numbers: [1, 2] },
+				{ instrument: 'Oboe', numbers: [] },
+				{ instrument: '', numbers: [] }
+			])
+		).toBe('Flöte 1 & 2; Oboe');
+	});
+
+	it('keeps what it cannot read, as written', () => {
+		expect(unreadEntries('Flöte 1 & 2; Theremin; Oboe', config)).toEqual(['Theremin']);
+		expect(writeInstrumentation(readInstrumentation('Flöte 1 & 2; Theremin', config), ['Theremin'])).toBe('Flöte 1 & 2; Theremin');
 	});
 });

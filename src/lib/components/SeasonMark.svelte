@@ -1,103 +1,82 @@
 <script lang="ts" module>
 	import type { Season } from '#lib/seasons.ts';
 
-	/** How a season's small motifs move in the scene, and how its companion does. */
-	type Motifs = 'fall' | 'twinkle' | 'burst' | 'spin' | 'sit';
-	type Companion = 'fly' | 'flutter' | 'sway' | 'wave' | 'bob' | 'flicker' | 'fizz';
-
 	/**
-	 * Drawn on a 24 grid with round strokes in the text colour, like pencil marks in the margin.
-	 * Each season has its motif and a companion with moving parts: wings, an arm, a flame.
+	 * The season's small mark, on a 24 grid: for the footer's ornament and an empty list's
+	 * shoulder. One fine line, no characters: a leaf, a snowflake, a blossom.
 	 */
-	const SEASONS: Record<Season, { motif: string; companion: string; motifs: Motifs; moves: Companion }> = {
-		advent: {
-			motif: '<path d="M12 3.5l2.5 5.3 5.8.7-4.3 4 1.1 5.7L12 16.4l-5.1 2.8 1.1-5.7-4.3-4 5.8-.7z"/>',
-			// A candle with its flame.
-			companion:
-				'<path d="M9.5 11.5h5V21h-5z"/><path d="M12 11.5V9.8M7.5 21h9"/><g class="part flame"><path d="M12 3.6c1.5 1.7 1.9 3 1.9 3.9a1.9 1.9 0 0 1-3.8 0c0-.9.4-2.2 1.9-3.9z"/></g>',
-			motifs: 'twinkle',
-			moves: 'flicker'
-		},
-		newYear: {
-			motif: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8"/><circle cx="12" cy="12" r="1.2"/>',
-			// A glass of sparkling wine, bubbles rising.
-			companion:
-				'<path d="M8.5 3h7l-.8 6.2a2.7 2.7 0 0 1-5.4 0z"/><path d="M12 12v7.5M9 20.5h6"/><circle class="part bubble" cx="11" cy="7.4" r=".6"/><circle class="part bubble late" cx="13" cy="6.6" r=".5"/>',
-			motifs: 'burst',
-			moves: 'fizz'
-		},
-		winter: {
-			motif:
-				'<path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9M9.8 4.6L12 6.4l2.2-1.8M9.8 19.4L12 17.6l2.2 1.8M4.6 10.2l2.6-.5-.9-2.6M19.4 13.8l-2.6.5.9 2.6M6.3 16.4l.9-2.6-2.6-.5M17.7 7.6l-.9 2.6 2.6.5"/>',
-			// A snowman in a top hat, waving.
-			companion:
-				'<circle cx="12" cy="8" r="3"/><circle cx="12" cy="16.2" r="4.8"/><path d="M9 5.2h6M10.2 5.2V2.6h3.6v2.6M12 8.4l2 .5M7.6 14.2l-3.2-2-.6-1.3"/><g class="part arm"><path d="M16.4 14.2l3.2-2 .6-1.3"/></g><circle cx="12" cy="14.6" r=".5" fill="currentColor"/><circle cx="12" cy="17.4" r=".5" fill="currentColor"/>',
-			motifs: 'fall',
-			moves: 'wave'
-		},
-		spring: {
-			motif:
-				'<circle cx="12" cy="7" r="3"/><circle cx="16.8" cy="10.5" r="3"/><circle cx="15" cy="16" r="3"/><circle cx="9" cy="16" r="3"/><circle cx="7.2" cy="10.5" r="3"/><circle cx="12" cy="12" r="1.3"/>',
-			// A butterfly.
-			companion:
-				'<g class="part wing left"><path d="M11.6 11.5C9.5 6.8 5 5.8 4.2 8.6c-.7 2.6 2.6 4.1 7.4 3.4z"/><path d="M11.6 12.6c-3.6.6-6 2.4-5 4.4 1 1.9 4 .4 5-4.4z"/></g><g class="part wing right"><path d="M12.4 11.5C14.5 6.8 19 5.8 19.8 8.6c.7 2.6-2.6 4.1-7.4 3.4z"/><path d="M12.4 12.6c3.6.6 6 2.4 5 4.4-1 1.9-4 .4-5-4.4z"/></g><path d="M12 9.5v8M12 9.5l-1.6-2.6M12 9.5l1.6-2.6"/>',
-			motifs: 'fall',
-			moves: 'flutter'
-		},
-		summer: {
-			motif: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M18.7 5.3l-1.8 1.8M7.1 16.9l-1.8 1.8"/>',
-			// A sailing boat on the waves.
-			companion:
-				'<g class="part boat"><path d="M4.5 15.5h15l-2.6 3.6H7.1z"/><path d="M12 4v11.5M12.6 5.2l5.6 8.8h-5.6zM11.4 7.4L7 14h4.4z"/></g><path d="M2.5 21.5c1.5-1 3-1 4.5 0s3 1 4.5 0 3-1 4.5 0 3 1 4.5 0"/>',
-			motifs: 'spin',
-			moves: 'bob'
-		},
-		autumn: {
-			motif: '<path d="M5 19C5 10 10 5 19 5c0 9-5 14-14 14z"/><path d="M5 19L14 10M9.5 14.5h3.5M12 12V9"/>',
-			// A kite in the wind, as children fly them in autumn.
-			companion:
-				'<g class="part kite"><path d="M14 2.5l5 5.5-5 8.5-5-8.5z"/><path d="M9 8h10M14 2.5v14"/><path class="tail" d="M14 16.5c-1.8 1.2.2 2.4-1.6 3.6s.2 2.4-1.6 3.4"/></g>',
-			motifs: 'fall',
-			moves: 'sway'
-		},
-		halloween: {
-			motif:
-				'<path d="M12 8c-4.5 0-7.5 2.6-7.5 6s3 6 7.5 6 7.5-2.6 7.5-6-3-6-7.5-6z"/><path d="M12 8c-2 0-3 2.7-3 6s1 6 3 6 3-2.7 3-6-1-6-3-6z"/><path d="M12 8V5.5c0-.8.6-1.5 1.5-1.5"/>',
-			// A bat, flapping.
-			companion:
-				'<g class="part wing left"><path d="M10.4 11.6C8.6 9.6 5.6 9.2 3 10.6c1.3.5 1.8 1.5 1.6 2.7 1.2-.8 2.4-.6 3 .4.7-.8 1.8-.8 2.8-.2"/></g><g class="part wing right"><path d="M13.6 11.6c1.8-2 4.8-2.4 7.4-1-1.3.5-1.8 1.5-1.6 2.7-1.2-.8-2.4-.6-3 .4-.7-.8-1.8-.8-2.8-.2"/></g><path d="M12 9.4c1 0 1.8 1.2 1.8 2.8S13 15.4 12 15.4s-1.8-1.6-1.8-3.2.8-2.8 1.8-2.8zM11 9.8l-.4-1.6 1 1M13 9.8l.4-1.6-1 1"/>',
-			motifs: 'sit',
-			moves: 'fly'
-		}
+	const MARKS: Record<Season, string> = {
+		advent: '<path d="M12 3.5l2.4 5.1 5.6.7-4.1 3.9 1 5.5L12 16l-4.9 2.7 1-5.5-4.1-3.9 5.6-.7z"/>',
+		newYear: '<path d="M12 3.5c.6 4.8 3.4 7.6 8.5 8.5-5.1.9-7.9 3.7-8.5 8.5-.6-4.8-3.4-7.6-8.5-8.5 5.1-.9 7.9-3.7 8.5-8.5z"/>',
+		winter: '<path d="M12 2.5v19M3.8 7.25l16.4 9.5M3.8 16.75l16.4-9.5M9.6 4.4L12 6.4l2.4-2M9.6 19.6l2.4-2 2.4 2M4.3 10.1l3 .5-1-2.9M19.7 13.9l-3-.5 1 2.9M6.3 16.3l1-2.9-3 .5M17.7 7.7l-1 2.9 3-.5"/>',
+		spring: blossom(),
+		summer: '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M18.5 5.5l-1.7 1.7M7.2 16.8l-1.7 1.7"/>',
+		autumn: leaf(),
+		halloween: '<path d="M14.5 3.5a8.6 8.6 0 1 0 6 13.6 7.1 7.1 0 1 1-6-13.6z"/>'
 	};
 
-	/** Where the scene's motifs sit or start: across the card's right part, behind the greeting. */
-	const SPOTS = [
-		{ x: 42, y: 18, size: 14, delay: 0, duration: 11 },
-		{ x: 63, y: 62, size: 20, delay: -3.5, duration: 13 },
-		{ x: 78, y: 12, size: 12, delay: -7, duration: 10 },
-		{ x: 88, y: 48, size: 17, delay: -1.8, duration: 14 },
-		{ x: 54, y: 34, size: 11, delay: -9, duration: 12 },
-		{ x: 70, y: 28, size: 15, delay: -5.2, duration: 15 }
-	];
-	const COUNT: Record<Motifs, number> = { fall: 6, twinkle: 5, burst: 4, spin: 1, sit: 2 };
-	/** Pumpkins and the sun sit in fixed places instead. */
-	const PLACED: Partial<Record<Motifs, { x: number; y: number; size: number }[]>> = {
-		sit: [
-			{ x: 72, y: 50, size: 26 },
-			{ x: 85, y: 62, size: 17 }
-		],
-		spin: [{ x: 66, y: 14, size: 30 }]
-	};
+	/** A leaf, pointed and veined: reads as a leaf down to 16px, where a maple's lobes blur. */
+	function leaf() {
+		return '<path d="M12 2.8c4.8 3.8 6.2 8.4 4.4 12.2-1.2 2.4-2.8 3.4-4.4 3.4s-3.2-1-4.4-3.4C5.8 11.2 7.2 6.6 12 2.8z"/><path d="M12 21.2V6.4M12 10.6l-2.4-1.9M12 10.6l2.4-1.9M12 14.2l-3-2.1M12 14.2l3-2.1"/>';
+	}
+
+	function blossom() {
+		const petal = 'M12 10.3C10.3 8.7 10.2 5.4 12 3.6c1.8 1.8 1.7 5.1 0 6.7z';
+		return [0, 72, 144, 216, 288].map((turn) => `<path d="${petal}" transform="rotate(${turn} 12 12)"/>`).join('') + '<circle cx="12" cy="12" r="1.3"/>';
+	}
+
+	/** Needles along a fir twig, both sides, from (x1,y1) to (x2,y2). */
+	function needles(x1: number, y1: number, x2: number, y2: number, count: number, length: number) {
+		const dx = x2 - x1;
+		const dy = y2 - y1;
+		const norm = Math.hypot(dx, dy);
+		const [ux, uy] = [dx / norm, dy / norm];
+		let d = '';
+		for (let i = 1; i <= count; i++) {
+			const t = i / (count + 1);
+			const [x, y] = [x1 + dx * t, y1 + dy * t];
+			const l = length * (1 - t * 0.45);
+			for (const side of [1, -1]) {
+				// Swept back along the twig, like a real sprig.
+				const nx = x + (ux * 0.55 - uy * side) * l;
+				const ny = y + (uy * 0.55 + ux * side) * l;
+				d += `M${x.toFixed(1)} ${y.toFixed(1)}L${nx.toFixed(1)} ${ny.toFixed(1)}`;
+			}
+		}
+		return d;
+	}
+
+	/** A firework's burst: fine rays with a point at each end. */
+	function burst(cx: number, cy: number, inner: number, outer: number, rays = 12) {
+		let lines = '';
+		let points = '';
+		for (let i = 0; i < rays; i++) {
+			const a = (i / rays) * Math.PI * 2;
+			const [c, s] = [Math.cos(a), Math.sin(a)];
+			lines += `M${(cx + c * inner).toFixed(1)} ${(cy + s * inner).toFixed(1)}L${(cx + c * outer).toFixed(1)} ${(cy + s * outer).toFixed(1)}`;
+			points += `<circle cx="${(cx + c * (outer + 2.4)).toFixed(1)}" cy="${(cy + s * (outer + 2.4)).toFixed(1)}" r=".7" class="dot"/>`;
+		}
+		return `<path d="${lines}"/>${points}`;
+	}
+
+	export const SPRIG = needles(162, 6, 92, 16, 11, 9);
+	export const BURSTS = [burst(118, 42, 8, 30, 14), burst(72, 66, 5, 16)];
+	/** Snow, spread once; drawn twice, one above the other, so its fall loops without a seam. */
+	export const FLAKES = Array.from({ length: 22 }, (_, i) => ({
+		x: 40 + ((i * 53) % 122),
+		y: (i * 37) % 100,
+		r: i % 3 === 0 ? 1.1 : 0.7
+	}));
 </script>
 
 <script lang="ts">
 	import { page } from '$app/state';
 
 	/**
-	 * The season's drawings (#202): "scene" fills the start page's story card with the motifs
-	 * and the companion moving; "pair" is motif and companion side by side; "companion" the
-	 * companion alone. Nothing at all while the feature is off (page.data.season is null).
+	 * The season's drawings (#202). "scene": a composed line drawing behind the story card's
+	 * greeting, one thing in it moving slowly (a leaf falling, snow, a boat rocking). "pair": the
+	 * season's mark between two fading rules, an ornament at the foot of the page. "companion":
+	 * the mark alone, small. Nothing at all while the feature is off (page.data.season is null).
 	 */
 	let {
 		variant = 'pair',
@@ -105,442 +84,365 @@
 		season = page.data.season as Season | null | undefined
 	}: { variant?: 'scene' | 'pair' | 'companion'; size?: number; season?: Season | null } = $props();
 
-	const look = $derived(season ? SEASONS[season] : null);
-	const spots = $derived(look ? (PLACED[look.motifs] ?? SPOTS.slice(0, COUNT[look.motifs])) : []);
+	const uid = $props.id();
+	const ref = (name: string) => `#${uid}-${name}`;
 </script>
 
-{#snippet drawing(markup: string, px: number, className = '')}
-	<svg
-		class={className}
-		width={px}
-		height={px}
-		viewBox="0 0 24 24"
-		fill="none"
-		stroke="currentColor"
-		stroke-width="1.6"
-		stroke-linecap="round"
-		stroke-linejoin="round"
-		aria-hidden="true"
-	>
+{#snippet mark(px: number)}
+	<svg class="mark" width={px} height={px} viewBox="0 0 24 24" aria-hidden="true">
 		<!-- The drawings above, never anything typed in. -->
-		{@html markup}
+		{@html MARKS[season!]}
 	</svg>
 {/snippet}
 
-{#if look && season}
+<!-- A drawn thing from the defs, its anchor (the leaf's stalk, the flake's centre) at x, y. -->
+{#snippet put(name: string, x: number, y: number, px: number, turn = 0, className = '')}
+	<g class={className} transform="translate({x} {y}) rotate({turn})">
+		<use href={ref(name)} x={-px / 2} y={name === 'leaf' ? -px * 0.875 : -px / 2} width={px} height={px} />
+	</g>
+{/snippet}
+
+{#if season}
 	{#if variant === 'scene'}
-		<span class="scene {look.motifs} moves-{look.moves}" data-season={season} aria-hidden="true">
-			{#each spots as spot, i (i)}
-				<span
-					class="motif"
-					style:left="{spot.x}%"
-					style:top={look.motifs === 'fall' ? '-24px' : `${spot.y}%`}
-					style:--y="{spot.y}%"
-					style:--delay="{'delay' in spot ? spot.delay : i * -2}s"
-					style:--duration="{'duration' in spot ? spot.duration : 12}s"
-					style:--sway="{i % 2 ? -18 : 22}px"
-					style:--px={spot.size}
-				>
-					{@render drawing(look.motif, spot.size)}
-				</span>
-			{/each}
-			<span class="companion" style:--px={40}>{@render drawing(look.companion, 40)}</span>
+		<svg class="scene" data-season={season} viewBox="0 0 160 100" preserveAspectRatio="xMaxYMid meet" aria-hidden="true">
+			<defs>
+				<symbol id="{uid}-leaf" viewBox="0 0 24 24">{@html leaf()}</symbol>
+				<symbol id="{uid}-blossom" viewBox="0 0 24 24">{@html blossom()}</symbol>
+				<symbol id="{uid}-flake" viewBox="0 0 24 24">{@html MARKS.winter}</symbol>
+				<symbol id="{uid}-star" viewBox="0 0 24 24">{@html MARKS.advent}</symbol>
+				<symbol id="{uid}-glint" viewBox="0 0 24 24">{@html MARKS.newYear}</symbol>
+			</defs>
+
+			{#if season === 'autumn'}
+				<!-- A twig reaching in, two leaves on it, one on its way down. -->
+				<path d="M166 10C146 12 128 20 112 32M134 18c3.4 7 3 13-1 19" />
+				{@render put('leaf', 133, 37, 34, 172)}
+				{@render put('leaf', 112, 32, 26, 214, 'soft')}
+				<g class="fall">{@render put('leaf', 70, 6, 22, 30)}</g>
+				<g class="fall late">{@render put('leaf', 150, 34, 15, -20, 'faint')}</g>
+			{:else if season === 'winter'}
+				<!-- One large flake turning slowly, a smaller one, fine snow falling past. -->
+				<g class="snow">
+					{#each [0, -100] as shift (shift)}
+						{#each FLAKES as flake, i (i)}<circle class="dot faint" cx={flake.x} cy={flake.y + shift} r={flake.r} />{/each}
+					{/each}
+				</g>
+				<g class="turn" style:transform-origin="122px 46px">{@render put('flake', 122, 46, 56)}</g>
+				{@render put('flake', 78, 30, 24, 15, 'soft')}
+			{:else if season === 'spring'}
+				<!-- A cherry twig in flower; a petal let go. -->
+				<path d="M166 96C148 84 134 70 124 54 118 44 110 36 98 30M140 76c7-5 14-7 22-7" />
+				{@render put('blossom', 124, 52, 36)}
+				{@render put('blossom', 98, 30, 24, 30, 'soft')}
+				<ellipse class="soft" cx="158" cy="68" rx="3" ry="4.6" transform="rotate(-60 158 68)" />
+				<g class="fall"><path d="M70 14c-2.6-2.4-2.8-7.4 0-10.2 2.8 2.8 2.6 7.8 0 10.2z" /></g>
+				<g class="fall late"><path class="faint" d="M146 30c-2-1.9-2.1-5.6 0-7.7 2.1 2.1 2 5.8 0 7.7z" /></g>
+			{:else if season === 'summer'}
+				<!-- Sun over the water, a sail on the horizon. -->
+				<circle cx="130" cy="34" r="15" />
+				<g class="turn slow" style:transform-origin="130px 34px">
+					{#each Array.from({ length: 12 }, (_, i) => (i * Math.PI) / 6) as a (a)}
+						<path class="soft" d="M{130 + Math.cos(a) * 21} {34 + Math.sin(a) * 21}L{130 + Math.cos(a) * 27} {34 + Math.sin(a) * 27}" />
+					{/each}
+				</g>
+				<path class="faint" d="M44 80H164M62 89c6-2.8 12-2.8 18 0s12 2.8 18 0 12-2.8 18 0 12 2.8 18 0" />
+				<g class="rock" style:transform-origin="82px 80px">
+					<path d="M64 75h36l-5.6 5.6H69.6zM82 75V42M83.6 45l14 27H83.6zM80.4 50.6l-11.2 21.4h11.2z" />
+				</g>
+			{:else if season === 'advent'}
+				<!-- A fir sprig, a star and a bauble hanging from it, a glint or two. -->
+				<path d="M164 6C140 11 118 14 90 16" />
+				<path class="soft" d={SPRIG} />
+				<g class="hang" style:transform-origin="128px 11px">
+					<path class="soft" d="M128 11v32" />
+					{@render put('star', 128, 56, 30)}
+				</g>
+				<g class="hang late" style:transform-origin="104px 14px">
+					<path class="faint" d="M104 14v18" />
+					<circle class="soft" cx="104" cy="40" r="7" />
+					<path class="soft" d="M101.6 32.6h4.8" />
+				</g>
+				{@render put('glint', 74, 44, 13, 0, 'glint')}
+				{@render put('glint', 154, 78, 10, 0, 'glint late')}
+			{:else if season === 'newYear'}
+				<!-- Fireworks opening one after the other. -->
+				<g class="bloom" style:transform-origin="118px 42px">{@html BURSTS[0]}</g>
+				<g class="bloom late soft" style:transform-origin="72px 66px">{@html BURSTS[1]}</g>
+				{@render put('glint', 154, 16, 12, 0, 'glint')}
+				{@render put('glint', 60, 24, 9, 0, 'glint late')}
+			{:else}
+				<!-- A crescent moon behind a bare twig; a bat crossing now and then. -->
+				<path d="M136 8a30 30 0 1 0 26 48 24 24 0 1 1-26-48z" />
+				<path class="soft" d="M168 96c-20-8-34-20-44-38M146 80c-7-2-11.4-6.4-13.4-13M134 66c5-6.4 11-9 18-9" />
+				{@render put('glint', 98, 24, 10, 0, 'glint')}
+				<g class="fly"><g transform="translate(150 40) scale(1.7) translate(-150 -40)">
+					<path d="M150 40c-1.6-2.2-4.8-3.2-8.6-2.4 1.4.8 1.8 1.8 1.7 3.2-1.3-.7-2.9-.6-4 .4 3.2.1 6 1.2 8 2.8M150 40c1.6-2.2 4.8-3.2 8.6-2.4-1.4.8-1.8 1.8-1.7 3.2 1.3-.7 2.9-.6 4 .4-3.2.1-6 1.2-8 2.8M148.4 42c0 1.4.7 2.6 1.6 2.6s1.6-1.2 1.6-2.6-.7-2.2-1.6-2.2-1.6.8-1.6 2.2z" />
+				</g></g>
+			{/if}
+		</svg>
+	{:else if variant === 'pair'}
+		<!-- An ornament between two rules, like the end of a chapter. -->
+		<span class="ornament" data-season={season} aria-hidden="true">
+			<span class="rule"></span>{@render mark(Math.round(size * 0.9))}<span class="rule end"></span>
 		</span>
 	{:else}
-		<span class="pair moves-{look.moves}" data-season={season} aria-hidden="true">
-			{#if variant === 'pair'}{@render drawing(look.motif, Math.round(size * 0.8), 'small')}{/if}
-			<span class="companion">{@render drawing(look.companion, size)}</span>
-		</span>
+		<span class="alone" data-season={season} aria-hidden="true">{@render mark(size)}</span>
 	{/if}
 {/if}
 
 <style>
+	/* ---------- Fine lines, one weight at every size ---------- */
+
 	.scene,
-	.pair {
-		/* Parts of a drawing turn around their own spot on the 24 grid. */
-		--wing-left: 11px 12px;
-		--wing-right: 13px 12px;
+	.mark {
+		fill: none;
+		stroke: currentColor;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+
+	.scene :global(*),
+	.mark :global(*) {
+		vector-effect: non-scaling-stroke;
+	}
+
+	.mark {
+		display: block;
+		stroke-width: 1.5;
 	}
 
 	/* ---------- The scene, behind the story card's greeting ---------- */
 
 	.scene {
 		position: absolute;
-		inset: 0;
-		overflow: hidden;
+		top: 0;
+		right: 2%;
+		width: 60%;
+		height: 100%;
 		color: var(--accent-dark, var(--brand));
+		stroke-width: 1.5;
+		opacity: 0.85;
 		pointer-events: none;
-	}
-
-	/* Drawn larger on a wide card (--k), from the size each one has on a phone (--px). */
-	.scene :global(svg) {
-		width: calc(var(--px) * var(--k, 1) * 1px);
-		height: calc(var(--px) * var(--k, 1) * 1px);
 	}
 
 	/* On a wide card, between the greeting and the logo rather than on top of the logo. */
 	@media (min-width: 721px) {
 		.scene {
-			--k: 1.6;
-			left: 34%;
-			right: 26%;
+			top: 6%;
+			right: 24%;
+			width: 46%;
+			height: 88%;
 		}
 	}
 
-	.motif {
-		position: absolute;
-		display: grid;
-		opacity: 0.6;
-		animation: var(--duration) linear var(--delay) infinite;
+	/* Three depths: what's near is clear, what's behind it lighter. */
+	.scene :global(.soft) {
+		opacity: 0.62;
 	}
 
-	/* Snow, blossoms and leaves drift down and sideways, turning as they go. */
-	/* They start above the card (top: -24px) and fall through it. */
-	.fall .motif {
-		animation-name: fall;
+	.scene :global(.faint) {
+		opacity: 0.36;
+	}
+
+	.scene :global(.dot) {
+		fill: currentColor;
+		stroke: none;
+	}
+
+	/* One slow thing moving per season; every loop long and even, nothing that bounces. */
+	.scene :global(.fall) {
+		transform-box: fill-box;
+		transform-origin: center;
+		animation: fall 16s linear infinite;
+	}
+
+	.scene :global(.fall.late) {
+		animation-duration: 21s;
+		animation-delay: -9s;
 	}
 
 	@keyframes fall {
 		0% {
-			translate: 0 0;
+			translate: 0 -12px;
 			rotate: 0deg;
 			opacity: 0;
 		}
 		12%,
-		80% {
-			opacity: 0.55;
+		78% {
+			opacity: 1;
 		}
 		50% {
-			translate: var(--sway) 110px;
+			translate: -14px 46px;
+			rotate: 140deg;
 		}
 		100% {
-			translate: 0 230px;
-			rotate: 220deg;
+			translate: -30px 104px;
+			rotate: 280deg;
 			opacity: 0;
 		}
 	}
 
-	/* Stars glimmer in their places. */
-	.twinkle .motif {
-		animation-name: twinkle;
-		--duration: 3.6s !important;
+	.scene :global(.snow) {
+		animation: snow 26s linear infinite;
 	}
 
-	@keyframes twinkle {
-		0%,
-		100% {
-			scale: 0.7;
-			rotate: 0deg;
-			opacity: 0.2;
-		}
-		50% {
-			scale: 1;
-			rotate: 18deg;
-			opacity: 0.75;
+	@keyframes snow {
+		to {
+			translate: 0 100px;
 		}
 	}
 
-	/* Sparks open like a small firework and fade. */
-	.burst .motif {
-		animation-name: burst;
-		--duration: 4.2s !important;
+	.scene :global(.turn) {
+		animation: turn 90s linear infinite;
 	}
 
-	@keyframes burst {
-		0%,
-		30% {
-			scale: 0.2;
-			opacity: 0;
-		}
-		50% {
-			scale: 1;
-			opacity: 0.8;
-		}
-		100% {
-			scale: 1.35;
-			opacity: 0;
-		}
+	.scene :global(.turn.slow) {
+		animation-duration: 160s;
 	}
 
-	/* The sun turns, very slowly. */
-	.spin .motif {
-		animation-name: spin;
-		--duration: 40s !important;
-		opacity: 0.55;
-	}
-
-	@keyframes spin {
+	@keyframes turn {
 		to {
 			rotate: 360deg;
 		}
 	}
 
-	/* Pumpkins sit and glow a little. */
-	.sit .motif {
-		animation-name: glow;
-		--duration: 4.5s !important;
-		opacity: 0.6;
-	}
-
-	@keyframes glow {
-		50% {
-			scale: 1.06;
-			opacity: 0.85;
-		}
-	}
-
-	.scene .companion {
-		position: absolute;
-		top: 22%;
-		left: 76%;
-		display: grid;
-		opacity: 0.85;
-	}
-
-	/* The bat and the butterfly fly a loop over the card. */
-	.scene.moves-fly .companion,
-	.scene.moves-flutter .companion {
-		top: 16%;
-		left: 70%;
-		animation: loop 14s ease-in-out infinite;
-	}
-
-	@keyframes loop {
-		0%,
-		100% {
-			translate: 0 0;
-			rotate: -4deg;
-		}
-		25% {
-			translate: -70px -6px;
-			rotate: 6deg;
-		}
-		50% {
-			translate: -130px 18px;
-			rotate: -2deg;
-		}
-		75% {
-			translate: -50px 30px;
-			rotate: 8deg;
-		}
-	}
-
-	/* The kite tugs on its line; the boat rocks; the snowman and the glass stand. */
-	.scene.moves-sway .companion {
-		animation: sway 5s ease-in-out infinite alternate;
-		transform-origin: 30% 100%;
-	}
-
-	@keyframes sway {
-		from {
-			translate: 0 0;
-			rotate: -8deg;
-		}
-		to {
-			translate: -14px -8px;
-			rotate: 10deg;
-		}
-	}
-
-	.scene.moves-bob .companion {
-		top: auto;
-		bottom: 10%;
-	}
-
-	.scene.moves-wave .companion,
-	.scene.moves-fizz .companion,
-	.scene.moves-flicker .companion {
-		top: auto;
-		bottom: 12%;
-	}
-
-	/* ---------- The moving parts, in the scene and (a few times) in a pair ---------- */
-
-	.companion :global(.part) {
-		transform-box: view-box;
-	}
-
-	.companion :global(.wing.left) {
-		transform-origin: var(--wing-left);
-	}
-
-	.companion :global(.wing.right) {
-		transform-origin: var(--wing-right);
-	}
-
-	.moves-fly .companion :global(.wing.left) {
-		animation: flap-left 0.32s ease-in-out infinite alternate;
-	}
-
-	.moves-fly .companion :global(.wing.right) {
-		animation: flap-right 0.32s ease-in-out infinite alternate;
-	}
-
-	@keyframes flap-left {
-		from {
-			rotate: -14deg;
-		}
-		to {
-			rotate: 22deg;
-		}
-	}
-
-	@keyframes flap-right {
-		from {
-			rotate: 14deg;
-		}
-		to {
-			rotate: -22deg;
-		}
-	}
-
-	.moves-flutter .companion :global(.wing) {
-		animation: flutter 0.45s ease-in-out infinite alternate;
-	}
-
-	@keyframes flutter {
-		to {
-			scale: 0.35 1;
-		}
-	}
-
-	.moves-wave .companion :global(.arm) {
-		transform-origin: 16.4px 14.2px;
-		animation: wave 1.6s ease-in-out infinite;
-	}
-
-	@keyframes wave {
-		0%,
-		60%,
-		100% {
-			rotate: 0deg;
-		}
-		20% {
-			rotate: -28deg;
-		}
-		40% {
-			rotate: 6deg;
-		}
-	}
-
-	.moves-flicker .companion :global(.flame) {
-		transform-origin: 12px 9.4px;
-		animation: flicker 0.7s ease-in-out infinite alternate;
-	}
-
-	@keyframes flicker {
-		from {
-			scale: 0.9 1;
-			rotate: -4deg;
-		}
-		to {
-			scale: 1.05 1.12;
-			rotate: 4deg;
-		}
-	}
-
-	.moves-fizz .companion :global(.bubble) {
-		animation: fizz 2.2s ease-out infinite;
-	}
-
-	.moves-fizz .companion :global(.bubble.late) {
-		animation-delay: -1.1s;
-	}
-
-	@keyframes fizz {
-		0% {
-			translate: 0 0;
-			opacity: 0;
-		}
-		30% {
-			opacity: 1;
-		}
-		100% {
-			translate: 0.4px -4px;
-			opacity: 0;
-		}
-	}
-
-	.moves-bob .companion :global(.boat) {
-		transform-origin: 12px 18px;
-		animation: rock 3.2s ease-in-out infinite alternate;
+	.scene :global(.rock) {
+		animation: rock 7s ease-in-out infinite alternate;
 	}
 
 	@keyframes rock {
 		from {
-			translate: 0 0;
-			rotate: -5deg;
+			rotate: -2.5deg;
 		}
 		to {
-			translate: 0 1.2px;
-			rotate: 5deg;
+			rotate: 2.5deg;
+			translate: 0 0.6px;
 		}
 	}
 
-	.moves-sway .companion :global(.tail) {
-		transform-box: fill-box;
-		transform-origin: top center;
-		animation: tail 1.4s ease-in-out infinite alternate;
+	.scene :global(.hang) {
+		animation: hang 6s ease-in-out infinite alternate;
 	}
 
-	@keyframes tail {
+	.scene :global(.hang.late) {
+		animation-duration: 7.5s;
+		animation-delay: -3s;
+	}
+
+	@keyframes hang {
 		from {
-			rotate: -10deg;
+			rotate: -3deg;
 		}
 		to {
-			rotate: 12deg;
+			rotate: 3deg;
 		}
 	}
 
-	/* ---------- A pair, small: arrives with a hop, moves a few times, then rests ---------- */
-
-	.pair {
-		display: inline-flex;
-		align-items: flex-end;
-		gap: 2px;
+	.scene :global(.glint) {
+		animation: glint 5s ease-in-out infinite;
 	}
 
-	.pair .companion {
-		display: grid;
-		animation: hop 0.6s var(--ease) both;
+	.scene :global(.glint.late) {
+		animation-delay: -1.7s;
 	}
 
-	.pair .companion :global(.part) {
-		animation-iteration-count: 6 !important;
+	.scene :global(.glint.later) {
+		animation-delay: -3.3s;
 	}
 
-	.pair :global(.small) {
-		opacity: 0.7;
+	@keyframes glint {
+		0%,
+		100% {
+			opacity: 0.2;
+		}
+		50% {
+			opacity: 0.9;
+		}
 	}
 
-	@keyframes hop {
+	.scene :global(.bloom) {
+		animation: bloom 7s cubic-bezier(0.2, 0.8, 0.2, 1) -1.5s infinite;
+	}
+
+	.scene :global(.bloom.late) {
+		animation-delay: -5s;
+	}
+
+	.scene :global(.bloom.later) {
+		animation-delay: -4s;
+	}
+
+	@keyframes bloom {
 		0% {
-			translate: 0 6px;
 			scale: 0.6;
 			opacity: 0;
 		}
-		60% {
-			translate: 0 -2px;
-			scale: 1.05;
+		14% {
 			opacity: 1;
 		}
-		100% {
-			translate: 0 0;
+		60% {
 			scale: 1;
+			opacity: 0.9;
+		}
+		88%,
+		100% {
+			scale: 1.08;
+			opacity: 0;
 		}
 	}
 
-	/* Standing still for those who asked for less motion, not sped up: a looping drawing would flicker. */
-	@media (prefers-reduced-motion: reduce) {
-		.scene *,
-		.pair *,
-		.companion :global(*) {
-			animation: none !important;
-		}
+	.scene :global(.fly) {
+		animation: fly 24s linear infinite;
+	}
 
-		/* Snow that doesn't fall lies where it would have been. */
-		.fall .motif {
-			top: var(--y) !important;
+	@keyframes fly {
+		0% {
+			translate: 24px 4px;
+			opacity: 0;
+		}
+		6% {
+			opacity: 1;
+		}
+		25% {
+			translate: -14px -6px;
+		}
+		50% {
+			translate: -54px 6px;
+			opacity: 1;
+		}
+		58%,
+		100% {
+			translate: -74px -2px;
+			opacity: 0;
+		}
+	}
+
+	/* ---------- The ornament at the foot of the page ---------- */
+
+	.ornament {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
+	}
+
+	.rule {
+		width: 36px;
+		height: 1px;
+		background: linear-gradient(to right, transparent, currentColor);
+	}
+
+	.rule.end {
+		background: linear-gradient(to left, transparent, currentColor);
+	}
+
+	.alone {
+		display: grid;
+	}
+
+	/* Standing still for those who asked for less motion. */
+	@media (prefers-reduced-motion: reduce) {
+		.scene :global(*) {
+			animation: none !important;
 		}
 	}
 </style>

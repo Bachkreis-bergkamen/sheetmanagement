@@ -24,6 +24,11 @@
 		open?: boolean;
 	} = $props();
 
+	// The account below links to the profile already: the groups leave out their own entry then.
+	const shown = $derived(
+		user ? groups.map((group) => ({ ...group, items: group.items.filter((item) => item.href !== '/profil') })).filter((group) => group.items.length) : groups
+	);
+
 	function onkeydown(event: KeyboardEvent) {
 		if (open && event.key === 'Escape') open = false;
 	}
@@ -68,7 +73,7 @@
 	<button class="backdrop" tabindex="-1" aria-label={t.nav.close} onclick={() => (open = false)} transition:fade={{ duration: 150 }}></button>
 	<div class="panel" id="nav-menu" role="dialog" aria-modal="true" aria-label={t.nav.menu} use:trap transition:fly={{ y: 10, duration: 200, opacity: 0 }}>
 		<div class="groups">
-			{#each groups as group (group.key)}
+			{#each shown as group (group.key)}
 				<!-- On phones the tab bar has the primary pages: the sheet lists only the others. -->
 				<section class:in-tabbar={group.items.every((item) => item.primary)}>
 					<h2>{group.label}</h2>
@@ -92,7 +97,7 @@
 
 		<div class="account">
 			{#if user}
-				<a class="who" href="/profil" onclick={() => (open = false)}>
+				<a class="who" href="/profil" class:active={current === '/profil'} aria-current={current === '/profil' ? 'page' : undefined} onclick={() => (open = false)}>
 					<Avatar name={user.name} instrument={user.instrument} />
 					<span class="who-text">
 						<strong>{user.name}</strong>

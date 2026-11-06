@@ -30,7 +30,7 @@
 <div class="fields">
 	<label class="field">{t.profile.name}<input name="name" value={member.name} autocomplete="name" maxlength="200" /></label>
 
-	<div class="group">
+	<div class="group" data-tour="instruments">
 		<span class="caption">{t.profile.instruments}</span>
 		<InstrumentPicker choices={member.choices} {instruments} {common} />
 	</div>

@@ -13,13 +13,15 @@
 	import EventRow from '#lib/components/EventRow.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
+	import FilterPanel from '#lib/components/FilterPanel.svelte';
+	import { applyFilters, type FilterGroup } from '#lib/filters.ts';
 	import Segmented from '#lib/components/Segmented.svelte';
 	import Title from '#lib/components/Title.svelte';
 
 	let { data, form } = $props();
 
-	type Filter = 'all' | 'concerts' | 'rehearsals';
-	let filter = $state<Filter>('all');
+	/** Several at once, as in the archive: any within a group, all across groups. */
+	let chosen = $state<string[]>([]);
 	// "Probe eintragen" on a concert's page lands here with the form open and the concert chosen.
 	let adding = $state(page.url.searchParams.has('neu'));
 
@@ -32,14 +34,43 @@
 	}
 
 	export const snapshot = {
-		capture: () => filter,
-		restore: (value: Filter) => (filter = value)
+		capture: () => chosen,
+		restore: (value: string[]) => (chosen = Array.isArray(value) ? value : [])
 	};
 
-	const matches = (event: ShownEvent) =>
-		filter === 'concerts' ? event.type === 'konzert' : filter === 'rehearsals' ? event.type === 'probe' || event.type === 'generalprobe' : true;
-	const calendarEvents = $derived(data.events.filter(matches));
-	const shown = $derived(data.upcoming.filter(matches));
+	const isRehearsal = (event: ShownEvent) => event.type === 'probe' || event.type === 'generalprobe';
+	const answerOf = (event: ShownEvent) => data.answers?.[event.id] ?? 'open';
+	const filterGroups = $derived(
+		[
+			{
+				key: 'kind',
+				label: t.concerts.filters.kind,
+				options: [
+					{ value: 'art:konzerte', label: t.concerts.filters.concerts, test: (event: ShownEvent) => event.type === 'konzert' },
+					{ value: 'art:proben', label: t.concerts.filters.rehearsals, test: isRehearsal }
+				]
+			},
+			// Only for someone who answers dates: what they still owe, and what they said.
+			...(data.answers
+				? [
+						{
+							key: 'answer',
+							label: t.concerts.filters.answer,
+							options: (['open', 'yes', 'maybe', 'no'] as const).map((answer) => ({
+								value: `antwort:${answer}`,
+								label: t.signups.status[answer],
+								test: (event: ShownEvent) => answerOf(event) === answer
+							}))
+						}
+					]
+				: [])
+		] satisfies FilterGroup<ShownEvent>[]
+	);
+	const calendarEvents = $derived(applyFilters(data.events, filterGroups, chosen));
+	const shown = $derived(applyFilters(data.upcoming, filterGroups, chosen));
+	/** Concerts only, or rehearsals only: what goes with them (polls, past concerts) follows. */
+	const onlyConcerts = $derived(chosen.includes('art:konzerte') && !chosen.includes('art:proben'));
+	const onlyRehearsals = $derived(chosen.includes('art:proben') && !chosen.includes('art:konzerte'));
 
 	/** The very next date stands out in the list. */
 	const next = $derived(shown[0]?.id);
@@ -65,7 +96,7 @@
 			result.get(event.date.monthKey)!.events.push(event);
 		}
 		// Polls are about dates still to agree on; they're left out when only concerts are shown.
-		if (filter !== 'concerts') {
+		if (!onlyConcerts) {
 			for (const [key, polls] of pollMonths) {
 				if (!result.has(key)) result.set(key, { key, label: monthLabel(key), events: [], polls: [] });
 				result.get(key)!.polls = polls;
@@ -84,11 +115,6 @@
 		return result;
 	});
 
-	const filters: { value: Filter; label: string }[] = [
-		{ value: 'all', label: t.concerts.filters.all },
-		{ value: 'concerts', label: t.concerts.filters.concerts },
-		{ value: 'rehearsals', label: t.concerts.filters.rehearsals }
-	];
 	const views = [
 		{ value: 'list' as const, label: t.concerts.list, icon: 'menu' as const },
 		{ value: 'calendar' as const, label: t.concerts.calendar, icon: 'calendar' as const }
@@ -118,7 +144,7 @@
 {#if !data.error}
 	<!-- One row: what to show on the left, how to show it on the right. -->
 	<div class="toolbar">
-		<Segmented options={filters} bind:value={filter} label="Filter" />
+		<FilterPanel bind:value={chosen} items={view === 'calendar' ? data.events : data.upcoming} groups={filterGroups} label={t.pieces.filter} />
 		<div class="toolbar-end">
 			{#if data.adding}
 				<button class="btn small" class:secondary={adding} aria-expanded={adding} aria-controls="termin" onclick={() => (adding = !adding)}>
@@ -147,7 +173,7 @@
 	{/if}
 
 	{#if view === 'calendar'}
-		<CalendarView events={calendarEvents} today={data.today} concertTitles={data.concertTitles} pollDays={filter === 'concerts' ? {} : pollDays} />
+		<CalendarView events={calendarEvents} today={data.today} concertTitles={data.concertTitles} pollDays={onlyConcerts ? {} : pollDays} />
 	{:else if months.length === 0}
 		<Nothing text={t.concerts.noUpcoming} glyphs={['timpani', 'violin', 'voice']} />
 	{:else}
@@ -182,7 +208,7 @@
 	{/if}
 {/if}
 
-{#if pastYears.length > 0 && filter !== 'rehearsals'}
+{#if pastYears.length > 0 && !onlyRehearsals}
 	<!-- Folded away: the page is about what's coming. -->
 	<details class="past-block">
 		<summary class="section past"><Icon name="history" size={20} />{t.concerts.past} <span class="past-count">{data.past.length}</span></summary>
@@ -289,9 +315,10 @@
 		background: var(--accent);
 	}
 
+	/* One row on every screen: what to show, then adding and the view. */
 	.toolbar {
 		display: flex;
-		flex-wrap: wrap;
+		flex-wrap: nowrap;
 		align-items: center;
 		justify-content: space-between;
 		gap: var(--space-3);
