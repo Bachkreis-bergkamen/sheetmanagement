@@ -210,6 +210,9 @@ export const de = {
 			genre: 'Genre',
 			difficulty: 'Schwierigkeit',
 			reviewedAt: 'Geprüft am',
+			instrumentation: 'Besetzung',
+			/** Instruments of the Besetzung without a part (#249). */
+			unscored: 'Ohne Stimme',
 			notes: 'Notiz'
 		},
 		driveHint: 'Öffnet sich in Google Drive (Zugriff auf den Noten-Ordner nötig).',
@@ -1129,52 +1132,6 @@ export const de = {
 		reset: 'Zurücksetzen',
 		show: (n: number) => (n === 1 ? '1 Eintrag anzeigen' : `${n} anzeigen`),
 		would: (n: number) => (n === 1 ? '1 Eintrag' : `${n} Einträge`)
-	},
-	/** The Besetzung as a seating plan on the piece's page (#249). */
-	seating: {
-		title: 'Besetzung',
-		noPart: 'keine Stimme',
-		score: 'Partitur',
-		scoreShort: 'Part.',
-		missing: (names: string) => `Ohne Stimme im Archiv: ${names}`,
-		/** As scores abbreviate them, by the instrument names in the config. */
-		abbr: {
-			Geige: 'Vl',
-			Viola: 'Va',
-			Violoncello: 'Vc',
-			Kontrabass: 'Kb',
-			'E-Bass': 'E-B',
-			Blockflöte: 'Bfl',
-			'Tenor-Blockflöte': 'TBfl',
-			Piccolo: 'Picc',
-			Flöte: 'Fl',
-			Oboe: 'Ob',
-			Englischhorn: 'Eh',
-			Klarinette: 'Kl',
-			Bassklarinette: 'BKl',
-			Fagott: 'Fg',
-			'Sopran-Saxophon': 'SSax',
-			'Alt-Saxophon': 'ASax',
-			'Tenor-Saxophon': 'TSax',
-			'Bariton-Saxophon': 'BSax',
-			Saxophon: 'Sax',
-			Horn: 'Hr',
-			Trompete: 'Trp',
-			Posaune: 'Pos',
-			Bassposaune: 'BPos',
-			Bariton: 'Bar',
-			Tuba: 'Tb',
-			Pauke: 'Pk',
-			Schlagwerk: 'Schl',
-			Glockenspiel: 'Glsp',
-			Xylophon: 'Xyl',
-			Harfe: 'Hf',
-			Klavier: 'Klav',
-			Cembalo: 'Cemb',
-			Orgel: 'Org',
-			Chor: 'Chor',
-			Sopran: 'S'
-		} as Record<string, string>
 	},
 	quickSearch: {
 		label: 'Schnellsuche',
