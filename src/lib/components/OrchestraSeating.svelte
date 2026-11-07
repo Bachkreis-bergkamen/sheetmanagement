@@ -49,8 +49,11 @@
 		})
 	);
 
-	/** At most this many pixels a seat, so a small ensemble stays small; less when the plan must fit a phone. */
-	const MOST = 34;
+	/**
+	 * At most this many pixels a seat, so a small ensemble stays small and a full orchestra a
+	 * picture beside the parts rather than the page; less when the plan must fit a phone.
+	 */
+	const MOST = 24;
 	/** Never fewer: a large orchestra on a phone scrolls sideways rather than shrink past reading. */
 	const LEAST = 19;
 	/** Labels never smaller than this on screen. */

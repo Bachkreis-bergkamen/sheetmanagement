@@ -506,7 +506,8 @@ const hitsSeat = (label: { x: number; y: number; w: number; h: number }, seat: S
 };
 
 /**
- * One label per section, under the middle chair of its front row; where that's taken, above it,
+ * One label per section, in front of the middle chair of its front row (towards the conductor),
+ * else under it; where that's taken, above it,
  * then beside it, so no label covers a chair or another label.
  */
 function placeLabels(items: Placed[], seats: Seat[], h: number): SeatLabel[] {
@@ -522,7 +523,13 @@ function placeLabels(items: Placed[], seats: Seat[], h: number): SeatLabel[] {
 		const anchor = row[Math.floor((row.length - 1) / 2)];
 		const w = labelWidth(section.label, h);
 		const below = MARKER + 0.06 + h / 2;
+		// Towards the conductor from the middle chair: in front of its own section on any side of
+		// the half ring, where "below" alone would drift into a neighbour at the flanks.
+		const toward = Math.hypot(anchor.x, anchor.y) || 1;
+		const [dx, dy] = [-anchor.x / toward, -anchor.y / toward];
+		const reachIn = MARKER + 0.08 + Math.abs(dx) * (w / 2) + Math.abs(dy) * (h / 2);
 		const candidates = [
+			{ x: anchor.x + dx * reachIn, y: anchor.y + dy * reachIn },
 			{ x: anchor.x, y: anchor.y + below },
 			{ x: anchor.x - w / 3, y: anchor.y + below },
 			{ x: anchor.x + w / 3, y: anchor.y + below },
