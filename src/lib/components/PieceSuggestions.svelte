@@ -347,7 +347,7 @@
 		background: var(--bg);
 		color: var(--text);
 		font: inherit;
-		font-size: var(--text-xs);
+		font-size: max(var(--control-min), var(--text-xs));
 	}
 
 	/* A fieldset is as wide as its longest line unless told otherwise; long descriptions should wrap. */

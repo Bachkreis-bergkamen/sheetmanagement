@@ -994,7 +994,7 @@
 	.input {
 		display: grid;
 		gap: var(--space-1);
-		font-size: var(--text-sm);
+		font-size: max(var(--control-min), var(--text-sm));
 		font-weight: 600;
 	}
 

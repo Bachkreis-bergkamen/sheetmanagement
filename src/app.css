@@ -154,6 +154,24 @@ html {
 	-webkit-text-size-adjust: 100%;
 }
 
+/* Phone browsers (Samsung Internet, iOS Safari) zoom into a focused form control whose text is
+   under 16px, and don't zoom back out. Controls set smaller use max(var(--control-min), …);
+   checkboxes and radios, often hidden behind a drawn box, get the floor directly. */
+:root {
+	--control-min: 0px;
+}
+
+@media (pointer: coarse) {
+	:root {
+		--control-min: 16px;
+	}
+
+	input[type='checkbox'],
+	input[type='radio'] {
+		font-size: 16px;
+	}
+}
+
 /* "Schriftgröße" on the profile: everything is in rem, so the whole page grows with it. */
 html[data-text-size='large'] {
 	font-size: 112.5%;
@@ -410,7 +428,7 @@ a.ui-card:active {
 	background: var(--bg);
 	color: var(--text);
 	font: inherit;
-	font-size: var(--text-md);
+	font-size: max(var(--control-min), var(--text-md));
 	font-weight: 400;
 }
 

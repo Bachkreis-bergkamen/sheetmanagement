@@ -520,7 +520,7 @@
 		background: var(--bg);
 		color: var(--text);
 		font: inherit;
-		font-size: var(--text-sm);
+		font-size: max(var(--control-min), var(--text-sm));
 	}
 
 	.row [role='cell'] {
