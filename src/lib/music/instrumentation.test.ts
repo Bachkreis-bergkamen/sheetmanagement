@@ -62,6 +62,11 @@ describe('missingVoices', () => {
 		const parts = [part('Flöte 1 & 2.pdf'), part('Oboe.pdf'), part('C-Stimmen.pdf'), part('Viola.pdf'), part('Violoncello & Kontrabass.pdf')];
 		expect(missingVoices(voices, parts, config)).toEqual([]);
 	});
+
+	it('names only the clarinet whose part is missing', () => {
+		const clarinets = readInstrumentation('Klarinette 1 & 2', config);
+		expect(missingVoices(clarinets, [part('Klarinette in B 1.pdf')], config).map(voiceText)).toEqual(['Klarinette 2']);
+	});
 });
 
 describe('editing the Besetzung with the instrument picker', () => {

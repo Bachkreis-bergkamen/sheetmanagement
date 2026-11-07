@@ -8,7 +8,7 @@
 	 * typed off the page when reading the text fails (scans). The link opens the PDF in the
 	 * browser's own viewer, where text can be selected and copied.
 	 */
-	let { fileId }: { fileId: string } = $props();
+	let { fileId, hint = t.viewer.hint }: { fileId: string; hint?: string } = $props();
 
 	let score = $state<OpenScore | null>(null);
 	let pages = $state(0);
@@ -77,7 +77,7 @@
 		{/if}
 		<canvas bind:this={canvas} hidden={!!error || loading}></canvas>
 	</div>
-	<p class="hint">{t.viewer.hint}</p>
+	<p class="hint">{hint}</p>
 </div>
 
 <style>

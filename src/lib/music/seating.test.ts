@@ -142,6 +142,18 @@ describe('the seating plan', () => {
 		expect(result.labels.find((label) => label.section === 'Oboe')!.warn).toBe(true);
 	});
 
+	it('rings only the chair whose numbered part is missing', () => {
+		const result = plan(CLASSICAL, { missing: ['Klarinette 2'] });
+		const clarinets = result.seats.filter((seat) => seat.section === 'Klarinette');
+		expect(clarinets.map((seat) => seat.warn).sort()).toEqual([false, true]);
+		expect(clarinets.find((seat) => seat.warn)!.title).toBe('Klarinette 2');
+		expect(result.seats.filter((seat) => seat.warn)).toHaveLength(1);
+		expect(result.labels.find((label) => label.section === 'Klarinette')!.warn).toBe(true);
+		// The whole instrument missing still rings every chair.
+		const all = plan(CLASSICAL, { missing: ['Klarinette'] });
+		expect(all.seats.filter((seat) => seat.section === 'Klarinette').every((seat) => seat.warn)).toBe(true);
+	});
+
 	it('seats the strings by stands of two: one stand in each of the first two rows, two from the third on', () => {
 		expect(standRows(12)).toEqual([2, 2, 4, 4]);
 		expect(standRows(7)).toEqual([2, 2, 3]);

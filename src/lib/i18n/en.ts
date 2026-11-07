@@ -1118,6 +1118,8 @@ export const en: Texts = {
 		done: 'Done',
 		chosen: (n: number) => (n === 1 ? '1 instrument' : `${n} instruments`),
 		numbers: 'Parts',
+		score: (label: string) => `First page: ${label}`,
+		scoreHint: 'The left edge of the first page names every instrument of the score.',
 		numbersHint: 'none chosen: all parts'
 	},
 	/** Filters for a list, several at once (archive, calendar). */
