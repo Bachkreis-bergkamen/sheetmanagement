@@ -2,6 +2,8 @@ import type { EventKeywords } from '#lib/config/index.ts';
 import type { CalendarEvent } from '#lib/server/google/calendar.ts';
 import { joinList, splitList } from '#lib/repertoire/lists.ts';
 import { rowOrchestra, sameOrchestra, titleOrchestra } from '#lib/repertoire/orchestras.ts';
+import { eventDay } from '#lib/repertoire/dates.ts';
+import { dateFormat } from './format.ts';
 import { buildSchedule, classify, significantWords } from './schedule.ts';
 
 /**
@@ -40,6 +42,12 @@ export interface NewEventContext {
 	orchestras?: string[];
 	/** The first and last day the app loads from the calendar: a date outside would never show. */
 	range?: { first: string; last: string };
+	/**
+	 * Changing an event that's already there: it may lie before the range (a rehearsal last week
+	 * gets its time corrected), and the concert it already belongs to doesn't go into the title
+	 * again, so saving without changes keeps the title as it is.
+	 */
+	editing?: { concertId?: string };
 }
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -101,7 +109,7 @@ export function newEventFromForm(form: FormData, context: NewEventContext): { ev
 	if (type === 'konzert' && !title) return { error: 'title' };
 	if (title.length > 120 || location.length > 200 || description.length > 2000) return { error: 'too-long' };
 	if (!DATE.test(date) || Number.isNaN(Date.parse(`${date}T00:00:00Z`))) return { error: 'date' };
-	if (context.range && date < context.range.first) return { error: 'too-early' };
+	if (context.range && date < context.range.first && !context.editing) return { error: 'too-early' };
 	if (context.range && date > context.range.last) return { error: 'too-late' };
 	if ((start && !TIME.test(start)) || (end && !TIME.test(end)) || (end && !start)) return { error: 'time' };
 	if (start && end && minutes(end) <= minutes(start)) return { error: 'end' };
@@ -110,7 +118,8 @@ export function newEventFromForm(form: FormData, context: NewEventContext): { ev
 	if (concertId && (!concert || type === 'konzert')) return { error: 'concert' };
 	if (!ticked.every((name) => orchestras.some((known) => sameOrchestra(known, name)))) return { error: 'orchestra' };
 
-	const summary = newEventTitle(type, title, date, context, concert, orchestra) + (form.get('tentative') ? ' (?)' : '');
+	const named = context.editing && concert?.id === context.editing.concertId ? undefined : concert;
+	const summary = newEventTitle(type, title, date, context, named, orchestra) + (form.get('tentative') ? ' (?)' : '');
 	const until = end || clock(Math.min(minutes(start) + DEFAULT_HOURS[type] * 60, 23 * 60 + 59));
 	return {
 		event: {
@@ -140,4 +149,30 @@ export function orchestraTitle(title: string, chosen: string[], orchestras: stri
 	const some = chosen.length && chosen.length < orchestras.length;
 	if (some) result = `${result} (${joinList(chosen)})`;
 	return tentative ? `${result} (?)` : result;
+}
+
+/**
+ * An event from the calendar as the form fills it in for a change on its page: local times in
+ * the orchestra's zone, the title without "(?)" and without the orchestras at its end (the
+ * ticks say those, and saving puts them back).
+ */
+export function eventFormValues(
+	event: Pick<CalendarEvent, 'title' | 'start' | 'end' | 'allDay' | 'location' | 'orchestras'> & { type: string; concertId?: string; description?: string },
+	{ timeZone, orchestras = [] }: { timeZone: string; orchestras?: string[] }
+): Record<string, string> {
+	const time = (iso: string) => dateFormat('en-GB', { timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(iso));
+	const tentative = TENTATIVE.test(event.title);
+	const title = event.type === 'konzert' ? event.title.replace(TENTATIVE, '').trim() : orchestraTitle(event.title.replace(TENTATIVE, '').trim(), [], orchestras);
+	return {
+		type: event.type,
+		title,
+		date: eventDay(event, timeZone),
+		start: event.allDay ? '' : time(event.start),
+		end: event.allDay ? '' : time(event.end),
+		location: event.location ?? '',
+		description: event.description ?? '',
+		...(tentative ? { tentative: 'on' } : {}),
+		concert: event.concertId ?? '',
+		orchestra: event.orchestras ?? ''
+	};
 }

@@ -69,3 +69,29 @@ export const withGuests = (value: string | undefined, partners: Ensemble[]) =>
 /** Whether only guests play a row: nothing of ours, so it can be left out of our GEMA list. */
 export const onlyGuests = (value: string | undefined, partners: Ensemble[]) =>
 	!!splitList(value).length && splitList(value).every((name) => partners.some((partner) => sameOrchestra(partner.shortName, name)));
+
+export type EnsembleField = 'shortName' | 'name' | 'kind' | 'conductor' | 'website' | 'logo';
+export type EnsembleProblem = 'name' | 'taken' | 'ours' | 'website' | 'logo' | 'too-long';
+
+/**
+ * A row for the "Ensembles" tab from the form on /ensembles, or what's wrong with it. The short
+ * name is how concerts and programmes name the ensemble, so it must be its own: not another
+ * ensemble's, not one of our orchestras. Without one, the full name serves.
+ */
+export function checkEnsemble(
+	input: Record<EnsembleField, string>,
+	{ others, ours }: { others: Pick<Ensemble, 'shortName' | 'name'>[]; ours: string[] }
+): { values: Record<EnsembleField, string> } | { problem: EnsembleProblem } {
+	const clean = (value: string | undefined) => (value ?? '').trim().replace(/\s+/g, ' ');
+	const values = Object.fromEntries((['shortName', 'name', 'kind', 'conductor', 'website', 'logo'] as const).map((key) => [key, clean(input[key])])) as Record<EnsembleField, string>;
+	// "kammerchor-unna.de" as typed: a web address.
+	for (const key of ['website', 'logo'] as const) if (values[key] && !/^[a-z][a-z0-9+.-]*:/i.test(values[key])) values[key] = `https://${values[key]}`;
+	if (!values.name && !values.shortName) return { problem: 'name' };
+	if (Object.values(values).some((value) => value.length > 300)) return { problem: 'too-long' };
+	const short = values.shortName || values.name;
+	if (ours.some((name) => sameOrchestra(name, short))) return { problem: 'ours' };
+	if (others.some((other) => sameOrchestra(other.shortName, short) || sameOrchestra(other.name, short))) return { problem: 'taken' };
+	if (values.website && !safeLink(values.website)) return { problem: 'website' };
+	if (values.logo && !safeLink(values.logo)?.startsWith('https:')) return { problem: 'logo' };
+	return { values };
+}

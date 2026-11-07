@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import AddEventForm from '#lib/components/AddEventForm.svelte';
 	import { enhance } from '$app/forms';
 	import { replaceState } from '$app/navigation';
 	import { t } from '#lib/i18n/index.ts';
@@ -17,6 +18,9 @@
 	import { FormState } from '#lib/forms.svelte.ts';
 
 	let { data, form } = $props();
+	/** The form that changes this date in the calendar, for those who plan dates. */
+	let editing = $state(false);
+	let editSaved = $state(false);
 	const orchestraSave = new FormState();
 	const publishSave = new FormState();
 	const detailsSave = new FormState();
@@ -125,6 +129,9 @@
 			<a class="btn" href={partsUrl}><Icon name="parts" size={18} />{t.nav.myParts}</a>
 		{/if}
 		<div class="ui-actions">
+			{#if data.kind === 'event' && data.editing}
+				<button type="button" aria-expanded={editing} onclick={() => ((editing = !editing), (editSaved = false))}><Icon name="edit" size={16} />{t.calendar.edit.open}</button>
+			{/if}
 			<ShareButton {title} text={shareText} url={page.url.pathname} />
 			<!-- Where it came from: a quiet way out, beside sharing rather than among the facts. -->
 			{#if data.kind === 'event' && data.event.url}
@@ -133,6 +140,26 @@
 		</div>
 	</div>
 </header>
+
+{#if data.kind === 'event' && data.editing}
+	<div class="edit">
+		<AddEventForm
+			editing
+			calendar
+			archive={false}
+			writable={data.editing.writable}
+			orchestras={data.editing.orchestras}
+			concerts={data.editing.concerts}
+			today=""
+			last={data.editing.last}
+			bind:open={editing}
+			result={form}
+			preset={data.editing.values}
+			onsaved={() => ((editing = false), (editSaved = true))}
+		/>
+	</div>
+	{#if editSaved}<p class="saved edit-saved" role="status"><Icon name="check" size={16} />{t.calendar.edit.saved}</p>{/if}
+{/if}
 
 {#if planning}
 	<div class="views">
@@ -386,7 +413,7 @@
 			<label class="field">
 				<span>{partnerForm.ensembles.length ? t.partners.others : t.partners.over}</span>
 				<input name="others" maxlength="200" value={partnerForm.others} autocomplete="off" />
-				<small>{t.partners.othersHint}</small>
+				<small>{t.partners.othersHint} <a href="/ensembles">{t.ensembles.manage}</a></small>
 			</label>
 			<label class="field">
 				<span>{t.partners.organizer}</span>
@@ -713,6 +740,14 @@
 {/snippet}
 
 <style>
+	.edit {
+		margin-bottom: var(--space-4);
+	}
+
+	.edit-saved {
+		margin-bottom: var(--space-4);
+	}
+
 	.head {
 		--tone: color-mix(in oklab, var(--ok) 80%, var(--text));
 		display: grid;

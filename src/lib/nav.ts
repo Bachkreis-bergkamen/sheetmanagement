@@ -64,6 +64,8 @@ export function navGroups({ auth, rights, features = ALL_ON, polls = false }: Na
 					? [
 							...(features.wishes ? [{ href: '/wuensche', label: t.nav.wishes, icon: 'bulb' as const }] : []),
 							...(polls ? [{ href: '/termine', label: t.nav.polls, icon: 'poll' as const }] : []),
+							// Anonymous messages to the Leitung, and its inbox for those who read it.
+							{ href: '/kummerkasten', label: t.nav.kummer, icon: 'mail' as const },
 							// Also behind the avatar in the header; here it's reachable from the phone's tab bar.
 							{ href: '/profil', label: t.nav.profile, icon: 'user' as const }
 						]
@@ -74,15 +76,19 @@ export function navGroups({ auth, rights, features = ALL_ON, polls = false }: Na
 			key: 'pflege',
 			label: t.nav.groups.pflege,
 			workspace: true,
-			items: has(rights, 'stuecke.bearbeiten')
-				? [
-						{ href: '/meldungen', label: t.nav.reports, icon: 'flag' },
-						{ href: '/fehlende-stimmen', label: t.nav.gaps, icon: 'alert' },
-						{ href: '/stuecke/angaben', label: t.nav.details, icon: 'sparkle' },
-						{ href: '/namen', label: t.nav.naming, icon: 'text' },
-						...(features.loans ? [{ href: '/leihmaterial', label: t.nav.loans, icon: 'loan' as const }] : [])
-					]
-				: []
+			items: [
+				...(has(rights, 'stuecke.bearbeiten')
+					? [
+							{ href: '/meldungen', label: t.nav.reports, icon: 'flag' as const },
+							{ href: '/fehlende-stimmen', label: t.nav.gaps, icon: 'alert' as const },
+							{ href: '/stuecke/angaben', label: t.nav.details, icon: 'sparkle' as const },
+							{ href: '/namen', label: t.nav.naming, icon: 'text' as const },
+							...(features.loans ? [{ href: '/leihmaterial', label: t.nav.loans, icon: 'loan' as const }] : [])
+						]
+					: []),
+				// The choirs and orchestras concerts are given with, for those who plan the programmes.
+				...(has(rights, 'programme.bearbeiten') ? [{ href: '/ensembles', label: t.nav.ensembles, icon: 'users' as const }] : [])
+			]
 		},
 		{
 			key: 'verwaltung',

@@ -10,7 +10,7 @@ describe('navGroups', () => {
 	it('shows members their music, the archive, wishes and their profile', () => {
 		expect(hrefs('on', ['ansehen'])).toEqual({
 			musik: ['/meine-noten', '/kalender', '/stuecke', '/chronik'],
-			mitmachen: ['/wuensche', '/profil']
+			mitmachen: ['/wuensche', '/kummerkasten', '/profil']
 		});
 	});
 
@@ -19,6 +19,11 @@ describe('navGroups', () => {
 		const pflege = groups.find((group) => group.key === 'pflege');
 		expect(pflege?.workspace).toBe(true);
 		expect(pflege?.items.map((item) => item.href)).toEqual(['/meldungen', '/fehlende-stimmen', '/stuecke/angaben', '/namen', '/leihmaterial']);
+	});
+
+	it('gives those who plan the programmes the ensembles, beside the sheet music', () => {
+		expect(hrefs('on', ['ansehen', 'programme.bearbeiten']).pflege).toEqual(['/ensembles']);
+		expect(hrefs('on', ['ansehen', 'stuecke.bearbeiten', 'programme.bearbeiten']).pflege?.at(-1)).toBe('/ensembles');
 	});
 
 	it('gives admins every page', () => {

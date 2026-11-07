@@ -3,7 +3,7 @@ import { dateParts, daysUntil, isPast, type DateParts } from '#lib/events/format
 import { buildSchedule, type ScheduleEvent, type ShownEvent } from '#lib/events/schedule.ts';
 import { cached } from './cache.ts';
 import { appEnv, runInBackground } from './env.ts';
-import { insertEvent, listEvents, patchEventOrchestras, type CalendarEvent } from './google/calendar.ts';
+import { insertEvent, listEvents, patchEvent, patchEventOrchestras, type CalendarEvent, type EventChange } from './google/calendar.ts';
 import { calendarWriteEnabled, getGoogle, NotConfiguredError, requireSetting } from './services.ts';
 import type { NewEventBody } from '#lib/events/new-event.ts';
 
@@ -115,6 +115,25 @@ export async function setEventOrchestras(eventId: string, change: { summary: str
 		await patchEventOrchestras(getGoogle().client, calendarId, eventId, change);
 		await calendarEvents(now, true).catch((error) => console.error('Reloading the calendar after changing an event failed:', error));
 		return { ok: true };
+	} catch (error) {
+		if (error instanceof NotConfiguredError) return { ok: false, reason: 'not-configured' };
+		const status = (error as { status?: number }).status;
+		console.error('Changing an event in the calendar failed:', error);
+		return { ok: false, reason: status === 403 || status === 404 ? 'refused' : 'failed' };
+	}
+}
+
+/**
+ * Changes a concert or rehearsal in the calendar (CALENDAR_WRITE), from its page, then reloads the
+ * calendar so every page shows the new time and place. The caller checks the right ("termine.planen").
+ */
+export async function changeCalendarEvent(eventId: string, change: EventChange, now = Date.now()): Promise<AddEventResult> {
+	try {
+		const calendarId = requireSetting('CALENDAR_ID');
+		if (!calendarWriteEnabled()) return { ok: false, reason: 'read-only' };
+		const changed = await patchEvent(getGoogle().client, calendarId, eventId, change);
+		await calendarEvents(now, true).catch((error) => console.error('Reloading the calendar after changing an event failed:', error));
+		return { ok: true, event: changed };
 	} catch (error) {
 		if (error instanceof NotConfiguredError) return { ok: false, reason: 'not-configured' };
 		const status = (error as { status?: number }).status;

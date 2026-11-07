@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { newEventFromForm, newEventTitle, orchestraTitle, type NewEventContext } from './new-event.ts';
+import { eventFormValues, newEventFromForm, newEventTitle, orchestraTitle, type NewEventContext } from './new-event.ts';
 
 const keywords = {
 	generalprobe: ['generalprobe'],
@@ -117,5 +117,44 @@ describe('orchestraTitle', () => {
 		expect(orchestraTitle('Probe Herbstkonzert (EO, A) (?)', ['EO', 'A', 'B'], orchestras)).toBe('Probe Herbstkonzert (?)');
 		// Brackets that aren't orchestras stay.
 		expect(orchestraTitle('Probe (Aula)', ['A'], orchestras)).toBe('Probe (Aula) (A)');
+	});
+});
+
+describe('changing a date on its page', () => {
+	const shared: NewEventContext = { ...context, orchestras: ['EO', 'A'] };
+
+	it('fills the form in with local times, without "(?)" and the orchestras at the end', () => {
+		const values = eventFormValues(
+			{
+				type: 'probe',
+				title: 'Probentag (A) (?)',
+				start: '2026-11-01T09:30:00Z',
+				end: '2026-11-01T12:00:00Z',
+				allDay: false,
+				location: 'Aula',
+				concertId: 'w',
+				orchestras: 'A'
+			},
+			{ timeZone: 'Europe/Berlin', orchestras: ['EO', 'A'] }
+		);
+		expect(values).toMatchObject({ type: 'probe', title: 'Probentag', date: '2026-11-01', start: '10:30', end: '13:00', location: 'Aula', tentative: 'on', concert: 'w', orchestra: 'A' });
+		expect(eventFormValues({ type: 'konzert', title: 'Herbstkonzert', start: '2026-11-15', end: '2026-11-16', allDay: true }, { timeZone: 'Europe/Berlin' })).toMatchObject({
+			date: '2026-11-15',
+			start: '',
+			end: ''
+		});
+	});
+
+	it('saved unchanged, keeps the title, even when the concert is linked only by date', () => {
+		const editing = { ...shared, editing: { concertId: 'w' } };
+		const result = newEventFromForm(form({ type: 'probe', title: 'Probentag', date: '2026-12-01', orchestra: 'A', concert: 'w', tentative: 'on' }), editing);
+		expect(result).toMatchObject({ event: { summary: 'Probentag (A) (?)', extendedProperties: { shared: { orchester: 'A' } } } });
+	});
+
+	it('names a newly chosen concert, and may lie before the shown range', () => {
+		const editing = { ...shared, range: { first: '2026-10-01', last: '2027-12-31' }, editing: { concertId: 'h' } };
+		expect(newEventFromForm(form({ type: 'probe', title: 'Probentag', date: '2026-09-01', concert: 'w' }), editing)).toMatchObject({
+			event: { summary: 'Probentag Weihnachtskonzert' }
+		});
 	});
 });

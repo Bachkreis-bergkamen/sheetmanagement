@@ -9,6 +9,7 @@ import { addPiece } from '#lib/server/archive.ts';
 import { getAccessList, getPartAssignments, getPieceNotes } from '#lib/server/repertoire.ts';
 import { normalize } from '#lib/repertoire/sheet.ts';
 import { pieceFindables } from '#lib/server/piece-search.ts';
+import { difficultyOptions, genreOptions, lengthOf, pieceGenres, type Length } from '#lib/music/piece-filters.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /**
@@ -24,6 +25,10 @@ type ListedPiece = PieceSummary & {
 	mine: boolean;
 	assigned: boolean;
 	coming: boolean;
+	/** From "Genre" and the Drive folder: "Weihnachtsstücke" counts as Weihnachten. */
+	genres: string[];
+	difficulty?: string;
+	length?: Length;
 };
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -35,7 +40,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 			error: library.catalog.reason,
 			pieces: [] as ListedPiece[],
 			categories: [] as string[],
+			difficulties: [] as string[],
 			programs: [] as string[],
+			categoryFolders: {} as Record<string, string[]>,
 			categoryFiles: {} as Record<string, { id: string; name: string; url: string }[]>
 		};
 	}
@@ -70,9 +77,18 @@ export const load: PageServerLoad = async ({ locals }) => {
 		notes: findables.get(id)?.notes ?? [],
 		mine: (findables.get(id)?.instruments ?? []).some((name) => played.has(name)),
 		assigned: assignedTitles.has(normalize(sheet?.title ?? title)),
-		coming: coming.has(id)
+		coming: coming.has(id),
+		genres: pieceGenres({ genre: sheet?.genre, category }, config.genres ?? []),
+		...(sheet?.difficulty ? { difficulty: sheet.difficulty.trim() } : {}),
+		...(lengthOf(sheet?.duration) ? { length: lengthOf(sheet?.duration) } : {})
 	}));
-	const categories = [...new Set(pieces.map((piece) => piece.category).filter((c): c is string => !!c))];
+	const categories = genreOptions(pieces.flatMap((piece) => piece.genres), config.genres ?? []);
+	// The Drive folders behind a genre ("Weihnachten" → "Weihnachtsstücke"), for their loose files.
+	const categoryFolders: Record<string, string[]> = {};
+	for (const folder of new Set(pieces.map((piece) => piece.category).filter((c): c is string => !!c))) {
+		const genre = pieceGenres({ category: folder }, config.genres ?? [])[0];
+		(categoryFolders[genre] ??= []).push(folder);
+	}
 	// Loose files in a category folder, e.g. the running order of the Christmas pieces.
 	const categoryFiles = Object.fromEntries(
 		Object.entries(library.catalog.catalog.categoryFiles).map(([category, files]) => [
@@ -88,6 +104,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 		error: null,
 		pieces,
 		categories,
+		categoryFolders,
+		difficulties: difficultyOptions(pieces.flatMap((piece) => (piece.difficulty ? [piece.difficulty] : []))),
 		programs: library.catalog.catalog.programs,
 		categoryFiles,
 		canAdd

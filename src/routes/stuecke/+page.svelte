@@ -54,7 +54,19 @@
 			{
 				key: 'categories',
 				label: t.pieces.filterGroups.categories,
-				options: data.categories.map((category) => option(`kategorie:${category}`, category, (piece) => piece.category === category))
+				options: data.categories.map((genre) => option(`kategorie:${genre}`, genre, (piece) => piece.genres.includes(genre)))
+			},
+			{
+				key: 'difficulty',
+				label: t.pieces.filterGroups.difficulty,
+				options: data.difficulties.map((value) => option(`schwierigkeit:${value}`, value, (piece) => piece.difficulty === value))
+			},
+			{
+				key: 'length',
+				label: t.pieces.filterGroups.length,
+				options: some(
+					(['kurz', 'mittel', 'lang'] as const).map((length) => option(`dauer:${length}`, t.pieces.lengths[length], (piece) => piece.length === length))
+				)
 			},
 			{
 				key: 'state',
@@ -70,10 +82,11 @@
 
 	// "/stuecke?komponist=Bach", linked from a piece page: all works by one composer.
 	const composer = $derived(page.url.searchParams.get('komponist')?.trim() || null);
-	/** The loose files of a category, when exactly that one is chosen. */
+	/** The loose files of a category's Drive folder, when exactly that genre is chosen. */
 	const activeCategory = $derived.by(() => {
 		const categories = chosen.filter((value) => value.startsWith('kategorie:'));
-		return categories.length === 1 ? categories[0].slice('kategorie:'.length) : null;
+		const folders = categories.length === 1 ? (data.categoryFolders[categories[0].slice('kategorie:'.length)] ?? []) : [];
+		return folders.find((folder) => data.categoryFiles[folder]?.length) ?? null;
 	});
 
 	// First the search (and the composer), then the filters: their counts count what the search left.

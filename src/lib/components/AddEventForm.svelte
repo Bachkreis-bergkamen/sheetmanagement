@@ -13,7 +13,8 @@
 	 * A concert or rehearsal straight into the Google Calendar, for those who plan dates
 	 * ("termine.planen"); a concert that's already over goes into the archive, the sheet, for
 	 * those who keep it ("archiv.bearbeiten"). While the app may only read the calendar, it says
-	 * what to set up.
+	 * what to set up. With `editing`, the same form changes a date that's already in the calendar,
+	 * filled in from it, on that date's page.
 	 */
 	let {
 		calendar,
@@ -25,7 +26,9 @@
 		last,
 		open = $bindable(false),
 		result,
-		preset = {}
+		preset = {},
+		editing = false,
+		onsaved
 	}: {
 		/** May add to the calendar ("termine.planen"). */
 		calendar: boolean;
@@ -39,11 +42,16 @@
 		last: string;
 		open?: boolean;
 		result?: { eventError?: string; eventValues?: Record<string, string>; eventAdded?: { id: string; title: string } } | null;
-		/** Filled in from a link, e.g. a rehearsal for one concert. */
-		preset?: { type?: string; concert?: string };
+		/** Filled in from a link, e.g. a rehearsal for one concert; or the date being changed. */
+		preset?: Record<string, string | undefined>;
+		/** Changes the date filled in from `preset` (the event's page) instead of adding one. */
+		editing?: boolean;
+		/** After a change was saved. */
+		onsaved?: () => void;
 	} = $props();
 
 	const saving = new FormState();
+	const submit = $derived(editing ? saving.submit({ onSuccess: () => onsaved?.() }) : saving.submit({ reset: true }));
 	const values = $derived<Record<string, string | undefined>>(result?.eventValues ?? preset);
 	// svelte-ignore state_referenced_locally
 	let type = $state<NewEventType>(calendar ? (NEW_EVENT_TYPES.find((value) => value === values.type) ?? 'probe') : 'konzert');
@@ -53,13 +61,21 @@
 		date = values.date ?? '';
 	});
 	/** A concert that's over: into the archive, not the calendar. */
-	const past = $derived(archive && type === 'konzert' && !!date && date < today);
+	const past = $derived(!editing && archive && type === 'konzert' && !!date && date < today);
 	const word = (type: NewEventType) => {
 		const first = config.events[type][0] ?? type;
 		return first.charAt(0).toUpperCase() + first.slice(1);
 	};
 	// Without the calendar, only past concerts can be entered.
-	const types = $derived((calendar ? NEW_EVENT_TYPES : (['konzert'] as const)).map((value) => ({ value, label: t.concerts.types[value] })));
+	// A concert stays a concert when changed, a rehearsal may become the Generalprobe.
+	const types = $derived(
+		(editing
+			? NEW_EVENT_TYPES.filter((value) => (value === 'konzert') === (values.type === 'konzert'))
+			: calendar
+				? NEW_EVENT_TYPES
+				: (['konzert'] as const)
+		).map((value) => ({ value, label: t.concerts.types[value] }))
+	);
 	// A refused entry opens again, with what was typed.
 	$effect(() => {
 		if (result?.eventError) open = true;
@@ -69,10 +85,10 @@
 {#if open}
 <section class="ui-card add" aria-labelledby="add-event-title">
 	<div class="head">
-		<h2 id="add-event-title">{t.calendar.add.open}</h2>
+		<h2 id="add-event-title">{editing ? t.calendar.edit.title : t.calendar.add.open}</h2>
 		<button type="button" class="close" aria-label={t.nav.close} title={t.nav.close} onclick={() => (open = false)}><Icon name="x" size={18} /></button>
 	</div>
-	<form method="POST" action="?/addEvent" use:enhance={saving.submit({ reset: true })}>
+	<form method="POST" action={editing ? '?/editEvent' : '?/addEvent'} use:enhance={submit}>
 		{#if types.length > 1}
 			<div class="type">
 				<Segmented options={types} bind:value={type} label={t.calendar.add.type} />
@@ -91,7 +107,7 @@
 			/>
 		</label>
 		<div class="when" class:only-date={past}>
-			<label class="field date">{t.calendar.add.date}<input type="date" name="date" required bind:value={date} max={calendar ? last : today} /></label>
+			<label class="field date">{t.calendar.add.date}<input type="date" name="date" required bind:value={date} max={calendar || editing ? last : today} /></label>
 			{#if !past}
 				<label class="field">{t.calendar.add.start}<input type="time" name="start" step="900" value={values.start ?? ''} /></label>
 				<label class="field">{t.calendar.add.end}<input type="time" name="end" step="900" value={values.end ?? ''} /></label>
@@ -145,13 +161,15 @@
 			</p>
 		{/if}
 		<div>
-			{#if past}
+			{#if editing}
+				<button class="btn" disabled={saving.busy || !writable}><Icon name="check" size={16} />{t.calendar.edit.save}</button>
+			{:else if past}
 				<button class="btn" disabled={saving.busy}><Icon name="history" size={16} />{t.calendar.add.saveArchive}</button>
 			{:else}
 				<button class="btn" disabled={saving.busy || !writable}><Icon name="calendar" size={16} />{t.calendar.add.save}</button>
 			{/if}
 		</div>
-		<p class="hint">{past ? t.calendar.add.leadArchive : calendar ? t.calendar.add.lead : t.calendar.add.archiveOnly}</p>
+		<p class="hint">{editing ? t.calendar.edit.lead : past ? t.calendar.add.leadArchive : calendar ? t.calendar.add.lead : t.calendar.add.archiveOnly}</p>
 	</form>
 </section>
 {/if}

@@ -16,9 +16,10 @@ import { onlyGuests, performerNames } from '#lib/repertoire/ensembles.ts';
 import { reportScopeOf } from '#lib/server/report-scope.ts';
 import { orchestra as deployment } from '#lib/server/env.ts';
 import { joinList, splitList } from '#lib/repertoire/lists.ts';
-import { orchestraTitle } from '#lib/events/new-event.ts';
+import { eventFormValues, newEventFromForm, orchestraTitle, ORCHESTRA_PROPERTY } from '#lib/events/new-event.ts';
 import { calendarWriteEnabled } from '#lib/server/services.ts';
-import { setEventOrchestras } from '#lib/server/schedule.ts';
+import { calendarRange, changeCalendarEvent, setEventOrchestras } from '#lib/server/schedule.ts';
+import { eventDay } from '#lib/repertoire/dates.ts';
 import { getAccessList, getAttendance, getFeedback, getLoans, getMusicConfig, getRehearsalNotes, getRehearsalPlan, getSignups } from '#lib/server/repertoire.ts';
 import { checkRehearsalNote, isEmptyNote, type RehearsalNote } from '#lib/notes/rehearsal-notes.ts';
 import { requireRight } from '#lib/server/auth/index.ts';
@@ -468,10 +469,39 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 						canChange: rights.has('termine.planen') && calendarWriteEnabled()
 					}
 				: null,
+		// Those who plan dates change it here: title, time, place, note; it's changed in the Google Calendar.
+		editing:
+			rights.has('termine.planen') && event.type !== 'sonstiges'
+				? {
+						writable: calendarWriteEnabled(),
+						last: shownLast(),
+						orchestras: config.orchestras,
+						concerts: editConcerts(schedule.ok ? schedule.events : [], event).map((concert) => ({
+							id: concert.id,
+							title: concert.displayTitle,
+							date: concert.date.long
+						})),
+						values: {
+							...eventFormValues({ ...event, description: plainText(event.description) }, { timeZone: config.timeZone, orchestras: config.orchestras }),
+							orchestra: orchestra ?? ''
+						}
+					}
+				: null,
 		mapUrl: mapUrl(event.location),
 		program
 	};
 };
+
+/** The last day the site shows from the calendar: a date beyond would never show. */
+function shownLast() {
+	return eventDay({ start: calendarRange(Date.now()).to.toISOString(), allDay: false }, config.timeZone);
+}
+
+/** Concerts a rehearsal may be moved to: the upcoming ones, and the one it belongs to now. */
+function editConcerts(events: ShownEvent[], event: ShownEvent) {
+	if (event.type === 'konzert') return [];
+	return events.filter((other) => other.type === 'konzert' && (!other.past || other.id === event.concertId));
+}
 
 /** The upcoming calendar event a sign-up is for, with a readable label for the sheet. */
 async function upcoming(id: string) {
@@ -560,6 +590,47 @@ export const actions: Actions = {
 	},
 
 	withdraw: ({ locals, params }) => signupChange(locals, params.id, (event, user) => withdrawSignup(event.id, user)),
+
+	/**
+	 * Changes a concert or rehearsal in the Google Calendar ("termine.planen", CALENDAR_WRITE): the
+	 * same form as adding one on /kalender, filled in. Also for dates already past.
+	 */
+	editEvent: async ({ request, locals, params }) => {
+		requireRight(locals, 'termine.planen');
+		const form = await request.formData();
+		const values = Object.fromEntries([...form].map(([name, value]) => [name, String(value)]));
+		values.orchestra = form.getAll('orchestra').map(String).join(', ');
+		if (!calendarWriteEnabled()) return fail(503, { eventError: t.calendar.add.readOnly, eventValues: values });
+		const library = await getLibrary();
+		const schedule = library.schedule;
+		const event = schedule.ok ? schedule.byId.get(params.id) : undefined;
+		if (!schedule.ok || !event || event.type === 'sonstiges') error(404, t.messages.noEvent);
+		// A concert stays a concert, a rehearsal a rehearsal: what hangs on it (programme, plan, sign-ups) stays right.
+		const type = String(form.get('type') ?? '');
+		if ((event.type === 'konzert') !== (type === 'konzert')) return fail(400, { eventError: t.calendar.add.problems.type, eventValues: values });
+		const concerts = editConcerts(schedule.events, event);
+		const parsed = newEventFromForm(form, {
+			keywords: config.events,
+			timeZone: config.timeZone,
+			concerts,
+			orchestras: config.orchestras,
+			range: { first: '', last: shownLast() },
+			editing: { concertId: event.concertId }
+		});
+		if ('error' in parsed) return fail(400, { eventError: t.calendar.add.problems[parsed.error], eventValues: values });
+		const { extendedProperties, location, description, ...rest } = parsed.event;
+		// The note as the calendar keeps it (it may be HTML) stays unless it was changed here.
+		const note = description ?? '';
+		const result = await changeCalendarEvent(event.id, {
+			...rest,
+			location: location ?? '',
+			...(note !== (plainText(event.description) ?? '') ? { description: note } : {}),
+			// All of the orchestras, or a concert: nothing kept on the event.
+			extendedProperties: { shared: { [ORCHESTRA_PROPERTY]: extendedProperties?.shared[ORCHESTRA_PROPERTY] ?? null } }
+		});
+		if (!result.ok) return fail(result.reason === 'failed' ? 503 : 400, { eventError: t.calendar.add.errors[result.reason], eventValues: values });
+		return { eventSaved: true };
+	},
 
 	/** Which orchestras a rehearsal is for, ticked one by one; also for rehearsals already past. */
 	orchestras: async ({ request, locals, params }) => {

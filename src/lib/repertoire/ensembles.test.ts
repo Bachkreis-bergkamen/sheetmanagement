@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { concertPartners, onlyGuests, performerNames, readEnsembles, withGuests } from './ensembles.ts';
+import { checkEnsemble, concertPartners, onlyGuests, performerNames, readEnsembles, withGuests } from './ensembles.ts';
 import { reportGaps, reportRows } from './music-report.ts';
 import { programLabel, programScopes, rowOrchestra } from './orchestras.ts';
 import { buildRepertoire } from './sheet.ts';
@@ -140,5 +140,28 @@ describe('the music list of a concert with guests', () => {
 
 	it('has no such column without guests', () => {
 		expect(reportRows([{ title: 'Bolero' }])[0]).not.toContain('Ausführende');
+	});
+});
+
+describe('checkEnsemble', () => {
+	const empty = { shortName: '', name: '', kind: '', conductor: '', website: '', logo: '' };
+	const context = { others: [{ shortName: 'KCH', name: 'Kammerchor Unna' }], ours: ['EO', 'A'] };
+
+	it('takes a new ensemble, a typed web address made a link', () => {
+		expect(checkEnsemble({ ...empty, shortName: ' PCK ', name: 'Posaunenchor  Kamen', website: 'posaunenchor-kamen.de' }, context)).toEqual({
+			values: { ...empty, shortName: 'PCK', name: 'Posaunenchor Kamen', website: 'https://posaunenchor-kamen.de' }
+		});
+	});
+
+	it('refuses a name that is taken, one of ours, or none', () => {
+		expect(checkEnsemble(empty, context)).toEqual({ problem: 'name' });
+		expect(checkEnsemble({ ...empty, shortName: 'kch', name: 'Anderer Chor' }, context)).toEqual({ problem: 'taken' });
+		expect(checkEnsemble({ ...empty, name: 'Kammerchor Unna' }, context)).toEqual({ problem: 'taken' });
+		expect(checkEnsemble({ ...empty, shortName: 'EO', name: 'Ein Orchester' }, context)).toEqual({ problem: 'ours' });
+	});
+
+	it('wants the logo on https', () => {
+		expect(checkEnsemble({ ...empty, name: 'Chor', logo: 'http://example.org/logo.png' }, context)).toEqual({ problem: 'logo' });
+		expect(checkEnsemble({ ...empty, name: 'Chor', website: 'javascript:alert(1)' }, context)).toEqual({ problem: 'website' });
 	});
 });
