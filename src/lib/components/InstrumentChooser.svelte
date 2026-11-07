@@ -393,7 +393,7 @@
 		background: none;
 		color: var(--text);
 		font: inherit;
-		font-size: var(--text-md);
+		font-size: max(var(--control-min), var(--text-md));
 	}
 
 	.scroll {

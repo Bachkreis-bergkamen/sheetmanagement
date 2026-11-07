@@ -221,12 +221,17 @@ export function finishDemoUpload(sessionId: string): { id: string; name: string 
 function calendar(url: URL, method: string, body: Record<string, unknown> | undefined): Response {
 	if (!decodeURIComponent(url.pathname).includes(DEMO_IDS.calendar)) return notFound('Calendar not found');
 	if (method === 'PATCH') {
-		// A rehearsal's orchestras changed on its page.
+		// A date changed on its page: its orchestras, or its title, time, place and note.
 		const id = decodeURIComponent(url.pathname.split('/').at(-1) ?? '');
 		const event = load().events.find((candidate) => candidate.id === id);
 		if (!event) return notFound('Event not found');
-		const patch = body as Pick<DemoEvent, 'summary' | 'extendedProperties'>;
+		const patch = body as Partial<DemoEvent>;
 		if (patch.summary) event.summary = patch.summary;
+		const local = (time: DemoEvent['start']) => (time.dateTime ? { dateTime: time.dateTime } : { date: time.date });
+		if (patch.start) event.start = local(patch.start);
+		if (patch.end) event.end = local(patch.end);
+		if (patch.location !== undefined) event.location = patch.location || undefined;
+		if (patch.description !== undefined) event.description = patch.description || undefined;
 		const shared = { ...event.extendedProperties?.shared, ...patch.extendedProperties?.shared };
 		event.extendedProperties = { shared: Object.fromEntries(Object.entries(shared).filter(([, value]) => value !== null)) as Record<string, string> };
 		return json(event);

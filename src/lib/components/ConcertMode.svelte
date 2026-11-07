@@ -100,6 +100,7 @@
 	}
 
 	.jump select {
+		font-size: max(var(--control-min), var(--text-sm));
 		max-width: min(56vw, 22rem);
 		font-weight: 600;
 		text-overflow: ellipsis;
@@ -124,6 +125,10 @@
 		.toggle {
 			height: 34px;
 			font-size: var(--text-xs);
+		}
+
+		.jump select {
+			font-size: max(var(--control-min), var(--text-xs));
 		}
 	}
 </style>

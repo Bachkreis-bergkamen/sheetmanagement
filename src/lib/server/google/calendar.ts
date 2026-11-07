@@ -92,3 +92,21 @@ export async function patchEventOrchestras(
 		{ method: 'PATCH', body: { summary, extendedProperties: { shared: { [ORCHESTRA_PROPERTY]: orchestras || null } } } }
 	);
 }
+
+/** What a change on an event's page sends: empty texts clear a field, a null property removes it. */
+export interface EventChange extends Omit<NewEventBody, 'extendedProperties' | 'location' | 'description'> {
+	location: string;
+	description?: string;
+	extendedProperties: { shared: Record<string, string | null> };
+}
+
+/** Changes a concert's or rehearsal's title, time, place and note (events.patch). */
+export async function patchEvent(client: GoogleClient, calendarId: string, eventId: string, change: EventChange): Promise<CalendarEvent> {
+	const changed = await client.request<ApiEvent>(
+		`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
+		{ method: 'PATCH', body: change }
+	);
+	const result = toCalendarEvent(changed);
+	if (!result) throw new Error('Google returned the changed event without a start');
+	return result;
+}

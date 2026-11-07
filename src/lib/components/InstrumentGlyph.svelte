@@ -27,9 +27,10 @@
 </script>
 
 <script lang="ts">
-	let { glyph, size = 24 }: { glyph: Glyph; size?: number } = $props();
+	/** x and y place it inside another drawing (the seating plan), in that drawing's units. */
+	let { glyph, size = 24, x, y }: { glyph: Glyph; size?: number; x?: number; y?: number } = $props();
 </script>
 
-<svg width={size} height={size} viewBox="0 0 512 512" fill="currentColor" aria-hidden="true">
+<svg {x} {y} width={size} height={size} viewBox="0 0 512 512" fill="currentColor" aria-hidden="true">
 	<path d={glyphs[glyph]} />
 </svg>

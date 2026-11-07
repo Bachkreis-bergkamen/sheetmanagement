@@ -5,6 +5,7 @@ import { normalizeEmail } from '#lib/access/access.ts';
 import { getAccessList, getAttendance, getFeedback, getLoans, getScanTasks } from './repertoire.ts';
 import { features } from './env.ts';
 import { unansweredPolls } from './polls.ts';
+import { unreadKummer } from './kummer.ts';
 import { getSchedule } from './schedule.ts';
 
 /** Rehearsals this many days back still ask for their attendance to be taken. */
@@ -24,6 +25,9 @@ export interface OpenWork {
 	pollsUrl?: string;
 	/** Gaps the Notenwart was asked to scan. */
 	scans: number;
+	/** The Kummerkasten: answers to what you wrote, and for the Leitung new messages for them. */
+	kummerAnswers: number;
+	kummerInbox: number;
 }
 
 /**
@@ -39,7 +43,8 @@ export async function openWork(locals: App.Locals): Promise<OpenWork | null> {
 	const attendance = on.attendance && rights.has('anwesenheit.erfassen') && locals.auth === 'on';
 	const today = eventDay({ start: new Date().toISOString(), allDay: false }, config.timeZone);
 	const polls = locals.auth === 'on' ? await unansweredPolls(locals, today).catch(() => []) : [];
-	if (!reports && !admin && !attendance && !polls.length) return null;
+	const kummer = await unreadKummer(locals).catch(() => ({ answers: 0, inbox: 0 }));
+	if (!reports && !admin && !attendance && !polls.length && !kummer.answers && !kummer.inbox) return null;
 	const [feedback, access, loans, taken, schedule, scans] = await Promise.all([
 		getFeedback(),
 		admin ? getAccessList() : null,
@@ -69,13 +74,15 @@ export async function openWork(locals: App.Locals): Promise<OpenWork | null> {
 		attendanceUrl: untaken[0] ? `/kalender/${encodeURIComponent(untaken[0].id)}/anwesenheit` : undefined,
 		polls: polls.length,
 		pollsUrl: polls.length === 1 ? `/termine/${polls[0].id}` : '/termine',
-		scans: me && scans ? [...scans.values()].filter((task) => task.assignee === me && !task.done).length : 0
+		scans: me && scans ? [...scans.values()].filter((task) => task.assignee === me && !task.done).length : 0,
+		kummerAnswers: kummer.answers,
+		kummerInbox: kummer.inbox
 	};
 }
 
 /** The counts by page, for tabs and menus: only pages with something open. */
 export function countsByPage(work: OpenWork | null): Record<string, number> {
 	if (!work) return {};
-	const counts: Record<string, number> = { '/meldungen': work.reports, '/wuensche': work.wishes, '/admin': work.requests, '/leihmaterial': work.loans, '/fehlende-stimmen': work.scans };
+	const counts: Record<string, number> = { '/meldungen': work.reports, '/wuensche': work.wishes, '/admin': work.requests, '/leihmaterial': work.loans, '/fehlende-stimmen': work.scans, '/kummerkasten': work.kummerAnswers + work.kummerInbox };
 	return Object.fromEntries(Object.entries(counts).filter(([, count]) => count > 0));
 }

@@ -7,6 +7,7 @@
 	import ConcertRow from '#lib/components/ConcertRow.svelte';
 	import Crumbs from '#lib/components/Crumbs.svelte';
 	import EventRow from '#lib/components/EventRow.svelte';
+	import OrchestraSeating from '#lib/components/OrchestraSeating.svelte';
 	import Icon, { type IconName } from '#lib/components/Icon.svelte';
 	import InstrumentGlyph from '#lib/components/InstrumentGlyph.svelte';
 	import { partGlyph } from '#lib/music/instrument-glyph.ts';
@@ -63,9 +64,7 @@
 		arranger: 'user',
 		genre: 'tag',
 		difficulty: 'gauge',
-		reviewedAt: 'check',
-		instrumentation: 'users',
-		unscored: 'alert'
+		reviewedAt: 'check'
 	};
 	const info = $derived(
 		(Object.keys(t.piece.info) as (keyof typeof t.piece.info)[])
@@ -168,12 +167,21 @@
 	<dl class="details" aria-label={t.piece.details}>
 		{#each info as item (item.key)}
 			<!-- The icon belongs to the label, so the list keeps only labels and values (for screen readers). -->
-			<div class="detail" class:warn={item.key === 'unscored'}>
+			<div class="detail">
 				<dt><span class="detail-icon" aria-hidden="true"><Icon name={item.icon} size={18} /></span>{item.label}</dt>
 				<dd>{item.value}</dd>
 			</div>
 		{/each}
 	</dl>
+{/if}
+{#if piece.besetzung.voices.length}
+	<!-- The Besetzung as a seating plan, instead of a long line of names (#249). -->
+	<section class="block" aria-labelledby="besetzung-title">
+		<h2 class="ui-label" id="besetzung-title">{t.seating.title}</h2>
+		<div class="ui-card besetzung">
+			<OrchestraSeating voices={piece.besetzung.voices} missing={piece.besetzung.missing} score={piece.besetzung.score} soloists={piece.besetzung.soloists} />
+		</div>
+	</section>
 {/if}
 {#if mine.length}
 	<div class="my-parts">
@@ -647,9 +655,8 @@
 		margin: 0;
 	}
 
-	/* Instruments of the Besetzung without a part (#249). */
-	.detail.warn dd {
-		color: var(--danger);
+	.besetzung {
+		padding: var(--space-4) var(--space-3) var(--space-4);
 	}
 
 	.detail {

@@ -12,6 +12,8 @@ export const RIGHTS = [
 	// Concert tickets (docs/tickets-plan.md), only while the "tickets" feature is on.
 	'karten.verwalten',
 	'karten.einlass',
+	// The Kummerkasten: anonymous messages to the Leitung, answered privately.
+	'kummerkasten.lesen',
 	'mitglieder.verwalten'
 ] as const;
 export type Right = (typeof RIGHTS)[number];

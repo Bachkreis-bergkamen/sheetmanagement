@@ -153,8 +153,10 @@ test('the Besetzung read from the score flags an instrument without a part (#249
 	await page.getByRole('button', { name: 'Speichern' }).click();
 	await expect(page).toHaveURL(/\/stuecke\/demo-egmont(\?|$)/);
 	// No piccolo part in the archive; the double bass has its own gap (FEHLT) and isn't named twice.
-	await expect(page.locator('.detail').filter({ hasText: 'Ohne Stimme' })).toContainText('Piccolo');
-	await expect(page.locator('.detail').filter({ hasText: 'Ohne Stimme' })).not.toContainText('Kontrabass');
+	// The seating plan rings it and names it underneath.
+	const missing = page.getByText(/^Ohne Stimme im Archiv:/);
+	await expect(missing).toContainText('Piccolo');
+	await expect(missing).not.toContainText('Kontrabass');
 	await open(page, '/fehlende-stimmen');
 	await expect(page.getByText('laut Besetzung, keine Stimme')).toBeVisible();
 });

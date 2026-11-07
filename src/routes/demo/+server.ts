@@ -8,6 +8,7 @@ import { DEMO_ADMIN, DEMO_MEMBER } from '#lib/server/demo/data.ts';
 import { getStore } from '#lib/server/db/index.ts';
 import { isDemo } from '#lib/server/env.ts';
 import { resetDemoPolls } from '#lib/server/polls.ts';
+import { resetDemoKummer } from '#lib/server/kummer.ts';
 import { getArchiveIndex } from '#lib/server/services.ts';
 import { refreshAfterWrite } from '#lib/server/sheet-writes.ts';
 import type { RequestHandler } from './$types';
@@ -23,6 +24,7 @@ export const POST: RequestHandler = async ({ request, cookies, url }) => {
 	if (data.has('zuruecksetzen')) {
 		resetDemo();
 		resetDemoPolls();
+		resetDemoKummer();
 		// Both demo users are new again: the tour is offered once more, and their practice time and
 		// notes are the sample ones.
 		const store = getStore();

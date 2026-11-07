@@ -1,4 +1,5 @@
 import type { RolePreset } from '#lib/access/access.ts';
+import type { SeatingOverrides } from '#lib/music/seating.ts';
 import type { Look } from '#lib/branding.ts';
 import type { Features } from '#lib/features.ts';
 
@@ -129,6 +130,12 @@ export interface OrchestraConfig {
 	locale: string;
 	/** Instruments in display order; parts are sorted by this list. */
 	instruments: Instrument[];
+	/**
+	 * The orchestra's own seating where it differs from the usual (#249): a section's zone, row
+	 * or order by its id or instrument, e.g. German seating with the second violins on the right,
+	 * `{ 'Geige:2': { order: 4 }, Kontrabass: { zone: 'left' } }`.
+	 */
+	seating?: { overrides?: SeatingOverrides };
 	naming: NamingRules;
 	events: EventKeywords;
 	/**
