@@ -1129,7 +1129,9 @@ export const de = {
 		done: 'Fertig',
 		chosen: (n: number) => (n === 1 ? '1 Instrument' : `${n} Instrumente`),
 		numbers: 'Stimmen',
-		numbersHint: 'keine Auswahl: alle Stimmen'
+		numbersHint: 'keine Auswahl: alle Stimmen',
+		score: (label: string) => `Erste Seite: ${label}`,
+		scoreHint: 'Am linken Rand der ersten Seite stehen alle Instrumente der Partitur.'
 	},
 	/** Filters for a list, several at once (archive, calendar). */
 	filters: {

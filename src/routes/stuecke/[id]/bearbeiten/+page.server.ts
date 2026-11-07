@@ -49,6 +49,8 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		arrangers: used((p) => p.sheet?.arranger),
 		publishers: used((p) => p.sheet?.publisher),
 		files,
+		// The score's first page beside the Besetzung picker, for members who may read it.
+		score: locals.auth === 'on' && locals.access.member ? (pdfs.filter((part) => part.kind === 'partitur').map((part) => ({ id: part.id, label: part.label }))[0] ?? null) : null,
 		// The PDFs come through the app, which is for signed-in members.
 		canRead: locals.auth === 'on' && locals.access.member,
 		// A duration from the Hörbeispiel's video, with a YouTube key (#133).
