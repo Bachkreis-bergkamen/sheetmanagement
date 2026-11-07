@@ -29,16 +29,32 @@
 
 	let dialog = $state<HTMLDialogElement>();
 	let trigger = $state<HTMLButtonElement>();
-	let spot = $state<{ top: number; right: number } | null>(null);
+	let spot = $state<{ top?: number; bottom?: number; left: number; height: number } | null>(null);
 	let isOpen = $state(false);
 
 	const total = $derived(applyFilters(items, groups, value).length);
 
+	/** The card's width on wide screens, and the space it keeps from the window's edges. */
+	const CARD = 360;
+	const EDGE = 16;
+	/** Below the button unless less than this is left there; then above it, if that's roomier. */
+	const ROOM = 360;
+
 	async function open() {
 		if (!dialog || !trigger) return;
-		// Wide screens: right under the button, its right edges in line. Phones: the sheet.
+		// Wide screens: a card by the button, its right edge in line with the button's where it
+		// fits, but never past the window's edges. Phones: the sheet.
 		const box = trigger.getBoundingClientRect();
-		spot = innerWidth > 720 ? { top: box.bottom + 8, right: Math.max(16, document.documentElement.clientWidth - box.right) } : null;
+		const across = document.documentElement.clientWidth;
+		const left = Math.min(Math.max(EDGE, box.right - CARD), across - CARD - EDGE);
+		const below = innerHeight - box.bottom - 8 - EDGE;
+		const above = box.top - 8 - EDGE;
+		spot =
+			innerWidth > 720
+				? below >= ROOM || below >= above
+					? { top: box.bottom + 8, left, height: below }
+					: { bottom: innerHeight - box.top + 8, left, height: above }
+				: null;
 		dialog.showModal();
 		isOpen = true;
 		await tick();
@@ -68,8 +84,10 @@
 	bind:this={dialog}
 	class="panel"
 	class:anchored={!!spot}
-	style:top={spot ? `${spot.top}px` : undefined}
-	style:right={spot ? `${spot.right}px` : undefined}
+	style:top={spot?.top !== undefined ? `${spot.top}px` : undefined}
+	style:bottom={spot?.bottom !== undefined ? `${spot.bottom}px` : undefined}
+	style:left={spot ? `${spot.left}px` : undefined}
+	style:--room={spot ? `${spot.height}px` : undefined}
 	aria-labelledby="filter-title"
 	onclose={() => (isOpen = false)}
 	onclick={(event) => {
@@ -222,7 +240,9 @@
 	.panel.anchored {
 		inset: auto;
 		width: 360px;
-		max-height: min(70dvh, 560px);
+		max-width: calc(100vw - 32px);
+		/* Never taller than the space left on its side of the button. */
+		max-height: min(70dvh, 560px, var(--room, 560px));
 		border: 1px solid var(--border);
 		border-radius: var(--radius-l);
 	}

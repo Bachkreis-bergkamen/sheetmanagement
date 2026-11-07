@@ -174,15 +174,6 @@
 		{/each}
 	</dl>
 {/if}
-{#if piece.besetzung.voices.length}
-	<!-- The Besetzung as a seating plan, instead of a long line of names (#249). -->
-	<section class="block" aria-labelledby="besetzung-title">
-		<h2 class="ui-label" id="besetzung-title">{t.seating.title}</h2>
-		<div class="ui-card besetzung">
-			<OrchestraSeating voices={piece.besetzung.voices} missing={piece.besetzung.missing} score={piece.besetzung.score} soloists={piece.besetzung.soloists} />
-		</div>
-	</section>
-{/if}
 {#if mine.length}
 	<div class="my-parts">
 		{#each mine as part (part.id)}
@@ -423,6 +414,16 @@
 {/if}
 
 <!-- Below the parts: where the piece was played, related pieces. -->
+
+{#if piece.besetzung.voices.length}
+	<!-- The Besetzung as a seating plan (#249), below the parts: those are what most come here for. -->
+	<section class="block" aria-labelledby="besetzung-title">
+		<h2 class="ui-label" id="besetzung-title">{t.seating.title}</h2>
+		<div class="ui-card besetzung">
+			<OrchestraSeating voices={piece.besetzung.voices} missing={piece.besetzung.missing} score={piece.besetzung.score} soloists={piece.besetzung.soloists} />
+		</div>
+	</section>
+{/if}
 
 {#snippet pieceLinks(pieces: typeof data.moreByComposer)}
 	<ul class="more-list">
