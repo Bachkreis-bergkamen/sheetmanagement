@@ -11,5 +11,8 @@ import type { PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ locals }) => {
 	const groups = organiserGroups(navGroups({ auth: locals.auth, rights: locals.access.rights, features: features() }));
 	if (!groups.length) redirect(303, '/');
-	return { counts: countsByPage(await openWork(locals).catch(() => null)) };
+	const work = await openWork(locals).catch(() => null);
+	// Everything waiting, for the "Zu erledigen" row on top (#185).
+	const open = work ? work.reports + work.wishes + work.requests + work.loans + work.attendance + work.polls + work.scans + work.kummerAnswers + work.kummerInbox : 0;
+	return { counts: countsByPage(work), open };
 };
