@@ -1,5 +1,5 @@
 import { fingerprint, type ErrorGroup } from '#lib/errors/errors.ts';
-import { reminderKey, type MarkShare, type PageMarks, type PartCheck, type PushDevice, type Store, type TourOutcome } from './types.ts';
+import { reminderKey, type Account, type MarkShare, type PageMarks, type PartCheck, type PushDevice, type Store, type TourOutcome } from './types.ts';
 import { memoryData } from './data-memory.ts';
 import { memoryTickets } from './tickets-memory.ts';
 import { MIGRATIONS } from './sql.ts';
@@ -13,6 +13,7 @@ export function memoryStore(now = () => Date.now()): Store {
 	const sent = new Map<string, number>();
 	const state = new Map<string, string>();
 	const optOut = new Set<string>();
+	const accounts = new Map<string, Account>();
 	const tours = new Map<string, TourOutcome>();
 	const practiceOptIn = new Set<string>();
 	/** Seconds by member, then by day. */
@@ -69,6 +70,17 @@ export function memoryStore(now = () => Date.now()): Store {
 		async setMailOptOut(email, off) {
 			if (off) optOut.add(email);
 			else optOut.delete(email);
+		},
+
+		accountOf: async (email) => {
+			const account = accounts.get(email);
+			return account ? { ...account } : null;
+		},
+		async saveAccount(account) {
+			accounts.set(account.email, { ...account });
+		},
+		async deleteAccount(email) {
+			accounts.delete(email);
 		},
 
 		tourOf: async (email) => tours.get(email) ?? null,

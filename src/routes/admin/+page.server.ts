@@ -21,14 +21,16 @@ import { splitNames } from '#lib/music/instrument-groups.ts';
 import { commonInstruments, parseInstruments, playableInstruments } from '#lib/music/my-parts.ts';
 import { readMemberForm, today, writable } from '#lib/server/members.ts';
 import { linkToken, nextLinkVersion, revokedLinkVersion } from '#lib/server/auth/links.ts';
+import { createInvite, INVITE_DAYS, inviteUrl, openInvites, removeInvite } from '#lib/server/auth/invites.ts';
 import { getAccessList, getInstrumentGroups } from '#lib/server/repertoire.ts';
 import { appendRecords, deleteRows, readTab, refreshAfterWrite, SheetLayoutError, updateRecord } from '#lib/server/sheet-writes.ts';
 import { requireSetting } from '#lib/server/services.ts';
+import { getStore } from '#lib/server/db/index.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, url }) => {
 	if (locals.auth === 'off') return { state: 'off' as const };
 	requireRight(locals, 'mitglieder.verwalten');
 
@@ -43,6 +45,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 	}
 	const ready = !!(list?.tables.members && list.tables.rights && list.tables.requests);
 	return {
+		invites: await invites(auth, url.origin),
+		inviteDays: INVITE_DAYS,
 		state: ready ? ('ready' as const) : ('not-set-up' as const),
 		sheetUrl,
 		bootstrapAdmins: auth.mode === 'on' ? auth.bootstrapAdmins : [],
@@ -100,6 +104,20 @@ export const load: PageServerLoad = async ({ locals }) => {
 		orchestras: config.orchestras
 	};
 };
+
+/**
+ * Open invitation links, with their address: an admin may copy one again. Null while sign-in
+ * is off or the store (D1) isn't there, since joining needs a password account.
+ */
+async function invites(auth: ReturnType<typeof authConfig>, origin: string) {
+	if (auth.mode !== 'on') return null;
+	try {
+		await getStore().accountOf('');
+		return (await openInvites()).map(({ id, label, groups, expiresAt }) => ({ id, label, groups, expiresAt, url: inviteUrl(origin, id) }));
+	} catch {
+		return null;
+	}
+}
 
 /** Runs one change; layout problems in the sheet become a message instead of a crash. */
 async function change(locals: App.Locals, work: () => Promise<string | void>) {
@@ -288,6 +306,33 @@ export const actions: Actions = {
 		});
 		if ('status' in result || version <= 0) return result;
 		return { ...result, link: { email, url: `${url.origin}/auth/link/${await linkToken(email, version, auth.sessionSecret)}` } };
+	},
+
+	/** A link for someone new, who fills in their own details; shown right away to copy and send. */
+	invite: async ({ request, locals, url }) => {
+		requireRight(locals, 'mitglieder.verwalten');
+		if (authConfig().mode !== 'on') return fail(400, { message: t.admin.linkUnavailable });
+		const data = await request.formData();
+		const groups = [...new Set(data.getAll('group').map((value) => String(value).trim().slice(0, 100)).filter(Boolean))];
+		try {
+			const invite = await createInvite({ label: field(data, 'label'), groups: groups.join(', '), by: locals.access.user?.email ?? '' });
+			return { invited: { id: invite.id, url: inviteUrl(url.origin, invite.id) } };
+		} catch (error) {
+			console.error('Making an invitation failed:', error);
+			return fail(503, { message: t.invite.failed });
+		}
+	},
+
+	/** Takes an invitation back before it's used. */
+	inviteRevoke: async ({ request, locals }) => {
+		requireRight(locals, 'mitglieder.verwalten');
+		try {
+			await removeInvite(field(await request.formData(), 'id'));
+			return { inviteRevoked: true };
+		} catch (error) {
+			console.error('Revoking an invitation failed:', error);
+			return fail(503, { message: t.invite.failed });
+		}
 	},
 
 	/** A role's description and rights; a new name adds the role to "Gruppen". */

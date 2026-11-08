@@ -29,7 +29,7 @@ const KEY = 'drive-account';
 
 function auth() {
 	const config = authConfig();
-	return config.mode === 'on' && !config.problems.length && !isDemo() ? config : null;
+	return config.mode === 'on' && config.google && !config.problems.length && !isDemo() ? config : null;
 }
 
 let cached: { at: number; value: Stored | null } | undefined;

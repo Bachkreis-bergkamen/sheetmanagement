@@ -8,6 +8,8 @@ export const de = {
 	nav: {
 		/** Shown after the orchestra's short name in the header. */
 		appName: 'Notenarchiv',
+		beta: 'Beta',
+		betaNote: 'Vorschau: Die App ist noch in Arbeit. Fehler und Wünsche gern melden.',
 		home: 'Übersicht',
 		pieces: 'Archiv',
 		concerts: 'Kalender',
@@ -1277,7 +1279,7 @@ export const de = {
 	},
 	auth: {
 		title: 'Anmelden',
-		lead: 'Melde dich mit deinem Google-Konto an, um Noten, Konzerte und Programme zu sehen.',
+		lead: 'Melde dich an, um Noten, Konzerte und Programme zu sehen.',
 		button: 'Mit Google anmelden',
 		privacy: 'Die App erfährt dabei nur deinen Namen und deine E-Mail-Adresse.',
 		notReady: 'Die Anmeldung ist noch nicht fertig eingerichtet:',
@@ -1404,33 +1406,85 @@ export const de = {
 		loading: 'Lade die Noten …',
 		hint: 'Angaben von der Seite abtippen, oder im neuen Tab markieren und kopieren.'
 	},
+	/** Email and password sign-in: the form on /anmelden, signing up and resetting by email, the profile. */
+	password: {
+		email: 'E-Mail-Adresse',
+		password: 'Passwort',
+		signIn: 'Anmelden',
+		signInErrors: {
+			wrong: 'E-Mail-Adresse oder Passwort stimmt nicht.',
+			limited: 'Zu viele Versuche. Bitte in einer Viertelstunde noch einmal.',
+			failed: 'Das hat gerade nicht geklappt. Bitte versuch es noch einmal.'
+		} as Record<string, string>,
+		createOrReset: 'Konto anlegen oder Passwort vergessen?',
+		noMailHint: 'Noch kein Passwort? Lass dir von der Verwaltung einen persönlichen Link geben und leg im Profil ein Passwort fest.',
+		requestTitle: 'Passwort festlegen',
+		requestLead: 'Für ein neues Konto oder wenn du dein Passwort vergessen hast: Wir schicken dir einen Link, mit dem du ein Passwort festlegst.',
+		send: 'Link per E-Mail schicken',
+		sent: (email: string) => `Wir haben einen Link an ${email} geschickt. Er gilt eine Stunde. Schau auch im Spam-Ordner nach.`,
+		mailErrors: {
+			invalid: 'Bitte eine E-Mail-Adresse eingeben.',
+			limited: 'Zu viele Versuche. Bitte in einer Stunde noch einmal.',
+			failed: 'Das hat gerade nicht geklappt. Bitte versuch es noch einmal.'
+		} as Record<string, string>,
+		noMail: 'Gerade können keine E-Mails verschickt werden. Bitte frag die Verwaltung nach einem persönlichen Link; danach kannst du im Profil ein Passwort festlegen.',
+		toSignIn: 'Zur Anmeldung',
+		newSubject: (orchestra: string) => `Dein Konto: ${orchestra}`,
+		newBody: (name: string, orchestra: string, link: string) =>
+			`Hallo${name ? ` ${name}` : ''},\n\nmit diesem Link legst du dein Passwort für ${orchestra} fest. Er gilt eine Stunde:\n\n${link}\n\nDu wolltest kein Konto anlegen? Dann lösch diese E-Mail einfach.`,
+		resetSubject: (orchestra: string) => `Neues Passwort: ${orchestra}`,
+		resetBody: (name: string, link: string) =>
+			`Hallo${name ? ` ${name}` : ''},\n\nmit diesem Link legst du ein neues Passwort fest. Er gilt eine Stunde und nur einmal:\n\n${link}\n\nDu hast kein neues Passwort angefordert? Dann lösch diese E-Mail einfach; dein Passwort bleibt, wie es ist.`,
+		setTitle: 'Passwort festlegen',
+		resetTitle: 'Neues Passwort',
+		setLead: (email: string) => `Für ${email}.`,
+		newPassword: 'Neues Passwort',
+		repeat: 'Noch einmal',
+		current: 'Bisheriges Passwort',
+		rule: (min: number) => `Mindestens ${min} Zeichen. Ein Satz, den du dir merken kannst, ist besser als ein kurzes kompliziertes Wort.`,
+		problems: {
+			short: 'Das Passwort ist zu kurz.',
+			long: 'Das Passwort ist zu lang.',
+			mismatch: 'Die beiden Passwörter sind nicht gleich.'
+		} as Record<string, string>,
+		save: 'Passwort speichern',
+		failed: 'Das Passwort konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.',
+		linkInvalid: 'Dieser Link ist abgelaufen oder wurde schon benutzt.',
+		newLink: 'Neuen Link anfordern',
+		profileTitle: 'Passwort',
+		profileHas: (email: string) => `Du kannst dich mit ${email} und deinem Passwort anmelden. Ein neues Passwort meldet dich überall sonst ab.`,
+		profileNone: (email: string) => `Leg ein Passwort fest, dann meldest du dich auch mit ${email} und Passwort an.`,
+		set: 'Passwort festlegen',
+		change: 'Passwort ändern',
+		saved: 'Passwort gespeichert.',
+		wrongCurrent: 'Das bisherige Passwort stimmt nicht.',
+		forgot: 'Passwort vergessen?'
+	},
+	/** The member's own access link on /profil. */
+	ownLink: {
+		title: 'Persönlicher Zugangslink',
+		lead: 'Ein Link, mit dem du dich ohne Passwort anmeldest, z. B. auf einem zweiten Gerät.',
+		create: 'Zugangslink erzeugen',
+		show: 'Link anzeigen',
+		keep: 'Persönlich: Wer den Link hat, ist als du angemeldet. Nicht weitergeben.',
+		confirmRenew: 'Neuen Link erzeugen? Der alte gilt dann nicht mehr, und wer damit angemeldet ist, wird abgemeldet.',
+		confirmRenewViaLink: 'Neuen Link erzeugen? Der alte gilt dann nicht mehr; Geräte, die damit angemeldet sind, werden abgemeldet (dieses nicht).',
+		confirmRevoke: 'Link sperren? Wer damit angemeldet ist, wird abgemeldet.',
+		confirmRevokeViaLink: 'Link sperren? Du bist mit diesem Link angemeldet und wirst dann auch hier abgemeldet.',
+		revoked: 'Link gesperrt.'
+	},
 	accessLink: {
 		title: 'Zugang per Link',
 		hello: (name: string) => (name ? `Hallo ${name}!` : 'Hallo!'),
-		lead: 'Mit diesem persönlichen Link meldest du dich ohne Google-Konto an.',
+		lead: 'Mit diesem persönlichen Link meldest du dich ohne Passwort an.',
 		signIn: 'Anmelden',
-		keep: 'Bewahre den Link gut auf und gib ihn nicht weiter. Er gilt, bis die Verwaltung einen neuen erzeugt.',
+		keep: 'Bewahre den Link gut auf und gib ihn nicht weiter. Er gilt, bis du (im Profil) oder die Verwaltung einen neuen erzeugt.',
 		invalid: 'Dieser Link gilt nicht mehr. Bitte frag die Verwaltung nach einem neuen.',
-		toSignIn: 'Zur Anmeldung mit Google'
+		toSignIn: 'Zur Anmeldung'
 	},
 	/** Email (#123): sign-in links, reminders, the account on /status. */
 	email: {
 		or: 'oder',
-		noGoogle: 'Ohne Google-Konto: Wir schicken dir einen Link.',
-		label: 'E-Mail-Adresse',
-		send: 'Link per E-Mail schicken',
-		sent: (email: string) =>
-			`Wenn ${email} im Orchester eingetragen ist, kommt gleich eine E-Mail mit einem Anmeldelink. Er gilt 15 Minuten. Schau auch im Spam-Ordner nach.`,
-		invalid: 'Bitte eine E-Mail-Adresse eingeben.',
-		limited: 'Zu viele Versuche. Bitte in einer Stunde noch einmal.',
-		failed: 'Das hat gerade nicht geklappt. Bitte versuch es noch einmal.',
-		signInSubject: (orchestra: string) => `Anmelden: ${orchestra}`,
-		signInBody: (name: string, link: string) =>
-			`Hallo${name ? ` ${name}` : ''},\n\nmit diesem Link meldest du dich an. Er gilt 15 Minuten:\n\n${link}\n\nDu hast keinen Link angefordert? Dann lösch diese E-Mail einfach.`,
-		linkTitle: 'Anmelden per E-Mail',
-		linkLead: (email: string) => `Du meldest dich als ${email} an.`,
-		linkButton: 'Anmelden',
-		linkInvalid: 'Dieser Link ist abgelaufen oder gilt nicht. Lass dir auf der Anmeldeseite einen neuen schicken.',
 		toSignIn: 'Zur Anmeldung',
 		hello: (name: string) => (name ? `Hallo ${name},` : 'Hallo,'),
 		answerLinks: 'Antworten:',
@@ -1453,13 +1507,13 @@ export const de = {
 		connected: (email: string, since: string) => `Verschickt von ${email} (verbunden am ${since}).`,
 		links: (origin: string) => `Links in E-Mails führen zu ${origin}.`,
 		optOuts: (n: number) => (n === 1 ? '1 Mitglied hat E-Mail-Erinnerungen abbestellt.' : `${n} Mitglieder haben E-Mail-Erinnerungen abbestellt.`),
-		notConnected: 'Kein E-Mail-Konto verbunden: Anmeldelinks und Erinnerungen per E-Mail sind aus.',
+		notConnected: 'Kein E-Mail-Konto verbunden: Konto anlegen, Passwort vergessen und Erinnerungen per E-Mail sind aus.',
 		connectHint:
 			'Melde dich mit dem Google-Konto des Orchesters an, das die E-Mails verschicken soll. Google fragt nach der Erlaubnis, in seinem Namen E-Mails zu senden, mehr nicht. Im OAuth-Zustimmungsbildschirm muss die App „In Produktion“ sein, sonst endet die Erlaubnis nach 7 Tagen.',
 		needsSignIn: 'Erst die Anmeldung mit Google einrichten (Schritt 9).',
 		connect: 'E-Mail-Konto verbinden',
 		disconnect: 'Trennen',
-		confirmDisconnect: 'E-Mail-Konto trennen? Anmeldelinks und E-Mail-Erinnerungen gehen dann nicht mehr raus.',
+		confirmDisconnect: 'E-Mail-Konto trennen? Links zum Festlegen eines Passworts und E-Mail-Erinnerungen gehen dann nicht mehr raus.',
 		revoked: 'Google hat die Erlaubnis zum Senden zurückgenommen. Bitte das Konto neu verbinden.',
 		lastError: (message: string) => `Die letzte E-Mail ging nicht raus: ${message}`,
 		connectedNow: 'E-Mail-Konto verbunden.',
@@ -1490,6 +1544,36 @@ export const de = {
 		'karten.einlass': 'Karten am Einlass prüfen',
 		'kummerkasten.lesen': 'Kummerkasten lesen und beantworten (ohne zu sehen, wer schreibt)',
 		'mitglieder.verwalten': 'Mitglieder und Rechte verwalten'
+	},
+	/** Invitation links (/admin makes them, /auth/einladung/… uses them): someone new fills in their own details. */
+	invite: {
+		title: 'Willkommen!',
+		lead: 'Du bist eingeladen. Trag dich hier ein, dann kannst du gleich loslegen.',
+		aboutYou: 'Über dich',
+		signIn: 'So meldest du dich an',
+		signInLead: 'Mit dieser E-Mail-Adresse und dem Passwort meldest du dich ab jetzt an.',
+		join: 'Eintragen und loslegen',
+		nameMissing: 'Bitte deinen Vor- und Nachnamen eintragen.',
+		instrumentMissing: 'Bitte wähl mindestens ein Instrument.',
+		exists: 'Mit dieser E-Mail-Adresse bist du schon eingetragen. Melde dich einfach an.',
+		joinFailed: 'Das Eintragen hat gerade nicht geklappt. Bitte versuch es noch einmal.',
+		invalid: 'Diese Einladung ist abgelaufen oder wurde schon benutzt. Bitte frag die Verwaltung nach einer neuen.',
+		failed: 'Die Einladung konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.',
+		adminTitle: 'Per Link einladen',
+		adminLead: (days: number) =>
+			`Du schickst einen Link, und die Person trägt Name, E-Mail-Adresse, Passwort und Instrument selbst ein. Jeder Link gilt einmal und ${days} Tage.`,
+		label: 'Für wen? (optional)',
+		labelHint: 'Nur für dich, damit du den Link in der Liste wiedererkennst.',
+		roles: 'Rollen (optional)',
+		create: 'Einladungslink erzeugen',
+		created: 'Link erzeugt. Kopier ihn und schick ihn per Messenger oder E-Mail.',
+		open: 'Offene Einladungen',
+		unnamed: 'Ohne Namen',
+		until: (day: string) => `gilt bis ${day}`,
+		revoke: 'Zurückziehen',
+		confirmRevoke: 'Einladung zurückziehen? Der Link funktioniert dann nicht mehr.',
+		revoked: 'Einladung zurückgezogen.',
+		unavailable: 'Einladungen brauchen die Datenbank (D1), weil sich neue Mitglieder mit Passwort anmelden.'
 	},
 	admin: {
 		setupSections: 'Einrichtung',
@@ -1594,8 +1678,21 @@ export const de = {
 	},
 	profile: {
 		title: 'Profil',
-		lead: 'Was du spielst und ob du gerade dabei bist.',
+		lead: 'Deine Angaben und Einstellungen, nach Themen geordnet.',
 		settings: 'Einstellungen',
+		sections: {
+			jump: 'Auf dieser Seite',
+			about: 'Über dich',
+			aboutLead: 'Was du spielst und ob du gerade dabei bist. Danach richten sich deine Noten und die Besetzung.',
+			notify: 'Benachrichtigungen & Kalender',
+			notifyLead: 'Wie du von Proben und Konzerten erfährst.',
+			app: 'Ansicht & App',
+			appLead: 'Wie die App aussieht, auf diesem Gerät.',
+			practice: 'Üben & deine Daten',
+			practiceLead: 'Was die App nur für dich speichert, und alles zum Mitnehmen.',
+			signIn: 'Anmeldung & Sicherheit',
+			signInLead: 'Womit du dich anmeldest, und abmelden.'
+		},
 		notMember: 'Das Profil gibt es für eingetragene Mitglieder.',
 		name: 'Vor- und Nachname',
 		instruments: 'Instrumente',

@@ -159,26 +159,26 @@
 	</div>
 {:else}
 	<div class="tools">
-		<div class="row">
-		<label class="search">
-			<Icon name="search" size={18} />
-			<input
-				bind:this={input}
-				bind:value={query}
-				type="search"
-				placeholder={t.pieces.search}
-				aria-label={t.pieces.searchLabel}
-				autocomplete="off"
-				spellcheck="false"
-			/>
-			{#if query}
-				<button class="clear" onclick={() => (query = '')} aria-label={t.pieces.clearSearch}>
-					<Icon name="x" size={16} />
-				</button>
-			{/if}
-		</label>
+		<div class="bar">
+			<label class="search">
+				<Icon name="search" size={18} />
+				<input
+					bind:this={input}
+					bind:value={query}
+					type="search"
+					placeholder={t.pieces.search}
+					aria-label={t.pieces.searchLabel}
+					autocomplete="off"
+					spellcheck="false"
+				/>
+				{#if query}
+					<button class="clear" onclick={() => (query = '')} aria-label={t.pieces.clearSearch}>
+						<Icon name="x" size={16} />
+					</button>
+				{/if}
+			</label>
 
-		<FilterPanel bind:value={chosen} items={searched.result} groups={filterGroups} label={t.pieces.filter} size="large" />
+			<FilterPanel bind:value={chosen} items={searched.result} groups={filterGroups} label={t.pieces.filter} size="large" />
 		</div>
 
 		{#if composer}
@@ -333,12 +333,12 @@
 		cursor: pointer;
 	}
 
-	.row {
+	.bar {
 		display: flex;
 		gap: var(--space-2);
 	}
 
-	.row .search {
+	.bar .search {
 		flex: 1;
 		min-width: 0;
 	}

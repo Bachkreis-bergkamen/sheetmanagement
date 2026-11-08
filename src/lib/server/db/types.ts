@@ -8,6 +8,13 @@ import type { PracticeDay } from '#lib/practice/practice.ts';
 import type { TourOutcome } from '#lib/tour/tour.ts';
 import type { Ticket, TicketOrder, TicketSale } from '#lib/tickets/tickets.ts';
 
+/** Email and password sign-in: only the hash, and the stamp that changes with each new password. */
+export interface Account {
+	email: string;
+	passwordHash: string;
+	stamp: string;
+}
+
 export interface PushDevice {
 	/** The push service's address for this device; also its id. */
 	endpoint: string;
@@ -108,6 +115,13 @@ export interface Store {
 	/** Members who turned email reminders off (#123). */
 	mailOptOuts(): Promise<Set<string>>;
 	setMailOptOut(email: string, off: boolean): Promise<void>;
+
+	/** The password account for an email, if one was made. */
+	accountOf(email: string): Promise<Account | null>;
+	/** Sets an account's password, making the account if needed. */
+	saveAccount(account: Account): Promise<void>;
+	/** Forgets an account; for "Mitglied löschen". */
+	deleteAccount(email: string): Promise<void>;
 
 	/** Whether a member finished or skipped the tour; null while they haven't seen it. */
 	tourOf(email: string): Promise<TourOutcome | null>;

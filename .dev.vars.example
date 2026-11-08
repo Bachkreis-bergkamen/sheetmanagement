@@ -54,6 +54,9 @@ REPERTOIRE_SHEET_ID=""
 # Lets the piece editor suggest a duration from the Hörbeispiel's video. Optional, free.
 # YOUTUBE_API_KEY=""
 
+# Until the release every page shows a "Beta" badge in the header (never in the demo).
+# RELEASE="true"
+
 # --- Sign-in (docs/setup-google.md, step 9) ---------------------------------------
 # Without GOOGLE_OAUTH_CLIENT_ID the app is open to everyone and read-only.
 # GOOGLE_OAUTH_CLIENT_ID=""
@@ -61,7 +64,9 @@ REPERTOIRE_SHEET_ID=""
 # Random string, at least 32 characters, for signing session cookies.
 # SESSION_SECRET=""
 # Set to false to turn sign-in off again while keeping the values above. The app is then
-# open to everyone and read-only, including /setup and /status. Default: true.
+# open to everyone and read-only, including /setup and /status. Set to true to turn sign-in
+# on without Google: people then sign in with email and password, or a personal access link.
+# Signing up and "forgot password" send a link by email, which needs a connected mail account.
 # FORCE_AUTH="true"
 # Comma-separated emails that always have every right (the first admins).
 # BOOTSTRAP_ADMINS="admin@example.org,second-admin@example.org"

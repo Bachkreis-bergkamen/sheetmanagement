@@ -40,12 +40,15 @@ export interface AppEnv {
 	DRIVE_WRITE?: string;
 	/** "true" lets people with "termine.planen" add concerts and rehearsals to the calendar. Needs the calendar shared with "Make changes to events". */
 	CALENDAR_WRITE?: string;
-	/** Google sign-in (OAuth client of type "Web application"). Without it the app is open and read-only. */
+	/** Google sign-in (OAuth client of type "Web application"). Without it (and without FORCE_AUTH=true) the app is open and read-only. */
 	GOOGLE_OAUTH_CLIENT_ID?: string;
 	GOOGLE_OAUTH_CLIENT_SECRET?: string;
 	/** At least 32 random characters; signs the session cookies. */
 	SESSION_SECRET?: string;
-	/** "false" turns sign-in off although GOOGLE_OAUTH_CLIENT_ID is set: the app is then open and read-only. Default: on. */
+	/**
+	 * "false" turns sign-in off although GOOGLE_OAUTH_CLIENT_ID is set: the app is then open and read-only.
+	 * "true" turns it on without Google, with email and password and access links only. Default: on with Google, else off.
+	 */
 	FORCE_AUTH?: string;
 	/** Comma-separated emails that always have every right. */
 	BOOTSTRAP_ADMINS?: string;
@@ -59,6 +62,8 @@ export interface AppEnv {
 	YOUTUBE_API_KEY?: string;
 	/** "true": sample data instead of Google, signed in as a demo user; for trying the app (#121). */
 	DEMO?: string;
+	/** "true": the finished app, without the "Beta" badge every page shows until then. */
+	RELEASE?: string;
 	/** KV namespace binding from wrangler.toml; optional, memory is used without it. */
 	CACHE?: KvStore;
 	/** Durable Object binding from wrangler.toml: the queue for writes to the sheet (#156). Optional. */
@@ -160,6 +165,11 @@ export function requireFeature(feature: Feature) {
 /** Demo mode: invented sample data in memory instead of Google, no real accounts. */
 export function isDemo(): boolean {
 	return ['true', '1', 'yes', 'on'].includes((appEnv().DEMO ?? '').trim().toLowerCase());
+}
+
+/** The release: hides the "Beta" badge. The demo never shows it either. */
+export function isRelease(): boolean {
+	return ['true', '1', 'yes', 'on'].includes((appEnv().RELEASE ?? '').trim().toLowerCase());
 }
 
 /** Lets work continue after the response is sent (e.g. a cache refresh). */

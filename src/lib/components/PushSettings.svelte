@@ -100,7 +100,7 @@
 </script>
 
 <section class="ui-card push" id="benachrichtigungen">
-	<h2><Icon name="bell" size={18} />{t.push.title}</h2>
+	<h3><Icon name="bell" size={18} />{t.push.title}</h3>
 	<p class="muted">{t.push.lead}</p>
 	{#if status === 'unsupported'}
 		<p class="msg info">{t.push.unsupported}</p>
@@ -128,7 +128,7 @@
 		gap: var(--space-3);
 	}
 
-	.push h2 {
+	.push h3 {
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);

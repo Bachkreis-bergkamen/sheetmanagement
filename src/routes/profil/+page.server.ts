@@ -1,23 +1,25 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { currentStatus, normalizeEmail } from '#lib/access/access.ts';
+import { currentStatus, normalizeEmail, parseLinkVersion } from '#lib/access/access.ts';
 import { config } from '#lib/config/index.ts';
 import { t } from '#lib/i18n/index.ts';
 import { commonInstruments, parseInstruments, playableInstruments } from '#lib/music/my-parts.ts';
 import { readMemberForm, today, writable } from '#lib/server/members.ts';
 import { getAccessList } from '#lib/server/repertoire.ts';
-import { authConfig } from '#lib/server/auth/index.ts';
+import { setPassword, withinAttempts } from '#lib/server/auth/accounts.ts';
+import { authConfig, currentSession, startSession } from '#lib/server/auth/index.ts';
+import { passwordProblem, verifyPassword } from '#lib/server/auth/password.ts';
 import { feedToken } from '#lib/server/auth/feed.ts';
 import { isOn } from '#lib/server/env.ts';
 import { getStore } from '#lib/server/db/index.ts';
 import { vapidKeys } from '#lib/server/push/index.ts';
 import { mailReady } from '#lib/server/mail/index.ts';
-import { nextLinkVersion, revokedLinkVersion } from '#lib/server/auth/links.ts';
+import { linkToken, nextLinkVersion, revokedLinkVersion } from '#lib/server/auth/links.ts';
 import { readOutcome } from '#lib/tour/tour.ts';
 import { readTab, refreshAfterWrite, SheetLayoutError, updateRecord } from '#lib/server/sheet-writes.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /** A member's own row in "Mitglieder": name, instruments, orchestras and status. Groups and rights stay with /admin. */
-export const load: PageServerLoad = async ({ locals, url }) => {
+export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	const user = locals.access.user;
 	if (locals.auth === 'off' || !user) redirect(303, '/meine-noten');
 	const list = await getAccessList();
@@ -35,6 +37,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			groups: member.groups
 		},
 		feed: await feed(member.email, member.feedVersion, !!list?.tables.members?.missing.includes('feedVersion'), url.origin),
+		password: await password(member.email, cookies),
+		accessLink: accessLink(member.linkVersion, !!list?.tables.members?.missing.includes('linkVersion'), !!locals.access.viaLink),
 		push: await push(member.email),
 		mail: await mail(member.email),
 		practice: await practice(member.email),
@@ -52,6 +56,23 @@ async function feed(email: string, version: number, missingColumn: boolean, orig
 	if (version < 1) return { state: 'none' as const };
 	const url = `${origin}/kalender/${await feedToken(email, version, auth.sessionSecret)}.ics`;
 	return { state: 'active' as const, url, webcal: url.replace(/^https?:/, 'webcal:') };
+}
+
+/** Email and password sign-in: whether the member has a password, and signed in with it now. */
+async function password(email: string, cookies: import('@sveltejs/kit').Cookies) {
+	if (authConfig().mode !== 'on') return null;
+	const account = await getStore()
+		.accountOf(email)
+		.catch(() => undefined);
+	if (account === undefined) return null;
+	return { has: !!account, current: (await currentSession(cookies))?.pw !== undefined };
+}
+
+/** The personal access link: members make, renew and revoke their own; the address is only shown right after. */
+function accessLink(version: number, missingColumn: boolean, viaLink: boolean) {
+	if (authConfig().mode !== 'on') return null;
+	if (missingColumn) return { state: 'not-set-up' as const, viaLink };
+	return { state: version > 0 ? ('active' as const) : ('none' as const), viaLink };
 }
 
 /** Notifications (#157): the key the browser subscribes with, and the member's devices; null while not set up. */
@@ -110,6 +131,74 @@ async function changeFeed(locals: App.Locals, next: (current: number) => number)
 }
 
 export const actions: Actions = {
+	/**
+	 * Sets or changes the member's password. Changing one needs the current password, so a
+	 * session left open somewhere can't take the account over; a forgotten one is reset by email.
+	 */
+	password: async ({ locals, request, cookies, getClientAddress }) => {
+		const user = locals.access.user;
+		const auth = authConfig();
+		if (auth.mode === 'off' || !user) redirect(303, '/anmelden');
+		const email = normalizeEmail(user.email);
+		const data = await request.formData();
+		const next = String(data.get('password') ?? '');
+		const problem = passwordProblem(next, String(data.get('repeat') ?? ''));
+		if (problem) return fail(400, { passwordProblem: problem });
+		try {
+			const account = await getStore().accountOf(email);
+			if (account) {
+				if (!(await withinAttempts(email, getClientAddress()))) return fail(429, { passwordMessage: t.password.signInErrors.limited });
+				if (!(await verifyPassword(String(data.get('current') ?? ''), account.passwordHash))) {
+					return fail(400, { passwordMessage: t.password.wrongCurrent });
+				}
+			}
+			const stamp = await setPassword(email, next);
+			// Signed in with the old password: this session goes on with the new one, all others end.
+			const session = await currentSession(cookies);
+			if (session?.pw !== undefined) await startSession(cookies, auth.sessionSecret, { email: session.email, name: session.name, pw: stamp });
+			return { passwordSaved: true };
+		} catch (error) {
+			console.error('Setting a password failed:', error);
+			return fail(503, { passwordMessage: t.password.failed });
+		}
+	},
+
+	/**
+	 * The member's own access link, like the one an admin makes in /admin: "show" the current one
+	 * again, "new" (ends the old one and its sessions) or "revoke".
+	 */
+	link: async ({ locals, request, cookies, url }) => {
+		const user = locals.access.user;
+		const auth = authConfig();
+		if (auth.mode === 'off' || !user) redirect(303, '/anmelden');
+		if (!auth.sessionSecret) return fail(400, { linkMessage: t.admin.linkUnavailable });
+		const mode = String((await request.formData()).get('mode') ?? '');
+		if (mode !== 'show' && mode !== 'new' && mode !== 'revoke') return fail(400, { linkMessage: t.messages.badRequest });
+		const email = normalizeEmail(user.email);
+		let version: number;
+		try {
+			const members = await readTab('members');
+			const row = members.rows.find((r) => normalizeEmail(r.values.email) === email);
+			if (!row) return fail(404, { linkMessage: t.profile.gone });
+			const current = parseLinkVersion(row.values.linkVersion);
+			if (mode === 'show' && current > 0) version = current;
+			else {
+				version = mode === 'revoke' ? revokedLinkVersion(current) : nextLinkVersion(current);
+				await updateRecord('members', members, row.row, { linkVersion: String(version) });
+				await refreshAfterWrite();
+			}
+		} catch (error) {
+			if (error instanceof SheetLayoutError) return fail(409, { linkMessage: t.feed.notSetUp });
+			console.error('Changing an access link failed:', error);
+			return fail(503, { linkMessage: t.feed.failed });
+		}
+		// Signed in with the old link: this session goes on with the new one.
+		const session = await currentSession(cookies);
+		if (session?.link !== undefined && version > 0) await startSession(cookies, auth.sessionSecret, { email: session.email, name: session.name, link: version });
+		if (version <= 0) return { linkRevoked: true };
+		return { link: `${url.origin}/auth/link/${await linkToken(email, version, auth.sessionSecret)}` };
+	},
+
 	feed: ({ locals }) => changeFeed(locals, nextLinkVersion),
 	feedRevoke: ({ locals }) => changeFeed(locals, revokedLinkVersion),
 

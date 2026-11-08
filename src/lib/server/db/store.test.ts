@@ -99,6 +99,16 @@ describe.each([
 		expect(await store.mailOptOuts()).toEqual(new Set(['a@x.org']));
 	});
 
+	it('keeps one password account per email, replaced by a new password', async () => {
+		const store = make();
+		expect(await store.accountOf('a@x.org')).toBeNull();
+		await store.saveAccount({ email: 'a@x.org', passwordHash: 'hash-1', stamp: 's1' });
+		await store.saveAccount({ email: 'a@x.org', passwordHash: 'hash-2', stamp: 's2' });
+		expect(await store.accountOf('a@x.org')).toEqual({ email: 'a@x.org', passwordHash: 'hash-2', stamp: 's2' });
+		await store.deleteAccount('a@x.org');
+		expect(await store.accountOf('a@x.org')).toBeNull();
+	});
+
 	it('remembers how the tour ended, until it is forgotten', async () => {
 		const store = make();
 		expect(await store.tourOf('a@x.org')).toBeNull();
