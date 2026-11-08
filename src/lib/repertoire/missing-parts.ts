@@ -2,7 +2,10 @@ import { normalizeEmail } from '#lib/access/access.ts';
 import { SUGGESTED_STATUS, type Report } from '#lib/feedback/feedback.ts';
 import { t } from '#lib/i18n/index.ts';
 import type { Part, PartStatus } from '#lib/music/types.ts';
-import { LAYOUT, normalize, readTable } from './sheet.ts';
+import { parsePriority, type Priority } from './priority.ts';
+import { LAYOUT, readTable } from './sheet.ts';
+
+export { PRIORITIES, parsePriority, priorityRank, type Priority } from './priority.ts';
 
 /**
  * The "Fehlende Stimmen" tab: a generated mirror of the gaps in the archive's file
@@ -84,19 +87,6 @@ const COLUMNS = LAYOUT.missingParts.columns;
 type Column = keyof typeof COLUMNS;
 /** What the sync writes. "Priorität" and "Wer scannt" came later: a tab without them still syncs, and keeps them where it has them. */
 const SYNCED: Column[] = ['piece', 'part', 'status', 'fileId', 'done'];
-
-export const PRIORITIES = ['high', 'medium', 'low'] as const;
-export type Priority = (typeof PRIORITIES)[number];
-
-/** "hoch" (or "high", "High") as a priority; anything else is none. */
-export function parsePriority(value: string): Priority | undefined {
-	const word = normalize(value);
-	if (!word) return undefined;
-	return PRIORITIES.find((priority) => normalize(t.sheetValues.priority[priority]) === word || priority === word);
-}
-
-/** Sorts by priority, high first; none after low. */
-export const priorityRank = (priority: Priority | undefined) => (priority ? PRIORITIES.indexOf(priority) : PRIORITIES.length);
 
 export interface ScanTask {
 	priority?: Priority;

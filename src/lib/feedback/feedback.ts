@@ -3,12 +3,17 @@ import { config } from '#lib/config/index.ts';
 import { cleanLink, safeLink } from '#lib/links.ts';
 import type { MarkableStatus } from '#lib/music/status-word.ts';
 import { t } from '#lib/i18n/index.ts';
+import { parsePriority, priorityRank, type Priority } from '#lib/repertoire/priority.ts';
 import { LAYOUT, normalize, readTable, type ColumnKey, type Table } from '#lib/repertoire/sheet.ts';
 
 /**
  * Problem reports on sheet music ("Meldungen") and wishes ("Wünsche"): rows members add
  * and people with the right set a status on. Both tabs are optional; without them the
  * features say they aren't set up yet.
+ *
+ * A report goes: offen (new, from a member or the app's page check) → zum Scannen (an
+ * organiser gave it a priority and handed it to the scanning team) → erledigt. Or verworfen,
+ * when it was no problem. While it's offen or zum Scannen, the piece shows it quietly.
  */
 
 export const FEEDBACK_TABS = ['reports', 'wishes'] as const;
@@ -48,6 +53,8 @@ function fromLabel<K extends string>(labels: Record<K, string>, text: string, fa
 
 /** A wish's status cell ("offen", "geplant" …) as its key. */
 export const readWishStatus = (text: string): WishStatus => fromLabel(VALUES.wishStatus, text, 'open');
+/** A report's kind cell ("Seiten fehlen" …) as its key. */
+export const readReportKind = (text: string): ReportKind => fromLabel(VALUES.reportKind, text, 'other');
 /** A wish's kind cell ("Stück", "Funktion") as its key. */
 export const readWishKind = (text: string): WishKind => fromLabel(VALUES.wishKind, text, 'piece');
 
@@ -72,6 +79,10 @@ export interface Report {
 	driveComment: string;
 	/** A better Hörbeispiel, with "Hörbeispiel falsch"; only http(s) links. */
 	link?: string;
+	/** Once handed to the scanning team: how urgent, who scans (email), what to do. */
+	priority?: Priority;
+	assignee?: string;
+	task: string;
 }
 
 export interface Wish {
@@ -112,8 +123,11 @@ export function markedStatus(word: string): MarkableStatus | undefined {
 /** Which status word fits a kind of problem, as a suggestion when marking the file. */
 export const SUGGESTED_STATUS: Record<ReportKind, MarkableStatus> = {
 	missing: 'empty',
-	scan: 'incomplete',
 	pages: 'incomplete',
+	cutoff: 'incomplete',
+	crooked: 'incomplete',
+	scan: 'incomplete',
+	empty: 'empty',
 	wrong: 'incomplete',
 	// Not about a file: there's no name to mark.
 	recording: 'incomplete',
@@ -121,6 +135,43 @@ export const SUGGESTED_STATUS: Record<ReportKind, MarkableStatus> = {
 };
 
 export { safeLink } from '#lib/links.ts';
+
+/** Still being looked after: new, or with the scanning team. The piece shows these. */
+export const isActiveReport = (report: Pick<Report, 'status'>) => report.status === 'open' || report.status === 'scan';
+
+/** What the scanning team can fix. A wrong Hörbeispiel isn't about the scans. */
+export const forScanning = (kind: ReportKind) => kind !== 'recording';
+
+/** The kind of report a hint of the page check (#93) stands for. */
+export const hintKind = (problem: 'empty' | 'incomplete'): ReportKind => (problem === 'empty' ? 'empty' : 'pages');
+
+/** What the report is about, short: "Trompete 1 – Seiten fehlen", "Hörbeispiel – Hörbeispiel falsch". */
+export const reportSubject = (report: Pick<Report, 'kind' | 'part'>) =>
+	`${report.kind === 'recording' ? t.reports.recording : report.part || t.reports.wholePiece} – ${VALUES.reportKind[report.kind]}`;
+
+export interface ScanGroup<R> {
+	pieceId: string;
+	pieceName: string;
+	/** Most urgent first, then oldest first. */
+	jobs: R[];
+	/** The most urgent job's priority, for sorting the pieces. */
+	priority?: Priority;
+}
+
+/**
+ * The scanning team's list: jobs by piece, so a piece's parts are scanned in one go, and the
+ * pieces by their most urgent job, then by the oldest one.
+ */
+export function scanQueue<R extends Pick<Report, 'pieceId' | 'pieceName' | 'priority' | 'reportedAt' | 'row'>>(jobs: R[]): ScanGroup<R>[] {
+	const byJob = (a: R, b: R) => priorityRank(a.priority) - priorityRank(b.priority) || a.reportedAt.localeCompare(b.reportedAt) || a.row - b.row;
+	const groups = new Map<string, ScanGroup<R>>();
+	for (const job of [...jobs].sort(byJob)) {
+		const group = groups.get(job.pieceId);
+		if (group) group.jobs.push(job);
+		else groups.set(job.pieceId, { pieceId: job.pieceId, pieceName: job.pieceName, jobs: [job], priority: job.priority });
+	}
+	return [...groups.values()].sort((a, b) => byJob(a.jobs[0], b.jobs[0]));
+}
 
 /** "a@x.org, B@x.org, a@x.org" → ["a@x.org", "b@x.org"] */
 export function parseVotes(text: string): string[] {
@@ -147,7 +198,7 @@ export function buildFeedback(values: FeedbackValues): Feedback {
 			pieceName: v.piece,
 			part: v.part,
 			fileId: v.fileId,
-			kind: fromLabel(VALUES.reportKind, v.kind, 'other'),
+			kind: readReportKind(v.kind),
 			comment: v.comment,
 			status: fromLabel(VALUES.reportStatus, v.status, 'open'),
 			note: v.note,
@@ -155,7 +206,10 @@ export function buildFeedback(values: FeedbackValues): Feedback {
 			reportedAt: v.reportedAt,
 			marked: markedStatus(v.marked),
 			driveComment: v.driveComment,
-			link: cleanLink(v.link ?? '')
+			link: cleanLink(v.link ?? ''),
+			priority: parsePriority(v.priority),
+			assignee: normalizeEmail(v.assignee ?? '') || undefined,
+			task: v.task ?? ''
 		}));
 
 	const wishes: Wish[] = (tables.wishes?.rows ?? [])

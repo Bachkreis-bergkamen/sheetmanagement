@@ -1,6 +1,7 @@
 import { normalizeEmail, type User } from '#lib/access/access.ts';
 import { config } from '#lib/config/index.ts';
-import { markedStatus, mayDeleteWish, newId, parseVotes, readWishKind, readWishStatus, toggleVote, type ReportKind, type ReportStatus, type WishKind, type WishStatus } from '#lib/feedback/feedback.ts';
+import { markedStatus, mayDeleteWish, readReportKind, newId, parseVotes, readWishKind, readWishStatus, toggleVote, type ReportKind, type ReportStatus, type WishKind, type WishStatus } from '#lib/feedback/feedback.ts';
+import type { Priority } from '#lib/repertoire/priority.ts';
 import { t } from '#lib/i18n/index.ts';
 import { withoutStatusWord, withStatusWord, type MarkableStatus } from '#lib/music/status-word.ts';
 import { cleanLink } from '#lib/links.ts';
@@ -10,7 +11,10 @@ import type { SheetPiece } from '#lib/repertoire/sheet.ts';
 import { runInBackground } from './env.ts';
 import { createComment, createGoogleDoc, getFile, renameFile, replyToComment } from './google/drive.ts';
 import { driveWriteEnabled, getArchiveIndex, getGoogle } from './services.ts';
-import { appendRecords, deleteRows, readTab, refreshAfterWrite, updateRecord, updateRecords, withSheetLock } from './sheet-writes.ts';
+import { dismissPartHint } from './part-checks.ts';
+import { announceDone, announceReport } from './report-notices.ts';
+import { announceScans } from './scan-tasks.ts';
+import { appendRecords, deleteRows, ensureColumns, readTab, refreshAfterWrite, updateRecord, updateRecords, withSheetLock } from './sheet-writes.ts';
 import { announceAnswer, announceWish } from './wish-notices.ts';
 
 /**
@@ -51,11 +55,60 @@ const today = () => eventDay({ start: new Date().toISOString(), allDay: false },
 /** Whether Drive was updated too: null when there was nothing to do there. */
 export type DriveResult = boolean | null;
 
-export async function addReport(
-	user: User,
-	report: { pieceId: string; pieceName: string; part: string; fileId: string; kind: ReportKind; comment: string; link?: string }
-): Promise<DriveResult> {
-	const table = await readTab('reports');
+export interface NewReport {
+	pieceId: string;
+	pieceName: string;
+	part: string;
+	fileId: string;
+	kind: ReportKind;
+	comment: string;
+	link?: string;
+}
+
+/** A scan job: how urgent, who scans (an email, or empty), what to do. */
+export interface ScanJob {
+	priority?: Priority;
+	assignee: string;
+	task: string;
+}
+
+/** The job's cells; the priority as the sheet's word ("hoch"). */
+const jobCells = (job: ScanJob) => ({
+	status: t.feedbackValues.reportStatus.scan,
+	priority: job.priority ? t.sheetValues.priority[job.priority] : '',
+	assignee: job.assignee,
+	task: job.task
+});
+
+/** "Bitte scannen" to the one who scans, when it's new to them and they didn't give it to themselves. */
+function announceJob(job: ScanJob, before: string, by: string, piece: string, part: string) {
+	const assignee = normalizeEmail(job.assignee);
+	if (!assignee || assignee === normalizeEmail(before) || assignee === normalizeEmail(by)) return;
+	announceScans(assignee, [{ piece, part: part || t.reports.wholePiece }], job.priority, '/meldungen?ansicht=scannen&meine');
+}
+
+/** A member's report: saved as offen, and whoever looks after the music hears of it. */
+export async function addReport(user: User, report: NewReport): Promise<DriveResult> {
+	const { id, drive } = await appendReport(report, who(user));
+	announceReport({ id, ...report }, user.email);
+	return drive;
+}
+
+/**
+ * A finding of the page check (#93) an organiser agrees with: saved as a report by the app,
+ * straight to the scanning team. The hint isn't shown again for this version of the file;
+ * a rescan is a new version and is checked again.
+ */
+export async function sendFoundToScan(report: NewReport, job: ScanJob, by: User): Promise<DriveResult> {
+	const { drive } = await appendReport(report, t.reports.byCheck, job);
+	if (report.fileId) await dismissPartHint(report.fileId);
+	announceJob(job, '', by.email, report.pieceName, report.part);
+	return drive;
+}
+
+async function appendReport(report: NewReport, reportedBy: string, job?: ScanJob): Promise<{ id: string; drive: DriveResult }> {
+	const table = job ? await ensureColumns('reports', ['priority', 'assignee', 'task']) : await readTab('reports');
+	const id = newId();
 	let { comment, link = '' } = report;
 	// An older tab without "Vorschlag" keeps the suggested link in the comment.
 	if (link && table.missing.includes('link')) {
@@ -82,25 +135,42 @@ export async function addReport(
 			comment,
 			link,
 			status: t.feedbackValues.reportStatus.open,
-			reportedBy: who(user),
+			...(job ? jobCells(job) : {}),
+			reportedBy,
 			reportedAt: today(),
 			driveComment,
-			id: newId()
+			id
 		}
 	]);
 	await refreshAfterWrite();
-	return drive;
+	return { id, drive };
 }
 
 /**
- * Closes or reopens a report. In Drive, the comment follows, and closing takes the
- * status word the app added out of the file name again. Undefined when the report is gone.
+ * Hands a report to the scanning team, or changes its job: priority, who scans, what to do.
+ * Whoever gets it hears of it. Undefined when the report is gone.
  */
-export async function setReportStatus(id: string, status: ReportStatus, note: string): Promise<DriveResult | undefined> {
+export async function sendToScan(id: string, job: ScanJob, by: User): Promise<true | undefined> {
+	const table = await ensureColumns('reports', ['priority', 'assignee', 'task']);
+	const row = table.rows.find((r) => r.values.id === id);
+	if (!row) return undefined;
+	await updateRecord('reports', table, row.row, jobCells(job));
+	await refreshAfterWrite();
+	announceJob(job, row.values.assignee ?? '', by.email, row.values.piece, row.values.part);
+	return true;
+}
+
+/**
+ * Closes (erledigt, verworfen) or reopens a report. In Drive, the comment follows, and closing
+ * takes the status word the app added out of the file name again. A member hears when what
+ * they reported is done. Undefined when the report is gone.
+ */
+export async function setReportStatus(id: string, status: ReportStatus, note: string, by?: User): Promise<DriveResult | undefined> {
 	const table = await readTab('reports');
 	const row = table.rows.find((r) => r.values.id === id);
 	if (!row) return undefined;
 	const { fileId, driveComment, marked: markedWord } = row.values;
+	const closing = status === 'done' || status === 'dismissed';
 	const marked = markedStatus(markedWord);
 	const changes: { status: string; note: string; marked?: string } = { status: t.feedbackValues.reportStatus[status], note };
 
@@ -109,11 +179,11 @@ export async function setReportStatus(id: string, status: ReportStatus, note: st
 		const { client } = getGoogle();
 		const steps: Promise<boolean>[] = [];
 		if (driveComment) {
-			const action = status === 'done' ? 'resolve' : 'reopen';
-			const content = note || (status === 'done' ? t.reports.driveResolved : t.reports.driveReopened);
+			const action = closing ? 'resolve' : 'reopen';
+			const content = note || (closing ? t.reports.driveResolved : t.reports.driveReopened);
 			steps.push(inDrive('Updating a report comment', () => replyToComment(client, fileId, driveComment, action, content)));
 		}
-		if (status === 'done' && marked) {
+		if (closing && marked) {
 			steps.push(
 				inDrive('Removing a status word', async () => {
 					const file = await getFile(client, fileId);
@@ -128,6 +198,10 @@ export async function setReportStatus(id: string, status: ReportStatus, note: st
 	}
 	await updateRecord('reports', table, row.row, changes);
 	await refreshAfterWrite();
+	if (status === 'done' && by) {
+		const v = row.values;
+		announceDone({ id, pieceId: v.pieceId, pieceName: v.piece, part: v.part, kind: readReportKind(v.kind), reportedBy: v.reportedBy }, by.email);
+	}
 	return drive;
 }
 
