@@ -5,7 +5,7 @@
 	import InstallHint from '#lib/components/InstallHint.svelte';
 	import SignupAnswers from '#lib/components/SignupAnswers.svelte';
 	import Title from '#lib/components/Title.svelte';
-	import { navGroups } from '#lib/nav.ts';
+	import { navGroups, ORGANISER_HUB, organiserGroups } from '#lib/nav.ts';
 	import { SvelteSet } from 'svelte/reactivity';
 	import type { ShownEvent } from '#lib/events/schedule.ts';
 	import { splitTrailingEmoji } from '#lib/events/format.ts';
@@ -91,23 +91,32 @@
 		return () => root.style.removeProperty('--dock-height');
 	});
 
-	// Every page by group, so the start page doubles as a map of the app. A workspace is one
-	// entry, its pages named underneath; the tabs on its pages lead on from there.
-	const groups = $derived(
-		navGroups({ auth: data.auth, rights: data.rights, features: data.features, polls: data.polls }).map((group) =>
-			group.workspace && group.items.length > 1
-				? {
-						...group,
-						items: [{ ...group.items[0], label: group.label, description: group.items.map((item) => item.label).join(' · ') }]
-					}
-				: { ...group, items: group.items.map((item) => ({ ...item, description: t.home.describe[item.href] })) }
-		)
-	);
-	// The workspaces share one heading, so the map stays short.
-	const work = $derived(groups.filter((group) => group.workspace));
+	// Every page by group, so the start page doubles as a map of the app. The organisers' work
+	// is one entry, "Verwaltung", its groups named underneath (#185); its page leads on from there.
+	const all = $derived(navGroups({ auth: data.auth, rights: data.rights, features: data.features, polls: data.polls }));
+	const work = $derived(organiserGroups(all));
 	const sections = $derived([
-		...groups.filter((group) => !group.workspace),
-		...(work.length ? [{ key: 'arbeit', label: t.home.work, items: work.flatMap((group) => group.items) }] : [])
+		...all
+			.filter((group) => !group.organiser)
+			.map((group) => ({ ...group, items: group.items.map((item) => ({ ...item, description: t.home.describe[item.href] })) })),
+		...(work.length
+			? [
+					{
+						key: 'arbeit',
+						label: t.home.work,
+						items: [
+							{
+								href: ORGANISER_HUB,
+								label: t.nav.organise,
+								icon: 'shield' as const,
+								// In the tab bar on phones, like the other places there (#222).
+								primary: true,
+								description: work.map((group) => group.label).join(' · ')
+							}
+						]
+					}
+				]
+			: [])
 	]);
 	const todo = $derived(
 		data.todo

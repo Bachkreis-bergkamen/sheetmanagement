@@ -33,12 +33,18 @@ export const de = {
 		menu: 'Alle Seiten',
 		close: 'Menü schließen',
 		crumbs: 'Seitenpfad',
-		groups: { musik: 'Proben & Noten', mitmachen: 'Mitmachen', pflege: 'Noten pflegen', verwaltung: 'Verwaltung' },
+		groups: { musik: 'Proben & Noten', mitmachen: 'Mitmachen', pflege: 'Noten pflegen', verwaltung: 'App & Mitglieder' },
+		/** The organisers' area in the tab bar, the header and "Mehr" (#185). */
+		organise: 'Verwaltung',
 		workspace: 'Bereich',
 		/** After a tab's count, for screen readers: "Meldungen 1 offen". */
 		open: 'offen',
 		skip: 'Zum Inhalt springen',
 		main: 'Hauptnavigation'
+	},
+	organise: {
+		title: 'Verwaltung',
+		lead: 'Alles, was ihr fürs Orchester erledigt: die Noten pflegen, Mitglieder und die App.'
 	},
 	footer: {
 		links: 'Das Orchester im Netz',
@@ -115,7 +121,8 @@ export const de = {
 			'/setup': 'Die Repertoire-Tabelle anlegen.',
 			'/einstellungen': 'Name, Logo, Farbe und Funktionen.',
 			'/status': 'Verbindung zu Google prüfen.',
-			'/termine': 'Termine mit dem Orga-Team abstimmen.'
+			'/termine': 'Termine mit dem Orga-Team abstimmen.',
+			'/ensembles': 'Chöre und Orchester, mit denen wir auftreten.'
 		} as Record<string, string>
 	},
 	pieces: {
@@ -1746,8 +1753,8 @@ export const de = {
 			home: { title: 'Dein nächster Termin', body: 'Hier steht immer, was als Nächstes ansteht. Mit einem Tipp sagst du zu oder ab und öffnest deine Noten dafür.' },
 			parts: { title: 'Meine Noten', body: 'Deine Stimmen für die nächsten Proben und Konzerte, passend zu deinem Instrument. Offline gespeichert gehen sie auch im Probenraum ohne Netz.' },
 			calendar: { title: 'Kalender', body: 'Alle Proben und Konzerte mit Zeit, Ort und Programm. Hier antwortest du auch auf spätere Termine.' },
-			pieces: { title: 'Archiv', body: 'Jedes Stück mit Noten, Hörbeispielen und Hinweisen. Das Feld darüber filtert die Liste, auch nach Stimme; die Lupe oben findet alles in der App.' },
-			more: { title: 'Mehr', body: 'Alle weiteren Seiten, zum Beispiel die Chronik. Ganz unten stellst du hell oder dunkel und die Schriftgröße ein.' },
+			pieces: { title: 'Archiv', body: 'Jedes Stück mit Noten, Hörbeispielen und Hinweisen, unter „Mehr“. Das Feld hier filtert die Liste, auch nach Stimme; die Lupe oben findet alles in der App.' },
+			more: { title: 'Mehr', body: 'Alle weiteren Seiten, zum Beispiel das Archiv und die Chronik. Ganz unten stellst du hell oder dunkel und die Schriftgröße ein.' },
 			instruments: { title: 'Dein Instrument', body: 'Trag ein, was du spielst; danach richtet sich „Meine Noten“. Mit „Speichern“ gilt es überall.' },
 			view: { title: 'Ansicht und Schrift', body: 'Hell, dunkel oder wie dein Gerät, und die Schrift größer, wenn du magst. Probier es gleich aus.' },
 			notifications: { title: 'Erinnerungen', body: 'Lass dich an Antworten, Proben und Leihmaterial erinnern: auf diesem Gerät oder per E-Mail.' },

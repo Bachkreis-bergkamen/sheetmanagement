@@ -31,12 +31,18 @@ export const en: Texts = {
 		menu: 'All pages',
 		close: 'Close menu',
 		crumbs: 'Breadcrumbs',
-		groups: { musik: 'Rehearsals & music', mitmachen: 'Take part', pflege: 'Music upkeep', verwaltung: 'Admin' },
+		groups: { musik: 'Rehearsals & music', mitmachen: 'Take part', pflege: 'Music upkeep', verwaltung: 'App & members' },
+		/** The organisers' area in the tab bar, the header and "Mehr" (#185). */
+		organise: 'Admin',
 		workspace: 'Area',
 		/** After a tab's count, for screen readers: "Reports 1 open". */
 		open: 'open',
 		skip: 'Skip to content',
 		main: 'Main navigation'
+	},
+	organise: {
+		title: 'Admin',
+		lead: 'Everything you look after for the orchestra: the music, the members and the app.'
 	},
 	footer: {
 		links: 'The orchestra online',
@@ -110,7 +116,8 @@ export const en: Texts = {
 			'/setup': 'Create the repertoire sheet.',
 			'/einstellungen': 'Name, logo, colour and features.',
 			'/status': 'Check the connection to Google.',
-			'/termine': 'Agree on dates with the orga team.'
+			'/termine': 'Agree on dates with the orga team.',
+			'/ensembles': 'Choirs and orchestras we perform with.'
 		} as Record<string, string>
 	},
 	pieces: {
@@ -1729,8 +1736,8 @@ export const en: Texts = {
 			home: { title: 'Your next date', body: 'This always shows what’s coming up next. One tap says whether you’re coming and opens your parts for it.' },
 			parts: { title: 'My parts', body: 'Your parts for the next rehearsals and concerts, matching your instrument. Saved offline, they work in the rehearsal hall without reception too.' },
 			calendar: { title: 'Calendar', body: 'Every rehearsal and concert with time, place and programme. You answer later dates here too.' },
-			pieces: { title: 'Archive', body: 'Every piece with parts, recordings and notes. The field above filters the list, by part too; the magnifier at the top finds anything in the app.' },
-			more: { title: 'More', body: 'All the other pages, such as the chronicle. At the very bottom you choose light or dark and the text size.' },
+			pieces: { title: 'Archive', body: 'Every piece with parts, recordings and notes, under “More”. The field here filters the list, by part too; the magnifier at the top finds anything in the app.' },
+			more: { title: 'More', body: 'All the other pages, such as the archive and the chronicle. At the very bottom you choose light or dark and the text size.' },
 			instruments: { title: 'Your instrument', body: 'Enter what you play; “My parts” follows it. Once saved, it counts everywhere.' },
 			view: { title: 'Look and text', body: 'Light, dark or like your device, and larger text if you like. Try it right away.' },
 			notifications: { title: 'Reminders', body: 'Get reminders about replies, rehearsals and borrowed music: on this device or by email.' },

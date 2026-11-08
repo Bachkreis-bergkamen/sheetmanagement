@@ -5,9 +5,10 @@ import { t } from '#lib/i18n/index.ts';
 
 /**
  * The app's pages grouped by who uses them: what every member plays and joins in, then the
- * work some people do for everyone (looking after the sheet music, running the app). The
- * header and the tab bar show the few pages members use most; the "Mehr" menu lists every
- * group, so each page a person may open is reachable from the navigation.
+ * work some people do for everyone (looking after the sheet music, running the app). Members
+ * get four places in the header and the tab bar (Übersicht, Meine Noten, Kalender, Profil)
+ * and the rest under "Mehr". The organisers' work is one area of its own, "Verwaltung", in
+ * the profile's place (#185): its pages aren't mixed into the members' menu.
  */
 
 export interface NavItem {
@@ -19,7 +20,7 @@ export interface NavItem {
 }
 
 export interface NavGroup {
-	key: 'musik' | 'mitmachen' | 'pflege' | 'verwaltung';
+	key: 'musik' | 'mitmachen' | 'pflege' | 'verwaltung' | 'bereich';
 	label: string;
 	items: NavItem[];
 	/**
@@ -27,6 +28,8 @@ export interface NavGroup {
 	 * show the group as tabs, and the start page shows the group as one entry.
 	 */
 	workspace?: boolean;
+	/** Work for organisers: reached through the "Verwaltung" area, not the members' menu. */
+	organiser?: boolean;
 }
 
 export interface NavContext {
@@ -51,7 +54,7 @@ export function navGroups({ auth, rights, features = ALL_ON, polls = false }: Na
 			items: [
 				{ href: '/meine-noten', label: t.nav.myParts, icon: 'parts', primary: true },
 				{ href: '/kalender', label: t.nav.concerts, icon: 'calendar', primary: true },
-				{ href: '/stuecke', label: t.nav.pieces, icon: 'music', primary: true },
+				{ href: '/stuecke', label: t.nav.pieces, icon: 'music' },
 				{ href: '/chronik', label: t.nav.chronicle, icon: 'history' }
 			]
 		},
@@ -66,8 +69,8 @@ export function navGroups({ auth, rights, features = ALL_ON, polls = false }: Na
 							...(polls ? [{ href: '/termine', label: t.nav.polls, icon: 'poll' as const }] : []),
 							// Anonymous messages to the Leitung, and its inbox for those who read it.
 							{ href: '/kummerkasten', label: t.nav.kummer, icon: 'mail' as const },
-							// Also behind the avatar in the header; here it's reachable from the phone's tab bar.
-							{ href: '/profil', label: t.nav.profile, icon: 'user' as const }
+							// Also behind the avatar in the header; in the tab bar for members (see primaryNav).
+							{ href: '/profil', label: t.nav.profile, icon: 'user' as const, primary: true }
 						]
 					: []
 		},
@@ -76,6 +79,7 @@ export function navGroups({ auth, rights, features = ALL_ON, polls = false }: Na
 			key: 'pflege',
 			label: t.nav.groups.pflege,
 			workspace: true,
+			organiser: true,
 			items: [
 				...(has(rights, 'stuecke.bearbeiten')
 					? [
@@ -94,6 +98,7 @@ export function navGroups({ auth, rights, features = ALL_ON, polls = false }: Na
 			key: 'verwaltung',
 			label: t.nav.groups.verwaltung,
 			workspace: true,
+			organiser: true,
 			items: [
 				...(admin && auth === 'on'
 					? [
@@ -130,9 +135,46 @@ export function workspaceOf(groups: NavGroup[], path: string): NavGroup | undefi
 	return group?.workspace && group.items.length > 1 ? group : undefined;
 }
 
-/** The pages shown directly in the header and the tab bar: the home page plus the primary ones. */
+/** The organisers' area: its hub page lists the organiser groups (#185). */
+export const ORGANISER_HUB = '/verwaltung';
+
+/** The groups of organiser work this person sees; none for members. */
+export function organiserGroups(groups: NavGroup[]): NavGroup[] {
+	return groups.filter((group) => group.organiser);
+}
+
+/** Whether the page belongs to the organisers' area: its hub or one of its pages. */
+export function inOrganiserArea(groups: NavGroup[], path: string): boolean {
+	return isActive(ORGANISER_HUB, path) || !!currentItem(groups, path)?.group.organiser;
+}
+
+/**
+ * The pages shown directly in the header and the tab bar: home, the primary pages, then the
+ * organisers' area for those who have one, the profile for everyone else (it's also behind
+ * the avatar, so organisers don't lose it).
+ */
 export function primaryNav(groups: NavGroup[]): NavItem[] {
-	return [{ href: '/', label: t.nav.home, icon: 'home' }, ...groups.flatMap((group) => group.items.filter((item) => item.primary))];
+	const organiser = organiserGroups(groups).length > 0;
+	const primary = groups.flatMap((group) => group.items.filter((item) => item.primary && !(organiser && item.href === '/profil')));
+	return [
+		{ href: '/', label: t.nav.home, icon: 'home' },
+		...primary,
+		...(organiser ? [{ href: ORGANISER_HUB, label: t.nav.organise, icon: 'shield' as const }] : [])
+	];
+}
+
+/**
+ * The groups for the "Mehr" menu: the members' groups, and the organisers' area as one entry
+ * instead of all its pages. The quick search still finds every page.
+ */
+export function menuGroups(groups: NavGroup[]): NavGroup[] {
+	const work = organiserGroups(groups);
+	return [
+		...groups.filter((group) => !group.organiser),
+		...(work.length
+			? [{ key: 'bereich' as const, label: t.nav.organise, items: [{ href: ORGANISER_HUB, label: t.nav.organise, icon: 'shield' as const, primary: true }] }]
+			: [])
+	];
 }
 
 /**
