@@ -63,9 +63,9 @@ export const en: Texts = {
 	textSize: {
 		label: 'Text size',
 		hint: 'For this device.',
+		small: 'Small',
 		normal: 'Normal',
-		large: 'Large',
-		larger: 'Larger'
+		large: 'Large'
 	},
 	home: {
 		title: (orchestra: string) => `${orchestra} music library`,

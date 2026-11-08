@@ -176,12 +176,12 @@ html {
 }
 
 /* "Schriftgröße" on the profile: everything is in rem, so the whole page grows with it. */
-html[data-text-size='large'] {
-	font-size: 112.5%;
+html[data-text-size='small'] {
+	font-size: 87.5%;
 }
 
-html[data-text-size='larger'] {
-	font-size: 125%;
+html[data-text-size='large'] {
+	font-size: 112.5%;
 }
 
 body {

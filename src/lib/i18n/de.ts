@@ -65,9 +65,9 @@ export const de = {
 	textSize: {
 		label: 'Schriftgröße',
 		hint: 'Gilt für dieses Gerät.',
+		small: 'Klein',
 		normal: 'Normal',
-		large: 'Groß',
-		larger: 'Sehr groß'
+		large: 'Groß'
 	},
 	home: {
 		title: (orchestra: string) => `Notenarchiv des ${orchestra}`,
