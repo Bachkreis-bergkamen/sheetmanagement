@@ -15,7 +15,7 @@
 	import Tour from '#lib/components/Tour.svelte';
 	import UpdateNotice from '#lib/components/UpdateNotice.svelte';
 	import WorkspaceTabs from '#lib/components/WorkspaceTabs.svelte';
-	import { currentItem, navGroups, primaryNav, workspaceOf } from '#lib/nav.ts';
+	import { currentItem, inOrganiserArea, menuGroups, navGroups, ORGANISER_HUB, primaryNav, workspaceOf } from '#lib/nav.ts';
 	import { orchestraLinks, safeLink } from '#lib/links.ts';
 	import { versionLabel } from '#lib/version.ts';
 	import { watchInstall } from '#lib/install/state.svelte.ts';
@@ -32,9 +32,12 @@
 	const path = $derived(page.url.pathname);
 	// The most specific entry counts: "Angaben ergänzen" lights up "Mehr", not "Archiv".
 	const current = $derived(currentItem(groups, path)?.item.href);
-	const isCurrent = (href: string) => (href === '/' ? path === '/' : href === current);
+	// The organisers' pages light up their area, "Verwaltung" (#185).
+	const organising = $derived(inOrganiserArea(groups, path));
+	const isCurrent = (href: string) => (href === '/' ? path === '/' : href === ORGANISER_HUB ? organising : !organising && href === current);
 	// "Mehr" is highlighted on the pages only it links to.
-	const inMore = $derived(!!current && !nav.some((item) => item.href === current));
+	const inMore = $derived(!!current && !organising && !nav.some((item) => item.href === current));
+	const menu = $derived(menuGroups(groups));
 	const workspace = $derived(workspaceOf(groups, path));
 	let menuOpen = $state(false);
 	let searching = $state(false);
@@ -223,7 +226,7 @@
 		</button>
 	</nav>
 
-	<NavMenu {groups} {current} user={data.user ?? null} bind:open={menuOpen} />
+	<NavMenu groups={menu} current={organising ? ORGANISER_HUB : current} user={data.user ?? null} bind:open={menuOpen} />
 	{#if groups.length}<QuickSearch {groups} bind:open={searching} />{/if}
 	<Toast />
 	<UpdateNotice />

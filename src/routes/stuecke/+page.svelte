@@ -160,7 +160,7 @@
 {:else}
 	<div class="tools">
 		<div class="bar">
-			<label class="search">
+			<label class="search" data-tour="pieces">
 				<Icon name="search" size={18} />
 				<input
 					bind:this={input}

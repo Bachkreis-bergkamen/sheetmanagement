@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Right } from '#lib/access/access.ts';
 import { ALL_ON } from '#lib/features.ts';
-import { currentItem, isActive, movedPath, navGroups, primaryNav, workspaceOf } from './nav.ts';
+import { currentItem, inOrganiserArea, isActive, menuGroups, movedPath, navGroups, primaryNav, workspaceOf } from './nav.ts';
 
 const hrefs = (auth: 'on' | 'off', rights: Right[]) =>
 	Object.fromEntries(navGroups({ auth, rights }).map((group) => [group.key, group.items.map((item) => item.href)]));
@@ -68,9 +68,39 @@ describe('currentItem and workspaceOf', () => {
 });
 
 describe('primaryNav', () => {
-	it('is home plus the pages members use most, at most five with "Mehr"', () => {
+	it('gives members four places: home, their parts, the calendar and their profile (#185)', () => {
+		expect(primaryNav(navGroups({ auth: 'on', rights: ['ansehen'] })).map((item) => item.href)).toEqual(['/', '/meine-noten', '/kalender', '/profil']);
+	});
+
+	it("gives organisers their area in the profile's place, which stays behind the avatar", () => {
 		const nav = primaryNav(navGroups({ auth: 'on', rights: ['ansehen', 'stuecke.bearbeiten', 'mitglieder.verwalten'] }));
-		expect(nav.map((item) => item.href)).toEqual(['/', '/meine-noten', '/kalender', '/stuecke']);
+		expect(nav.map((item) => item.href)).toEqual(['/', '/meine-noten', '/kalender', '/verwaltung']);
+		expect(primaryNav(navGroups({ auth: 'on', rights: ['ansehen', 'programme.bearbeiten'] })).at(-1)?.href).toBe('/verwaltung');
+	});
+
+	it('keeps the area while sign-in is off, for setting the app up', () => {
+		expect(primaryNav(navGroups({ auth: 'off', rights: ['ansehen'] })).map((item) => item.href)).toEqual(['/', '/meine-noten', '/kalender', '/verwaltung']);
+	});
+});
+
+describe('menuGroups', () => {
+	it("lists the members' groups and the organisers' area as one entry, not its pages", () => {
+		const menu = menuGroups(navGroups({ auth: 'on', rights: ['ansehen', 'stuecke.bearbeiten', 'mitglieder.verwalten'] }));
+		expect(menu.map((group) => group.key)).toEqual(['musik', 'mitmachen', 'bereich']);
+		expect(menu.at(-1)?.items.map((item) => item.href)).toEqual(['/verwaltung']);
+	});
+
+	it('has no area for members', () => {
+		expect(menuGroups(navGroups({ auth: 'on', rights: ['ansehen'] })).map((group) => group.key)).toEqual(['musik', 'mitmachen']);
+	});
+});
+
+describe('inOrganiserArea', () => {
+	const groups = navGroups({ auth: 'on', rights: ['ansehen', 'stuecke.bearbeiten', 'mitglieder.verwalten'] });
+
+	it("holds for the hub and the organisers' pages, not for the members' ones", () => {
+		for (const path of ['/verwaltung', '/meldungen', '/stuecke/angaben', '/admin', '/status']) expect(inOrganiserArea(groups, path)).toBe(true);
+		for (const path of ['/', '/stuecke', '/stuecke/abc', '/kalender', '/profil']) expect(inOrganiserArea(groups, path)).toBe(false);
 	});
 });
 
