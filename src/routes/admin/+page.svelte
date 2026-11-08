@@ -134,7 +134,7 @@
 {:else if data.state === 'not-set-up'}
 	<div class="msg info notice">
 		<p>{t.admin.notSetUp}</p>
-		<a class="link" href="/setup">{t.admin.runSetup}</a>
+		<a class="link" href="/einstellungen/tabelle">{t.admin.runSetup}</a>
 	</div>
 {:else}
 	{#if form?.message}

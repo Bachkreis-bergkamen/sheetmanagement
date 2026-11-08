@@ -100,18 +100,10 @@ export function navGroups({ auth, rights, features = ALL_ON, polls = false }: Na
 			workspace: true,
 			organiser: true,
 			items: [
-				...(admin && auth === 'on'
-					? [
-							{ href: '/admin', label: t.nav.admin, icon: 'shield' as const },
-							{ href: '/einstellungen', label: t.nav.settings, icon: 'palette' as const }
-						]
-					: []),
-				// Setup and status are open while sign-in is off; that's how a deployment is set up.
+				...(admin && auth === 'on' ? [{ href: '/admin', label: t.nav.admin, icon: 'shield' as const }] : []),
+				// Every setting in one place (#185): the orchestra, the sheet and data, the status.
 				...(admin || auth === 'off'
-					? [
-							{ href: '/setup', label: t.nav.setup, icon: 'sliders' as const },
-							{ href: '/status', label: t.nav.status, icon: 'activity' as const }
-						]
+					? [{ href: auth === 'on' ? '/einstellungen' : '/einstellungen/status', label: t.nav.settings, icon: 'sliders' as const }]
 					: [])
 			]
 		}
@@ -178,11 +170,34 @@ export function menuGroups(groups: NavGroup[]): NavGroup[] {
 }
 
 /**
- * Where a page that moved now lives: "/konzerte/…" became the calendar, "/kalender/…", so
- * shared links and bookmarks keep working. Null for every other path.
+ * The sections of the one settings page (#185): how the app looks and what it offers (only
+ * with sign-in on, it changes everyone's app), the sheet and the data, and the status. The
+ * last two are open while sign-in is off; that's how a deployment is set up.
+ */
+export function settingsSections({ auth, rights }: Pick<NavContext, 'auth' | 'rights'>): NavItem[] {
+	return [
+		...(auth === 'on' && has(rights, 'mitglieder.verwalten') ? [{ href: '/einstellungen', label: t.settings.sections.orchestra, icon: 'palette' as const }] : []),
+		{ href: '/einstellungen/tabelle', label: t.settings.sections.sheet, icon: 'list' as const },
+		{ href: '/einstellungen/status', label: t.settings.sections.status, icon: 'activity' as const }
+	];
+}
+
+/** Pages that moved, old address first; a page below the old one moves along. */
+const MOVED: [from: string, to: string][] = [
+	['/konzerte', '/kalender'],
+	// Merged into the settings (#185).
+	['/setup', '/einstellungen/tabelle'],
+	['/status', '/einstellungen/status']
+];
+
+/**
+ * Where a page that moved now lives: "/konzerte/…" became the calendar, "/kalender/…", and
+ * "/setup" and "/status" are sections of the settings, so shared links and bookmarks keep
+ * working. Null for every other path.
  */
 export function movedPath(path: string): string | null {
-	return path === '/konzerte' || path.startsWith('/konzerte/') ? '/kalender' + path.slice('/konzerte'.length) : null;
+	const move = MOVED.find(([from]) => path === from || path.startsWith(from + '/'));
+	return move ? move[1] + path.slice(move[0].length) : null;
 }
 
 /** Whether `href` is the current page or a page below it ("/stuecke" for "/stuecke/abc"). */

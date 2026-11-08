@@ -13,6 +13,23 @@ test('start page: greeting, open work and the next dates', async ({ page }) => {
 	await expectAccessible(page);
 });
 
+test('everything waiting in one list (#185)', async ({ page }) => {
+	await open(page, '/');
+	await page.getByRole('region', { name: 'Wartet auf dich' }).getByRole('link').click();
+	await expect(page).toHaveURL(/\/zu-erledigen$/);
+	await expect(page.getByRole('heading', { level: 1, name: 'Zu erledigen' })).toBeVisible();
+	const reports = page.getByRole('region', { name: /^Meldungen/ });
+	await expect(reports.getByRole('link')).toHaveCount(2);
+	await expect(page.getByRole('region', { name: /^Zugangsanfragen/ })).toContainText('Nele Neu');
+	await expectAccessible(page);
+
+	// The organisers' area leads there too, and lists its groups.
+	await open(page, '/verwaltung');
+	await expect(page.getByRole('link', { name: /Zu erledigen/ })).toContainText('Dinge warten');
+	await expect(page.getByRole('heading', { name: 'Noten pflegen' })).toBeVisible();
+	await expectAccessible(page);
+});
+
 test('concert page with the programme', async ({ page }) => {
 	await open(page, '/kalender/demo-herbstkonzert');
 	await expect(page.getByRole('heading', { level: 1, name: 'Herbstkonzert' })).toBeVisible();
@@ -61,6 +78,17 @@ test('settings page', async ({ page }) => {
 	await expect(page.getByRole('heading', { level: 1, name: 'Einstellungen' })).toBeVisible();
 	await expect(page.getByRole('heading', { name: 'Funktionen' })).toBeVisible();
 	await expectAccessible(page);
+
+	// Every setting in one place (#185): the sheet and the status are sections of it.
+	const sections = page.getByRole('navigation', { name: 'Bereiche der Einstellungen' });
+	await expect(sections.getByRole('link')).toHaveText(['Orchester', 'Tabelle & Daten', 'Status']);
+	await sections.getByRole('link', { name: 'Status' }).click();
+	await expect(page).toHaveURL(/\/einstellungen\/status$/);
+	await expect(sections.getByRole('link', { name: 'Status' })).toHaveAttribute('aria-current', 'page');
+
+	// The old addresses keep working.
+	await open(page, '/setup');
+	await expect(page).toHaveURL(/\/einstellungen\/tabelle$/);
 });
 
 test('date polls: only for their groups (#95)', async ({ page }) => {

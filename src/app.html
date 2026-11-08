@@ -15,8 +15,10 @@
 			try {
 				const theme = localStorage.getItem('theme');
 				if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
-				const size = localStorage.getItem('text-size');
-				if (size === 'large' || size === 'larger') document.documentElement.dataset.textSize = size;
+				let size = localStorage.getItem('text-size');
+				// "larger" was the old largest step; it is "large" now.
+				if (size === 'larger') localStorage.setItem('text-size', (size = 'large'));
+				if (size === 'small' || size === 'large') document.documentElement.dataset.textSize = size;
 			} catch {}
 			// The browser's install offer can come before the app has started (#279): kept for it.
 			addEventListener('beforeinstallprompt', (event) => {

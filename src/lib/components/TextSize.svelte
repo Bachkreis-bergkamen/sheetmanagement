@@ -4,14 +4,14 @@
 	import Segmented from './Segmented.svelte';
 
 	/**
-	 * Normal, large or larger text, for this device; shown in the menu and on the profile. Every
-	 * size in the app is in rem, so the whole page grows with it, the layout included.
+	 * Small, normal or large text, for this device; shown in the menu and on the profile. Every
+	 * size in the app is in rem, so the whole page grows or shrinks with it, the layout included.
 	 */
-	type Size = 'normal' | 'large' | 'larger';
+	type Size = 'small' | 'normal' | 'large';
 	const options = [
+		{ value: 'small' as const, label: t.textSize.small },
 		{ value: 'normal' as const, label: t.textSize.normal },
-		{ value: 'large' as const, label: t.textSize.large },
-		{ value: 'larger' as const, label: t.textSize.larger }
+		{ value: 'large' as const, label: t.textSize.large }
 	];
 
 	/** Fills its row, e.g. in the menu, instead of sizing to its labels. */
@@ -21,7 +21,7 @@
 
 	onMount(() => {
 		const current = document.documentElement.dataset.textSize;
-		if (current === 'large' || current === 'larger') size = current;
+		if (current === 'small' || current === 'large') size = current;
 	});
 
 	function apply(next: Size) {

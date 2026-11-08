@@ -18,7 +18,7 @@ export const GET: RequestHandler = ({ url, cookies, locals }) => {
 
 	// The state ties Google's answer to this browser (CSRF protection for the callback).
 	const state = randomToken();
-	const returnTo = purpose ? '/status' : safeReturnPath(url.searchParams.get('weiter'));
+	const returnTo = purpose ? '/einstellungen/status' : safeReturnPath(url.searchParams.get('weiter'));
 	cookies.set(STATE_COOKIE, JSON.stringify({ state, returnTo, ...(purpose ? { purpose } : {}) }), {
 		path: '/auth',
 		httpOnly: true,

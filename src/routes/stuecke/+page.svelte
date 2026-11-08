@@ -155,7 +155,7 @@
 {:else if data.error}
 	<div class="notice">
 		<p>{t.pieces.failed}</p>
-		<a href="/status">{t.pieces.checkStatus}</a>
+		<a href="/einstellungen/status">{t.pieces.checkStatus}</a>
 	</div>
 {:else}
 	<div class="tools">

@@ -42,6 +42,25 @@ export const de = {
 		skip: 'Zum Inhalt springen',
 		main: 'Hauptnavigation'
 	},
+	/** Everything waiting for you, in one list (#185). */
+	todo: {
+		title: 'Zu erledigen',
+		lead: 'Alles, was gerade auf dich wartet, an einem Ort. Jede Zeile führt dahin, wo du es erledigst.',
+		empty: 'Nichts offen. Schön!',
+		/** Before a deadline: polls and rented music. */
+		until: (date: string) => `bis ${date}`,
+		kinds: {
+			report: 'Meldungen',
+			request: 'Zugangsanfragen',
+			wish: 'Wünsche',
+			loan: 'Leihmaterial zurückgeben',
+			attendance: 'Anwesenheit eintragen',
+			poll: 'Terminumfragen beantworten',
+			other: 'Außerdem'
+		} as Record<string, string>,
+		/** On the organisers' hub, above the groups. */
+		hub: (n: number) => (n === 1 ? '1 Sache wartet' : `${n} Dinge warten`)
+	},
 	organise: {
 		title: 'Verwaltung',
 		lead: 'Alles, was ihr fürs Orchester erledigt: die Noten pflegen, Mitglieder und die App.'
@@ -65,9 +84,9 @@ export const de = {
 	textSize: {
 		label: 'Schriftgröße',
 		hint: 'Gilt für dieses Gerät.',
+		small: 'Klein',
 		normal: 'Normal',
-		large: 'Groß',
-		larger: 'Sehr groß'
+		large: 'Groß'
 	},
 	home: {
 		title: (orchestra: string) => `Notenarchiv des ${orchestra}`,
@@ -118,9 +137,7 @@ export const de = {
 			'/meldungen': 'Gemeldete Probleme bearbeiten.',
 			'/leihmaterial': 'Geliehene Noten und wann sie zurückmüssen.',
 			'/admin': 'Mitglieder, Rollen und Anfragen.',
-			'/setup': 'Die Repertoire-Tabelle anlegen.',
-			'/einstellungen': 'Name, Logo, Farbe und Funktionen.',
-			'/status': 'Verbindung zu Google prüfen.',
+			'/einstellungen': 'Orchester, Tabelle und Daten, Status.',
 			'/termine': 'Termine mit dem Orga-Team abstimmen.',
 			'/ensembles': 'Chöre und Orchester, mit denen wir auftreten.'
 		} as Record<string, string>
@@ -626,6 +643,8 @@ export const de = {
 	settings: {
 		title: 'Einstellungen',
 		lead: 'Wie die App für alle aussieht und was sie anbietet.',
+		/** The settings' sections (#185): one page for every setting. */
+		sections: { label: 'Bereiche der Einstellungen', orchestra: 'Orchester', sheet: 'Tabelle & Daten', status: 'Status' },
 		identity: 'Name',
 		name: 'Name des Orchesters',
 		shortName: 'Kurzname',

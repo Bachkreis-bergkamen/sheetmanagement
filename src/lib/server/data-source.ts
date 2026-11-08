@@ -3,7 +3,7 @@ import { getStore, type DataRow, type DataState } from './db/index.ts';
 
 /**
  * Where the data people maintain lives (#186): the Google Sheet until the import on
- * /setup/datenbank, D1 after it. The functions in repertoire.ts and sheet-writes.ts ask here
+ * /einstellungen/tabelle/datenbank, D1 after it. The functions in repertoire.ts and sheet-writes.ts ask here
  * and read or write one or the other, so pages and editors don't change. In D1 the rows are
  * kept by column key; here they become grids with the header row the builders expect, as if
  * read from the sheet.

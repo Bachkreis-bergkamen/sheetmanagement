@@ -40,6 +40,25 @@ export const en: Texts = {
 		skip: 'Skip to content',
 		main: 'Main navigation'
 	},
+	/** Everything waiting for you, in one list (#185). */
+	todo: {
+		title: 'To do',
+		lead: 'Everything waiting for you right now, in one place. Each row leads to where you deal with it.',
+		empty: 'Nothing open. Nice!',
+		/** Before a deadline: polls and rented music. */
+		until: (date: string) => `by ${date}`,
+		kinds: {
+			report: 'Reports',
+			request: 'Access requests',
+			wish: 'Wishes',
+			loan: 'Rented music to return',
+			attendance: 'Take attendance',
+			poll: 'Date polls to answer',
+			other: 'Also'
+		} as Record<string, string>,
+		/** On the organisers' hub, above the groups. */
+		hub: (n: number) => (n === 1 ? '1 thing waiting' : `${n} things waiting`)
+	},
 	organise: {
 		title: 'Admin',
 		lead: 'Everything you look after for the orchestra: the music, the members and the app.'
@@ -63,9 +82,9 @@ export const en: Texts = {
 	textSize: {
 		label: 'Text size',
 		hint: 'For this device.',
+		small: 'Small',
 		normal: 'Normal',
-		large: 'Large',
-		larger: 'Larger'
+		large: 'Large'
 	},
 	home: {
 		title: (orchestra: string) => `${orchestra} music library`,
@@ -113,9 +132,7 @@ export const en: Texts = {
 			'/meldungen': 'Deal with reported problems.',
 			'/leihmaterial': 'Rented music and when it goes back.',
 			'/admin': 'Members, roles and requests.',
-			'/setup': 'Create the repertoire sheet.',
-			'/einstellungen': 'Name, logo, colour and features.',
-			'/status': 'Check the connection to Google.',
+			'/einstellungen': 'The orchestra, the sheet and data, the status.',
 			'/termine': 'Agree on dates with the orga team.',
 			'/ensembles': 'Choirs and orchestras we perform with.'
 		} as Record<string, string>
@@ -618,6 +635,8 @@ export const en: Texts = {
 	settings: {
 		title: 'Settings',
 		lead: 'How the app looks for everyone and what it offers.',
+		/** The settings' sections (#185): one page for every setting. */
+		sections: { label: 'Settings sections', orchestra: 'Orchestra', sheet: 'Sheet & data', status: 'Status' },
 		identity: 'Name',
 		name: 'Name of the orchestra',
 		shortName: 'Short name',

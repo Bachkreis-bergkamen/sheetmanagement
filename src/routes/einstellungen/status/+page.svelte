@@ -159,8 +159,8 @@
 		</form>
 	{/each}
 	{#if data.checks.account.state === 'ok'}
-		<a class="link" href="/setup">{t.status.setupSheet}</a>
-		<a class="link" href="/setup/datenbank">{t.status.dataMove}</a>
+		<a class="link" href="/einstellungen/tabelle">{t.status.setupSheet}</a>
+		<a class="link" href="/einstellungen/tabelle/datenbank">{t.status.dataMove}</a>
 	{/if}
 	<a class="link" href="{REPOSITORY}/blob/main/docs/setup-google.md">{t.status.setupGuide}</a>
 </div>

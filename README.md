@@ -87,7 +87,7 @@ APP_LANGUAGE=en pnpm dev:demo
 
 1. Create a free [Cloudflare account](https://dash.cloudflare.com/sign-up), then `pnpm wrangler login` and `pnpm run deploy`.
 2. Connect Google Drive, Calendar and Sheets: [docs/setup-google.md](docs/setup-google.md) (about 15 minutes, free).
-3. Open `/status` to check every connection, then `/setup` to prepare the sheet.
+3. Open `/einstellungen/status` to check every connection, then `/einstellungen/tabelle` to prepare the sheet.
 4. Name, logo, colour and features: an admin changes them on `/einstellungen`, no code needed.
 
 Step by step, with automatic deploys from GitHub, reminders, email and backups: **[Deploying](https://github.com/lgreil/sheetmanagement/wiki/Deploying)** and **[Configuration](https://github.com/lgreil/sheetmanagement/wiki/Configuration)** in the wiki.

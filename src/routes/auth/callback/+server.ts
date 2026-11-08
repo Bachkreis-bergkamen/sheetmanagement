@@ -23,11 +23,11 @@ export const GET: RequestHandler = async ({ url, cookies, locals }) => {
 	// Cancelled on Google's page, or the link was opened in another browser.
 	const code = url.searchParams.get('code');
 	if (expected.purpose === 'mail') {
-		if (!expected.state || expected.state !== url.searchParams.get('state')) redirect(303, '/status?mail=abgelaufen');
+		if (!expected.state || expected.state !== url.searchParams.get('state')) redirect(303, '/einstellungen/status?mail=abgelaufen');
 		redirect(303, `/status?mail=${await connectMailAccount(auth, code, url.origin, locals)}`);
 	}
 	if (expected.purpose === 'drive') {
-		if (!expected.state || expected.state !== url.searchParams.get('state')) redirect(303, '/status?drive=abgelaufen');
+		if (!expected.state || expected.state !== url.searchParams.get('state')) redirect(303, '/einstellungen/status?drive=abgelaufen');
 		redirect(303, `/status?drive=${await connectDriveAccount(auth, code, url.origin, locals)}`);
 	}
 	if (url.searchParams.get('error') || !code) redirect(303, '/anmelden?fehler=abgebrochen');
