@@ -2379,6 +2379,14 @@ export const de = {
 		shareNeedsSetup: '„Programm wie“: Fehlt noch in der Tabelle. Bitte einmal „Tabelle einrichten“ ausführen.'
 	},
 	status: {
+		/** The page audit (#185). */
+		pages: {
+			title: 'Seitenaufrufe (30 Tage)',
+			lead: 'Wie oft jede Seite geöffnet wurde, nach Rolle. Gezählt wird nur die Art der Seite, nicht wer sie geöffnet hat; nach 180 Tagen wird es gelöscht.',
+			route: 'Seite',
+			roles: { mitglied: 'Mitglieder', verwaltung: 'Verwaltung', gast: 'Gäste' },
+			none: 'Noch keine Aufrufe gezählt.'
+		},
 		title: 'Status',
 		lead: 'Ob die Verbindung zu Google funktioniert.',
 		account: 'Google-Dienstkonto',

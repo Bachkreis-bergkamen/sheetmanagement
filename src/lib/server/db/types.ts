@@ -123,6 +123,13 @@ export interface Store {
 	/** Forgets an account; for "Mitglied löschen". */
 	deleteAccount(email: string): Promise<void>;
 
+	/** Counts one opening of a page (#185): its route pattern, on a day, by role. Nothing about who. */
+	countPage(day: string, route: string, role: PageRole): Promise<void>;
+	/** The openings since a day ("2026-10-09"), summed per route and role, most opened first. */
+	pageCounts(since: string): Promise<PageCount[]>;
+	/** Forgets the counts from before a day. */
+	prunePageCounts(before: string): Promise<void>;
+
 	/** Whether a member finished or skipped the tour; null while they haven't seen it. */
 	tourOf(email: string): Promise<TourOutcome | null>;
 	/** Remembers how the tour ended; null forgets it, so it's offered again. */
@@ -226,3 +233,12 @@ export interface Store {
 }
 
 export const reminderKey = (subject: string, recipient: string) => `${subject}\n${recipient}`;
+
+/** Who opened a page, as a role only: members, organisers, or visitors while sign-in is off. */
+export type PageRole = 'mitglied' | 'verwaltung' | 'gast';
+
+export interface PageCount {
+	route: string;
+	role: PageRole;
+	views: number;
+}

@@ -12,7 +12,7 @@ import type { Store } from './types.ts';
  * in memory. Everything people maintain stays in the Google Sheet.
  */
 
-export { reminderKey, type Account, type DataRow, type DataState, type MarkShare, type PushDevice, type ShareAnswer, type SentReminder, type Store, type TourOutcome } from './types.ts';
+export { reminderKey, type Account, type DataRow, type DataState, type MarkShare, type PageCount, type PageRole, type PushDevice, type ShareAnswer, type SentReminder, type Store, type TourOutcome } from './types.ts';
 
 let memory: Store | undefined;
 let d1: { db: D1; store: Store } | undefined;

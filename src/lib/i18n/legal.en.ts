@@ -116,6 +116,12 @@ export const legal = {
 				]
 			},
 			{
+				heading: 'Page views',
+				paragraphs: [
+					'So that the app can become simpler, it counts how often each kind of page is opened, such as “piece” or “calendar”, per day and separately for members and organisers. Only this number is stored: not who opened the page, not which piece or date, no IP address and no cookie. Only admins see the numbers, and they are deleted after 180 days. As nobody can be identified from them, they are not personal data.'
+				]
+			},
+			{
 				heading: 'Hosting at Cloudflare',
 				paragraphs: [
 					'The app runs at Cloudflare (Cloudflare, Inc., USA, with data centres worldwide). For every visit, your IP address, the time and the address visited are processed to deliver the page and protect it from attacks (Art. 6(1)(f) GDPR). Cloudflare is certified under the EU-US Data Privacy Framework.',

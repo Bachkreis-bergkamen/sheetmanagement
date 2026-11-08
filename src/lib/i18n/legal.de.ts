@@ -128,6 +128,12 @@ export const legal = {
 				]
 			},
 			{
+				heading: 'Seitenaufrufe',
+				paragraphs: [
+					'Damit die App einfacher werden kann, zählt sie, wie oft jede Art von Seite geöffnet wird, zum Beispiel „Stück“ oder „Kalender“, je Tag und getrennt nach Mitgliedern und Verwaltung. Gespeichert wird nur diese Zahl, nicht wer die Seite geöffnet hat, nicht welches Stück oder welcher Termin, keine IP-Adresse und kein Cookie. Die Zahlen sehen nur Admins, und sie werden nach 180 Tagen gelöscht. Weil sich daraus niemand bestimmen lässt, sind es keine personenbezogenen Daten.'
+				]
+			},
+			{
 				heading: 'Hosting bei Cloudflare',
 				paragraphs: [
 					'Die App läuft bei Cloudflare (Cloudflare, Inc., USA, mit Rechenzentren weltweit). Bei jedem Aufruf werden technisch deine IP-Adresse, der Zeitpunkt und die aufgerufene Adresse verarbeitet, um die Seite auszuliefern und vor Angriffen zu schützen (Art. 6 Abs. 1 lit. f DSGVO). Cloudflare ist nach dem EU-US Data Privacy Framework zertifiziert.',
