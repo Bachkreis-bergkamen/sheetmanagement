@@ -8,7 +8,7 @@ import { t } from '#lib/i18n/index.ts';
 
 export const GET: RequestHandler = ({ url, cookies, locals }) => {
 	const auth = authConfig();
-	if (auth.mode === 'off') error(404, t.messages.signInOff);
+	if (auth.mode === 'off' || !auth.google) error(404, t.messages.signInOff);
 	if (auth.problems.length) error(503, auth.problems.join(' '));
 	// ?zweck=mail: an admin connects the account that sends email (#123), from /status;
 	// ?zweck=drive: the account new uploads belong to (#193).

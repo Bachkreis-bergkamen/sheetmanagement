@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { isRedirect, redirect } from '@sveltejs/kit';
 import { authorizationUrl, GOOGLE_SIGN_IN_ORIGIN, readIdToken, signIn, SignInError } from './google.ts';
-import { signInForced } from './index.ts';
+import { signInForced, signInRequired } from './index.ts';
 import { safeReturnPath } from './redirect.ts';
 import { base64url, signSession, verifySession } from './session.ts';
 
@@ -25,6 +25,22 @@ describe('session cookies', () => {
 		expect(await verifySession('nonsense', SECRET, NOW)).toBeNull();
 		expect(await verifySession('a.b.c', SECRET, NOW)).toBeNull();
 		expect(await verifySession(undefined, SECRET, NOW)).toBeNull();
+	});
+
+	it("keeps a password session's stamp, and refuses one that isn't text", async () => {
+		const withStamp = { ...session, pw: 'stamp-1' };
+		expect(await verifySession(await signSession(withStamp, SECRET), SECRET, NOW)).toEqual(withStamp);
+		const odd = { ...session, pw: 3 } as unknown as typeof withStamp;
+		expect(await verifySession(await signSession(odd, SECRET), SECRET, NOW)).toBeNull();
+	});
+});
+
+describe('FORCE_AUTH', () => {
+	it('true turns sign-in on without Google, false turns it off', () => {
+		expect(['true', ' YES ', '1', 'on'].map(signInRequired)).toEqual([true, true, true, true]);
+		expect([undefined, '', 'false'].map(signInRequired)).toEqual([false, false, false]);
+		expect(signInForced('false')).toBe(false);
+		expect(signInForced(undefined)).toBe(true);
 	});
 });
 

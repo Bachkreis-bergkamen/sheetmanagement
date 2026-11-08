@@ -136,6 +136,7 @@
 				<span class="brand-full">{data.orchestraName}</span>
 				<span class="brand-short">{data.orchestraShortName} <span class="app-name">{t.nav.appName}</span></span>
 			</a>
+			{#if data.beta}<span class="beta" title={t.nav.betaNote} aria-label={t.nav.betaNote}>{t.nav.beta}</span>{/if}
 
 			<nav class="nav-desktop" aria-label={t.nav.main}>
 				{#each nav as item (item.href)}
@@ -338,6 +339,21 @@
 		text-overflow: ellipsis;
 	}
 
+	/* Every page of the live app says it's a preview, until RELEASE is set. */
+	.beta {
+		flex: none;
+		padding: 3px 10px;
+		border-radius: var(--radius-pill);
+		background: var(--warn);
+		color: var(--surface);
+		font-size: var(--text-xs);
+		font-weight: 800;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		line-height: 1.4;
+		cursor: help;
+	}
+
 	.app-name {
 		color: var(--accent);
 		font-weight: 500;
@@ -501,6 +517,12 @@
 
 		.topbar-inner {
 			justify-content: space-between;
+		}
+
+		/* Beside the name, not floating between it and the buttons. */
+		.beta {
+			margin-right: auto;
+			margin-left: calc(-1 * var(--space-2));
 		}
 
 		.brand-full {

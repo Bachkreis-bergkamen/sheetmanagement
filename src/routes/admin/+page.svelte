@@ -355,6 +355,63 @@
 			{/each}
 		{/if}
 
+		<!-- The easy way in: a link, and the new member enters everything themselves. -->
+		<details class="ui-card add" id="einladen" open={!!form?.invited || !!form?.inviteRevoked || undefined}>
+			<summary><Icon name="link" size={16} />{t.invite.adminTitle}{#if data.invites?.length}<span class="count">{data.invites.length}</span>{/if}</summary>
+			{#if !data.invites}
+				<p class="meta invite-lead">{t.invite.unavailable}</p>
+			{:else}
+				<p class="meta invite-lead">{t.invite.adminLead(data.inviteDays)}</p>
+				{#if form?.invited}
+					<div class="invite-made" role="status">
+						<p><Icon name="check" size={16} />{t.invite.created}</p>
+						<div class="link-row">
+							<input readonly value={form.invited.url} onfocus={(event) => event.currentTarget.select()} aria-label={t.invite.adminTitle} />
+							<button class="btn" type="button" onclick={() => copy(form!.invited!.url)}>{copied ? t.admin.copied : t.admin.copy}</button>
+						</div>
+					</div>
+				{:else if form?.inviteRevoked}
+					<p class="msg ok" role="status">{t.invite.revoked}</p>
+				{/if}
+				<form class="grid" method="POST" action="?/invite" use:enhance={submit}>
+					<label class="field">
+						{t.invite.label}
+						<input name="label" autocomplete="off" maxlength="200" />
+						<span class="meta">{t.invite.labelHint}</span>
+					</label>
+					{#if data.groups.length}
+						<fieldset class="choices">
+							<legend class="caption">{t.invite.roles}</legend>
+							<div class="checks">
+								{#each data.groups as group (group.name)}
+									<label class="check"><input type="checkbox" name="group" value={group.name} />{group.name}</label>
+								{/each}
+							</div>
+						</fieldset>
+					{/if}
+					<div class="wide"><button class="btn" disabled={saving.busy}><Icon name="link" size={16} />{t.invite.create}</button></div>
+				</form>
+				{#if data.invites.length}
+					<h3 class="caption invite-list-head">{t.invite.open}</h3>
+					<ul class="invites">
+						{#each data.invites as invite (invite.id)}
+							<li>
+								<span class="main">
+									<strong>{invite.label || t.invite.unnamed}</strong>
+									<span class="meta">{t.invite.until(formatDay(invite.expiresAt.slice(0, 10), config.locale))}{invite.groups ? ` · ${invite.groups}` : ''}</span>
+								</span>
+								<button class="btn ghost small" type="button" onclick={() => copy(invite.url)}>{t.admin.copy}</button>
+								<form method="POST" action="?/inviteRevoke" use:enhance={submit} onsubmit={(event) => confirm(t.invite.confirmRevoke) || event.preventDefault()}>
+									<input type="hidden" name="id" value={invite.id} />
+									<button class="btn ghost small danger" disabled={saving.busy}>{t.invite.revoke}</button>
+								</form>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+			{/if}
+		</details>
+
 		<details class="ui-card add">
 			<summary><Icon name="plus" size={16} />{t.admin.addMember}</summary>
 			<form class="grid" method="POST" action="?/addMember" use:enhance={submit}>
@@ -1114,6 +1171,62 @@
 
 	.wide {
 		grid-column: 1 / -1;
+	}
+
+	/* ---------- Invitations ---------- */
+
+	.add summary .count {
+		margin-left: var(--space-1);
+	}
+
+	.invite-lead {
+		margin: var(--space-2) 0 0;
+	}
+
+	.invite-made {
+		display: grid;
+		gap: var(--space-2);
+		margin-top: var(--space-3);
+		padding: var(--space-3);
+		border-radius: var(--radius-control);
+		background: var(--accent-soft);
+	}
+
+	.invite-made p {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		margin: 0;
+		font-weight: 600;
+	}
+
+	.invite-list-head {
+		margin: var(--space-5) 0 var(--space-2);
+	}
+
+	.invites {
+		display: grid;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.invites li {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-2);
+		padding: var(--space-2) 0;
+	}
+
+	.invites li + li {
+		border-top: 1px solid var(--hairline);
+	}
+
+	.invites .main {
+		display: grid;
+		flex: 1;
+		min-width: min(100%, 200px);
 	}
 
 	/* ---------- The folded set-up sections ---------- */

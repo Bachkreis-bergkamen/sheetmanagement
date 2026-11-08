@@ -26,41 +26,49 @@
 			</ul>
 		</div>
 	{:else}
-		<a class="button" href="/auth/login?weiter={encodeURIComponent(data.returnTo)}" data-sveltekit-reload>
-			<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-				<path fill="#4285F4" d="M22.6 12.2c0-.8-.1-1.5-.2-2.2H12v4.2h6a5.1 5.1 0 0 1-2.2 3.4v2.8h3.6c2.1-1.9 3.2-4.8 3.2-8.2Z" />
-				<path fill="#34A853" d="M12 23c3 0 5.5-1 7.4-2.7l-3.6-2.8c-1 .7-2.3 1.1-3.8 1.1-2.9 0-5.4-2-6.3-4.6H2v2.9A11 11 0 0 0 12 23Z" />
-				<path fill="#FBBC05" d="M5.7 14c-.2-.7-.4-1.3-.4-2s.1-1.4.4-2V7.1H2a11 11 0 0 0 0 9.8L5.7 14Z" />
-				<path fill="#EA4335" d="M12 5.4c1.6 0 3.1.6 4.2 1.7l3.2-3.2A11 11 0 0 0 2 7.1L5.7 10C6.6 7.4 9.1 5.4 12 5.4Z" />
-			</svg>
-			{t.auth.button}
-		</a>
-		<p class="small">{t.auth.privacy}</p>
-		{#if data.mail}
-			<!-- Without a Google account: a sign-in link by email (#123). -->
-			<p class="or"><span>{t.email.or}</span></p>
-			{#if form?.mailSent}
-				<p class="sent" role="status">{t.email.sent(form.mailSent)}</p>
+		<form
+			class="password"
+			method="POST"
+			action="?/password"
+			use:enhance={() => {
+				sending = true;
+				return async ({ update }) => {
+					await update({ reset: false });
+					sending = false;
+				};
+			}}
+		>
+			<label class="field">
+				{t.password.email}
+				<input name="email" type="email" autocomplete="username" required value={form?.email ?? ''} aria-invalid={!!form?.passwordError} />
+			</label>
+			<label class="field">
+				{t.password.password}
+				<input name="password" type="password" autocomplete="current-password" required maxlength="200" aria-invalid={!!form?.passwordError} />
+			</label>
+			<input type="hidden" name="weiter" value={data.returnTo} />
+			{#if form?.passwordError}<p class="msg error" role="alert">{t.password.signInErrors[form.passwordError]}</p>{/if}
+			<button class="btn" disabled={sending}>{t.password.signIn}</button>
+		</form>
+		<p class="small">
+			{#if data.mail}
+				<a class="link" href="/auth/passwort">{t.password.createOrReset}</a>
 			{:else}
-				<form
-					class="mail"
-					method="POST"
-					action="?/email"
-					use:enhance={() => {
-						sending = true;
-						return async ({ update }) => {
-							await update({ reset: false });
-							sending = false;
-						};
-					}}
-				>
-					<label for="mail">{t.email.noGoogle}</label>
-					<input id="mail" name="email" type="email" autocomplete="email" required placeholder={t.email.label} value={form?.email ?? ''} aria-invalid={!!form?.mailError} />
-					<input type="hidden" name="weiter" value={data.returnTo} />
-					<button class="btn secondary" disabled={sending}>{t.email.send}</button>
-					{#if form?.mailError}<p class="error" role="alert">{t.email[form.mailError]}</p>{/if}
-				</form>
+				{t.password.noMailHint}
 			{/if}
+		</p>
+		{#if data.google}
+			<p class="or"><span>{t.email.or}</span></p>
+			<a class="button" href="/auth/login?weiter={encodeURIComponent(data.returnTo)}" data-sveltekit-reload>
+				<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+					<path fill="#4285F4" d="M22.6 12.2c0-.8-.1-1.5-.2-2.2H12v4.2h6a5.1 5.1 0 0 1-2.2 3.4v2.8h3.6c2.1-1.9 3.2-4.8 3.2-8.2Z" />
+					<path fill="#34A853" d="M12 23c3 0 5.5-1 7.4-2.7l-3.6-2.8c-1 .7-2.3 1.1-3.8 1.1-2.9 0-5.4-2-6.3-4.6H2v2.9A11 11 0 0 0 12 23Z" />
+					<path fill="#FBBC05" d="M5.7 14c-.2-.7-.4-1.3-.4-2s.1-1.4.4-2V7.1H2a11 11 0 0 0 0 9.8L5.7 14Z" />
+					<path fill="#EA4335" d="M12 5.4c1.6 0 3.1.6 4.2 1.7l3.2-3.2A11 11 0 0 0 2 7.1L5.7 10C6.6 7.4 9.1 5.4 12 5.4Z" />
+				</svg>
+				{t.auth.button}
+			</a>
+			<p class="small">{t.auth.privacy}</p>
 		{/if}
 	{/if}
 </section>
@@ -138,32 +146,20 @@
 		border-top: 1px solid var(--border);
 	}
 
-	.mail {
+	.password {
 		display: grid;
-		gap: var(--space-2);
+		gap: var(--space-3);
 		width: 100%;
 		text-align: left;
 	}
 
-	.mail label {
-		color: var(--text-muted);
-		font-size: var(--text-sm);
+	.password .msg {
+		width: 100%;
 	}
 
-	.mail input[type='email'] {
-		padding: 10px 12px;
-		border: 1px solid var(--border);
-		border-radius: var(--radius-m);
-		background: var(--bg);
-		color: var(--text);
-		font: inherit;
-	}
-
-	.sent {
-		padding: var(--space-3);
-		border-radius: var(--radius-m);
-		background: color-mix(in oklab, var(--accent) 12%, transparent);
-		color: var(--text);
+	.link {
+		color: var(--accent);
+		font-weight: 600;
 	}
 
 	.error ul {

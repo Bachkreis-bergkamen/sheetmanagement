@@ -6,6 +6,8 @@ export const en: Texts = {
 	nav: {
 		/** Shown after the orchestra's short name in the header. */
 		appName: 'Music library',
+		beta: 'Beta',
+		betaNote: 'Preview: the app is still being built. Please report bugs and wishes.',
 		home: 'Overview',
 		pieces: 'Library',
 		concerts: 'Calendar',
@@ -1265,7 +1267,7 @@ export const en: Texts = {
 	},
 	auth: {
 		title: 'Sign in',
-		lead: 'Sign in with your Google account to see music, concerts and programmes.',
+		lead: 'Sign in to see music, concerts and programmes.',
 		button: 'Sign in with Google',
 		privacy: 'The app only learns your name and email address.',
 		notReady: "Sign-in isn't fully set up yet:",
@@ -1389,33 +1391,85 @@ export const en: Texts = {
 		loading: 'Loading the music …',
 		hint: 'Type details from the page, or select and copy them in the new tab.'
 	},
+	/** Email and password sign-in: the form on /anmelden, signing up and resetting by email, the profile. */
+	password: {
+		email: 'Email address',
+		password: 'Password',
+		signIn: 'Sign in',
+		signInErrors: {
+			wrong: "The email address or password isn't right.",
+			limited: 'Too many attempts. Please try again in a quarter of an hour.',
+			failed: "That didn't work just now. Please try again."
+		} as Record<string, string>,
+		createOrReset: 'Create an account or forgot your password?',
+		noMailHint: 'No password yet? Ask an admin for a personal link, then set a password on your profile.',
+		requestTitle: 'Set a password',
+		requestLead: "For a new account or if you forgot your password: we'll send you a link to set a password.",
+		send: 'Send link by email',
+		sent: (email: string) => `We sent a link to ${email}. It works for an hour. Check your spam folder too.`,
+		mailErrors: {
+			invalid: 'Please enter an email address.',
+			limited: 'Too many attempts. Please try again in an hour.',
+			failed: "That didn't work just now. Please try again."
+		} as Record<string, string>,
+		noMail: 'No emails can be sent right now. Please ask an admin for a personal link; then you can set a password on your profile.',
+		toSignIn: 'To sign-in',
+		newSubject: (orchestra: string) => `Your account: ${orchestra}`,
+		newBody: (name: string, orchestra: string, link: string) =>
+			`Hello${name ? ` ${name}` : ''},\n\nwith this link you set your password for ${orchestra}. It works for an hour:\n\n${link}\n\nYou didn't want an account? Then just delete this email.`,
+		resetSubject: (orchestra: string) => `New password: ${orchestra}`,
+		resetBody: (name: string, link: string) =>
+			`Hello${name ? ` ${name}` : ''},\n\nwith this link you set a new password. It works for an hour, and only once:\n\n${link}\n\nYou didn't ask for a new password? Then just delete this email; your password stays as it is.`,
+		setTitle: 'Set a password',
+		resetTitle: 'New password',
+		setLead: (email: string) => `For ${email}.`,
+		newPassword: 'New password',
+		repeat: 'Once more',
+		current: 'Current password',
+		rule: (min: number) => `At least ${min} characters. A sentence you can remember beats a short complicated word.`,
+		problems: {
+			short: 'The password is too short.',
+			long: 'The password is too long.',
+			mismatch: "The two passwords don't match."
+		} as Record<string, string>,
+		save: 'Save password',
+		failed: "The password couldn't be saved just now. Please try again.",
+		linkInvalid: 'This link has expired or was already used.',
+		newLink: 'Ask for a new link',
+		profileTitle: 'Password',
+		profileHas: (email: string) => `You can sign in with ${email} and your password. A new password signs you out everywhere else.`,
+		profileNone: (email: string) => `Set a password to also sign in with ${email} and a password.`,
+		set: 'Set password',
+		change: 'Change password',
+		saved: 'Password saved.',
+		wrongCurrent: "The current password isn't right.",
+		forgot: 'Forgot your password?'
+	},
+	/** The member's own access link on /profil. */
+	ownLink: {
+		title: 'Personal access link',
+		lead: 'A link to sign in without a password, e.g. on a second device.',
+		create: 'Create access link',
+		show: 'Show link',
+		keep: "Personal: whoever has the link is signed in as you. Don't pass it on.",
+		confirmRenew: 'Create a new link? The old one stops working, and anyone signed in with it is signed out.',
+		confirmRenewViaLink: 'Create a new link? The old one stops working; devices signed in with it are signed out (not this one).',
+		confirmRevoke: 'Revoke the link? Anyone signed in with it is signed out.',
+		confirmRevokeViaLink: "Revoke the link? You're signed in with it, so you'll be signed out here too.",
+		revoked: 'Link revoked.'
+	},
 	accessLink: {
 		title: 'Access by link',
 		hello: (name: string) => (name ? `Hello ${name}!` : 'Hello!'),
-		lead: 'With this personal link you sign in without a Google account.',
+		lead: 'With this personal link you sign in without a password.',
 		signIn: 'Sign in',
-		keep: "Keep the link safe and don't pass it on. It works until an admin creates a new one.",
+		keep: "Keep the link safe and don't pass it on. It works until you (on your profile) or an admin create a new one.",
 		invalid: 'This link no longer works. Please ask an admin for a new one.',
-		toSignIn: 'To sign-in with Google'
+		toSignIn: 'To sign-in'
 	},
 	/** Email (#123): sign-in links, reminders, the account on /status. */
 	email: {
 		or: 'or',
-		noGoogle: "No Google account? We'll send you a link.",
-		label: 'Email address',
-		send: 'Email me a link',
-		sent: (email: string) =>
-			`If ${email} is listed in the orchestra, an email with a sign-in link is on its way. It works for 15 minutes. Check the spam folder too.`,
-		invalid: 'Please enter an email address.',
-		limited: 'Too many tries. Please try again in an hour.',
-		failed: "That didn't work just now. Please try again.",
-		signInSubject: (orchestra: string) => `Sign in: ${orchestra}`,
-		signInBody: (name: string, link: string) =>
-			`Hello${name ? ` ${name}` : ''},\n\nthis link signs you in. It works for 15 minutes:\n\n${link}\n\nYou didn't ask for a link? Then just delete this email.`,
-		linkTitle: 'Sign in by email',
-		linkLead: (email: string) => `You're signing in as ${email}.`,
-		linkButton: 'Sign in',
-		linkInvalid: "This link has expired or isn't valid. Ask for a new one on the sign-in page.",
 		toSignIn: 'To sign-in',
 		hello: (name: string) => (name ? `Hello ${name},` : 'Hello,'),
 		answerLinks: 'Answer:',
@@ -1437,13 +1491,13 @@ export const en: Texts = {
 		connected: (email: string, since: string) => `Sent from ${email} (connected on ${since}).`,
 		links: (origin: string) => `Links in emails go to ${origin}.`,
 		optOuts: (n: number) => (n === 1 ? '1 member turned email reminders off.' : `${n} members turned email reminders off.`),
-		notConnected: 'No email account connected: sign-in links and reminders by email are off.',
+		notConnected: 'No email account connected: signing up, forgotten passwords and reminders by email are off.',
 		connectHint:
 			"Sign in with the orchestra's Google account that should send the emails. Google asks for permission to send email on its behalf, nothing more. On the OAuth consent screen the app must be 'In production', else the permission ends after 7 days.",
 		needsSignIn: 'Set up sign-in with Google first (step 9).',
 		connect: 'Connect email account',
 		disconnect: 'Disconnect',
-		confirmDisconnect: 'Disconnect the email account? Sign-in links and email reminders then stop.',
+		confirmDisconnect: 'Disconnect the email account? Links to set a password and email reminders then stop.',
 		revoked: 'Google took back the permission to send. Please connect the account again.',
 		lastError: (message: string) => `The last email didn't go out: ${message}`,
 		connectedNow: 'Email account connected.',
@@ -1474,6 +1528,35 @@ export const en: Texts = {
 		'karten.einlass': 'Check tickets at the door',
 		'kummerkasten.lesen': 'Read and answer the suggestion box (without seeing who wrote)',
 		'mitglieder.verwalten': 'Manage members and rights'
+	},
+	invite: {
+		title: 'Welcome!',
+		lead: "You've been invited. Sign up here and you can get started right away.",
+		aboutYou: 'About you',
+		signIn: 'How you sign in',
+		signInLead: 'From now on you sign in with this email address and password.',
+		join: 'Sign up and get started',
+		nameMissing: 'Please enter your first and last name.',
+		instrumentMissing: 'Please choose at least one instrument.',
+		exists: "You're already signed up with this email address. Just sign in.",
+		joinFailed: "Signing up didn't work just now. Please try again.",
+		invalid: 'This invitation has expired or was already used. Please ask the admins for a new one.',
+		failed: "The invitation couldn't be saved just now. Please try again.",
+		adminTitle: 'Invite with a link',
+		adminLead: (days: number) =>
+			`You send a link, and the person enters their name, email address, password and instrument themselves. Each link works once and for ${days} days.`,
+		label: 'For whom? (optional)',
+		labelHint: 'Only for you, to recognise the link in the list.',
+		roles: 'Roles (optional)',
+		create: 'Create invitation link',
+		created: 'Link created. Copy it and send it by messenger or email.',
+		open: 'Open invitations',
+		unnamed: 'No name',
+		until: (day: string) => `valid until ${day}`,
+		revoke: 'Withdraw',
+		confirmRevoke: "Withdraw the invitation? The link won't work any more.",
+		revoked: 'Invitation withdrawn.',
+		unavailable: 'Invitations need the database (D1), because new members sign in with a password.'
 	},
 	admin: {
 		setupSections: 'Setup',
@@ -1578,8 +1661,21 @@ export const en: Texts = {
 	},
 	profile: {
 		title: 'Profile',
-		lead: "What you play and whether you're taking part at the moment.",
+		lead: 'Your details and settings, grouped by topic.',
 		settings: 'Settings',
+		sections: {
+			jump: 'On this page',
+			about: 'About you',
+			aboutLead: 'What you play and whether you are taking part right now. Your parts and the seating follow from this.',
+			notify: 'Notifications & calendar',
+			notifyLead: 'How you hear about rehearsals and concerts.',
+			app: 'Display & app',
+			appLead: 'How the app looks, on this device.',
+			practice: 'Practice & your data',
+			practiceLead: 'What the app keeps only for you, and all of it to take with you.',
+			signIn: 'Sign-in & security',
+			signInLead: 'How you sign in, and signing out.'
+		},
 		notMember: 'The profile is for registered members.',
 		name: 'First and last name',
 		instruments: 'Instruments',
