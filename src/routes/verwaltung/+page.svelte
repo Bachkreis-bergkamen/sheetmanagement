@@ -14,6 +14,17 @@
 <Title title={t.organise.title} />
 <PageHeader title={t.organise.title} lead={t.organise.lead} />
 
+<!-- What's waiting comes first: one list across all the groups below (#185). -->
+<a class="ui-card todo" href="/zu-erledigen">
+	<span class="row-icon"><Icon name="check" size={18} /></span>
+	<span class="row-body">
+		<strong>{t.todo.title}</strong>
+		<span>{data.open ? t.todo.hub(data.open) : t.todo.empty}</span>
+	</span>
+	{#if data.open}<span class="count">{data.open}<span class="sr-only"> {t.nav.open}</span></span>{/if}
+	<span class="chevron"><Icon name="chevron" size={16} /></span>
+</a>
+
 <div class="groups">
 	{#each groups as group (group.key)}
 		<section aria-labelledby="bereich-{group.key}">
@@ -48,6 +59,20 @@
 	section {
 		display: grid;
 		gap: var(--space-2);
+	}
+
+	.todo {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		min-height: 64px;
+		margin-bottom: var(--space-5);
+		padding: var(--space-3) var(--space-4);
+		transition: background var(--fast) var(--ease);
+	}
+
+	.todo:hover {
+		background: var(--surface-2);
 	}
 
 	.row {

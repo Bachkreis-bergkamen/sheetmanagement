@@ -118,22 +118,12 @@
 				]
 			: [])
 	]);
-	const todo = $derived(
+	// Everything waiting, as one number; the list is on "Zu erledigen" (#185).
+	const todoCount = $derived(
 		data.todo
-			? [
-					{ href: '/meldungen', count: data.todo.reports, text: t.home.todo.reports },
-					{ href: '/wuensche', count: data.todo.wishes, text: t.home.todo.wishes },
-					{ href: '/admin', count: data.todo.requests, text: t.home.todo.requests },
-					{ href: '/leihmaterial', count: data.todo.loans, text: t.home.todo.loans },
-					{ href: data.todo.attendanceUrl ?? '/kalender', count: data.todo.attendance, text: t.home.todo.attendance },
-					{ href: data.todo.pollsUrl ?? '/termine', count: data.todo.polls, text: t.home.todo.polls },
-					{ href: '/fehlende-stimmen?meine', count: data.todo.scans, text: t.home.todo.scans },
-					{ href: '/kummerkasten?ansicht=meine', count: data.todo.kummerAnswers, text: t.kummer.todoAnswers },
-					{ href: '/kummerkasten?ansicht=eingang', count: data.todo.kummerInbox, text: t.kummer.todoInbox }
-				].filter((item) => item.count > 0)
-			: []
+			? [data.todo.reports, data.todo.wishes, data.todo.requests, data.todo.loans, data.todo.attendance, data.todo.polls, data.todo.scans, data.todo.kummerAnswers, data.todo.kummerInbox].reduce((sum, n) => sum + n, 0)
+			: 0
 	);
-	const todoCount = $derived(todo.reduce((sum, item) => sum + item.count, 0));
 </script>
 
 <Title />
@@ -239,7 +229,7 @@
 	<!-- Below the next date, not above it: on phones, until the app is on the home screen or the member said no (#279). -->
 	<InstallHint name={data.orchestraShortName} logo={data.logo} />
 
-	{#if later.length || todo.length}
+	{#if later.length || todoCount}
 		<div class="side">
 			{#if later.length}
 				<section aria-labelledby="later-title">
@@ -274,20 +264,14 @@
 				</section>
 			{/if}
 
-			{#if todo.length}
+			{#if todoCount}
 				<section class="todo" aria-label={t.home.todo.title}>
-					<details>
-						<summary>
-							<strong>{todoCount}</strong>
-							<span>{t.home.todo.summary(todoCount)}</span>
-							<span class="chevron"><Icon name="chevron" size={16} /></span>
-						</summary>
-						<ul>
-							{#each todo as item (item.href)}
-								<li><a href={item.href}><strong>{item.count}</strong> {item.text(item.count)}<Icon name="chevron" size={16} /></a></li>
-							{/each}
-						</ul>
-					</details>
+					<!-- One row: the list itself is on "Zu erledigen" (#185), so it never pushes the next date down. -->
+					<a class="summary" href="/zu-erledigen">
+						<strong>{todoCount}</strong>
+						<span>{t.home.todo.summary(todoCount)}</span>
+						<span class="chevron"><Icon name="chevron" size={16} /></span>
+					</a>
 				</section>
 			{/if}
 		</div>
@@ -751,71 +735,26 @@
 		white-space: nowrap;
 	}
 
-	/* Open work as one row that opens to the list, so it never pushes the next date down. */
-	.todo details {
-		overflow: hidden;
-		border: 1px solid var(--hairline);
-		border-radius: var(--radius-m);
-		background: var(--surface);
-	}
-
-	.todo summary {
+	/* Open work as one row that leads to "Zu erledigen", so it never pushes the next date down. */
+	.todo .summary {
 		display: flex;
 		align-items: center;
 		gap: var(--space-3);
 		min-height: var(--tap);
 		padding: 0 var(--space-4);
-		cursor: pointer;
+		border: 1px solid var(--hairline);
+		border-radius: var(--radius-m);
+		background: var(--surface);
 		font-weight: 600;
-		list-style: none;
 		transition: background var(--fast) var(--ease);
 	}
 
-	.todo summary::-webkit-details-marker {
-		display: none;
-	}
-
-	.todo summary:hover {
+	.todo .summary:hover {
 		background: var(--surface-2);
 	}
 
-	.todo summary .chevron {
-		margin-left: auto;
-		rotate: 90deg;
-		transition: rotate var(--fast) var(--ease);
-	}
-
-	.todo details[open] summary .chevron {
-		rotate: -90deg;
-	}
-
-	.todo ul {
+	.todo .chevron {
 		display: grid;
-		margin: 0;
-		padding: 0;
-		border-top: 1px solid var(--hairline);
-		list-style: none;
-	}
-
-	.todo li + li {
-		border-top: 1px solid var(--hairline);
-	}
-
-	.todo a {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		min-height: var(--tap);
-		padding: 0 var(--space-4);
-		font-size: var(--text-md);
-		transition: background var(--fast) var(--ease);
-	}
-
-	.todo a:hover {
-		background: var(--surface-2);
-	}
-
-	.todo a :global(svg) {
 		margin-left: auto;
 		color: var(--text-muted);
 	}
