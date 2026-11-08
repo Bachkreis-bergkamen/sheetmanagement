@@ -50,7 +50,14 @@
 	const links = $derived(orchestraLinks(data.links));
 	const sourceUrl = safeLink(config.sourceUrl ?? '');
 
-	afterNavigate(() => (menuOpen = false));
+	afterNavigate(({ to }) => {
+		menuOpen = false;
+		// How often each page is opened, for the page audit (#185): the route pattern only
+		// ("/stuecke/[id]"), counted per day and role on the server, never per person.
+		// On the first load the navigation may not carry the route yet; the page state does.
+		const route = to?.route.id ?? page.route.id;
+		if (route && navigator.onLine) navigator.sendBeacon?.('/api/seitenaufruf', route);
+	});
 
 	// Whether the app is on the home screen, and the browser's own install dialog where it has one (#279).
 	$effect(() => watchInstall());

@@ -4,6 +4,8 @@ import { readSettings } from '#lib/settings.ts';
 import { eventDay } from '#lib/repertoire/dates.ts';
 import { config } from '#lib/config/index.ts';
 import { today } from '../members.ts';
+import { getStore } from '../db/index.ts';
+import { daysBefore, KEEP_DAYS } from '#lib/page-counts.ts';
 import { getSchedule } from '../schedule.ts';
 import { readTab, refreshAfterWrite, SheetLayoutError, updateRecords } from '../sheet-writes.ts';
 import type { JobResult } from './index.ts';
@@ -13,6 +15,10 @@ import type { JobResult } from './index.ts';
  * /einstellungen lose the person's name (see #lib/access/retention.ts). Off unless set.
  */
 export async function applyRetention(): Promise<JobResult> {
+	// The page counts (#185) hold nothing personal, but needn't grow forever either.
+	await getStore()
+		.prunePageCounts(daysBefore(today(), KEEP_DAYS))
+		.catch((error) => console.error('Pruning the page counts failed:', error));
 	const settings = await readTab('settings').catch((cause) => (cause instanceof SheetLayoutError ? undefined : Promise.reject(cause)));
 	const seasons = settings ? readSettings(settings.rows).retention : undefined;
 	if (!seasons) return { ok: true, summary: t.status.retentionOff };

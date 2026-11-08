@@ -2354,6 +2354,14 @@ export const en: Texts = {
 		shareNeedsSetup: '“Same programme as”: not in the sheet yet. Please run “Set up sheet” once.'
 	},
 	status: {
+		/** The page audit (#185). */
+		pages: {
+			title: 'Page views (30 days)',
+			lead: 'How often each page was opened, by role. Only the kind of page is counted, not who opened it; it is deleted after 180 days.',
+			route: 'Page',
+			roles: { mitglied: 'Members', verwaltung: 'Organisers', gast: 'Visitors' },
+			none: 'No views counted yet.'
+		},
 		title: 'Status',
 		lead: 'Whether the connection to Google works.',
 		account: 'Google service account',

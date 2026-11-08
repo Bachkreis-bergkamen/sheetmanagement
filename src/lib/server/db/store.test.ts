@@ -109,6 +109,26 @@ describe.each([
 		expect(await store.accountOf('a@x.org')).toBeNull();
 	});
 
+	it('counts page openings per route and role, summed over days, and forgets old days (#185)', async () => {
+		const store = make();
+		await store.countPage('2026-11-01', '/stuecke/[id]', 'mitglied');
+		await store.countPage('2026-11-02', '/stuecke/[id]', 'mitglied');
+		await store.countPage('2026-11-02', '/stuecke/[id]', 'verwaltung');
+		await store.countPage('2026-11-02', '/', 'mitglied');
+		await store.countPage('2026-10-01', '/', 'mitglied');
+		expect(await store.pageCounts('2026-11-01')).toEqual([
+			{ route: '/stuecke/[id]', role: 'mitglied', views: 2 },
+			{ route: '/', role: 'mitglied', views: 1 },
+			{ route: '/stuecke/[id]', role: 'verwaltung', views: 1 }
+		]);
+		await store.prunePageCounts('2026-11-02');
+		expect(await store.pageCounts('2000-01-01')).toEqual([
+			{ route: '/', role: 'mitglied', views: 1 },
+			{ route: '/stuecke/[id]', role: 'mitglied', views: 1 },
+			{ route: '/stuecke/[id]', role: 'verwaltung', views: 1 }
+		]);
+	});
+
 	it('remembers how the tour ended, until it is forgotten', async () => {
 		const store = make();
 		expect(await store.tourOf('a@x.org')).toBeNull();
