@@ -113,9 +113,7 @@ export const en: Texts = {
 			'/meldungen': 'Deal with reported problems.',
 			'/leihmaterial': 'Rented music and when it goes back.',
 			'/admin': 'Members, roles and requests.',
-			'/setup': 'Create the repertoire sheet.',
-			'/einstellungen': 'Name, logo, colour and features.',
-			'/status': 'Check the connection to Google.',
+			'/einstellungen': 'The orchestra, the sheet and data, the status.',
 			'/termine': 'Agree on dates with the orga team.',
 			'/ensembles': 'Choirs and orchestras we perform with.'
 		} as Record<string, string>
@@ -618,6 +616,8 @@ export const en: Texts = {
 	settings: {
 		title: 'Settings',
 		lead: 'How the app looks for everyone and what it offers.',
+		/** The settings' sections (#185): one page for every setting. */
+		sections: { label: 'Settings sections', orchestra: 'Orchestra', sheet: 'Sheet & data', status: 'Status' },
 		identity: 'Name',
 		name: 'Name of the orchestra',
 		shortName: 'Short name',

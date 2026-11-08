@@ -118,9 +118,7 @@ export const de = {
 			'/meldungen': 'Gemeldete Probleme bearbeiten.',
 			'/leihmaterial': 'Geliehene Noten und wann sie zurückmüssen.',
 			'/admin': 'Mitglieder, Rollen und Anfragen.',
-			'/setup': 'Die Repertoire-Tabelle anlegen.',
-			'/einstellungen': 'Name, Logo, Farbe und Funktionen.',
-			'/status': 'Verbindung zu Google prüfen.',
+			'/einstellungen': 'Orchester, Tabelle und Daten, Status.',
 			'/termine': 'Termine mit dem Orga-Team abstimmen.',
 			'/ensembles': 'Chöre und Orchester, mit denen wir auftreten.'
 		} as Record<string, string>
@@ -626,6 +624,8 @@ export const de = {
 	settings: {
 		title: 'Einstellungen',
 		lead: 'Wie die App für alle aussieht und was sie anbietet.',
+		/** The settings' sections (#185): one page for every setting. */
+		sections: { label: 'Bereiche der Einstellungen', orchestra: 'Orchester', sheet: 'Tabelle & Daten', status: 'Status' },
 		identity: 'Name',
 		name: 'Name des Orchesters',
 		shortName: 'Kurzname',

@@ -26,7 +26,7 @@ export async function announceErrors(): Promise<JobResult> {
 		const auth = authConfig();
 		const admins = peopleWithRight(await getAccessList().catch(() => null), auth.mode === 'on' ? auth.bootstrapAdmins : [], 'mitglieder.verwalten');
 		const first = fresh[0];
-		const notice = { title: t.reminders.errorsTitle(fresh.length), body: t.reminders.errorsBody(first.place, first.message, fresh.length - 1), url: '/status#fehler', tag: 'error-log' };
+		const notice = { title: t.reminders.errorsTitle(fresh.length), body: t.reminders.errorsBody(first.place, first.message, fresh.length - 1), url: '/einstellungen/status#fehler', tag: 'error-log' };
 		const reached = (await Promise.all(admins.map((admin) => deliver(admin, notice, ways)))).filter(Boolean);
 		told = ` ${t.reminders.adminsTold(reached.length)}`;
 	}

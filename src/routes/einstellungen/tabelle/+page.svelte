@@ -81,7 +81,7 @@
 		</button>
 		<p class="muted small">{t.setup.safe}</p>
 	</form>
-	<p><a class="link" href="/setup/datenbank">{t.status.dataMove}</a></p>
+	<p><a class="link" href="/einstellungen/tabelle/datenbank">{t.status.dataMove}</a></p>
 
 	{#if data.problems.length}
 		<section class="problems">

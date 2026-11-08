@@ -61,6 +61,17 @@ test('settings page', async ({ page }) => {
 	await expect(page.getByRole('heading', { level: 1, name: 'Einstellungen' })).toBeVisible();
 	await expect(page.getByRole('heading', { name: 'Funktionen' })).toBeVisible();
 	await expectAccessible(page);
+
+	// Every setting in one place (#185): the sheet and the status are sections of it.
+	const sections = page.getByRole('navigation', { name: 'Bereiche der Einstellungen' });
+	await expect(sections.getByRole('link')).toHaveText(['Orchester', 'Tabelle & Daten', 'Status']);
+	await sections.getByRole('link', { name: 'Status' }).click();
+	await expect(page).toHaveURL(/\/einstellungen\/status$/);
+	await expect(sections.getByRole('link', { name: 'Status' })).toHaveAttribute('aria-current', 'page');
+
+	// The old addresses keep working.
+	await open(page, '/setup');
+	await expect(page).toHaveURL(/\/einstellungen\/tabelle$/);
 });
 
 test('date polls: only for their groups (#95)', async ({ page }) => {

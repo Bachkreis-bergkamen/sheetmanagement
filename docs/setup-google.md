@@ -2,7 +2,7 @@
 
 The app reads your sheet music from Google Drive and your dates from Google Calendar through a **service account**: a separate Google identity that only sees what you share with it. Everything here is free. You don't need a billing account or a credit card.
 
-It takes about 15 minutes. Afterwards, open `/status` in the app to check each connection.
+It takes about 15 minutes. Afterwards, open `/einstellungen/status` in the app to check each connection.
 
 ## 1. Create a Google Cloud project
 
@@ -93,7 +93,7 @@ The secrets go to the worker named in `wrangler.toml` (`name = "noten"`). If you
 
 ## 7. Check
 
-Open `/status` in the app. Each line should say **Verbunden**:
+Open `/einstellungen/status` in the app. Each line should say **Verbunden**:
 
 - **Google-Dienstkonto:** the key works.
 - **Notenarchiv:** shows how many pieces and files were found.
@@ -104,7 +104,7 @@ The archive is re-read automatically every 5 minutes. **Archiv neu einlesen** on
 
 ## 8. Set up the Repertoire sheet
 
-Open `/setup` in the app (or **Tabelle einrichten** on the status page) and click **Jetzt einrichten**. The app adds three tabs:
+Open `/einstellungen/tabelle` in the app (the **Tabelle & Daten** section of the settings) and click **Jetzt einrichten**. The app adds three tabs:
 
 - **Stücke:** one row per piece. Every folder in the archive is added automatically, with title and composer read from the folder name. Fix a wrongly read name here, not in Drive. Pieces without sheet music (e.g. from old programmes) are rows without a Drive-Ordner-ID.
 - **Konzerte:** one row per concert. Confirmed concerts from the calendar are added automatically. Add past concerts by hand; **Datum** may be just a year (`1957`) or a month (`1957-12`).
@@ -118,7 +118,7 @@ If the setup page lists **Hinweise zur Tabelle** (e.g. a piece name in "Programm
 
 Until this step, the app is open to anyone with the link and nobody can change anything in it. With sign-in on, only members see the app, and admins hand out rights. Members sign in with their own Google account. This is free too.
 
-**Run `/setup` once more first** if your sheet is from before sign-in existed. It adds the tabs **Mitglieder**, **Gruppen**, **Rechte** and **Zugangsanfragen**.
+**Run `/einstellungen/tabelle` once more first** if your sheet is from before sign-in existed. It adds the tabs **Mitglieder**, **Gruppen**, **Rechte** and **Zugangsanfragen**.
 
 1. In the Cloud console (same project as in step 1): **APIs & Services → OAuth consent screen**.
    - User type **External**. App name e.g. "Notenarchiv", your email as support and developer contact.
@@ -209,11 +209,11 @@ Until this step, the app is open to anyone with the link and nobody can change a
   - Backups: D1 keeps 30 days of history (Time Travel), see `pnpm wrangler d1 time-travel info noten`.
   - **Weekly backup to Drive (optional, #186):** once D1 is the source, set `DRIVE_BACKUP_FOLDER_ID` to a Drive folder that **only the admins** can open (it holds members' names and email addresses). Every week the app puts `daten-<date>.json` there, the same file as **Alles herunterladen**, keeps the last 8 and moves older ones to the bin. It writes as the account connected on **Status → "Drive-Konto für Uploads verbinden"**; without one, as the service account with `DRIVE_WRITE=true`, which only works in a shared drive (Content manager). **Status → Hintergrundaufgaben → Sicherung in Drive** runs it at once.
   - **Restoring a backup:** on **Setup → Datenbank**, **Aus einer Sicherung wiederherstellen** takes a file from **Alles herunterladen** and replaces everything in D1 with it (D1 becomes the source). Rows that no longer fit, e.g. a programme entry whose concert is missing, are left out and counted.
-- **Turning sign-in off again:** set `FORCE_AUTH` to `false` (`pnpm wrangler secret put FORCE_AUTH`). The other values stay, and deleting `FORCE_AUTH` turns sign-in back on. While it's off, the app works as before step 9: anyone with the link can view everything, including `/setup` and `/status`, and nobody can change anything, report problems or add wishes. Use it for an instance that should be public, or to get in while Google sign-in is broken.
+- **Turning sign-in off again:** set `FORCE_AUTH` to `false` (`pnpm wrangler secret put FORCE_AUTH`). The other values stay, and deleting `FORCE_AUTH` turns sign-in back on. While it's off, the app works as before step 9: anyone with the link can view everything, including `/einstellungen/tabelle` and `/einstellungen/status`, and nobody can change anything, report problems or add wishes. Use it for an instance that should be public, or to get in while Google sign-in is broken.
 
 ## 10. Optional extras
 
-None of these is needed to start; `/status` lists the ones that aren't set up yet, each with a link here. Values are stored as secrets like the others (`pnpm wrangler secret put <NAME>`).
+None of these is needed to start; `/einstellungen/status` lists the ones that aren't set up yet, each with a link here. Values are stored as secrets like the others (`pnpm wrangler secret put <NAME>`).
 
 ### Current-programme folders
 
@@ -248,7 +248,7 @@ The privacy contact (`LEGAL_EMAIL`) is passed to the push services as the app's 
 
 ### Database (D1)
 
-The binding `DB` in `wrangler.toml`: where notifications, the reminder log, date polls and members' own practice time are kept. The deploy creates it on its own; to keep it in the EU, create it first with `pnpm wrangler d1 create noten --jurisdiction eu` and add its `database_id` to `wrangler.toml` (see "Date polls" in step 9). The deploy workflow applies the tables from `migrations/`; `/status` shows the version.
+The binding `DB` in `wrangler.toml`: where notifications, the reminder log, date polls and members' own practice time are kept. The deploy creates it on its own; to keep it in the EU, create it first with `pnpm wrangler d1 create noten --jurisdiction eu` and add its `database_id` to `wrangler.toml` (see "Date polls" in step 9). The deploy workflow applies the tables from `migrations/`; `/einstellungen/status` shows the version.
 
 ### Privacy contact
 
@@ -260,9 +260,9 @@ Sign-in links for members without a Google account, and reminders by email for m
 
 1. In the Cloud project of step 1, turn on the **Gmail API** (APIs & Services → Library).
 2. On the **OAuth consent screen**, add the scope `https://www.googleapis.com/auth/gmail.send` and set the publishing status to **In production**. Google then shows a warning that the app isn't verified; that's fine for an orchestra (fewer than 100 accounts ever connect it). In "Testing", the permission ends after 7 days.
-3. Open `/status` as an admin and click **E-Mail-Konto verbinden**. Sign in with the Google account that should send, and allow "Send email on your behalf". No new redirect URI is needed: it uses `/auth/callback` from step 9.
+3. Open `/einstellungen/status` as an admin and click **E-Mail-Konto verbinden**. Sign in with the Google account that should send, and allow "Send email on your behalf". No new redirect URI is needed: it uses `/auth/callback` from step 9.
 
-The app keeps the permission (a refresh token) in the database, encrypted with `SESSION_SECRET`; a new secret means connecting again. `/status` shows the sending address, where links in mails lead (the address you connected from), and the last error. **Trennen** forgets the account; to take the permission back on Google's side too, remove the app under myaccount.google.com → Security → Third-party connections.
+The app keeps the permission (a refresh token) in the database, encrypted with `SESSION_SECRET`; a new secret means connecting again. `/einstellungen/status` shows the sending address, where links in mails lead (the address you connected from), and the last error. **Trennen** forgets the account; to take the permission back on Google's side too, remove the app under myaccount.google.com → Security → Third-party connections.
 
 - Sign-in links are only sent to addresses in **Mitglieder** (and `BOOTSTRAP_ADMINS`); the page answers the same either way. At most 3 per address and 10 per IP address in an hour.
 - Reminders go by push where a member has a device, else by email. A signup reminder has one-click answers (the answer is saved by a button on the page, so mail scanners answer nothing). Members turn email off under **Profil**.
@@ -277,6 +277,6 @@ The app keeps the permission (a refresh token) in the database, encrypted with `
 | `Invalid JWT Signature` | The key was deleted or replaced in the console. Create a new key. |
 | `Kein Zugriff auf … (404)` or `(403)` | Wrong id, or not shared with the service account's email (step 4). |
 | API "has not been used in project … or it is disabled" | Step 2 is missing for that API. Enabling can take a minute to apply. |
-| `The caller does not have permission (403)` on `/setup` | The sheet is shared as Viewer. The service account needs Editor. |
+| `The caller does not have permission (403)` on `/einstellungen/tabelle` | The sheet is shared as Viewer. The service account needs Editor. |
 | Google says `redirect_uri_mismatch` when signing in | The address under **Authorized redirect URIs** (step 9) doesn't match exactly. Copy it from the status page. |
 | Signed in, but always back on "Zugang beantragen" | The email isn't in **Mitglieder**, or is spelled differently there. |

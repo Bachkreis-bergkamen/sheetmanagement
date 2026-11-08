@@ -11,7 +11,7 @@ Set with `pnpm wrangler secret put <NAME>`, or in `.dev.vars` locally. The full 
 | Variable | What |
 |---|---|
 | `ORCHESTRA_NAME`, `ORCHESTRA_SHORT_NAME` | The orchestra's name |
-| `ORCHESTRA_ACCENT` | Accent colour `#rrggbb`; shades for light and dark are derived so text stays readable, `/status` shows their contrast |
+| `ORCHESTRA_ACCENT` | Accent colour `#rrggbb`; shades for light and dark are derived so text stays readable, `/einstellungen/status` shows their contrast |
 | `ORCHESTRA_LOGO` | A file in `static/` or an https link; replaces `static/logo.png` |
 | `ORCHESTRA_LINKS` | Footer links: `"Website https://…; Instagram https://…"` |
 | `FEATURES_OFF` | Features not used, e.g. `"leihmaterial, gema"` |
@@ -36,4 +36,4 @@ German by default; English with `APP_LANGUAGE=en` when building. One language pe
 
 ## Optional sheet tabs
 
-"Hinweise" (notes on pieces) and "Probennotizen" (notes after a rehearsal) are created by the first note, or by /setup with dropdowns. "Stimmenzuteilung" (who plays which part instead of their own: Wer is a member's e-mail or an instrument, Spielt the part, Stück and Konzert empty for every piece and always) is created by the first assignment on a piece's page. "Komponist (voll)" in "Stücke" holds the full composer name for the GEMA list; "Online nachschlagen" on a piece's edit page fills it from Wikidata.
+"Hinweise" (notes on pieces) and "Probennotizen" (notes after a rehearsal) are created by the first note, or by /einstellungen/tabelle with dropdowns. "Stimmenzuteilung" (who plays which part instead of their own: Wer is a member's e-mail or an instrument, Spielt the part, Stück and Konzert empty for every piece and always) is created by the first assignment on a piece's page. "Komponist (voll)" in "Stücke" holds the full composer name for the GEMA list; "Online nachschlagen" on a piece's edit page fills it from Wikidata.
