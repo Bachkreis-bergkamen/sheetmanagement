@@ -1,4 +1,5 @@
 import { config } from '#lib/config/index.ts';
+import { reportSubject } from '#lib/feedback/feedback.ts';
 import { t } from '#lib/i18n/index.ts';
 import { urgentLoans } from '#lib/loans/loans.ts';
 import { eventDay } from '#lib/repertoire/dates.ts';
@@ -24,8 +25,10 @@ export interface OpenWork {
 	/** Date polls you haven't answered yet (#95); the only line here that isn't about a right. */
 	polls: number;
 	pollsUrl?: string;
-	/** Gaps the Notenwart was asked to scan. */
+	/** Parts you were asked to scan: gaps in "Fehlende Stimmen" and reports with the scanning team … */
 	scans: number;
+	/** … of which gaps in "Fehlende Stimmen". */
+	gapScans: number;
 	/** The Kummerkasten: answers to what you wrote, and for the Leitung new messages for them. */
 	kummerAnswers: number;
 	kummerInbox: number;
@@ -48,7 +51,8 @@ export async function openWork(locals: App.Locals): Promise<OpenWork | null> {
 		attendanceUrl: open.untaken[0] ? attendanceUrl(open.untaken[0].id) : undefined,
 		polls: open.polls.length,
 		pollsUrl: open.polls.length === 1 ? `/termine/${open.polls[0].id}` : '/termine',
-		scans: open.scans,
+		scans: open.gapScans + open.reportScans,
+		gapScans: open.gapScans,
 		kummerAnswers: open.kummer.answers,
 		kummerInbox: open.kummer.inbox
 	};
@@ -82,7 +86,7 @@ export async function openItems(locals: App.Locals): Promise<OpenItem[]> {
 		...open.reports.map((report) => ({
 			kind: 'report' as const,
 			title: report.pieceName || t.reports.toPiece,
-			detail: `${report.kind === 'recording' ? t.reports.recording : report.part || t.reports.wholePiece} – ${t.feedbackValues.reportKind[report.kind]}`,
+			detail: reportSubject(report),
 			date: day(report.reportedAt),
 			href: '/meldungen'
 		})),
@@ -91,7 +95,8 @@ export async function openItems(locals: App.Locals): Promise<OpenItem[]> {
 		...open.loans.map((loan) => ({ kind: 'loan' as const, title: loan.pieceName, detail: loan.from || undefined, date: loan.dueAt, href: '/leihmaterial' })),
 		...open.untaken.map((event) => ({ kind: 'attendance' as const, title: event.displayTitle, date: day(event.start), href: attendanceUrl(event.id) })),
 		...open.polls.map((poll) => ({ kind: 'poll' as const, title: poll.title, date: poll.deadline, href: `/termine/${poll.id}` })),
-		...(open.scans ? [{ kind: 'scans' as const, title: t.home.todo.scans(open.scans), count: open.scans, href: '/fehlende-stimmen?meine' }] : []),
+		...(open.gapScans ? [{ kind: 'scans' as const, title: t.home.todo.scans(open.gapScans), count: open.gapScans, href: '/fehlende-stimmen?meine' }] : []),
+		...(open.reportScans ? [{ kind: 'scans' as const, title: t.home.todo.scans(open.reportScans), count: open.reportScans, href: '/meldungen?ansicht=scannen&meine' }] : []),
 		...(open.kummer.answers ? [{ kind: 'kummerAnswers' as const, title: t.kummer.todoAnswers(open.kummer.answers), count: open.kummer.answers, href: '/kummerkasten?ansicht=meine' }] : []),
 		...(open.kummer.inbox ? [{ kind: 'kummerInbox' as const, title: t.kummer.todoInbox(open.kummer.inbox), count: open.kummer.inbox, href: '/kummerkasten?ansicht=eingang' }] : [])
 	];
@@ -137,7 +142,9 @@ async function gather(locals: App.Locals) {
 		loans: loans ? urgentLoans(loans.loans, today) : [],
 		untaken,
 		polls,
-		scans: me && scans ? [...scans.values()].filter((task) => task.assignee === me && !task.done).length : 0,
+		// Parts to scan: gaps planned in "Fehlende Stimmen", and reports handed to the scanning team.
+		gapScans: me && scans ? [...scans.values()].filter((task) => task.assignee === me && !task.done).length : 0,
+		reportScans: me && reports ? (feedback?.reports.filter((report) => report.status === 'scan' && report.assignee === me).length ?? 0) : 0,
 		kummer
 	};
 }
@@ -145,6 +152,6 @@ async function gather(locals: App.Locals) {
 /** The counts by page, for tabs and menus: only pages with something open. */
 export function countsByPage(work: OpenWork | null): Record<string, number> {
 	if (!work) return {};
-	const counts: Record<string, number> = { '/meldungen': work.reports, '/wuensche': work.wishes, '/admin': work.requests, '/leihmaterial': work.loans, '/fehlende-stimmen': work.scans, '/kummerkasten': work.kummerAnswers + work.kummerInbox };
+	const counts: Record<string, number> = { '/meldungen': work.reports + work.scans - work.gapScans, '/wuensche': work.wishes, '/admin': work.requests, '/leihmaterial': work.loans, '/fehlende-stimmen': work.gapScans, '/kummerkasten': work.kummerAnswers + work.kummerInbox };
 	return Object.fromEntries(Object.entries(counts).filter(([, count]) => count > 0));
 }

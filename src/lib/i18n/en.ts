@@ -2748,6 +2748,10 @@ export const en: Texts = {
 				driveComment: 'Drive comment ID',
 				/** A better recording, with "Wrong recording". */
 				link: 'Suggestion',
+				/** Scan job: how urgent, who scans (email), what to do. */
+				priority: 'Priority',
+				assignee: 'Who scans',
+				task: 'Scan job',
 				id: 'Report ID'
 			}
 		},
@@ -2917,14 +2921,18 @@ export const en: Texts = {
 	feedbackValues: {
 		reportKind: {
 			missing: 'Part missing',
-			scan: 'Bad scan',
 			pages: 'Pages missing',
+			cutoff: 'Notes cut off',
+			crooked: 'Crooked or rotated',
+			scan: 'Bad scan',
+			empty: 'File empty',
 			wrong: 'Wrong part',
 			/** The piece's recording is wrong or missing; the report can carry a better link. */
 			recording: 'Wrong recording',
 			other: 'Other'
 		},
-		reportStatus: { open: 'open', done: 'done' },
+		/** New → to scan (handed to the scanning team) → done; or dismissed. */
+		reportStatus: { open: 'open', scan: 'to scan', done: 'done', dismissed: 'dismissed' },
 		wishKind: { piece: 'Piece', feature: 'Feature' },
 		wishStatus: { open: 'open', planned: 'planned', done: 'done', declined: 'declined' }
 	},
@@ -2948,13 +2956,51 @@ export const en: Texts = {
 		send: 'Report',
 		cancel: 'Cancel',
 		thanks: 'Thank you! The report has arrived.',
-		known: 'Known problems',
 		failed: "The report couldn't be saved just now. Please try again.",
 		notSetUp: 'Reports: not in the sheet yet. Please run “Set up sheet” once.',
 		signInNeeded: 'Please sign in to report.',
 		title: 'Reports',
-		short: 'Problems with music that members have reported.',
-		pageLead: 'Reported problems with music.',
+		short: 'Problems with the music: check them and hand them to the scanning team.',
+		pageLead: 'What members or the app found in the music: have a quick look, hand it to the scanning team, tick it off.',
+		tabs: { inbox: 'New', scan: 'To scan', done: 'Done' },
+		byCheck: 'Found by the app',
+		checkHint: 'The app counts the pages of every part. This file is empty or has far fewer pages than the others.',
+		look: 'Look',
+		toScan: 'To the scanning team',
+		toScanHint: 'The scanning team sees the job with its priority. The piece quietly shows that the part was reported.',
+		task: 'What needs doing?',
+		taskFor: {
+			missing: 'Scan the part',
+			pages: 'Scan the missing pages',
+			cutoff: 'Scan again, whole page on the glass',
+			crooked: 'Scan again, straight',
+			scan: 'Scan again, more legible',
+			empty: 'Scan again, the file is empty',
+			wrong: 'Scan the right part',
+			recording: '',
+			other: ''
+		} as Record<string, string>,
+		dismiss: 'Dismiss',
+		dismissHint: 'Not a problem, or already sorted. The piece no longer shows anything.',
+		scanned: 'Scanned',
+		scannedHint: 'Scanned again and replaced in Drive: closes the job.',
+		backToInbox: 'Back to New',
+		changeJob: 'Change the job',
+		noInbox: 'Nothing new, all checked.',
+		noScans: 'No scan jobs.',
+		noScansMine: 'Nothing is assigned to you right now.',
+		mineOnly: 'Only mine',
+		together: (n: number) => `${n} parts, best scanned together`,
+		sent: 'Handed to the scanning team.',
+		marker: { open: 'reported', scan: 'being rescanned' } as Record<string, string>,
+		markerTitle: (kind: string, comment: string) => `Reported: ${kind}${comment ? ` – ${comment.replace(/[.!?…\s]+$/, '')}` : ''}. Someone is on it.`,
+		pieceMarker: (what: string) => `Reported: ${what}`,
+		already: (what: string) => `Already reported: ${what}. No need to report it again.`,
+		push: {
+			newTitle: 'New report',
+			body: (piece: string, what: string) => `${piece}: ${what}`,
+			doneTitle: 'Your report is done'
+		},
 		open: 'Open',
 		done: 'Done',
 		noOpen: 'No open reports.',

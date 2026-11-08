@@ -79,7 +79,10 @@
 	let reporting = $state(false);
 	let reportFile = $state('');
 	const canReport = $derived(data.reports.state === 'ready');
-	const reported = $derived(new Set(data.reports.open.map((report) => report.fileId).filter(Boolean)));
+	// A part someone reported gets a quiet word beside its name, nothing louder.
+	const reported = $derived(new Map(data.reports.open.filter((report) => report.fileId).map((report) => [report.fileId, report])));
+	// Reports about the whole piece or its Hörbeispiel: one muted line under the parts.
+	const pieceReports = $derived(data.reports.open.filter((report) => !report.fileId && !(report.kind === 'missing' && report.part)));
 	const reportPart = (id: string) => {
 		reportFile = id;
 		reporting = true;
@@ -318,7 +321,8 @@
 		<h2 class="ui-label">{t.piece.groups[group.key]}</h2>
 		<ul class="parts">
 			{#each group.parts as part (part.id)}
-				<li class:flagged={reported.has(part.id)}>
+				{@const flagged = reported.get(part.id)}
+				<li>
 					<!-- A missing part is only a placeholder: nothing to open, so it isn't a link (and has no click handler). -->
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
 					<svelte:element
@@ -337,7 +341,7 @@
 							{#if part.kind === 'audio'}<Icon name="headphones" size={16} />{:else}<InstrumentGlyph glyph={partGlyph(part)} size={20} />{/if}
 						</span>
 						<span class="label">
-							<span class="name">{part.label}{#if mineIds.has(part.id)}<span class="yours">{t.piece.yours}</span>{/if}{#if offlineParts.has(part.id)}<span class="yours kept">{t.pwa.offlineBadge}</span>{/if}</span>
+							<span class="name">{part.label}{#if mineIds.has(part.id)}<span class="yours">{t.piece.yours}</span>{/if}{#if offlineParts.has(part.id)}<span class="yours kept">{t.pwa.offlineBadge}</span>{/if}{#if flagged}<span class="marker" title={t.reports.markerTitle(t.feedbackValues.reportKind[flagged.kind], flagged.comment)}><Icon name="flag" size={11} />{t.reports.marker[flagged.status]}</span>{/if}</span>
 							{#if part.notes.length || (part.subfolder && sections.length < 2)}
 								<span class="notes">
 									{#each part.notes as note (note)}<span class="note">{note}</span>{/each}
@@ -397,6 +401,14 @@
 			{/each}
 		</ul>
 	</section>
+{/if}
+
+{#if pieceReports.length}
+	<p class="piece-marker">
+		<Icon name="flag" size={12} />
+		{t.reports.pieceMarker(pieceReports.map((report) => `${report.kind === 'recording' ? t.reports.recording : t.reports.wholePiece} – ${t.feedbackValues.reportKind[report.kind]}`).join(' · '))}
+		{#if data.reports.canClose}· <a href="/meldungen">{t.nav.reports}</a>{/if}
+	</p>
 {/if}
 
 {#if piece.parts.length}<p class="hint">{t.piece.driveHint}</p>{/if}
@@ -982,14 +994,30 @@
 
 	.flag:hover,
 	.flag:focus-visible,
-	.flagged .flag {
-		background: color-mix(in oklab, var(--warn) 14%, transparent);
-		color: var(--warn);
-		opacity: 1;
+	/* Reported: a small muted word by the name, so it's known without shouting. */
+	.marker {
+		display: inline-flex;
+		align-items: center;
+		gap: 3px;
+		margin-left: var(--space-2);
+		color: var(--text-muted);
+		font-size: var(--text-2xs);
+		font-weight: 500;
+		vertical-align: 1px;
 	}
 
-	.flagged .part {
-		background: color-mix(in oklab, var(--warn) 6%, transparent);
+	.piece-marker {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 4px;
+		margin: 0 0 var(--space-4) var(--space-1);
+		color: var(--text-muted);
+		font-size: var(--text-xs);
+	}
+
+	.piece-marker a {
+		color: var(--accent);
 	}
 
 	.part.missing {

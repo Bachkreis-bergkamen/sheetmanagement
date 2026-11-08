@@ -2786,6 +2786,10 @@ export const de = {
 				driveComment: 'Drive-Kommentar-ID',
 				/** A better Hörbeispiel, with "Hörbeispiel falsch". */
 				link: 'Vorschlag',
+				/** Scan-Auftrag: wie dringend, wer scannt (E-Mail), was zu tun ist. */
+				priority: 'Priorität',
+				assignee: 'Wer scannt',
+				task: 'Scan-Auftrag',
 				id: 'Meldungs-ID'
 			}
 		},
@@ -2969,14 +2973,18 @@ export const de = {
 	feedbackValues: {
 		reportKind: {
 			missing: 'Stimme fehlt',
-			scan: 'Schlechter Scan',
 			pages: 'Seiten fehlen',
+			cutoff: 'Noten abgeschnitten',
+			crooked: 'Schief oder verdreht',
+			scan: 'Schlechter Scan',
+			empty: 'Datei leer',
 			wrong: 'Falsche Stimme',
 			/** The piece's Hörbeispiel is wrong or missing; the report can carry a better link. */
 			recording: 'Hörbeispiel falsch',
 			other: 'Sonstiges'
 		},
-		reportStatus: { open: 'offen', done: 'erledigt' },
+		/** Neu → zum Scannen (ans Scan-Team gegeben) → erledigt; oder verworfen. */
+		reportStatus: { open: 'offen', scan: 'zum Scannen', done: 'erledigt', dismissed: 'verworfen' },
 		wishKind: { piece: 'Stück', feature: 'Funktion' },
 		wishStatus: { open: 'offen', planned: 'geplant', done: 'erledigt', declined: 'abgelehnt' }
 	},
@@ -3000,13 +3008,51 @@ export const de = {
 		send: 'Melden',
 		cancel: 'Abbrechen',
 		thanks: 'Danke! Die Meldung ist eingegangen.',
-		known: 'Bekannte Probleme',
 		failed: 'Die Meldung konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.',
 		notSetUp: 'Meldungen: Fehlt noch in der Tabelle. Bitte einmal „Tabelle einrichten“ ausführen.',
 		signInNeeded: 'Zum Melden bitte anmelden.',
 		title: 'Meldungen',
-		short: 'Probleme mit Noten, die Mitglieder gemeldet haben.',
-		pageLead: 'Gemeldete Probleme mit Noten.',
+		short: 'Probleme mit Noten: prüfen und ans Scan-Team geben.',
+		pageLead: 'Was Mitglieder oder die App an den Noten gefunden haben: kurz ansehen, ans Scan-Team geben, abhaken.',
+		tabs: { inbox: 'Neu', scan: 'Zum Scannen', done: 'Erledigt' },
+		byCheck: 'Von der App gefunden',
+		checkHint: 'Die App zählt die Seiten jeder Stimme. Diese Datei ist leer oder hat viel weniger Seiten als die anderen.',
+		look: 'Ansehen',
+		toScan: 'Ans Scan-Team',
+		toScanHint: 'Das Scan-Team sieht den Auftrag mit Priorität. Am Stück steht dezent, dass die Stimme gemeldet ist.',
+		task: 'Was ist zu tun?',
+		taskFor: {
+			missing: 'Stimme scannen',
+			pages: 'Fehlende Seiten nachscannen',
+			cutoff: 'Neu scannen, ganze Seite aufs Glas',
+			crooked: 'Gerade neu scannen',
+			scan: 'Neu scannen, besser lesbar',
+			empty: 'Neu scannen, die Datei ist leer',
+			wrong: 'Die richtige Stimme scannen',
+			recording: '',
+			other: ''
+		} as Record<string, string>,
+		dismiss: 'Verwerfen',
+		dismissHint: 'Kein Problem, oder schon erledigt. Am Stück steht dann nichts mehr.',
+		scanned: 'Gescannt',
+		scannedHint: 'Neu gescannt und in Drive ersetzt: schließt den Auftrag.',
+		backToInbox: 'Zurück zu Neu',
+		changeJob: 'Auftrag ändern',
+		noInbox: 'Nichts Neues, alles geprüft.',
+		noScans: 'Keine Scan-Aufträge.',
+		noScansMine: 'Dir ist gerade nichts zugeteilt.',
+		mineOnly: 'Nur meine',
+		together: (n: number) => `${n} Stimmen, am besten zusammen scannen`,
+		sent: 'Ans Scan-Team gegeben.',
+		marker: { open: 'gemeldet', scan: 'wird neu gescannt' } as Record<string, string>,
+		markerTitle: (kind: string, comment: string) => `Gemeldet: ${kind}${comment ? ` – ${comment.replace(/[.!?…\s]+$/, '')}` : ''}. Jemand kümmert sich darum.`,
+		pieceMarker: (what: string) => `Gemeldet: ${what}`,
+		already: (what: string) => `Schon gemeldet: ${what}. Noch einmal melden ist nicht nötig.`,
+		push: {
+			newTitle: 'Neue Meldung',
+			body: (piece: string, what: string) => `${piece}: ${what}`,
+			doneTitle: 'Deine Meldung ist erledigt'
+		},
 		open: 'Offen',
 		done: 'Erledigt',
 		noOpen: 'Keine offenen Meldungen.',

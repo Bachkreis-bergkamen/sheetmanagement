@@ -9,8 +9,10 @@
 	interface OpenReport {
 		id: string;
 		part: string;
+		fileId: string;
 		kind: ReportKind;
 		comment: string;
+		status?: 'open' | 'scan';
 		reportedAt: string;
 		reportedBy?: string;
 	}
@@ -59,32 +61,18 @@
 	const absent = $derived(instruments.filter((name) => !present.includes(name)));
 	const already = $derived(instruments.filter((name) => present.includes(name)));
 	let dialog = $state<HTMLElement>();
+	// Already reported and still looked after: said in the form, so nobody reports it twice.
+	const reportedAlready = $derived(
+		reports.find((report) => (fileId ? report.fileId === fileId : !report.fileId && report.kind === kind && (kind !== 'missing' || !report.part)))
+	);
 
 	$effect(() => {
 		if (open) dialog?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 	});
 </script>
 
-{#if reports.length || result?.reported || open || (trigger && status !== 'no-parts') || (status === 'not-set-up' && canClose)}
+{#if result?.reported || open || (trigger && status !== 'no-parts') || (status === 'not-set-up' && canClose)}
 	<section class="reports" id="melden" bind:this={dialog}>
-		{#if reports.length}
-			<div class="known">
-				<h2><Icon name="alert" size={16} />{t.reports.known}</h2>
-				<ul>
-					{#each reports as report (report.id)}
-						<li>
-							<strong>{report.kind === 'recording' ? t.reports.recording : report.part || t.reports.wholePiece}</strong>
-							– {t.feedbackValues.reportKind[report.kind]}{report.comment ? `: ${report.comment}` : ''}
-							<span class="muted">
-								{report.reportedBy ? t.reports.by(report.reportedBy, report.reportedAt) : report.reportedAt}
-							</span>
-						</li>
-					{/each}
-				</ul>
-				{#if canClose}<a class="manage" href="/meldungen">{t.nav.reports} →</a>{/if}
-			</div>
-		{/if}
-
 		{#if result?.reported}
 			<p class="msg ok" role="status"><Icon name="check" size={16} />{t.reports.thanks}</p>
 		{/if}
@@ -151,6 +139,9 @@
 							</select>
 						</label>
 					{/if}
+					{#if reportedAlready}
+						<p class="muted wide already"><Icon name="flag" size={12} />{t.reports.already(`${t.feedbackValues.reportKind[reportedAlready.kind]}${reportedAlready.comment ? ` – ${reportedAlready.comment}` : ''}`)}</p>
+					{/if}
 					<label class="field wide">
 						{t.reports.comment}
 						<input name="comment" maxlength="1000" placeholder={t.reports.commentHint} autocomplete="off" />
@@ -181,41 +172,12 @@
 		justify-self: start;
 	}
 
-	.known {
-		padding: var(--space-3) var(--space-4);
-		border: 1px solid color-mix(in oklab, var(--warn) 30%, var(--hairline));
-		border-radius: var(--radius-l);
-		background: color-mix(in oklab, var(--warn) 8%, var(--surface));
-	}
-
-	.known h2 {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		margin-bottom: var(--space-2);
-		color: var(--warn);
-		font-size: var(--text-sm);
-	}
-
-	.known ul {
-		display: grid;
-		gap: var(--space-1);
-		margin: 0;
-		padding-left: var(--space-4);
-	}
 
 	.muted {
 		color: var(--text-muted);
 		font-size: var(--text-xs);
 	}
 
-	.manage {
-		display: inline-block;
-		margin-top: var(--space-2);
-		color: var(--accent);
-		font-size: var(--text-sm);
-		font-weight: 600;
-	}
 
 	.form {
 		display: grid;
@@ -238,6 +200,12 @@
 	p.wide {
 		margin: 0;
 		overflow-wrap: anywhere;
+	}
+
+	.already {
+		display: flex;
+		align-items: center;
+		gap: 4px;
 	}
 
 	.form h3 {

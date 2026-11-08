@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildFeedback, markedStatus, mayDeleteWish, newId, parseVotes, safeLink, sortWishes, submitterEmail, toggleVote, wishFollowers } from './feedback.ts';
+import { buildFeedback, hintKind, isActiveReport, markedStatus, reportSubject, scanQueue, mayDeleteWish, newId, parseVotes, safeLink, sortWishes, submitterEmail, toggleVote, wishFollowers } from './feedback.ts';
 
 const REPORT_HEADER = ['Stück', 'Drive-Ordner-ID', 'Stimme', 'Datei-ID', 'Art', 'Kommentar', 'Status', 'Notiz', 'Gemeldet von', 'Gemeldet am', 'Meldungs-ID'];
 const WISH_HEADER = ['Art', 'Titel', 'Komponist', 'Link', 'Beschreibung', 'Status', 'Antwort', 'Eingereicht von', 'Datum', '+1', 'Wunsch-ID'];
@@ -37,7 +37,7 @@ describe('reports', () => {
 		expect(reports[0]).toMatchObject({ marked: 'incomplete', driveComment: 'c-1' });
 		const old = buildFeedback({ reports: [REPORT_HEADER, ['X', 'f', '', '', '', '', '', '', '', '', 'r1']] });
 		expect(old.reports[0]).toMatchObject({ marked: undefined, driveComment: '' });
-		expect(old.tables.reports?.missing).toEqual(['marked', 'driveComment', 'link']);
+		expect(old.tables.reports?.missing).toEqual(['marked', 'driveComment', 'link', 'priority', 'assignee', 'task']);
 	});
 
 	it('maps status words back like the naming convention', () => {
@@ -154,5 +154,39 @@ describe('who hears about an answer', () => {
 
 	it('has only the +1s for an anonymous wish', () => {
 		expect(wishFollowers({ submittedBy: '', votes: ['ben@x.org'] }, 'admin@x.org')).toEqual(['ben@x.org']);
+	});
+});
+
+describe('scan jobs', () => {
+	it('reads the job a report was handed to the scanning team with', () => {
+		const header = [...REPORT_HEADER, 'Priorität', 'Wer scannt', 'Scan-Auftrag'];
+		const { reports } = buildFeedback({
+			reports: [header, ['X', 'f', 'Viola', 'file-1', 'Noten abgeschnitten', '', 'zum Scannen', '', '', '', 'r1', 'hoch', 'Ben@X.org', 'ganze Seite']]
+		});
+		expect(reports[0]).toMatchObject({ kind: 'cutoff', status: 'scan', priority: 'high', assignee: 'ben@x.org', task: 'ganze Seite' });
+		expect(isActiveReport(reports[0])).toBe(true);
+		expect(isActiveReport({ status: 'dismissed' })).toBe(false);
+	});
+
+	it('groups jobs by piece, the most urgent piece first, oldest first within', () => {
+		const job = (id: string, pieceId: string, priority: 'high' | 'medium' | 'low' | undefined, reportedAt: string) => ({ id, pieceId, pieceName: pieceId, priority, reportedAt, row: 0 });
+		const groups = scanQueue([
+			job('a', 'p1', 'low', '2026-10-01'),
+			job('b', 'p2', 'high', '2026-10-05'),
+			job('c', 'p1', 'high', '2026-10-09'),
+			job('d', 'p1', undefined, '2026-09-01'),
+			job('e', 'p3', undefined, '2026-08-01')
+		]);
+		expect(groups.map((g) => [g.pieceId, g.priority, g.jobs.map((j) => j.id)])).toEqual([
+			['p2', 'high', ['b']],
+			['p1', 'high', ['c', 'a', 'd']],
+			['p3', undefined, ['e']]
+		]);
+	});
+
+	it("names the check's findings and what a report is about", () => {
+		expect([hintKind('empty'), hintKind('incomplete')]).toEqual(['empty', 'pages']);
+		expect(reportSubject({ kind: 'pages', part: 'Trompete 1' })).toBe('Trompete 1 – Seiten fehlen');
+		expect(reportSubject({ kind: 'recording', part: '' })).toBe('Hörbeispiel – Hörbeispiel falsch');
 	});
 });

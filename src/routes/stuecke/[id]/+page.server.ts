@@ -1,5 +1,5 @@
 import { error, fail, isHttpError, redirect } from '@sveltejs/kit';
-import { newId, REPORT_KINDS, type ReportKind } from '#lib/feedback/feedback.ts';
+import { isActiveReport, newId, REPORT_KINDS, type ReportKind } from '#lib/feedback/feedback.ts';
 import { config } from '#lib/config/index.ts';
 import { t } from '#lib/i18n/index.ts';
 import { normalizeEmail } from '#lib/access/access.ts';
@@ -119,16 +119,18 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		saved: url.searchParams.has('gespeichert'),
 		// How many programmes followed a rename.
 		renamedIn: Number(url.searchParams.get('gespeichert')) || 0,
-		// Open problem reports, so nobody reports the same thing twice. Who reported is for admins only.
+		// Reports still looked after (new, or with the scanning team), shown quietly on the parts so
+		// nobody reports the same thing twice. Who reported is for admins only.
 		reports: {
 			open: (feedback?.reports ?? [])
-				.filter((report) => report.pieceId === piece.id && report.status === 'open')
-				.map(({ id, part, fileId, kind, comment, reportedAt, reportedBy }) => ({
+				.filter((report) => report.pieceId === piece.id && isActiveReport(report))
+				.map(({ id, part, fileId, kind, comment, status, reportedAt, reportedBy }) => ({
 					id,
 					part,
 					fileId,
 					kind,
 					comment,
+					status: status as 'open' | 'scan',
 					reportedAt,
 					reportedBy: canClose ? reportedBy : undefined
 				})),
