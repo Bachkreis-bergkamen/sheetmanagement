@@ -26,6 +26,20 @@
 			</ul>
 		</div>
 	{:else}
+		{#if data.google}
+			<!-- First: everyone who signed in with Google before the password sign-in has no password. -->
+			<a class="button" href="/auth/login?weiter={encodeURIComponent(data.returnTo)}" data-sveltekit-reload>
+				<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+					<path fill="#4285F4" d="M22.6 12.2c0-.8-.1-1.5-.2-2.2H12v4.2h6a5.1 5.1 0 0 1-2.2 3.4v2.8h3.6c2.1-1.9 3.2-4.8 3.2-8.2Z" />
+					<path fill="#34A853" d="M12 23c3 0 5.5-1 7.4-2.7l-3.6-2.8c-1 .7-2.3 1.1-3.8 1.1-2.9 0-5.4-2-6.3-4.6H2v2.9A11 11 0 0 0 12 23Z" />
+					<path fill="#FBBC05" d="M5.7 14c-.2-.7-.4-1.3-.4-2s.1-1.4.4-2V7.1H2a11 11 0 0 0 0 9.8L5.7 14Z" />
+					<path fill="#EA4335" d="M12 5.4c1.6 0 3.1.6 4.2 1.7l3.2-3.2A11 11 0 0 0 2 7.1L5.7 10C6.6 7.4 9.1 5.4 12 5.4Z" />
+				</svg>
+				{t.auth.button}
+			</a>
+			<p class="small">{t.auth.privacy}</p>
+			<p class="or"><span>{t.email.or}</span></p>
+		{/if}
 		<form
 			class="password"
 			method="POST"
@@ -57,19 +71,6 @@
 				{t.password.noMailHint}
 			{/if}
 		</p>
-		{#if data.google}
-			<p class="or"><span>{t.email.or}</span></p>
-			<a class="button" href="/auth/login?weiter={encodeURIComponent(data.returnTo)}" data-sveltekit-reload>
-				<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-					<path fill="#4285F4" d="M22.6 12.2c0-.8-.1-1.5-.2-2.2H12v4.2h6a5.1 5.1 0 0 1-2.2 3.4v2.8h3.6c2.1-1.9 3.2-4.8 3.2-8.2Z" />
-					<path fill="#34A853" d="M12 23c3 0 5.5-1 7.4-2.7l-3.6-2.8c-1 .7-2.3 1.1-3.8 1.1-2.9 0-5.4-2-6.3-4.6H2v2.9A11 11 0 0 0 12 23Z" />
-					<path fill="#FBBC05" d="M5.7 14c-.2-.7-.4-1.3-.4-2s.1-1.4.4-2V7.1H2a11 11 0 0 0 0 9.8L5.7 14Z" />
-					<path fill="#EA4335" d="M12 5.4c1.6 0 3.1.6 4.2 1.7l3.2-3.2A11 11 0 0 0 2 7.1L5.7 10C6.6 7.4 9.1 5.4 12 5.4Z" />
-				</svg>
-				{t.auth.button}
-			</a>
-			<p class="small">{t.auth.privacy}</p>
-		{/if}
 	{/if}
 </section>
 

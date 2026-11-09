@@ -100,9 +100,16 @@ async function foundByCheck(library: Library) {
 		.then(({ value }) => getPartHints(catalog.catalog, value))
 		.catch((cause) => (console.error('Reading the part check failed:', cause), undefined));
 	if (!check) return [];
+	if (foundMemo?.library === library && foundMemo.hints === check.hints) return foundMemo.found;
+	const found = foundHints(library, check.hints);
+	foundMemo = { library, hints: check.hints, found };
+	return found;
+}
+
+function foundHints(library: Library, hints: Awaited<ReturnType<typeof getPartHints>>['hints']) {
 	return library.pieces.flatMap((piece) =>
 		(piece.detail?.parts ?? []).flatMap((part) => {
-			const hint = check.hints.get(part.id);
+			const hint = hints.get(part.id);
 			if (!hint) return [];
 			const kind = hintKind(hint.problem);
 			return [
@@ -120,6 +127,9 @@ async function foundByCheck(library: Library) {
 		})
 	);
 }
+
+/** The hints per part, reused while the library and the checks stay the same (Error 1102). */
+let foundMemo: { library: Library; hints: unknown; found: ReturnType<typeof foundHints> } | undefined;
 
 /** A piece's Hörbeispiel as the sheet has it: the link, "keins", or empty; null without a row. */
 function recordingOf(library: Library, pieceId: string): string | null {
