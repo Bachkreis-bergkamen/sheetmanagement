@@ -22,7 +22,9 @@
 	const mails = new FormState();
 	const passwords = new FormState();
 	const links = new FormState();
-	const linkConfirm = $derived(data.accessLink?.viaLink ? t.ownLink.confirmRenewViaLink : t.ownLink.confirmRenew);
+	/** Other accounts kept on this device, to switch to. */
+	const others = $derived((data.accounts ?? []).filter((account) => account.email.toLowerCase() !== data.email.toLowerCase()));
+	const linkConfirm =$derived(data.accessLink?.viaLink ? t.ownLink.confirmRenewViaLink : t.ownLink.confirmRenew);
 
 	/** Notifications, email reminders and the calendar link: the group shows when one of them is set up. */
 	const showNotify = $derived(!!(data.member && (data.push || data.mail || data.feed)));
@@ -299,11 +301,36 @@
 			</section>
 		{/if}
 
-		<div class="ui-list settings">
+		<div class="ui-list settings" id="konten">
 			<form class="setting" method="POST" action="/auth/logout">
 				<span>{t.auth.signedInAs(data.email)}</span>
 				<button class="logout"><Icon name="logout" size={16} />{t.auth.logout}</button>
 			</form>
+			<!-- Other accounts kept on this device: seldom needed, so plain rows at the very end. -->
+			{#each others as account (account.email)}
+				<div class="setting">
+					<span>
+						{account.name}
+						<small>{account.email}</small>
+					</span>
+					<div class="ui-actions">
+						<form method="POST" action="/auth/konto">
+							<input type="hidden" name="email" value={account.email} />
+							<button name="aktion" value="wechseln">{t.auth.accounts.switchTo}</button>
+						</form>
+						<form method="POST" action="/auth/konto" onsubmit={(event) => confirm(t.auth.accounts.forgetConfirm(account.name)) || event.preventDefault()}>
+							<input type="hidden" name="email" value={account.email} />
+							<button name="aktion" value="vergessen">{t.auth.accounts.forget}</button>
+						</form>
+					</div>
+				</div>
+			{/each}
+			{#if data.accounts}
+				<form class="setting" method="POST" action="/auth/konto">
+					<span>{others.length ? t.auth.accounts.title : t.auth.accounts.lead}</span>
+					<button class="logout" name="aktion" value="hinzufuegen"><Icon name="plus" size={16} />{t.auth.accounts.add}</button>
+				</form>
+			{/if}
 		</div>
 	</section>
 </div>

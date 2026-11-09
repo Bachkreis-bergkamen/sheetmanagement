@@ -1,12 +1,13 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { signInWithPassword } from '#lib/server/auth/accounts.ts';
 import { authConfig, startSession } from '#lib/server/auth/index.ts';
+import { savedAccounts } from '#lib/server/auth/saved.ts';
 import { safeReturnPath } from '#lib/server/auth/redirect.ts';
 import { mailReady } from '#lib/server/mail/index.ts';
 import { looksLikeEmail } from '#lib/server/mail/sign-in.ts';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals, url }) => {
+export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	const auth = authConfig();
 	if (auth.mode === 'off') redirect(303, '/');
 	const returnTo = safeReturnPath(url.searchParams.get('weiter'));
@@ -18,7 +19,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		problems: auth.problems.filter((problem) => !problem.startsWith('BOOTSTRAP_ADMINS')),
 		google: auth.google,
 		// Signing up and "forgot password" need a link by email, so an account that sends mail.
-		mail: !auth.problems.length && (await mailReady())
+		mail: !auth.problems.length && (await mailReady()),
+		// Accounts kept on this device (saved.ts): one tap back into them.
+		accounts: auth.problems.length ? [] : (await savedAccounts(cookies, auth.sessionSecret)).map(({ email, name }) => ({ email, name }))
 	};
 };
 

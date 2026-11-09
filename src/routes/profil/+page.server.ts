@@ -1,4 +1,4 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { fail, redirect, type Cookies } from '@sveltejs/kit';
 import { currentStatus, normalizeEmail, parseLinkVersion } from '#lib/access/access.ts';
 import { config } from '#lib/config/index.ts';
 import { t } from '#lib/i18n/index.ts';
@@ -7,9 +7,10 @@ import { readMemberForm, today, writable } from '#lib/server/members.ts';
 import { getAccessList } from '#lib/server/repertoire.ts';
 import { setPassword, withinAttempts } from '#lib/server/auth/accounts.ts';
 import { authConfig, currentSession, startSession } from '#lib/server/auth/index.ts';
+import { savedAccounts } from '#lib/server/auth/saved.ts';
 import { passwordProblem, verifyPassword } from '#lib/server/auth/password.ts';
 import { feedToken } from '#lib/server/auth/feed.ts';
-import { isOn } from '#lib/server/env.ts';
+import { isDemo, isOn } from '#lib/server/env.ts';
 import { getStore } from '#lib/server/db/index.ts';
 import { vapidKeys } from '#lib/server/push/index.ts';
 import { mailReady } from '#lib/server/mail/index.ts';
@@ -24,9 +25,11 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 	if (locals.auth === 'off' || !user) redirect(303, '/meine-noten');
 	const list = await getAccessList();
 	const member = list?.membersByEmail.get(normalizeEmail(user.email));
-	if (!member) return { member: null, email: user.email };
+	const accounts = await deviceAccounts(cookies);
+	if (!member) return { member: null, email: user.email, accounts };
 	return {
 		email: member.email,
+		accounts,
 		member: {
 			name: member.name,
 			choices: parseInstruments(member.instrument ?? '', config),
@@ -47,6 +50,13 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		orchestras: config.orchestras
 	};
 };
+
+/** The accounts kept on this device for switching (saved.ts), without their tokens; null in the demo. */
+async function deviceAccounts(cookies: Cookies) {
+	const auth = authConfig();
+	if (auth.mode !== 'on' || auth.problems.length || isDemo()) return null;
+	return (await savedAccounts(cookies, auth.sessionSecret)).map(({ email, name }) => ({ email, name }));
+}
 
 /** The personal calendar link (#122): its address while valid, else whether one can be made. */
 async function feed(email: string, version: number, missingColumn: boolean, origin: string) {

@@ -1317,7 +1317,18 @@ export const de = {
 		} as Record<string, string>,
 		signedInAs: (email: string) => `Angemeldet als ${email}`,
 		logout: 'Abmelden',
-		switchAccount: 'Mit einem anderen Konto anmelden'
+		switchAccount: 'Mit einem anderen Konto anmelden',
+		/** Several accounts on one device (an admin's and a member's, a shared tablet). */
+		accounts: {
+			title: 'Konten auf diesem Gerät',
+			lead: 'Ohne neue Anmeldung zwischen Konten wechseln, z. B. auf einem geteilten Gerät.',
+			add: 'Weiteres Konto hinzufügen',
+			switchTo: 'Wechseln',
+			forget: 'Entfernen',
+			forgetConfirm: (name: string) => `${name} von diesem Gerät entfernen?`,
+			current: 'Aktiv',
+			onDevice: 'Auf diesem Gerät gespeichert'
+		}
 	},
 	signups: {
 		title: 'Anmeldung',

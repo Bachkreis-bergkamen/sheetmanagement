@@ -5,6 +5,7 @@ import { getStore } from '../db/index.ts';
 import { appEnv, isDemo } from '../env.ts';
 import { readAccessList } from '../repertoire.ts';
 import { linkValid } from './links.ts';
+import { savedAccounts, withAccount, writeSaved } from './saved.ts';
 import { SESSION_DAYS, signSession, verifySession, type Session } from './session.ts';
 import { t } from '#lib/i18n/index.ts';
 
@@ -70,12 +71,16 @@ export function authConfig(): AuthConfig {
 /** Signs someone in: a session cookie for SESSION_DAYS, whichever way they proved who they are. */
 export async function startSession(cookies: Cookies, secret: string, session: Omit<Session, 'exp'>) {
 	const exp = Math.floor(Date.now() / 1000) + SESSION_DAYS * 86_400;
-	cookies.set(SESSION_COOKIE, await signSession({ ...session, exp }, secret), {
+	const token = await signSession({ ...session, exp }, secret);
+	cookies.set(SESSION_COOKIE, token, {
 		path: '/',
 		httpOnly: true,
 		sameSite: 'lax',
 		maxAge: SESSION_DAYS * 86_400
 	});
+	// On a device with several accounts kept (after "add account"), this one is kept too.
+	const saved = await savedAccounts(cookies, secret);
+	if (saved.length) writeSaved(cookies, withAccount(saved, { email: session.email, name: session.name, token }));
 }
 
 /** The signed-in person's session as signed, e.g. to renew it after a new password or link. */
