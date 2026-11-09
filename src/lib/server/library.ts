@@ -88,9 +88,9 @@ export interface Library {
 
 const collator = new Intl.Collator('de', { sensitivity: 'base', numeric: true });
 
-/** How long a built library is reused while its sources stay the same ("past", "in 3 Tagen"). */
-const LIBRARY_MAX_AGE_MS = 60_000;
-let memo: { at: number; sources: unknown[]; library: Library } | undefined;
+let memo: { today: string; sources: unknown[]; library: Library } | undefined;
+
+const libraryDay = (now: number) => eventDay({ start: new Date(now).toISOString(), allDay: false }, config.timeZone);
 
 /**
  * Drive archive, calendar and Repertoire sheet combined, as the pages show them. Building it
@@ -105,10 +105,12 @@ export async function getLibrary(now = Date.now()): Promise<Library> {
 		repertoire.ok ? repertoire.repertoire : repertoire.reason,
 		repertoire.ok ? repertoire.links : undefined
 	];
-	if (memo && now >= memo.at && now - memo.at < LIBRARY_MAX_AGE_MS && sources.every((source, i) => source === memo!.sources[i]))
-		return memo.library;
+	// The library only depends on the time through its day ("past", "in 3 Tagen"), so it is kept
+	// for the whole day while the sources stay the same, not rebuilt every minute.
+	const today = libraryDay(now);
+	if (memo && memo.today === today && sources.every((source, i) => source === memo!.sources[i])) return memo.library;
 	const library = buildLibrary(now, catalog, schedule, repertoire);
-	memo = { at: now, sources, library };
+	memo = { today, sources, library };
 	return library;
 }
 
@@ -118,7 +120,7 @@ function buildLibrary(
 	schedule: ScheduleResult,
 	repertoire: RepertoireResult
 ): Library {
-	const today = eventDay({ start: new Date(now).toISOString(), allDay: false }, config.timeZone);
+	const today = libraryDay(now);
 	const sheet = repertoire.ok ? repertoire.repertoire : undefined;
 	const links = repertoire.ok ? repertoire.links : undefined;
 
