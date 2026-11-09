@@ -507,7 +507,6 @@
 		color: var(--accent);
 	}
 
-	.none,
 	.notice {
 		padding: var(--space-6) var(--space-4);
 		text-align: center;
