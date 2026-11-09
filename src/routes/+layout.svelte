@@ -68,13 +68,20 @@
 	// Pages cross-fade like in an app (#129): the browser animates between the old and the new
 	// page once its data is there, header and tab bar stay put. Without View Transitions the
 	// new page fades in (see .page). Filters and forms on the same page don't animate.
+	// A hidden tab (phone locked, app in the background) has nothing to animate: the browser would
+	// abort the transition and reject its `ready` promise with an InvalidStateError, which then
+	// landed in the error log. So skip it there, and swallow the rejection when it aborts anyway.
 	onNavigate((navigation) => {
-		if (!document.startViewTransition || navigation.from?.url.pathname === navigation.to?.url.pathname) return;
+		if (!document.startViewTransition || document.hidden || navigation.from?.url.pathname === navigation.to?.url.pathname) return;
 		return new Promise((resolve) => {
-			document.startViewTransition(async () => {
+			const transition = document.startViewTransition(async () => {
 				resolve();
 				await navigation.complete;
 			});
+			transition.ready.catch(() => {});
+			// If the browser skips the transition before running the callback, don't hold up the navigation.
+			transition.updateCallbackDone.catch(() => {}).finally(() => resolve());
+			transition.finished.catch(() => {});
 		});
 	});
 
