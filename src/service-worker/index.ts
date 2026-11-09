@@ -138,8 +138,9 @@ sw.addEventListener('fetch', (event) => {
 	if (url.origin !== sw.location.origin) return;
 
 	// Signing out: nothing personal stays on the device, and it gets no more reminders. The
-	// device is taken off first, while the member is still signed in.
-	if (request.method === 'POST' && url.pathname === '/auth/logout') {
+	// device is taken off first, while the member is still signed in. Switching to another
+	// account kept on the device (/auth/konto) likewise: its pages and reminders aren't the next one's.
+	if (request.method === 'POST' && (url.pathname === '/auth/logout' || url.pathname === '/auth/konto')) {
 		event.waitUntil(Promise.all([caches.delete(PAGES), caches.delete(LIBRARY), caches.delete(NOTEN)]));
 		event.respondWith(
 			(async () => {

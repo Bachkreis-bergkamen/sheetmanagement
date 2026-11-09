@@ -26,6 +26,23 @@
 			</ul>
 		</div>
 	{:else}
+		{#if data.accounts.length}
+			<!-- Accounts kept on this device (shared device, admin and member account): one tap back in. -->
+			<div class="accounts">
+				<p class="small">{t.auth.accounts.onDevice}</p>
+				{#each data.accounts as account (account.email)}
+					<form method="POST" action="/auth/konto">
+						<input type="hidden" name="email" value={account.email} />
+						<input type="hidden" name="weiter" value={data.returnTo} />
+						<button class="account" name="aktion" value="wechseln">
+							<strong>{account.name}</strong>
+							<span>{account.email}</span>
+						</button>
+					</form>
+				{/each}
+			</div>
+			<p class="or"><span>{t.email.or}</span></p>
+		{/if}
 		{#if data.google}
 			<!-- First: everyone who signed in with Google before the password sign-in has no password. -->
 			<a class="button" href="/auth/login?weiter={encodeURIComponent(data.returnTo)}" data-sveltekit-reload>
@@ -161,6 +178,36 @@
 	.link {
 		color: var(--accent);
 		font-weight: 600;
+	}
+
+	.accounts {
+		display: grid;
+		gap: var(--space-2);
+		width: 100%;
+	}
+
+	.account {
+		display: grid;
+		width: 100%;
+		padding: var(--space-3) var(--space-4);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-m);
+		background: var(--bg);
+		color: var(--text);
+		font: inherit;
+		text-align: left;
+		cursor: pointer;
+		transition: border-color 0.15s;
+	}
+
+	.account:hover {
+		border-color: var(--accent);
+	}
+
+	.account span {
+		overflow-wrap: anywhere;
+		color: var(--text-muted);
+		font-size: var(--text-sm);
 	}
 
 	.error ul {

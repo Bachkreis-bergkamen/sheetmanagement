@@ -1305,7 +1305,18 @@ export const en: Texts = {
 		} as Record<string, string>,
 		signedInAs: (email: string) => `Signed in as ${email}`,
 		logout: 'Sign out',
-		switchAccount: 'Sign in with another account'
+		switchAccount: 'Sign in with another account',
+		/** Several accounts on one device (an admin's and a member's, a shared tablet). */
+		accounts: {
+			title: 'Accounts on this device',
+			lead: 'Switch between accounts without signing in again, e.g. on a shared device.',
+			add: 'Add another account',
+			switchTo: 'Switch',
+			forget: 'Remove',
+			forgetConfirm: (name: string) => `Remove ${name} from this device?`,
+			current: 'Active',
+			onDevice: 'Saved on this device'
+		}
 	},
 	signups: {
 		title: 'Sign-up',
