@@ -147,7 +147,12 @@ const PLACES: Record<string, Placement> = {
 	Synthesizer: { zone: 'left', band: 0, order: 3 },
 	Orgel: { zone: 'left', band: 0, order: 4 },
 	Chor: { zone: 'choir', band: 0, order: 0 },
+	Frauenchor: { zone: 'choir', band: 0, order: 0.5 },
+	Männerchor: { zone: 'choir', band: 0, order: 1 },
 	Sopran: { zone: 'front', band: 0, order: 0 },
+	Alt: { zone: 'front', band: 0, order: 0.2 },
+	Tenor: { zone: 'front', band: 0, order: 0.4 },
+	Bassstimme: { zone: 'front', band: 0, order: 0.6 },
 	Gesang: { zone: 'front', band: 0, order: 1 }
 };
 

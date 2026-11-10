@@ -1217,7 +1217,12 @@ export const de = {
 			Cembalo: 'Cemb',
 			Orgel: 'Org',
 			Chor: 'Chor',
-			Sopran: 'S'
+			Sopran: 'S',
+			Alt: 'A',
+			Tenor: 'T',
+			Bassstimme: 'B',
+			Frauenchor: 'FrCh',
+			Männerchor: 'MCh'
 		} as Record<string, string>
 	},
 	quickSearch: {

@@ -172,11 +172,13 @@ describe('names from the archive that needed a person (#271)', () => {
 	it('names small percussion after the instrument, so the parts stay apart', () => {
 		expect(run(['Ode_to_Joy-Low_Drum.pdf', 'Ode_to_Joy-Triangle.pdf', 'Ode_to_Joy-Agogo_Bells.pdf'], 'Ode to Joy', ['Ode to Joy'])).toEqual([
 			'Ode to Joy - Percussion Low Drum.pdf',
-			'Ode to Joy - Percussion Triangle.pdf',
+			'Ode to Joy - Triangel.pdf',
 			'Ode to Joy - Percussion Agogo Bells.pdf'
 		]);
 		// Named that way, they stay.
-		expect(check(['Ode to Joy - Percussion Triangle.pdf'], 'Ode to Joy')).toEqual([['Ode to Joy - Percussion Triangle.pdf', 'ok', undefined]]);
+		expect(check(['Ode to Joy - Percussion Agogo Bells.pdf'], 'Ode to Joy')).toEqual([['Ode to Joy - Percussion Agogo Bells.pdf', 'ok', undefined]]);
+		// Older names of percussion that now has parts of its own mean that instrument alone.
+		expect(check(['Ode to Joy - Percussion Triangle.pdf'], 'Ode to Joy')).toEqual([['Ode to Joy - Percussion Triangle.pdf', 'rename', 'Ode to Joy - Triangel.pdf']]);
 	});
 
 	it('reads a subfolder name before the part as title', () => {

@@ -1206,7 +1206,12 @@ export const en: Texts = {
 			Cembalo: 'Hpd',
 			Orgel: 'Org',
 			Chor: 'Ch',
-			Sopran: 'S'
+			Sopran: 'S',
+			Alt: 'A',
+			Tenor: 'T',
+			Bassstimme: 'B',
+			Frauenchor: 'FrCh',
+			Männerchor: 'MCh'
 		} as Record<string, string>
 	},
 	quickSearch: {

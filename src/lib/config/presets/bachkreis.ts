@@ -1,4 +1,20 @@
-import type { OrchestraConfig } from '../types.ts';
+import type { Instrument, OrchestraConfig } from '../types.ts';
+
+const CYMBALS = ['Crash-Becken', 'Ride-Becken', 'China-Becken', 'Hängendes Becken', 'Hi-Hat', 'Fingerzimbeln'];
+const SMALL_PERCUSSION = [
+	'Triangel', 'Tomtoms', 'Konzerttoms', 'Rototoms', 'Bongos', 'Congas', 'Djembe', 'Kuhglocke', 'Amboss', 'Claves', 'Holzblock', 'Tempelblocks',
+	'Güiro', 'Maracas', 'Shaker', 'Regenmacher', 'Ratsche', 'Peitsche', 'Vibraslap', 'Flexaton', 'Schellen', 'Windspiel', 'Mark Tree'
+];
+
+/**
+ * These used to be filed under "Percussion" and named "Percussion Triangle" and so on. Those
+ * names still mean the instrument alone, not Percussion and the instrument.
+ */
+function withPercussionPrefix(instrument: Instrument): Instrument {
+	if (![...SMALL_PERCUSSION, ...CYMBALS, 'Kleine Trommel'].includes(instrument.name)) return instrument;
+	const words = [instrument.name, ...(instrument.aliases ?? [])];
+	return { ...instrument, aliases: [...words.slice(1), ...words.map((word) => `Percussion ${word}`)] };
+}
 
 /**
  * Example preset: a German amateur symphony orchestra whose Drive follows a naming
@@ -14,7 +30,8 @@ export const bachkreis: OrchestraConfig = {
 	timeZone: 'Europe/Berlin',
 	locale: 'de-DE',
 
-	instruments: [
+	instruments: (
+	[
 		{ name: 'Partitur', family: 'partitur', common: true, aliases: ['Score', 'Full Score', 'Direktion', 'Dirigent', 'Conductor', 'Gesamtausgabe', 'Gesammtausgabe', 'Ges', 'Full Orchestra'] },
 		// Reductions of the score: for rehearsals at the piano, or a strings-only setting.
 		{ name: 'Klavierauszug', family: 'partitur', common: true, aliases: ['Klavier-Auszug', 'Klavierauszüge', 'Piano Reduction', 'Piano Score', 'Piano Conductor', 'Vocal Score'] },
@@ -51,14 +68,39 @@ export const bachkreis: OrchestraConfig = {
 			family: 'schlagwerk',
 			aliases: ['Perc', 'Kleines Schlagwerk', 'Auxiliary Percussion', 'Aux Perc'],
 			// Small percussion: no instrument of its own, but named, since a piece often has several.
-			variants: [
-				'Agogo Bells', 'Agogo', 'Guiro', 'Güiro', 'Low Drum', 'Triangle', 'Triangel',
-				'Kastagnetten', 'Castanets', 'Claves', 'Woodblock', 'Wood Block', 'Holzblock', 'Temple Blocks', 'Tempelblocks',
-				'Shaker', 'Maracas', 'Cabasa', 'Bongos', 'Congas', 'Timbales', 'Cowbell', 'Kuhglocke', 'Wind Chimes', 'Windspiel',
-				'Mark Tree', 'Sleigh Bells', 'Schellen', 'Ratsche', 'Ratchet', 'Peitsche', 'Whip', 'Slapstick', 'Vibraslap',
-				'Tom-Toms', 'Tom Toms', 'Toms', 'Hi-Hat', 'Hihat', 'Rainstick', 'Regenmacher', 'Cajon', 'Djembe'
-			]
+			variants: ['Agogo Bells', 'Agogo', 'Low Drum', 'Kastagnetten', 'Castanets', 'Cabasa', 'Timbales', 'Cajon']
 		},
+		// Small percussion with parts of its own.
+		{ name: 'Triangel', family: 'schlagwerk', aliases: ['Triangle', 'Triangolo'] },
+		{ name: 'Kleine Trommel', family: 'schlagwerk', aliases: ['Snare Drum', 'Snare', 'Snaredrum'] },
+		{ name: 'Tomtoms', family: 'schlagwerk', aliases: ['Tom-Toms', 'Tom Toms', 'Toms', 'Tom Drums'] },
+		{ name: 'Konzerttoms', family: 'schlagwerk', aliases: ['Concert Toms', 'Konzert-Toms', 'Concert Tom'] },
+		{ name: 'Rototoms', family: 'schlagwerk', aliases: ['Rototom', 'Roto Toms', 'Roto-Toms'] },
+		{ name: 'Bongos', family: 'schlagwerk', aliases: ['Bongo'] },
+		{ name: 'Congas', family: 'schlagwerk', aliases: ['Conga', 'Tumba'] },
+		{ name: 'Djembe', family: 'schlagwerk', aliases: ['Djembé'] },
+		{ name: 'Hi-Hat', family: 'schlagwerk', aliases: ['Hihat', 'Hi Hat'] },
+		{ name: 'Crash-Becken', family: 'schlagwerk', aliases: ['Crash Cymbal', 'Crash Cymbals', 'Crashbecken'] },
+		{ name: 'Ride-Becken', family: 'schlagwerk', aliases: ['Ride Cymbal', 'Ridebecken'] },
+		{ name: 'China-Becken', family: 'schlagwerk', aliases: ['China Cymbal', 'Chinabecken'] },
+		{ name: 'Hängendes Becken', family: 'schlagwerk', aliases: ['Suspended Cymbal', 'Sus Cymbal', 'Susp Cymbal', 'Freihängendes Becken'] },
+		{ name: 'Fingerzimbeln', family: 'schlagwerk', aliases: ['Finger Cymbals', 'Zimbeln'] },
+		{ name: 'Kuhglocke', family: 'schlagwerk', aliases: ['Cowbell', 'Cow Bell', 'Kuhglocken'] },
+		{ name: 'Amboss', family: 'schlagwerk', aliases: ['Anvil', 'Amboß'] },
+		{ name: 'Claves', family: 'schlagwerk', aliases: ['Klanghölzer'] },
+		{ name: 'Holzblock', family: 'schlagwerk', aliases: ['Wood Block', 'Woodblock', 'Holzblocktrommel'] },
+		{ name: 'Tempelblocks', family: 'schlagwerk', aliases: ['Temple Blocks', 'Temple Block', 'Tempelblock'] },
+		{ name: 'Güiro', family: 'schlagwerk', aliases: ['Guiro'] },
+		{ name: 'Maracas', family: 'schlagwerk', aliases: ['Rumbakugeln'] },
+		{ name: 'Shaker', family: 'schlagwerk', aliases: ['Shakers', 'Egg Shaker'] },
+		{ name: 'Regenmacher', family: 'schlagwerk', aliases: ['Rainstick', 'Rain Stick', 'Regenstab'] },
+		{ name: 'Ratsche', family: 'schlagwerk', aliases: ['Ratchet'] },
+		{ name: 'Peitsche', family: 'schlagwerk', aliases: ['Whip', 'Slapstick'] },
+		{ name: 'Vibraslap', family: 'schlagwerk', aliases: ['Vibra Slap'] },
+		{ name: 'Flexaton', family: 'schlagwerk', aliases: ['Flexatone'] },
+		{ name: 'Schellen', family: 'schlagwerk', aliases: ['Sleigh Bells', 'Schlittenglocken', 'Schellenkranz'] },
+		{ name: 'Windspiel', family: 'schlagwerk', aliases: ['Wind Chimes', 'Windchimes', 'Glass Chimes'] },
+		{ name: 'Mark Tree', family: 'schlagwerk', aliases: ['Marktree', 'Bar Chimes', 'Barchimes', 'Chimes Tree'] },
 		{
 			name: 'Mallet Percussion',
 			family: 'schlagwerk',
@@ -67,9 +109,9 @@ export const bachkreis: OrchestraConfig = {
 		},
 		{ name: 'Glockenspiel', family: 'schlagwerk', aliases: ['Bells', 'Orchestra Bells', 'Orchestral Bells'] },
 		{ name: 'Xylophon', family: 'schlagwerk', aliases: ['Xylophone'] },
-		{ name: 'Becken', family: 'schlagwerk', aliases: ['Cymbals', 'Cymbal', 'Piatti', 'Crash Cymbals', 'Suspended Cymbal', 'Hängendes Becken'] },
+		{ name: 'Becken', family: 'schlagwerk', aliases: ['Cymbals', 'Cymbal', 'Piatti', 'Clash Cymbals', 'Beckenpaar'] },
 		{ name: 'Große Trommel', family: 'schlagwerk', aliases: ['Gran Cassa', 'Bass Drum', 'Grosse Trommel', 'Bassdrum'] },
-		{ name: 'Trommel', family: 'schlagwerk', aliases: ['Kleine Trommel', 'Snare Drum', 'Snare', 'Rührtrommel', 'Marschtrommel', 'Field Drum', 'Tenor Drum'] },
+		{ name: 'Trommel', family: 'schlagwerk', aliases: ['Rührtrommel', 'Marschtrommel', 'Field Drum', 'Tenor Drum'] },
 		{ name: 'Tamburin', family: 'schlagwerk', aliases: ['Tambourine'] },
 		{ name: 'Tamtam', family: 'schlagwerk', aliases: ['Tam Tam', 'Gong'] },
 
@@ -80,8 +122,14 @@ export const bachkreis: OrchestraConfig = {
 		{ name: 'Harfe', family: 'tasten', aliases: ['Harp'] },
 		{ name: 'Continuo', family: 'tasten', aliases: ['Basso Continuo'] },
 
-		{ name: 'Sopran', family: 'gesang', aliases: ['Soprano'] },
-		{ name: 'Chor', family: 'gesang', aliases: ['SATB', 'Choir'] },
+		{ name: 'Sopran', family: 'gesang', aliases: ['Soprano', 'Sopranstimme'] },
+		{ name: 'Alt', family: 'gesang', aliases: ['Alto', 'Altstimme'] },
+		{ name: 'Tenor', family: 'gesang', aliases: ['Tenore', 'Tenorstimme'] },
+		// A bare "Bass" in a file name is the double bass, so the sung bass needs the longer word.
+		{ name: 'Bassstimme', label: 'Bass', family: 'gesang', aliases: ['Bass Voice', 'Basso', 'Chorbass', 'Gesangsbass'] },
+		{ name: 'Chor', family: 'gesang', aliases: ['SATB', 'Choir', 'Gemischter Chor', 'Mixed Choir'] },
+		{ name: 'Frauenchor', family: 'gesang', aliases: ['Female Choir', 'Women’s Choir', "Women's Choir", 'Womens Choir', 'Damenchor', 'SSA', 'SSAA'] },
+		{ name: 'Männerchor', family: 'gesang', aliases: ['Male Choir', 'Men’s Choir', "Men's Choir", 'Mens Choir', 'Herrenchor', 'TTB', 'TTBB'] },
 		{ name: 'Gesang', family: 'gesang', aliases: ['Vocals', 'Vocal'] },
 
 		{ name: 'C-Stimmen', family: 'sonstige' },
@@ -101,7 +149,8 @@ export const bachkreis: OrchestraConfig = {
 			aliases: ['Kontrabässe', 'Contrabass', 'Contrabasses', 'Double Bass', 'String Bass', 'Stringbass', 'Bass']
 		},
 		{ name: 'E-Bass', family: 'streicher', aliases: ['Bass Guitar', 'Electric Bass', 'E Bass'] }
-	],
+	] satisfies Instrument[]
+	).map(withPercussionPrefix),
 
 	naming: {
 		separator: ' - ',
@@ -236,6 +285,14 @@ export const bachkreis: OrchestraConfig = {
 		Saxophon: ['Sopran-Saxophon', 'Alt-Saxophon', 'Tenor-Saxophon', 'Bariton-Saxophon'],
 		Percussion: ['Schlagwerk', 'Pauke', 'Glockenspiel', 'Xylophon', 'Becken', 'Große Trommel', 'Trommel', 'Tamburin', 'Tamtam'],
 		Schlagwerk: ['Percussion', 'Becken', 'Große Trommel', 'Trommel', 'Tamburin', 'Tamtam'],
+		// Small percussion with parts of its own is played by the percussionists, as it was under "Percussion".
+		...Object.fromEntries(SMALL_PERCUSSION.map((name) => [name, ['Schlagwerk', 'Percussion']])),
+		'Kleine Trommel': ['Trommel', 'Schlagwerk', 'Percussion'],
+		...Object.fromEntries(CYMBALS.map((name) => [name, ['Becken', 'Schlagwerk', 'Percussion']])),
+		// Choir parts: each voice sings from them.
+		Chor: ['Sopran', 'Alt', 'Tenor', 'Bassstimme', 'Gesang'],
+		Frauenchor: ['Sopran', 'Alt'],
+		Männerchor: ['Tenor', 'Bassstimme'],
 		Continuo: ['Cembalo', 'Orgel', 'Violoncello', 'Kontrabass', 'Fagott'],
 		// The pianist can rehearse from the piano reduction.
 		Klavierauszug: ['Klavier'],
