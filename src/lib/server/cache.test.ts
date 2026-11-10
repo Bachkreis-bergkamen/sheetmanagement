@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { cached, CacheTimeoutError, clearMemoryCache, patchCached, type KvStore } from './cache.ts';
+import { cached, CacheMissError, CacheTimeoutError, clearMemoryCache, KvReadError, patchCached, type KvStore } from './cache.ts';
 
 function memoryKv(): KvStore & { data: Map<string, string> } {
 	const data = new Map<string, string>();
@@ -154,6 +154,77 @@ describe('cached', () => {
 		expect(await cached({ key: 'k', maxAgeMs: 1000, build: async () => 'v', kv })).toMatchObject({ value: 'v' });
 		expect(await patchCached<string>({ key: 'k', kv, update: (value) => `${value}!` })).toBe(true);
 		error.mockRestore();
+	});
+});
+
+describe('cached, read-only (values too costly to build in a request)', () => {
+	beforeEach(() => clearMemoryCache());
+
+	it('throws CacheMissError instead of building when nothing is cached', async () => {
+		const build = vi.fn(async () => 'built');
+		await expect(cached({ key: 'k', maxAgeMs: 1000, build, kv: memoryKv(), readOnly: true })).rejects.toThrow(CacheMissError);
+		expect(build).not.toHaveBeenCalled();
+	});
+
+	it('serves a stale value without refreshing it', async () => {
+		const kv = memoryKv();
+		kv.data.set('k', JSON.stringify({ storedAt: 0, value: 'old' }));
+		const build = vi.fn(async () => 'new');
+		const background: Promise<unknown>[] = [];
+		const options = { key: 'k', maxAgeMs: 1000, build, kv, now: () => 5000, readOnly: true, waitUntil: (p: Promise<unknown>) => background.push(p) };
+		expect(await cached(options)).toMatchObject({ value: 'old', source: 'kv' });
+		expect(await cached(options)).toMatchObject({ value: 'old', source: 'memory' });
+		expect(build).not.toHaveBeenCalled();
+		expect(background).toHaveLength(0);
+	});
+
+	it('takes a newer value from KV once its own is stale', async () => {
+		const kv = memoryKv();
+		kv.data.set('k', JSON.stringify({ storedAt: 0, value: 'old' }));
+		const options = { key: 'k', maxAgeMs: 1000, build: async () => 'built', kv, now: () => 5000, readOnly: true };
+		await cached(options);
+		kv.data.set('k', JSON.stringify({ storedAt: 4500, value: 'from cron' }));
+		expect(await cached(options)).toMatchObject({ value: 'from cron', source: 'kv' });
+	});
+
+	it('still builds when forced', async () => {
+		const result = await cached({ key: 'k', maxAgeMs: 1000, build: async () => 'built', kv: memoryKv(), readOnly: true, force: true });
+		expect(result).toMatchObject({ value: 'built', source: 'fresh' });
+	});
+
+	it('does not build when KV cannot be read, after one more try', async () => {
+		const kv = memoryKv();
+		const get = vi.spyOn(kv, 'get').mockRejectedValue(new Error('KV down'));
+		const build = vi.fn(async () => 'built');
+		await expect(cached({ key: 'k', maxAgeMs: 1000, build, kv, readOnly: true })).rejects.toThrow(KvReadError);
+		expect(get).toHaveBeenCalledTimes(2);
+		expect(build).not.toHaveBeenCalled();
+	});
+
+	it('reads KV again when the first read fails', async () => {
+		const kv = memoryKv();
+		kv.data.set('k', JSON.stringify({ storedAt: 0, value: 'stored' }));
+		vi.spyOn(kv, 'get').mockRejectedValueOnce(new Error('blip'));
+		expect(await cached({ key: 'k', maxAgeMs: 1000, build: async () => 'built', kv, now: () => 10, readOnly: true })).toMatchObject({ value: 'stored' });
+	});
+});
+
+describe('cached, waitForRefresh (the cron job)', () => {
+	beforeEach(() => clearMemoryCache());
+
+	it('refreshes a stale value before returning', async () => {
+		const kv = memoryKv();
+		kv.data.set('k', JSON.stringify({ storedAt: 0, value: 'old' }));
+		const result = await cached({ key: 'k', maxAgeMs: 1000, build: async () => 'new', kv, now: () => 5000, waitForRefresh: true });
+		expect(result).toMatchObject({ value: 'new', source: 'fresh' });
+	});
+
+	it('leaves a fresh value alone', async () => {
+		const kv = memoryKv();
+		kv.data.set('k', JSON.stringify({ storedAt: 4500, value: 'fresh' }));
+		const build = vi.fn(async () => 'new');
+		expect(await cached({ key: 'k', maxAgeMs: 1000, build, kv, now: () => 5000, waitForRefresh: true })).toMatchObject({ value: 'fresh' });
+		expect(build).not.toHaveBeenCalled();
 	});
 });
 

@@ -147,6 +147,7 @@ export const de = {
 		lead: 'Alle Stücke mit allen Stimmen.',
 		empty: 'Sobald Google Drive verbunden ist, erscheinen hier alle Stücke aus dem Notenarchiv.',
 		failed: 'Das Notenarchiv konnte gerade nicht geladen werden. Versuch es gleich noch einmal.',
+		loading: 'Das Notenarchiv wird gerade aus Drive eingelesen. Das dauert bis zu zehn Minuten; schau dann noch einmal vorbei.',
 		checkStatus: 'Verbindung prüfen',
 		search: 'Archiv filtern: Titel, Komponist, Stimme, Notiz …',
 		searchLabel: 'Archiv filtern',
@@ -2443,6 +2444,7 @@ export const de = {
 		programs: (list: string) => `Aktuelle Programme: ${list}`,
 		indexed: (when: string, fresh: boolean, requests: number) =>
 			`Stand: ${when} (${fresh ? 'gerade geladen' : 'aus dem Cache'}, ${requests} Google-Anfragen)`,
+		indexNotBuilt: 'Das Archiv ist noch nicht eingelesen. Das macht der Hintergrundjob alle zehn Minuten; „Archiv neu einlesen“ liest es sofort ein.',
 		events: (n: number) => `${n} Termine in den nächsten 4 Monaten`,
 		nextEvent: (title: string, when: string) => `Nächster Termin: ${title}, ${when}`,
 		setupHint: 'Auf der Seite „Tabelle einrichten“ werden sie angelegt.',
