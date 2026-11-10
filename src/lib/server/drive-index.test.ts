@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { bachkreis } from '#lib/config/presets/bachkreis.ts';
-import { buildDriveIndex } from './drive-index.ts';
+import { buildDriveIndex, classifyChanges, FULL_CRAWL_MS, updateDriveIndex, type DriveIndex } from './drive-index.ts';
 import { GoogleClient } from './google/client.ts';
-import { FOLDER_MIME, PARENTS_PER_QUERY, SHORTCUT_MIME, type DriveFile } from './google/drive.ts';
+import { FOLDER_MIME, PARENTS_PER_QUERY, SHORTCUT_MIME, type DriveChange, type DriveFile } from './google/drive.ts';
 
 const PDF = 'application/pdf';
 const DOC = 'application/vnd.google-apps.document';
@@ -170,5 +170,157 @@ describe('current programmes', () => {
 		const index = await buildDriveIndex(fakeDrive(circle), { ...programOptions, programFolderIds: ['prog-a', 'prog-b'] });
 		expect(index.pieces.find((p) => p.name === 'Fame')?.programs).toEqual(['A-Orchester', 'B-Orchester']);
 		expect(index.requestCount).toBeLessThan(15);
+	});
+});
+
+describe('updateDriveIndex (from Drive’s changes list)', () => {
+	/** A Drive that can change, with a changes list: every edit is one change and moves the token on. */
+	function changingDrive(initial: DriveFile[]) {
+		const files = new Map(initial.map((f) => [f.id, f]));
+		const log: DriveChange[] = [];
+		const paths: string[] = [];
+		const fetchImpl = async (input: string | URL) => {
+			const url = new URL(input);
+			paths.push(url.pathname);
+			if (url.pathname.endsWith('/changes/startPageToken')) return Response.json({ startPageToken: String(log.length) });
+			if (url.pathname.endsWith('/changes')) {
+				const from = Number(url.searchParams.get('pageToken'));
+				if (from > log.length) return Response.json({ error: { message: 'Invalid token' } }, { status: 404 });
+				return Response.json({ changes: log.slice(from), newStartPageToken: String(log.length) });
+			}
+			const single = url.pathname.match(/\/files\/([^/]+)$/)?.[1];
+			if (single) return Response.json(files.get(decodeURIComponent(single)));
+			const parents = [...(url.searchParams.get('q') ?? '').matchAll(/'([^']+)' in parents/g)].map((m) => m[1]);
+			return Response.json({ files: [...files.values()].filter((f) => f.parents?.some((p) => parents.includes(p))) });
+		};
+		return {
+			client: new GoogleClient({ getToken: async () => 'token' }, fetchImpl as typeof fetch),
+			paths,
+			put(f: DriveFile) {
+				files.set(f.id, f);
+				log.push({ fileId: f.id, file: f });
+			},
+			remove(id: string) {
+				files.delete(id);
+				log.push({ fileId: id, removed: true });
+			}
+		};
+	}
+
+	const tracked = { ...options, trackChanges: true };
+	const tree = (): DriveFile[] => [
+		folder('p-bach', 'Bach BWV 147', 'archive'),
+		folder('p-fame', 'Fame', 'archive'),
+		folder('c-xmas', '00 | Weihnachtsstücke', 'archive'),
+		folder('p-sleigh', 'Sleigh Ride', 'c-xmas'),
+		file('f1', 'BWV 147 - Geige I.pdf', 'p-bach'),
+		file('f2', 'Fame - Flöte.pdf', 'p-fame'),
+		folder('s-sections', 'Sections', 'p-sleigh')
+	];
+	const names = (index: DriveIndex, folderId: string) => index.pieces.find((p) => p.folderId === folderId)?.files.map((f) => f.name);
+
+	it('remembers where the changes list starts when it reads the whole archive', async () => {
+		const drive = changingDrive(tree());
+		const index = await buildDriveIndex(drive.client, tracked);
+		expect(index.changes).toMatchObject({ token: '0', categories: ['c-xmas'], subfolders: { 's-sections': 'p-sleigh' } });
+		expect(index.changes?.entries).toEqual(expect.arrayContaining(['p-bach', 'p-fame', 'c-xmas', 'p-sleigh']));
+	});
+
+	it('lists only the piece whose files changed', async () => {
+		const drive = changingDrive(tree());
+		const before = await buildDriveIndex(drive.client, tracked);
+		drive.put(file('f3', 'BWV 147 - Cello.pdf', 'p-bach'));
+		drive.put(file('f4', 'Sleigh Ride - Horn I.pdf', 's-sections'));
+		drive.remove('f2');
+		drive.paths.length = 0;
+
+		const after = await updateDriveIndex(drive.client, before, tracked, Date.parse(before.builtAt) + 60_000);
+		expect(names(after, 'p-bach')).toEqual(['BWV 147 - Cello.pdf', 'BWV 147 - Geige I.pdf']);
+		expect(names(after, 'p-sleigh')).toEqual(['Sleigh Ride - Horn I.pdf']);
+		expect(names(after, 'p-fame')).toEqual([]);
+		// The changes list, the three pieces' files, their one subfolder: no crawl of the archive.
+		expect(after.requestCount).toBe(3);
+		expect(after.changes?.token).toBe('3');
+		expect(after.builtAt).not.toBe(before.builtAt);
+	});
+
+	it('leaves the index as it is when nothing in the archive changed', async () => {
+		const drive = changingDrive(tree());
+		const before = await buildDriveIndex(drive.client, tracked);
+		drive.put(file('elsewhere', 'Steuer.pdf', 'some-other-folder'));
+		const after = await updateDriveIndex(drive.client, before, tracked);
+		expect(after.requestCount).toBe(1);
+		expect(after.pieces).toBe(before.pieces);
+		// The catalog is kept by builtAt: unchanged, it isn't parsed again.
+		expect(after.builtAt).toBe(before.builtAt);
+		expect(after.changes?.token).toBe('1');
+	});
+
+	it('reads the folders again when a piece is added, and keeps the files of the others', async () => {
+		const drive = changingDrive(tree());
+		const before = await buildDriveIndex(drive.client, tracked);
+		drive.put(folder('p-new', 'Neues Stück', 'c-xmas'));
+		drive.put(file('f5', 'Neues Stück - Partitur.pdf', 'p-new'));
+		drive.paths.length = 0;
+
+		const after = await updateDriveIndex(drive.client, before, tracked);
+		expect(after.pieces.find((p) => p.folderId === 'p-new')).toMatchObject({ category: 'Weihnachtsstücke' });
+		expect(names(after, 'p-new')).toEqual(['Neues Stück - Partitur.pdf']);
+		expect(names(after, 'p-bach')).toEqual(['BWV 147 - Geige I.pdf']);
+		// Files were listed for the new piece only, not for Bach or Fame again.
+		const listings = drive.paths.filter((path) => path.endsWith('/files')).length;
+		expect(listings).toBe(3); // archive, category, the new piece
+		expect(after.changes?.subfolders).toEqual({ 's-sections': 'p-sleigh' });
+	});
+
+	it('notices a piece folder that was renamed or removed', async () => {
+		const drive = changingDrive(tree());
+		const before = await buildDriveIndex(drive.client, tracked);
+		drive.put({ ...folder('p-fame', 'Fame (Musical)', 'archive') });
+		drive.remove('p-bach');
+		const after = await updateDriveIndex(drive.client, before, tracked);
+		expect(after.pieces.map((p) => p.name)).toEqual(['Fame (Musical)', 'Sleigh Ride']);
+		expect(names(after, 'p-fame')).toEqual(['Fame - Flöte.pdf']);
+	});
+
+	it('reads everything when Drive no longer knows the token', async () => {
+		const drive = changingDrive(tree());
+		const before = await buildDriveIndex(drive.client, tracked);
+		const after = await updateDriveIndex(drive.client, { ...before, changes: { ...before.changes!, token: '99' } }, tracked);
+		expect(after.changes?.token).toBe('0');
+		expect(after.pieces).toHaveLength(3);
+	});
+
+	it('reads everything once a day, and when the index has no token', async () => {
+		const drive = changingDrive(tree());
+		const before = await buildDriveIndex(drive.client, tracked);
+		const later = Date.parse(before.changes!.crawledAt) + FULL_CRAWL_MS;
+		drive.paths.length = 0;
+		await updateDriveIndex(drive.client, before, tracked, later);
+		expect(drive.paths.some((path) => path.endsWith('/startPageToken'))).toBe(true);
+
+		const { changes: _, ...untracked } = before;
+		const rebuilt = await updateDriveIndex(drive.client, untracked, tracked);
+		expect(rebuilt.changes?.token).toBe('0');
+	});
+
+	it('treats a change to the category or a programme as a change of layout', () => {
+		const index: DriveIndex = {
+			version: 3,
+			archiveFolderId: 'archive',
+			builtAt: '',
+			requestCount: 0,
+			programs: [],
+			categoryFiles: [],
+			pieces: [{ folderId: 'p-bach', name: 'Bach', files: [{ id: 'f1', name: 'x.pdf', mimeType: PDF }] }],
+			changes: { token: '0', crawledAt: '', categories: ['c-xmas'], programs: ['prog-a'], entries: ['s-bach'], subfolders: {} }
+		};
+		const classify = (change: DriveChange) => classifyChanges(index, [change]);
+		expect(classify({ fileId: 'plan', file: file('plan', 'Ablauf.pdf', 'c-xmas') }).structure).toBe(true);
+		// A loose file in the archive or a programme isn't indexed.
+		expect(classify({ fileId: 'loose', file: file('loose', 'Notiz.pdf', 'archive') }).structure).toBe(false);
+		// A programme's shortcut, removed for good: known by its own id.
+		expect(classify({ fileId: 's-bach', removed: true }).structure).toBe(true);
+		expect(classify({ fileId: 'f1', removed: true })).toEqual({ structure: false, pieces: new Set(['p-bach']) });
 	});
 });

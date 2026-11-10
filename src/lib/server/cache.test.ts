@@ -219,6 +219,23 @@ describe('cached, waitForRefresh (the cron job)', () => {
 		expect(result).toMatchObject({ value: 'new', source: 'fresh' });
 	});
 
+	it('hands the stale value to build, to update instead of starting over', async () => {
+		const kv = memoryKv();
+		kv.data.set('k', JSON.stringify({ storedAt: 0, value: 'old' }));
+		const build = vi.fn(async (previous?: string) => `${previous}+changes`);
+		const result = await cached({ key: 'k', maxAgeMs: 1000, build, kv, now: () => 5000, waitForRefresh: true });
+		expect(build).toHaveBeenCalledWith('old');
+		expect(result.value).toBe('old+changes');
+	});
+
+	it('hands the value from KV to a forced build too', async () => {
+		const kv = memoryKv();
+		kv.data.set('k', JSON.stringify({ storedAt: 4900, value: 'stored' }));
+		const build = vi.fn(async (previous?: string) => `${previous}+write`);
+		await cached({ key: 'k', maxAgeMs: 1000, build, kv, now: () => 5000, force: true });
+		expect(build).toHaveBeenCalledWith('stored');
+	});
+
 	it('leaves a fresh value alone', async () => {
 		const kv = memoryKv();
 		kv.data.set('k', JSON.stringify({ storedAt: 4500, value: 'fresh' }));
