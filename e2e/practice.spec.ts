@@ -157,10 +157,13 @@ test('a pen mark is saved and still there after reloading, only for its member',
 	await open(page, '/profil');
 	await expect(page.getByText('Notizen in deinen Noten')).toBeVisible();
 
-	// Someone else (the demo admin, who plays nothing) can't save marks in that part.
+	// Someone else (the demo admin, who plays nothing) may open the part and mark it, but never
+	// sees the member's marks; a file that isn't a part of the archive takes no marks at all.
 	const origin = new URL(page.url()).origin;
 	await page.request.post('/demo', { form: { rolle: 'verwaltung', weiter: '/' }, headers: { origin }, maxRedirects: 0 });
-	const refused = await page.request.put('/api/ueben/notizen', { data: { file: 'demo-egmont-9', page: 1, strokes: [] } });
+	const theirs = await page.request.get('/api/ueben/notizen?dateien=demo-egmont-9');
+	expect(await theirs.json()).toEqual({});
+	const refused = await page.request.put('/api/ueben/notizen', { data: { file: 'not-in-the-archive', page: 1, strokes: [] } });
 	expect(refused.status()).toBe(404);
 });
 
