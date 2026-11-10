@@ -1904,6 +1904,7 @@ export const de = {
 			done: 'Fertig',
 			saving: 'Speichert …',
 			saved: 'Gespeichert',
+			queued: 'Auf dem Gerät gespeichert, wird gesendet, sobald du wieder online bist.',
 			failed: (status: string) => (status ? `Nicht gespeichert (Fehler ${status}).` : 'Nicht gespeichert. Bitte die Verbindung prüfen.'),
 			private: 'Nur du siehst deine Notizen.',
 			symbolsTitle: 'Zeichen',

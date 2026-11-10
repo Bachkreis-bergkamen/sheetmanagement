@@ -7,7 +7,9 @@ import { self as sw } from '$app/service-worker';
  * the cache; pages are fetched fresh and kept, so the last version of every page a member
  * opened still shows without a connection. The music table, every piece's page and "Meine Noten"
  * are kept ahead of time, once a day, so they open offline without having been opened. Parts
- * saved on "Meine Noten" or a piece page are kept too. Signing out deletes everything personal.
+ * saved on "Meine Noten" or a piece page are kept too, and the member's parts for their next two
+ * concerts on their own, each with the viewer's page. Pen marks drawn offline wait in MARKS
+ * (src/lib/offline/marks.ts). Signing out deletes everything personal.
  * It also shows reminders (#157).
  */
 
@@ -19,6 +21,10 @@ const LIBRARY = 'library-v1';
 /** Part PDFs saved on "Meine Noten" or a piece page; the header holds piece and label (src/lib/offline/parts.svelte.ts). */
 const NOTEN = 'noten-v1';
 const META = 'x-offline-part';
+/** Pen marks as last drawn on this device, and those still to be sent (src/lib/offline/marks.ts). */
+const MARKS = 'marks-v1';
+/** Parts kept ahead of time that the member took off the device (src/lib/offline/parts.svelte.ts). */
+const DECLINED = '/__offline-declined';
 const MAX_PAGES = 80;
 /** When the library was last kept, and by which version: page data changes shape between versions. */
 const WARMED = '/__offline-warmed';
@@ -51,7 +57,16 @@ sw.addEventListener('message', (event) => {
 /** The page a path belongs to: "/stuecke/x/__data.json" → "/stuecke/x". */
 const pageOf = (path: string) => (path.endsWith('/__data.json') ? path.slice(0, -'/__data.json'.length) || '/' : path);
 /** Pages kept in LIBRARY instead of the trimmed page cache. */
-const kept = (page: string) => page === '/' || page === '/meine-noten' || page === '/stuecke' || /^\/stuecke\/[^/]+$/.test(page);
+const VIEWER = /^\/ueben\/([^/]+)$/;
+const kept = (page: string) => page === '/' || page === '/meine-noten' || page === '/stuecke' || /^\/stuecke\/[^/]+$/.test(page) || VIEWER.test(page);
+/** Whether a saved part was kept by the worker for an upcoming concert, not saved by the member. */
+function autoKept(response: Response | undefined) {
+	try {
+		return JSON.parse(decodeURIComponent(response?.headers.get(META) ?? '{}')).auto === true;
+	} catch {
+		return false;
+	}
+}
 const keepable = (response: Response) =>
 	response.ok && !response.redirected && !/no-store/i.test(response.headers.get('cache-control') ?? '');
 
@@ -68,25 +83,62 @@ function warm() {
 		if (stamp === version && Date.now() - Number(at) < DAY) return;
 		const response = await fetch('/api/offline');
 		if (!response.ok) return;
-		const { pieces } = (await response.json()) as { pieces: string[] };
-		const piecePages = pieces.map((id) => `/stuecke/${encodeURIComponent(id)}`);
-		const paths = ['/', '/stuecke', '/meine-noten', ...piecePages];
-		let next = 0;
-		let failed = 0;
-		const worker = async () => {
-			while (next < paths.length) {
-				const path = paths[next++];
-				const page = await fetch(path, { headers: { accept: 'text/html' } }).catch(() => null);
-				if (page && keepable(page)) await cache.put(sw.location.origin + path, page);
-				else failed++;
-			}
+		const { pieces, parts = [] } = (await response.json()) as {
+			pieces: string[];
+			parts?: { id: string; label: string; piece: string; pieceId: string; glyph?: string }[];
 		};
-		await Promise.all([worker(), worker(), worker()]);
-		// Pieces no longer in the archive go.
+		const piecePages = pieces.map((id) => `/stuecke/${encodeURIComponent(id)}`);
+		let failed = 0;
+		const each = async <T>(items: T[], work: (item: T) => Promise<void>) => {
+			let next = 0;
+			const worker = async () => {
+				while (next < items.length) await work(items[next++]);
+			};
+			await Promise.all([worker(), worker(), worker()]);
+		};
+		await each(['/', '/stuecke', '/meine-noten', ...piecePages], async (path) => {
+			const page = await fetch(path, { headers: { accept: 'text/html' } }).catch(() => null);
+			if (page && keepable(page)) await cache.put(sw.location.origin + path, page);
+			else failed++;
+		});
+
+		// The member's parts for their next two concerts, unless they took one off; a copy already
+		// kept stays as it is (opening it online refreshes it).
+		const noten = await caches.open(NOTEN);
+		const declined = new Set(((await (await cache.match(DECLINED))?.json().catch(() => [])) ?? []) as string[]);
+		const upcoming = parts.filter((part) => !declined.has(part.id));
+		await each(upcoming, async (part) => {
+			const path = `/api/noten/${encodeURIComponent(part.id)}`;
+			if (await noten.match(path)) return;
+			const pdf = await fetch(path).catch(() => null);
+			if (!pdf?.ok) return void failed++;
+			const headers = new Headers(pdf.headers);
+			headers.set(META, encodeURIComponent(JSON.stringify({ label: part.label, piece: part.piece, pieceId: part.pieceId, glyph: part.glyph, auto: true })));
+			await noten.put(path, new Response(await pdf.blob(), { headers }));
+		});
+		// Kept ahead of time for a concert that's over (or a part no longer theirs): it goes.
+		const wantedParts = new Set(upcoming.map((part) => part.id));
+		const savedIds = new Set<string>();
+		for (const request of await noten.keys()) {
+			const id = decodeURIComponent(new URL(request.url).pathname.slice('/api/noten/'.length));
+			if (!wantedParts.has(id) && autoKept(await noten.match(request))) await noten.delete(request);
+			else savedIds.add(id);
+		}
+		// The viewer's page for every part on the device, so it opens there offline too. A part
+		// the viewer doesn't open (it sends the browser elsewhere) is left out, not retried.
+		await each([...savedIds], async (id) => {
+			const path = `/ueben/${encodeURIComponent(id)}`;
+			const page = await fetch(path, { headers: { accept: 'text/html' }, redirect: 'manual' }).catch(() => null);
+			if (page && keepable(page)) await cache.put(sw.location.origin + path, page);
+		});
+
+		// Pieces no longer in the archive go, and the viewer's pages of parts no longer on the device.
 		const wanted = new Set(piecePages);
 		for (const request of await cache.keys()) {
 			const page = pageOf(new URL(request.url).pathname);
 			if (/^\/stuecke\/[^/]+$/.test(page) && !wanted.has(page)) await cache.delete(request);
+			const viewer = VIEWER.exec(page);
+			if (viewer && !savedIds.has(decodeURIComponent(viewer[1]))) await cache.delete(request);
 		}
 		if (!failed) await cache.put(WARMED, new Response(`${version} ${Date.now()}`));
 	})()
@@ -140,7 +192,7 @@ sw.addEventListener('fetch', (event) => {
 	// Signing out: nothing personal stays on the device, and it gets no more reminders. The
 	// device is taken off first, while the member is still signed in.
 	if (request.method === 'POST' && url.pathname === '/auth/logout') {
-		event.waitUntil(Promise.all([caches.delete(PAGES), caches.delete(LIBRARY), caches.delete(NOTEN)]));
+		event.waitUntil(Promise.all([caches.delete(PAGES), caches.delete(LIBRARY), caches.delete(NOTEN), caches.delete(MARKS)]));
 		event.respondWith(
 			(async () => {
 				const subscription = await sw.registration.pushManager?.getSubscription().catch(() => null);

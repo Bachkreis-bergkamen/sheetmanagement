@@ -110,7 +110,7 @@
 <Title title={t.practice.viewer.title(data.part, data.piece.title)} />
 
 <div class="head">
-	<a class="back" href="/meine-noten"><Icon name="back" size={16} />{t.practice.viewer.back}</a>
+	<a class="back" href={data.own ? '/meine-noten' : `/stuecke/${encodeURIComponent(data.piece.id)}`}><Icon name="back" size={16} />{data.own ? t.practice.viewer.back : data.piece.title}</a>
 	<div class="what">
 		<strong>{data.part}</strong>
 		<span>{data.piece.title}{data.piece.composer ? ` · ${data.piece.composer}` : ''}</span>
@@ -124,7 +124,7 @@
 				<span>{t.practice.viewer[status]}</span>
 			{/if}
 		</p>
-	{:else}
+	{:else if data.own}
 		<p class="clock off"><Icon name="clock" size={16} /><span>{t.practice.viewer.notCounting} <a href="/profil#probenzeit">{t.practice.viewer.turnOn}</a></span></p>
 	{/if}
 </div>
@@ -158,7 +158,7 @@
 	{/if}
 {/snippet}
 
-<PracticeScore file={data.file} marks={data.marks} offers={data.offers} sharedAt={data.sharedAt} {tools} panel={toolPanel} />
+<PracticeScore file={data.file} marks={data.marks} offers={data.offers} sharedAt={data.sharedAt} share={data.own} {tools} panel={toolPanel} />
 
 <p class="elsewhere"><a href={data.elsewhere} target="_blank" rel="noopener noreferrer"><Icon name="external" size={14} />{t.practice.viewer.elsewhere}</a></p>
 

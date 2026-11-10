@@ -6,7 +6,7 @@ import { FILE_ORIGINS, partUrl, getCatalog } from '#lib/server/catalog.ts';
 import { getStore } from '#lib/server/db/index.ts';
 import { getLibrary } from '#lib/server/library.ts';
 import { today } from '#lib/server/members.ts';
-import { offersFor, ownPart } from '#lib/server/practice.ts';
+import { archivePart, offersFor, ownPart } from '#lib/server/practice.ts';
 import { getAccessList, getMusicConfig } from '#lib/server/repertoire.ts';
 import type { PageServerLoad } from './$types';
 
@@ -16,8 +16,9 @@ const PDF = 'application/pdf';
  * The practice viewer: a part of the member's own instrument, drawn in the app page by page,
  * with the piece's recording, a metronome, a tuner and the member's own pen marks, and what others
  * in their section offer of theirs. With practice
- * time on, the time it's open counts. Another instrument's part, or sign-in off, opens where
- * "Meine Noten" would open it.
+ * time on, the time it's open counts. Any other PDF of the archive opens here too, with the pen
+ * but without practice time and sharing; only sign-in off (the app is public then, and the PDFs
+ * stay behind Drive's sharing) opens it where "Meine Noten" would.
  */
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const elsewhere = () => redirect(303, partUrl(params.id, PDF, locals.access.viaLink), { external: FILE_ORIGINS });
@@ -34,14 +35,15 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	]);
 	if (!catalog.ok) error(503, t.messages.archiveUnavailable);
 	const member = access?.membersByEmail.get(email);
-	const found = member && ownPart(catalog.catalog, member.instrument ?? '', music, params.id);
+	const own = member ? ownPart(catalog.catalog, member.instrument ?? '', music, params.id) : null;
+	const found = own ?? (member ? archivePart(catalog.catalog, params.id) : null);
 	if (!found) elsewhere();
 	const day = today();
 	const [days, marks, offers, shared] = await Promise.all([
-		on ? store.practiceOf(email) : [],
+		on && own ? store.practiceOf(email) : [],
 		store.marksOf(email, params.id).catch(() => []),
-		offersFor(email, params.id).catch(() => []),
-		store.shareOf(email, params.id).catch(() => null)
+		own ? offersFor(email, params.id).catch(() => []) : [],
+		own ? store.shareOf(email, params.id).catch(() => null) : null
 	]);
 	const recording = library.piecesById.get(found!.piece.id)?.sheet?.recording;
 	return {
@@ -49,8 +51,10 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		piece: { id: found!.piece.id, title: found!.piece.title, composer: found!.piece.composer },
 		part: found!.part.label,
 		elsewhere: partUrl(params.id, PDF, locals.access.viaLink),
-		// Counted only with practice time on (/profil).
-		counting: on,
+		// Their own part: practice time and sharing with the section; any other part is only read (and marked).
+		own: !!own,
+		// Counted only with practice time on (/profil), and only in their own parts.
+		counting: on && !!own,
 		todaySeconds: days.find((entry) => entry.day === day)?.seconds ?? 0,
 		recording: recording ? { url: recording, youtube: youtubeId(recording) } : null,
 		marks: Object.fromEntries(marks.map((page) => [page.page, page.strokes])),

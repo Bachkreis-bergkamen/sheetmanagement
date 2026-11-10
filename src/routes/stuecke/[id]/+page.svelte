@@ -337,8 +337,8 @@
 						class:with-keep={canKeep(part)}
 						class:missing={part.status === 'missing'}
 						href={part.status === 'missing' ? undefined : part.url}
-						target={part.status === 'missing' ? undefined : '_blank'}
-						rel={part.status === 'missing' ? undefined : 'noopener noreferrer'}
+						target={part.status === 'missing' || part.url.startsWith('/ueben/') ? undefined : '_blank'}
+						rel={part.status === 'missing' || part.url.startsWith('/ueben/') ? undefined : 'noopener noreferrer'}
 						title={part.fileName}
 						onclick={part.status === 'missing' ? undefined : (event: MouseEvent) => openKept(event, part)}
 					>

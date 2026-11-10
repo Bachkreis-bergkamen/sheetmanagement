@@ -170,7 +170,11 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 			status: piece.status,
 			folderUrl: detail ? folderUrl(detail.id) : undefined,
 			recording: sheet?.recording,
-			parts: (detail?.parts ?? []).map((part) => ({ ...part, url: partUrl(part.id, part.mimeType, locals.access.viaLink) })),
+			// Every PDF opens in the app's viewer for members; Drive only for other files and with sign-in off.
+			parts: (detail?.parts ?? []).map((part) => ({
+				...part,
+				url: viewer && part.mimeType === 'application/pdf' ? `/ueben/${encodeURIComponent(part.id)}` : partUrl(part.id, part.mimeType, locals.access.viaLink)
+			})),
 			sections: (detail?.sections ?? []).map((section) => ({ ...section, folderUrl: folderUrl(section.folderId) })),
 			// The Besetzung as a seating plan, and what of it has no part (#249).
 			// The conductor's score is always needed: present unless no file is there (#249).
