@@ -2,6 +2,7 @@
 	import { t } from '#lib/i18n/index.ts';
 	import type { OpenScore } from '#lib/music/score-reader.ts';
 	import { MARK_COLORS, MARK_SYMBOLS, MAX_PAGE_POINTS, MAX_STROKES, markLines, onPage, pagePoints, shouldIgnoreTouch, strokePath, SYMBOL_SIZE, symbolLines, thinPoints, type MarkColor, type MarkSymbol, type Stroke } from '#lib/practice/marks.ts';
+	import { keepPage, keptPages, mergeMarks, sendPending } from '#lib/offline/marks.ts';
 	import { flushSync, type Snippet } from 'svelte';
 	import Icon from './Icon.svelte';
 
@@ -28,7 +29,8 @@
 		night = false,
 		extra,
 		offers = [],
-		sharedAt = null
+		sharedAt = null,
+		share: canShare = true
 	}: {
 		file: string;
 		marks: Record<number, Stroke[]>;
@@ -54,6 +56,8 @@
 		offers?: Offer[];
 		/** When the member last offered their own notes here to their section. */
 		sharedAt?: string | null;
+		/** Off for a part not of the member's instrument: nobody in their section plays it. */
+		share?: boolean;
 	} = $props();
 	type Offer = { id: string; from: string; pages: Record<number, Stroke[]> };
 
@@ -345,6 +349,31 @@
 	$effect.pre(() => {
 		marks = { ...saved };
 	});
+	// What this device drew and the server hasn't got (or, offline, a page kept days ago doesn't show).
+	$effect(() => {
+		const server = saved;
+		const part = file;
+		let stale = false;
+		keptPages(part).then((kept) => {
+			if (stale) return;
+			const merged = mergeMarks(server, kept, navigator.onLine);
+			const next = { ...marks };
+			// Pages drawn on since opening are newer than anything kept.
+			for (const [number, strokes] of Object.entries(merged)) if (!history.has(Number(number))) next[Number(number)] = strokes;
+			marks = next;
+		});
+		return () => (stale = true);
+	});
+	// Back online: what was drawn offline goes to the server.
+	$effect(() => {
+		const online = () =>
+			sendPending().then(() => {
+				if (saving === 'queued') saving = 'saved';
+			});
+		if (navigator.onLine) online();
+		addEventListener('online', online);
+		return () => removeEventListener('online', online);
+	});
 	let pen = $state(false);
 	let ink = $state<MarkColor>('graphite');
 	/** Drawing a line, erasing, or placing a symbol with each tap. */
@@ -352,7 +381,8 @@
 	let drawing = $state<Stroke | null>(null);
 	/** A mark that didn't fit on the page (MAX_PAGE_POINTS, MAX_STROKES) until something goes. */
 	let refused = $state(false);
-	let saving = $state<'idle' | 'saving' | 'saved' | 'failed'>('idle');
+	/** `queued`: drawn offline, kept on the device until it can be sent. */
+	let saving = $state<'idle' | 'saving' | 'saved' | 'queued' | 'failed'>('idle');
 	/** Why the last save failed: the HTTP status, or none when the device was offline. */
 	let failure = $state('');
 	const history = new Map<number, Stroke[][]>();
@@ -385,20 +415,26 @@
 
 	async function save(number: number, keepalive = false) {
 		timers.delete(number);
+		const strokes = marks[number] ?? [];
 		try {
 			const response = await fetch('/api/ueben/notizen', {
 				method: 'PUT',
 				headers: { 'content-type': 'application/json' },
-				body: JSON.stringify({ file, page: number, strokes: marks[number] ?? [] }),
+				body: JSON.stringify({ file, page: number, strokes }),
 				keepalive
 			});
 			if (!response.ok) {
 				failure = String(response.status);
 				saving = 'failed';
-			} else if (!timers.size && saving !== 'failed') saving = 'saved';
+			} else {
+				await keepPage(file, number, strokes, false);
+				if (!timers.size && saving !== 'failed' && saving !== 'queued') saving = 'saved';
+			}
 		} catch {
+			// No connection: kept on the device and sent once it's back.
+			await keepPage(file, number, strokes, true);
 			failure = '';
-			saving = 'failed';
+			saving = 'queued';
 		}
 	}
 
@@ -811,9 +847,11 @@
 			<div class="group">
 				<button type="button" class="tool text" onclick={undo}>{t.practice.marks.undo}</button>
 				<button type="button" class="tool text" onclick={clear} disabled={!current.length}>{t.practice.marks.clear}</button>
-				<button type="button" class="tool text" class:on={!!shared} aria-pressed={!!shared} onclick={() => (shared ? unshare() : share())}>
-					<Icon name="users" size={15} />{shared ? t.practice.share.unshare : t.practice.share.share}
-				</button>
+				{#if canShare}
+					<button type="button" class="tool text" class:on={!!shared} aria-pressed={!!shared} onclick={() => (shared ? unshare() : share())}>
+						<Icon name="users" size={15} />{shared ? t.practice.share.unshare : t.practice.share.share}
+					</button>
+				{/if}
 				<span class="state" class:failed={saving === 'failed' || refused} role="status">
 					{refused
 						? t.practice.marks.pageFull
@@ -821,6 +859,8 @@
 							? t.practice.marks.saving
 							: saving === 'failed'
 								? t.practice.marks.failed(failure)
+								: saving === 'queued'
+									? t.practice.marks.queued
 								: fullness > 0.8
 									? t.practice.marks.nearlyFull
 									: saving === 'saved'

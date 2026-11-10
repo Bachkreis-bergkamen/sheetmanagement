@@ -2020,6 +2020,7 @@ export const en: Texts = {
 			done: 'Done',
 			saving: 'Saving …',
 			saved: 'Saved',
+			queued: "Saved on this device; it's sent as soon as you're back online.",
 			failed: (status: string) => (status ? `Not saved (error ${status}).` : 'Not saved. Please check the connection.'),
 			private: 'Only you can see your notes.',
 			symbolsTitle: 'Symbols',

@@ -9,7 +9,8 @@ import { partGlyph } from '#lib/music/instrument-glyph.ts';
 import type { Part } from '#lib/music/types.ts';
 import { partUrl } from '#lib/server/catalog.ts';
 import { plannedInProgramOrder, programPositions } from '#lib/rehearsals/plan.ts';
-import { getLibrary, isPastConcert, namedItem, orchestraOf, type Library, type LibraryConcert, type ProgramItem } from '#lib/server/library.ts';
+import { getLibrary, namedItem, orchestraOf, type Library, type LibraryConcert, type ProgramItem } from '#lib/server/library.ts';
+import { pickConcerts, programFor } from '#lib/server/my-concerts.ts';
 import { getAccessList, getMusicConfig, getPartAssignments, getPieceNotes, getRehearsalPlan } from '#lib/server/repertoire.ts';
 import { choicesAt } from '#lib/music/part-assignments.ts';
 import { appliesTo, forConcert, notesOf } from '#lib/notes/piece-notes.ts';
@@ -34,27 +35,6 @@ const shown = (part: Part, viaLink?: boolean, viewer = false) => ({
 	pdf: part.mimeType === PDF,
 	glyph: partGlyph(part)
 });
-
-/** What the member plays of a concert: with several orchestras, only their own orchestras' programmes. */
-function programFor(concert: LibraryConcert | undefined, member: Member | undefined): ProgramItem[] {
-	const program = concert?.program ?? [];
-	return member && (concert?.orchestras.length ?? 0) > 1 ? program.filter((item) => playsIn(member, item.orchestra)) : program;
-}
-
-/**
- * The concerts to show, one below the other: every upcoming one of the member's orchestras,
- * soonest first, and one asked for in the URL on top. `focus` is where the page starts: the
- * one asked for, else the next one with a programme.
- */
-function pickConcerts(concerts: LibraryConcert[], today: string, wanted: string | null, member: Member | undefined) {
-	const upcoming = concerts
-		.filter((concert) => !isPastConcert(concert, today) && (!member || playsIn(member, concert.orchestra)))
-		.reverse();
-	const asked = wanted ? concerts.find((c) => c.id === wanted) : undefined;
-	const shown = asked && !upcoming.includes(asked) ? [asked, ...upcoming] : upcoming;
-	const focus = asked ?? upcoming.find((c) => programFor(c, member).length) ?? upcoming[0];
-	return { shown, focus };
-}
 
 /**
  * One rehearsal asked for in the URL (#115): the pieces planned for it, in the programme's

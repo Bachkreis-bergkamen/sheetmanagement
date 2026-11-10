@@ -2,7 +2,7 @@
 	import { page as app } from '$app/state';
 	import { t } from '#lib/i18n/index.ts';
 	import { mergedFileName } from '#lib/music/my-parts.ts';
-	import { offlineParts, pdfPath } from '#lib/offline/parts.svelte.ts';
+	import { offlineParts } from '#lib/offline/parts.svelte.ts';
 	import type { Stroke } from '#lib/practice/marks.ts';
 	import type { PageData } from '../../routes/meine-noten/$types';
 	import ConcertMode from './ConcertMode.svelte';
@@ -101,8 +101,11 @@
 
 	const removeOffline = () => offlineParts.remove(files.map((file) => file.id));
 
-	/** Online the usual place (Drive); offline the saved copy, if there is one. */
-	const partHref = (part: { id: string; url: string }) => (!online && offlineParts.has(part.id) ? pdfPath(part.id) : part.url);
+	/** Online the usual place (the viewer); offline the kept copy, in the viewer when its page is kept too. */
+	const partHref = (part: { id: string; url: string }) => (!online && offlineParts.has(part.id) ? offlineParts.offlineHref(part.id) : part.url);
+
+	/** The practice viewer is a page of the app: it opens in place, not in a new tab or window. */
+	const inApp = (href: string) => href.startsWith('/ueben/');
 
 	/** The member's notes in these parts, by file and page; none when they can't be loaded. */
 	async function ownMarks(ids: string[]): Promise<Record<string, Record<number, Stroke[]>>> {
@@ -258,8 +261,8 @@
 														class:problem={part.status !== 'ok'}
 														class:missing={part.status === 'missing'}
 														href={part.status === 'missing' ? undefined : partHref(part)}
-														target={part.status === 'missing' ? undefined : '_blank'}
-														rel={part.status === 'missing' ? undefined : 'noopener noreferrer'}
+														target={part.status === 'missing' || inApp(partHref(part)) ? undefined : '_blank'}
+														rel={part.status === 'missing' || inApp(partHref(part)) ? undefined : 'noopener noreferrer'}
 													>
 														<InstrumentGlyph glyph={part.glyph} size={18} />
 														<span>{part.status === 'missing' ? part.label : t.myParts.open(part.label)}</span>

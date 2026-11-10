@@ -36,7 +36,10 @@
 		if (matchMedia('(prefers-reduced-motion: reduce)').matches) set(next);
 		else if (document.startViewTransition) {
 			root.classList.add('theme-switch');
-			document.startViewTransition(() => set(next)).finished.finally(() => root.classList.remove('theme-switch'));
+			const transition = document.startViewTransition(() => set(next));
+			// An aborted transition (tab hidden meanwhile) rejects `ready`; the theme is set regardless.
+			transition.ready.catch(() => {});
+			transition.finished.catch(() => {}).finally(() => root.classList.remove('theme-switch'));
 		} else {
 			root.classList.add('theme-fade');
 			set(next);

@@ -14,6 +14,15 @@ import { getAccessList, getMusicConfig } from './repertoire.ts';
 
 const PDF = 'application/pdf';
 
+/** Any PDF part of the archive, with its piece: what the viewer opens besides the member's own parts. */
+export function archivePart(catalog: Catalog, fileId: string): { piece: PieceDetail; part: Part } | null {
+	for (const piece of catalog.pieces) {
+		const part = piece.parts.find((p) => p.id === fileId && p.mimeType === PDF);
+		if (part) return { piece, part };
+	}
+	return null;
+}
+
 /**
  * A PDF of the member's own instrument, as "Meine Noten" lists it (their own parts and the
  * shared ones they may play from), with its piece; null for any other file. Only these count as
