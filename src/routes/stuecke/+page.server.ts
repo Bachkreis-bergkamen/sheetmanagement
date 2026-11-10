@@ -62,7 +62,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const coming = new Set(library.concerts.filter((concert) => !isPastConcert(concert, library.today)).flatMap((concert) => concert.program.map((item) => item.pieceId)));
 
 	// Only what the list shows; of the parts just their instruments, for the search.
-	const pieces: ListedPiece[] = library.pieces.map(({ id, title, composer, catalogue, category, programs, partCount, status, search, sheet }) => ({
+	const pieces: ListedPiece[] = library.pieces.map(({ id, title, composer, catalogue, category, programs, partCount, status, noScore, search, sheet }) => ({
 		id,
 		title,
 		composer,
@@ -71,6 +71,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		programs,
 		partCount,
 		status,
+		...(noScore ? { noScore } : {}),
 		search,
 		recording: !!sheet?.recording,
 		instruments: findables.get(id)?.instruments ?? [],

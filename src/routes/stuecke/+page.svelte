@@ -72,7 +72,7 @@
 				key: 'state',
 				label: t.pieces.filterGroups.state,
 				options: some([
-					option(NEEDS_WORK, t.pieces.needsWork, (piece) => piece.status !== 'ok' && piece.status !== 'none'),
+					option(NEEDS_WORK, t.pieces.needsWork, (piece) => (piece.status !== 'ok' && piece.status !== 'none') || !!piece.noScore),
 					option('zustand:ohne', t.pieces.noMusic, (piece) => piece.status === 'none'),
 					option('zustand:hoerbeispiel', t.pieces.withRecording, (piece) => piece.recording)
 				])
@@ -244,6 +244,7 @@
 									{#if piece.status !== 'ok'}
 										<span class="status {piece.status}">{t.pieces.status[piece.status]}</span>
 									{/if}
+									{#if piece.noScore}<span class="status missing">{t.pieces.noScore}</span>{/if}
 									{#if piece.status !== 'none'}<span class="parts">{t.pieces.parts(piece.partCount)}</span>{/if}
 									<span class="chevron"><Icon name="chevron" size={16} /></span>
 								</span>

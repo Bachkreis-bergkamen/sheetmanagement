@@ -5,10 +5,12 @@ const SMALL_PERCUSSION = [
 	'Triangel', 'Tomtoms', 'Konzerttoms', 'Rototoms', 'Bongos', 'Congas', 'Djembe', 'Kuhglocke', 'Amboss', 'Claves', 'Holzblock', 'Tempelblocks',
 	'Güiro', 'Maracas', 'Shaker', 'Regenmacher', 'Ratsche', 'Peitsche', 'Vibraslap', 'Flexaton', 'Schellen', 'Windspiel', 'Mark Tree'
 ];
+/** What a mallet part ("Mallet Percussion: Xylophon & Marimba") may hold. */
+const MALLETS = ['Glockenspiel', 'Xylophon', 'Marimba', 'Vibraphon'];
 /** What a generic percussion part ("Percussion I: Triangel & Becken") may hold. */
 const PERCUSSION_PARTS = [
 	'Kleine Trommel', 'Trommel', 'Große Trommel', 'Becken', ...CYMBALS, 'Tamburin', 'Tamtam', ...SMALL_PERCUSSION,
-	'Glockenspiel', 'Xylophon', 'Marimba', 'Vibraphon', 'Mallet Percussion'
+	...MALLETS, 'Mallet Percussion'
 ];
 
 /**
@@ -44,11 +46,12 @@ export const bachkreis: OrchestraConfig = {
 
 		{ name: 'Blockflöte', family: 'holz', aliases: ['Recorder', 'Recorders'] },
 		{ name: 'Tenor-Blockflöte', family: 'holz', aliases: ['Tenorblockflöte', 'Tenor Recorder'] },
-		{ name: 'Piccolo', family: 'holz', aliases: ['Piccoloflöte', 'Picc'] },
+		{ name: 'Piccolo', family: 'holz', common: true, aliases: ['Piccoloflöte', 'Picc'] },
 		{ name: 'Flöte', family: 'holz', common: true, aliases: ['Flöten', 'Querflöte', 'Floete', 'Flute', 'Flutes'] },
 		{ name: 'Oboe', family: 'holz', common: true, aliases: ['Oboen', 'Oboes'] },
 		{ name: 'Englischhorn', family: 'holz', aliases: ['English Horn', 'Cor Anglais'] },
 		{ name: 'Klarinette', family: 'holz', common: true, aliases: ['Klarinetten', 'Clarinet', 'Clarinets', 'Clarinette', 'Clarinettes', 'Clarinett', 'Calarinet', 'Clari'] },
+		{ name: 'Altklarinette', family: 'holz', aliases: ['Alto Clarinet', 'Alto Clarinets', 'Alt-Klarinette', 'Alt Klarinette', 'Alto Clari'] },
 		{ name: 'Bassklarinette', family: 'holz', aliases: ['Bass Clarinet', 'Bass Clari', 'Bass Klarinette'] },
 		{ name: 'Fagott', family: 'holz', common: true, aliases: ['Fagotte', 'Bassoon', 'Bassoons', 'Bassoonpdf', 'Basson', 'Bassons'] },
 		{ name: 'Sopran-Saxophon', family: 'holz', aliases: ['Sopransaxophon', 'Soprano Sax', 'Sopransax', 'Soprano Saxophone'] },
@@ -111,7 +114,9 @@ export const bachkreis: OrchestraConfig = {
 			name: 'Mallet Percussion',
 			family: 'schlagwerk',
 			aliases: ['Mallets', 'Mallet Perc', 'Stabspiele'],
-			variants: ['Röhrenglocken', 'Tubular Bells', 'Chimes', 'Crotales']
+			variants: ['Röhrenglocken', 'Tubular Bells', 'Chimes', 'Crotales'],
+			// A part for several players like Percussion: "Mallet Percussion I: Xylophon & Glockenspiel".
+			holds: MALLETS
 		},
 		{ name: 'Marimba', family: 'schlagwerk', aliases: ['Marimbaphon', 'Marimbafon', 'Marimbaphone'] },
 		{ name: 'Vibraphon', family: 'schlagwerk', aliases: ['Vibraphone', 'Vibrafon', 'Vibes', 'Vibraharp'] },
@@ -286,9 +291,9 @@ export const bachkreis: OrchestraConfig = {
 	sharedParts: {
 		'C-Stimmen': ['Flöte', 'Piccolo', 'Blockflöte', 'Oboe', 'Geige', 'Klavier', 'Synthesizer', 'Glockenspiel'],
 		'B-Stimmen': ['Klarinette', 'Trompete', 'Sopran-Saxophon', 'Tenor-Saxophon'],
-		'Es-Stimmen': ['Alt-Saxophon', 'Bariton-Saxophon'],
+		'Es-Stimmen': ['Alt-Saxophon', 'Bariton-Saxophon', 'Altklarinette'],
 		'F-Stimmen': ['Horn', 'Englischhorn'],
-		Holz: ['Flöte', 'Piccolo', 'Oboe', 'Englischhorn', 'Klarinette', 'Bassklarinette', 'Fagott'],
+		Holz: ['Flöte', 'Piccolo', 'Oboe', 'Englischhorn', 'Klarinette', 'Altklarinette', 'Bassklarinette', 'Fagott'],
 		Blech: ['Horn', 'Trompete', 'Posaune', 'Bassposaune', 'Bariton', 'Tuba'],
 		Saxophon: ['Sopran-Saxophon', 'Alt-Saxophon', 'Tenor-Saxophon', 'Bariton-Saxophon'],
 		Percussion: ['Schlagwerk', 'Pauke', 'Glockenspiel', 'Xylophon', 'Becken', 'Große Trommel', 'Trommel', 'Tamburin', 'Tamtam'],

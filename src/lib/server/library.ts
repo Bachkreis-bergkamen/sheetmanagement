@@ -1,7 +1,9 @@
 import { accessFor, normalizeEmail, seesDate, type Access } from '#lib/access/access.ts';
 import { config } from '#lib/config/index.ts';
 import type { ShownEvent } from '#lib/events/schedule.ts';
+import type { OrchestraConfig } from '#lib/config/index.ts';
 import type { Catalog } from '#lib/music/catalog.ts';
+import { unscoredVoices } from '#lib/music/instrumentation.ts';
 import { searchText } from '#lib/music/text.ts';
 import type { PieceDetail, PieceStatus, PieceSummary } from '#lib/music/types.ts';
 import { eventDay, formatFuzzyDate, fuzzyDateKey, parseFuzzyDate, type FuzzyDate, type FuzzyDateLabel } from '#lib/repertoire/dates.ts';
@@ -10,7 +12,7 @@ import type { ReportPiece } from '#lib/repertoire/music-report.ts';
 import { eventOrchestra, isJoint, playedBy, sameOrchestra } from '#lib/repertoire/orchestras.ts';
 import { normalize, type SheetConcert, type SheetPiece } from '#lib/repertoire/sheet.ts';
 import { getCatalog } from './catalog.ts';
-import { getAccessList, getRepertoire, type RepertoireResult } from './repertoire.ts';
+import { getAccessList, getMusicConfig, getRepertoire, type RepertoireResult } from './repertoire.ts';
 import { getSchedule, type ScheduleResult } from './schedule.ts';
 
 export interface LibraryPiece extends PieceSummary {
@@ -98,18 +100,19 @@ const libraryDay = (now: number) => eventDay({ start: new Date(now).toISOString(
  * cached sources are the same, against Error 1102.
  */
 export async function getLibrary(now = Date.now()): Promise<Library> {
-	const [catalog, schedule, repertoire] = await Promise.all([getCatalog(), getSchedule(now), getRepertoire()]);
+	const [catalog, schedule, repertoire, music] = await Promise.all([getCatalog(), getSchedule(now), getRepertoire(), getMusicConfig()]);
 	const sources = [
 		catalog.ok ? catalog.catalog : catalog.reason,
 		schedule.ok ? schedule.snapshot : schedule.reason,
 		repertoire.ok ? repertoire.repertoire : repertoire.reason,
-		repertoire.ok ? repertoire.links : undefined
+		repertoire.ok ? repertoire.links : undefined,
+		music.sharedParts
 	];
 	// The library only depends on the time through its day ("past", "in 3 Tagen"), so it is kept
 	// for the whole day while the sources stay the same, not rebuilt every minute.
 	const today = libraryDay(now);
 	if (memo && memo.today === today && sources.every((source, i) => source === memo!.sources[i])) return memo.library;
-	const library = buildLibrary(now, catalog, schedule, repertoire);
+	const library = buildLibrary(now, catalog, schedule, repertoire, music);
 	memo = { today, sources, library };
 	return library;
 }
@@ -118,7 +121,8 @@ function buildLibrary(
 	now: number,
 	catalog: Awaited<ReturnType<typeof getCatalog>>,
 	schedule: ScheduleResult,
-	repertoire: RepertoireResult
+	repertoire: RepertoireResult,
+	music: OrchestraConfig
 ): Library {
 	const today = libraryDay(now);
 	const sheet = repertoire.ok ? repertoire.repertoire : undefined;
@@ -135,6 +139,7 @@ function buildLibrary(
 		const catalogue = row?.catalogue ?? detail.catalogue;
 		pieces.push({
 			...summary(detail),
+			status: pieceStatus(detail, row?.instrumentation, music),
 			title,
 			composer,
 			catalogue,
@@ -246,8 +251,17 @@ function buildLibrary(
 	};
 }
 
-function summary({ id, title, composer, catalogue, category, programs, partCount, status, search }: PieceDetail): PieceSummary {
-	return { id, title, composer, catalogue, category, programs, partCount, status, search };
+function summary({ id, title, composer, catalogue, category, programs, partCount, status, noScore, search }: PieceDetail): PieceSummary {
+	return { id, title, composer, catalogue, category, programs, partCount, status, ...(noScore ? { noScore } : {}), search };
+}
+
+/**
+ * The status from the file names, and "Stimmen fehlen" too when the Besetzung names a voice
+ * without a part to play from (#249): it outranks pages missing inside a part.
+ */
+export function pieceStatus(detail: PieceDetail, instrumentation: string | undefined, music: OrchestraConfig): PieceStatus {
+	if (detail.status !== 'ok' && detail.status !== 'incomplete') return detail.status;
+	return unscoredVoices(detail, instrumentation, music).length ? 'missing' : detail.status;
 }
 
 function eventDate(event: ShownEvent): FuzzyDate {

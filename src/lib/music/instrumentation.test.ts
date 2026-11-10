@@ -24,6 +24,10 @@ describe('instrumentationFromScore', () => {
 		expect(instrumentationFromScore(['Egmont', 'Ouvertüre', 'Ludwig van Beethoven', 'Sostenuto ma non troppo'], config)).toBe('');
 	});
 
+	it('reads the alto clarinet apart from the clarinet', () => {
+		expect(instrumentationFromScore(['Clarinetto in B', 'Clarinetto alto in Es'], config)).toBe('Klarinette; Altklarinette');
+	});
+
 	it('leaves the score itself out', () => {
 		expect(instrumentationFromScore(['Partitur', 'Violin 1'], config)).toBe('Geige 1');
 	});
@@ -74,9 +78,32 @@ describe('missingVoices', () => {
 		expect(missingVoices(voices, [part('Percussion I - Triangel & Becken.pdf')], config).map(voiceText)).toEqual(['Chor: Sopran & Alt']);
 	});
 
+	it('reads Mallet Percussion as a collective part, like Percussion', () => {
+		const mallets = readInstrumentation('Mallet Percussion 1: Xylophon & Glockenspiel; Mallet Percussion 2: Marimba', config);
+		expect(mallets.map(voiceText)).toEqual(['Mallet Percussion 1: Xylophon & Glockenspiel', 'Mallet Percussion 2: Marimba']);
+		expect(missingVoices(mallets, [part('Mallet Percussion I - Xylophon & Glockenspiel.pdf')], config).map(voiceText)).toEqual(['Mallet Percussion 2: Marimba']);
+	});
+
+	it('keeps a soloist apart from the section, and finds the solo part', () => {
+		const concerto = readInstrumentation('Solo Geige; Geige 1 & 2; Solo Klavier', config);
+		expect(concerto.map(voiceText)).toEqual(['Solo Geige', 'Geige 1 & 2', 'Solo Klavier']);
+		const parts = [part('Geige I.pdf'), part('Geige II.pdf'), part('Klavier.pdf')];
+		// The violins' parts aren't the soloist's; the piano's only part is.
+		expect(missingVoices(concerto, parts, config).map(voiceText)).toEqual(['Solo Geige']);
+		expect(missingVoices(concerto, [...parts, part('@Geige.pdf')], config)).toEqual([]);
+	});
+
 	it('names only the clarinet whose part is missing', () => {
 		const clarinets = readInstrumentation('Klarinette 1 & 2', config);
 		expect(missingVoices(clarinets, [part('Klarinette in B 1.pdf')], config).map(voiceText)).toEqual(['Klarinette 2']);
+	});
+});
+
+describe('a soloist in the instrument picker', () => {
+	it('writes the soloist alone, or with the section that plays too', () => {
+		const picked = pickedVoices(readInstrumentation('Solo Geige; Geige 1 & 2; Solo Klavier; Solo Flöte; Flöte', config));
+		expect(picked.find((voice) => voice.instrument === 'Klavier')).toMatchObject({ solo: true, tutti: false });
+		expect(writeInstrumentation(scoredVoices(picked))).toBe('Solo Geige; Geige 1 & 2; Solo Klavier; Solo Flöte; Flöte');
 	});
 });
 

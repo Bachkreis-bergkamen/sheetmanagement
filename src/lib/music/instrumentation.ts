@@ -1,8 +1,8 @@
 import type { OrchestraConfig } from '#lib/config/index.ts';
 import { instrumentLabel } from './instrument-label.ts';
-import { matchParts, type InstrumentChoice } from './my-parts.ts';
+import { matchParts, playedParts, type InstrumentChoice } from './my-parts.ts';
 import { createInstrumentMatcher, parsePartName, type InstrumentMatcher } from './part-name.ts';
-import type { Part } from './types.ts';
+import type { Part, PieceDetail } from './types.ts';
 
 /**
  * A piece's Besetzung (#249): the instruments its score is written for, kept as text in the
@@ -18,6 +18,7 @@ import type { Part } from './types.ts';
 const SCORE_WORDS: [RegExp, string][] = (
 	[
 		['clarinett[oi] bass[oi]|clarinette basse|bass clarinets?', 'Bassklarinette'],
+		['clarinett[oi] (contr)?alt[oi]|clarinette alto|alto clarinets?', 'Altklarinette'],
 		['corno inglese|cor anglais|english horn', 'Englischhorn'],
 		['contrabbass[oi]|contrebasses?|double bass(es)?|contrabass(es)?', 'Kontrabass'],
 		['violoncell[oi]|violoncelles?|cellos?|celli', 'Violoncello'],
@@ -52,7 +53,12 @@ export interface ScoredVoice {
 	numbers: number[];
 	/** A generic part's instruments: "Percussion 1: Triangel & Becken". */
 	holds?: string[];
+	/** The soloist, out front: "Solo Geige" beside the section's "Geige 1 & 2". */
+	solo?: boolean;
 }
+
+/** The word for a soloist in the Besetzung, as in the part names ("Solo Geige"). */
+const SOLO = 'Solo';
 
 const matchers = new WeakMap<object, InstrumentMatcher>();
 function matcherFor(config: OrchestraConfig): InstrumentMatcher {
@@ -78,7 +84,8 @@ function voicesOf(label: string, config: OrchestraConfig): ScoredVoice[] {
 	if (parsed.kind === 'partitur') return [];
 	// "Percussion 1: Triangel & Becken" is one voice of the Besetzung, not three.
 	const holder = parsed.voices.find((voice) => voice.holds?.length);
-	return holder ? [holder] : parsed.voices;
+	const voices = holder ? [holder] : parsed.voices;
+	return parsed.kind === 'solo' ? voices.map((voice) => ({ ...voice, solo: true })) : voices;
 }
 
 /**
@@ -88,9 +95,10 @@ function voicesOf(label: string, config: OrchestraConfig): ScoredVoice[] {
  */
 function merge(voices: ScoredVoice[]): ScoredVoice[] {
 	const merged = new Map<string, ScoredVoice>();
-	for (const { instrument, numbers, holds } of voices) {
-		const key = holds?.length ? `${instrument}|${[...numbers].sort().join(',')}` : instrument;
-		const known = merged.get(key) ?? { instrument, numbers: [], ...(holds?.length ? { holds: [] } : {}) };
+	for (const { instrument, numbers, holds, solo } of voices) {
+		// The soloist stays apart from the section of the same instrument.
+		const key = (solo ? 'solo|' : '') + (holds?.length ? `${instrument}|${[...numbers].sort().join(',')}` : instrument);
+		const known = merged.get(key) ?? { instrument, numbers: [], ...(holds?.length ? { holds: [] } : {}), ...(solo ? { solo } : {}) };
 		for (const number of numbers) if (!known.numbers.includes(number)) known.numbers.push(number);
 		for (const held of holds ?? []) if (!known.holds!.includes(held)) known.holds!.push(held);
 		merged.set(key, known);
@@ -128,8 +136,9 @@ export function tidyRecognised(line: string): string {
 }
 
 /** "Flöte 1 & 2", with the deployment's label for the instrument. */
-export function voiceText({ instrument, numbers, holds }: ScoredVoice): string {
-	const text = numbers.length ? `${instrumentLabel(instrument)} ${numbers.join(' & ')}` : instrumentLabel(instrument);
+export function voiceText({ instrument, numbers, holds, solo }: ScoredVoice): string {
+	const name = solo ? `${SOLO} ${instrumentLabel(instrument)}` : instrumentLabel(instrument);
+	const text = numbers.length ? `${name} ${numbers.join(' & ')}` : name;
 	return holds?.length ? `${text}: ${holds.map(instrumentLabel).join(' & ')}` : text;
 }
 
@@ -141,31 +150,50 @@ export interface PickedVoice {
 	instrument: string;
 	numbers: number[];
 	held: Record<number, string[]>;
+	/** It has a soloist ("Solo Geige"). */
+	solo?: boolean;
+	/** With a soloist: the section plays too, also without numbers ("Solo Flöte; Flöte"). */
+	tutti?: boolean;
 }
 
 /** The Besetzung's voices as the picker shows them, one per instrument. */
 export function pickedVoices(voices: ScoredVoice[]): PickedVoice[] {
 	const picked = new Map<string, PickedVoice>();
-	for (const { instrument, numbers, holds } of voices) {
-		const voice = picked.get(instrument) ?? { instrument, numbers: [], held: {} };
+	for (const { instrument, numbers, holds, solo } of voices) {
+		const voice: PickedVoice = picked.get(instrument) ?? { instrument, numbers: [], held: {} };
+		if (solo) {
+			voice.solo = true;
+			picked.set(instrument, voice);
+			continue;
+		}
+		voice.tutti = true;
 		for (const number of numbers) if (!voice.numbers.includes(number)) voice.numbers.push(number);
 		if (holds?.length) for (const number of numbers.length ? numbers : [0]) voice.held[number] = [...new Set([...(voice.held[number] ?? []), ...holds])];
 		picked.set(instrument, voice);
 	}
-	return [...picked.values()].map((voice) => ({ ...voice, numbers: voice.numbers.sort((a, b) => a - b) }));
+	return [...picked.values()].map(({ tutti, ...voice }) => ({
+		...voice,
+		// Only a soloist needs to say whether the section plays too.
+		...(voice.solo ? { tutti: !!tutti } : {}),
+		numbers: voice.numbers.sort((a, b) => a - b)
+	}));
 }
 
 /** The picker's voices back as the Besetzung's: a generic part once per number that names instruments. */
 export function scoredVoices(picked: PickedVoice[]): ScoredVoice[] {
-	return picked.flatMap(({ instrument, numbers, held }) => {
+	return picked.flatMap(({ instrument, numbers, held, solo, tutti }): ScoredVoice[] => {
+		const soloist: ScoredVoice[] = solo ? [{ instrument, numbers: [], solo: true }] : [];
+		// A soloist alone ("Solo Klavier") unless the section has parts or is said to play.
+		if (solo && !tutti && !numbers.length && !held[0]?.length) return soloist;
 		const keys = numbers.length ? numbers : [0];
 		const naming = keys.filter((number) => held[number]?.length);
-		if (!naming.length) return [{ instrument, numbers: [...numbers] }];
+		if (!naming.length) return [...soloist, { instrument, numbers: [...numbers] }];
 		const plain = keys.filter((number) => !naming.includes(number) && number > 0);
-		return [
+		return ([
+			...soloist,
 			...naming.map((number) => ({ instrument, numbers: number ? [number] : [], holds: [...held[number]] })),
 			...(plain.length ? [{ instrument, numbers: plain }] : [])
-		].sort((a, b) => (a.numbers[0] ?? 0) - (b.numbers[0] ?? 0));
+		] as ScoredVoice[]).sort((a, b) => Number(!a.solo) - Number(!b.solo) || (a.numbers[0] ?? 0) - (b.numbers[0] ?? 0));
 	});
 }
 
@@ -188,9 +216,28 @@ export function missingVoices(voices: ScoredVoice[], parts: Part[], config: Orch
 		const match = matchParts(parts, choice, config);
 		return match.own.length > 0 || match.shared.length > 0;
 	};
-	return voices.flatMap(({ instrument, numbers, holds }) => {
+	return voices.flatMap(({ instrument, numbers, holds, solo }): ScoredVoice[] => {
+		if (solo) {
+			// The soloist's own part, or the instrument's only one when the section doesn't play.
+			const own = parts.some((part) => part.kind === 'solo' && part.instruments.includes(instrument));
+			const alone = !voices.some((voice) => voice.instrument === instrument && !voice.solo) && covered({ instrument, numbers: [] });
+			return own || alone ? [] : [{ instrument, numbers: [], solo }];
+		}
 		const missing = numbers.length ? numbers.filter((number) => !covered({ instrument, numbers: [number] })) : covered({ instrument, numbers: [] }) ? [] : [0];
 		if (!missing.length) return [];
 		return [{ instrument, numbers: missing.filter((number) => number > 0), ...(holds ? { holds } : {}) }];
 	});
+}
+
+/**
+ * The voices of a piece's Besetzung without a part in the section people play; none for a
+ * piece without parts, whose status already says so.
+ */
+export function unscoredVoices(
+	detail: Pick<PieceDetail, 'parts' | 'sections'> | undefined,
+	instrumentation: string | undefined,
+	config: OrchestraConfig
+): ScoredVoice[] {
+	if (!detail?.parts.length || !instrumentation?.trim()) return [];
+	return missingVoices(readInstrumentation(instrumentation, config), playedParts(detail), config);
 }

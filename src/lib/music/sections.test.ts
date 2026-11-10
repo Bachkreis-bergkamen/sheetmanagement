@@ -94,6 +94,11 @@ describe('catalog sections', () => {
 		expect(piece.parts.filter((p) => p.section === '').map((p) => p.label)).toEqual(['Partitur', 'Flöte I', 'Geige I']);
 	});
 
+	it('marks a piece with parts but no score as "Partitur fehlt"', () => {
+		expect(catalog.byId.get('fame')!.noScore).toBe(true);
+		expect(catalog.byId.get('mendelssohn')!.noScore).toBeUndefined();
+	});
+
 	it('gives each movement its own section, without repeating "Satz N" on every part', () => {
 		const piece = catalog.byId.get('dvorak')!;
 		expect(piece.sections.map((s) => s.label)).toEqual(['1. Satz', '4. Satz']);

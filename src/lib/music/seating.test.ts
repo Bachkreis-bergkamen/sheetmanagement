@@ -123,6 +123,20 @@ describe('the seating plan', () => {
 		expect(brass - strings).toBeLessThan(1.9);
 	});
 
+	it('seats a soloist from the Besetzung out front, ringed when the solo part is missing', () => {
+		const solo: BesetzungVoice = { instrument: 'Klavier', numbers: [], solo: true };
+		const found = sectionsFromBesetzung({
+			voices: [...CHAMBER.map(voice), solo],
+			missing: [solo],
+			familyOf: (name) => families.get(name),
+			abbr: (name) => name.slice(0, 3),
+			title: (v) => v.instrument,
+			soloLabel: 'Solo'
+		});
+		expect(found.filter((section) => section.instrument === 'Klavier')).toEqual([]);
+		expect(found.find((section) => section.id === 'solo:Klavier')).toMatchObject({ players: 1, warn: true });
+	});
+
 	it('puts soloists beside the conductor and takes a concert’s own spot for a section', () => {
 		const solo = plan(CHAMBER, { soloists: ['Geige'] });
 		const soloist = solo.seats.find((seat) => seat.solo)!;

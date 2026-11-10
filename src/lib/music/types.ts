@@ -67,6 +67,8 @@ export interface PieceSummary {
 	programs: string[];
 	partCount: number;
 	status: PieceStatus;
+	/** Parts in the archive but no conductor's score ("Partitur fehlt"). */
+	noScore?: boolean;
 	/** Lower-case text without accents, for instant search on the client. */
 	search: string;
 }
