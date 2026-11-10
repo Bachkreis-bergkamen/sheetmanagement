@@ -26,3 +26,6 @@ dist
 .idea
 .fleet
 /.claude
+# impeccable design-review scratch (mocks and screenshots)
+.impeccable/mocks/
+.impeccable/review/

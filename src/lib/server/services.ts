@@ -1,6 +1,6 @@
 import { config } from '#lib/config/index.ts';
 import { cached, patchCached, type CachedResult } from './cache.ts';
-import { buildDriveIndex, INDEX_VERSION, type DriveIndex, type IndexedPiece } from './drive-index.ts';
+import { buildDriveIndex, INDEX_VERSION, updateDriveIndex, type DriveIndex, type IndexedPiece } from './drive-index.ts';
 import { demoClient } from './demo/backend.ts';
 import { DEMO_IDS } from './demo/data.ts';
 import { appEnv, isDemo, runInBackground } from './env.ts';
@@ -8,10 +8,10 @@ import { createTokenProvider, parseServiceAccountKey, scopesFor } from './google
 import { GoogleClient } from './google/client.ts';
 
 /**
- * A full rebuild reads the whole archive; the app's own changes are patched in at once, so
- * this only sets how soon changes made directly in Drive show up.
+ * How soon changes made directly in Drive show up (the app's own are patched in at once). An
+ * update reads only Drive's changes list, so every run of the cron job (each 10 minutes) does one.
  */
-const INDEX_MAX_AGE_MS = 60 * 60 * 1000;
+const INDEX_MAX_AGE_MS = 5 * 60 * 1000;
 
 export class NotConfiguredError extends Error {
 	constructor(readonly variable: string) {
@@ -84,24 +84,32 @@ export function programFolderIds(): string[] {
  * (Error 1102, and a 20 s wait that ended in CacheTimeoutError): the cron job does (`build`),
  * and after the app's own changes `force` does, or patchCached puts them in. With nothing
  * cached yet it throws CacheMissError. The demo has no KV and a small archive, so it builds.
+ *
+ * With an index cached, both only update it from Drive's changes list (updateDriveIndex),
+ * which reads just what changed; `full` reads the whole archive again ("Archiv neu einlesen").
  */
-export function getArchiveIndex({ force = false, build = false } = {}): Promise<CachedResult<DriveIndex>> {
+export function getArchiveIndex({ force = false, build = false, full = false } = {}): Promise<CachedResult<DriveIndex>> {
 	const archiveFolderId = requireSetting('DRIVE_ARCHIVE_FOLDER_ID');
 	const programs = programFolderIds();
 	const { client } = getGoogle();
 	const kv = appEnv().CACHE;
+	const options = {
+		archiveFolderId,
+		categoryFolderPattern: config.naming.categoryFolderPattern,
+		programFolderIds: programs,
+		programFolderPattern: config.naming.programFolderPattern,
+		// The demo's Drive is in memory and has no changes list.
+		trackChanges: !isDemo()
+	};
 	return cached({
 		readOnly: !build && !isDemo() && !!kv,
 		waitForRefresh: build,
 		key: archiveIndexKey(archiveFolderId, programs),
 		maxAgeMs: INDEX_MAX_AGE_MS,
-		build: () =>
-			buildDriveIndex(client, {
-				archiveFolderId,
-				categoryFolderPattern: config.naming.categoryFolderPattern,
-				programFolderIds: programs,
-				programFolderPattern: config.naming.programFolderPattern
-			}),
+		build: (previous) =>
+			previous?.version === INDEX_VERSION && !full && !isDemo()
+				? updateDriveIndex(client, previous, options)
+				: buildDriveIndex(client, options),
 		kv,
 		waitUntil: runInBackground,
 		force

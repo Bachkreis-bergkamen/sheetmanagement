@@ -13,7 +13,8 @@ export interface CachedOptions<T> {
 	key: string;
 	/** After this age the value is refreshed in the background (stale-while-revalidate). */
 	maxAgeMs: number;
-	build: () => Promise<T>;
+	/** Gets the value cached so far, stale or not, if any: a build may update it instead of starting over. */
+	build: (previous?: T) => Promise<T>;
 	/** Persistent store shared by all Worker instances. Without it, only memory is used. */
 	kv?: KvStore;
 	/** Keeps the Worker alive for a background refresh after the response is sent. */
@@ -184,15 +185,18 @@ export async function cached<T>(options: CachedOptions<T>): Promise<CachedResult
 		const promise: Promise<Entry<T>> = (async () => {
 			// Another instance (or the cron job) may have refreshed it already: take that instead
 			// of asking Google again and rebuilding everything that depends on it.
-			if (!fresh && kv) {
+			let previous = memory.get(key) as Entry<T> | undefined;
+			if (kv && (!fresh || !previous)) {
 				const stored = (await kv.get(key, 'json').catch(() => null)) as Entry<T> | null;
-				const known = memory.get(key)?.storedAt ?? 0;
-				if (stored && typeof stored.storedAt === 'number' && stored.storedAt > known && isFresh(stored)) {
-					memory.set(key, stored);
-					return stored;
+				if (stored && typeof stored.storedAt === 'number' && stored.storedAt > (previous?.storedAt ?? 0)) {
+					if (!fresh && isFresh(stored)) {
+						memory.set(key, stored);
+						return stored;
+					}
+					previous = stored;
 				}
 			}
-			const entry: Entry<T> = { storedAt: now(), value: await options.build() };
+			const entry: Entry<T> = { storedAt: now(), value: await options.build(previous?.value) };
 			memory.set(key, entry);
 			if (kv) await persist(kv, key, entry, waitUntil);
 			return entry;

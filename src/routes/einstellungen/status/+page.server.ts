@@ -124,7 +124,8 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 							throw error;
 						});
 						if (!result || (refresh && Date.now() - result.storedAt > MIN_REFRESH_AGE_MS)) {
-							result = await getArchiveIndex({ force: true });
+							// "Archiv neu einlesen" reads it all, not just Drive's list of changes.
+							result = await getArchiveIndex({ force: true, full: true });
 						}
 						const index = result.value;
 						const files = index.pieces.reduce((sum, piece) => sum + piece.files.length, 0);

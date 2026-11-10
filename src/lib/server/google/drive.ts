@@ -62,6 +62,61 @@ export async function listChildren(client: GoogleClient, folderIds: string[]): P
 	return files;
 }
 
+const CHANGES_URL = 'https://www.googleapis.com/drive/v3/changes';
+
+/** One entry of Drive's changes list: a file that was added, changed, moved, trashed or deleted. */
+export interface DriveChange {
+	fileId: string;
+	/** Deleted for good, or no longer shared with the service account: `file` is missing then. */
+	removed?: boolean;
+	file?: DriveFile & { trashed?: boolean };
+}
+
+interface ChangeListPage {
+	changes?: DriveChange[];
+	nextPageToken?: string;
+	newStartPageToken?: string;
+}
+
+/** Where the changes list starts now: changes after this moment are listed from this token. */
+export async function getStartPageToken(client: GoogleClient): Promise<string> {
+	const answer = await client.request<{ startPageToken: string }>(`${CHANGES_URL}/startPageToken`, {
+		params: { supportsAllDrives: true }
+	});
+	return answer.startPageToken;
+}
+
+/**
+ * Every change to the files the service account can see since `pageToken`, and the token to
+ * start from next time. Null when there are more than `maxPages` pages (1000 changes each):
+ * reading them all would cost more than reading the archive again.
+ */
+export async function listChanges(
+	client: GoogleClient,
+	pageToken: string,
+	maxPages = 5
+): Promise<{ changes: DriveChange[]; newStartPageToken: string } | null> {
+	const changes: DriveChange[] = [];
+	let token: string | undefined = pageToken;
+	for (let page = 0; page < maxPages && token; page++) {
+		const answer: ChangeListPage = await client.request<ChangeListPage>(CHANGES_URL, {
+			params: {
+				pageToken: token,
+				pageSize: 1000,
+				includeRemoved: true,
+				spaces: 'drive',
+				supportsAllDrives: true,
+				includeItemsFromAllDrives: true,
+				fields: `nextPageToken, newStartPageToken, changes(fileId, removed, file(id, name, mimeType, modifiedTime, size, parents, trashed, shortcutDetails(targetId, targetMimeType)))`
+			}
+		});
+		changes.push(...(answer.changes ?? []));
+		if (answer.newStartPageToken) return { changes, newStartPageToken: answer.newStartPageToken };
+		token = answer.nextPageToken;
+	}
+	return null;
+}
+
 /** Whether a file is a folder, or a shortcut pointing to one. */
 export function isFolderLike(file: DriveFile): boolean {
 	return (
