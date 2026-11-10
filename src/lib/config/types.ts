@@ -44,6 +44,12 @@ export interface Instrument {
 	 */
 	voice?: boolean;
 	/**
+	 * A generic part that names the instruments it holds after a colon: "Percussion I: Triangel
+	 * & Becken", "Chor: Sopran & Alt". These are the instruments it may name; who plays one of
+	 * them finds the part, and so does who plays the generic part.
+	 */
+	holds?: string[];
+	/**
 	 * One of the usual orchestra instruments, offered first in instrument lists; the rest
 	 * are behind "Mehr Instrumente …". When no instrument has it, every one is offered.
 	 */

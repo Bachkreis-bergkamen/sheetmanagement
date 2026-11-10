@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { config } from '#lib/config/index.ts';
-import { instrumentationFromScore, missingVoices, readInstrumentation, tidyRecognised, unreadEntries, voiceText, writeInstrumentation } from './instrumentation.ts';
+import { instrumentationFromScore, missingVoices, pickedVoices, readInstrumentation, scoredVoices, tidyRecognised, unreadEntries, voiceText, writeInstrumentation } from './instrumentation.ts';
 import { createInstrumentMatcher, parsePartName } from './part-name.ts';
 import type { Part } from './types.ts';
 
@@ -48,6 +48,12 @@ describe('readInstrumentation', () => {
 		expect(readInstrumentation('Flöte 1 & 2; Oboe\nGeige 1 & 2; Violoncello', config).map(voiceText)).toEqual(['Flöte 1 & 2', 'Oboe', 'Geige 1 & 2', 'Cello']);
 		expect(readInstrumentation('', config)).toEqual([]);
 	});
+
+	it('keeps a generic part with the instruments it names as one voice', () => {
+		const voices = readInstrumentation('Percussion 1: Triangel & Becken; Percussion 2; Chor: Sopran & Alt; Percussion 1: Kuhglocke', config);
+		expect(voices.map(voiceText)).toEqual(['Percussion 1: Triangel & Becken & Kuhglocke', 'Percussion 2', 'Chor: Sopran & Alt']);
+		expect(writeInstrumentation(voices)).toBe('Percussion 1: Triangel & Becken & Kuhglocke; Percussion 2; Chor: Sopran & Alt');
+	});
 });
 
 describe('missingVoices', () => {
@@ -61,6 +67,11 @@ describe('missingVoices', () => {
 	it('counts a part for several instruments, and a shared part, for each', () => {
 		const parts = [part('Flöte 1 & 2.pdf'), part('Oboe.pdf'), part('C-Stimmen.pdf'), part('Viola.pdf'), part('Violoncello & Kontrabass.pdf')];
 		expect(missingVoices(voices, parts, config)).toEqual([]);
+	});
+
+	it('finds the generic part under its number', () => {
+		const voices = readInstrumentation('Percussion 1: Triangel & Becken; Chor: Sopran & Alt', config);
+		expect(missingVoices(voices, [part('Percussion I - Triangel & Becken.pdf')], config).map(voiceText)).toEqual(['Chor: Sopran & Alt']);
 	});
 
 	it('names only the clarinet whose part is missing', () => {
@@ -83,5 +94,21 @@ describe('editing the Besetzung with the instrument picker', () => {
 	it('keeps what it cannot read, as written', () => {
 		expect(unreadEntries('Flöte 1 & 2; Theremin; Oboe', config)).toEqual(['Theremin']);
 		expect(writeInstrumentation(readInstrumentation('Flöte 1 & 2; Theremin', config), ['Theremin'])).toBe('Flöte 1 & 2; Theremin');
+	});
+});
+
+describe('generic parts in the instrument picker', () => {
+	it('shows one row per instrument, with what each number names', () => {
+		const picked = pickedVoices(readInstrumentation('Percussion 1: Triangel & Becken; Percussion 2; Flöte 1 & 2', config));
+		expect(picked).toEqual([
+			{ instrument: 'Percussion', numbers: [1, 2], held: { 1: ['Triangel', 'Becken'] } },
+			{ instrument: 'Flöte', numbers: [1, 2], held: {} }
+		]);
+		expect(writeInstrumentation(scoredVoices(picked))).toBe('Percussion 1: Triangel & Becken; Percussion 2; Flöte 1 & 2');
+	});
+
+	it('writes a part without a number, and drops what a removed number named', () => {
+		expect(writeInstrumentation(scoredVoices([{ instrument: 'Chor', numbers: [], held: { 0: ['Sopran', 'Alt'] } }]))).toBe('Chor: Sopran & Alt');
+		expect(writeInstrumentation(scoredVoices([{ instrument: 'Percussion', numbers: [2], held: { 1: ['Triangel'] } }]))).toBe('Percussion 2');
 	});
 });

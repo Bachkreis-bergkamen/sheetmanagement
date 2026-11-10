@@ -5,8 +5,9 @@
 	import { t } from '#lib/i18n/index.ts';
 	import { glyphOf } from '#lib/music/instrument-glyph.ts';
 	import { instrumentLabel } from '#lib/music/instrument-label.ts';
-	import { readInstrumentation, unreadEntries, voiceText, writeInstrumentation, type ScoredVoice } from '#lib/music/instrumentation.ts';
-	import { PART_NUMBERS } from '#lib/music/my-parts.ts';
+	import { foldFamily, searchInstruments } from '#lib/music/instrument-list.ts';
+	import { pickedVoices, readInstrumentation, scoredVoices, unreadEntries, voiceText, writeInstrumentation, type PickedVoice } from '#lib/music/instrumentation.ts';
+	import { commonInstruments, PART_NUMBERS } from '#lib/music/my-parts.ts';
 	import Icon from './Icon.svelte';
 	import InstrumentGlyph from './InstrumentGlyph.svelte';
 	import ScoreViewer from './ScoreViewer.svelte';
@@ -18,6 +19,8 @@
 	 * What it can't read stays as written. Follows `value` when it changes from outside: the
 	 * Besetzung read from the score (Vorschläge → "Aus den Noten lesen"). With a score, the panel
 	 * shows its first page beside the list, where the first system names every instrument.
+	 * A generic part (Percussion, Chor) can name what each of its parts holds:
+	 * "Percussion 1: Triangel & Becken".
 	 */
 	let {
 		value = $bindable(''),
@@ -33,12 +36,13 @@
 	const uid = $props.id();
 	const ROMAN = ['', 'I', 'II', 'III', 'IV'];
 	const order = $derived(new Map(instruments.map((n, i) => [n, i])));
-	const sorted = (voices: ScoredVoice[]) => [...voices].sort((a, b) => (order.get(a.instrument) ?? 999) - (order.get(b.instrument) ?? 999));
+	const sorted = <T extends { instrument: string }>(voices: T[]) => [...voices].sort((a, b) => (order.get(a.instrument) ?? 999) - (order.get(b.instrument) ?? 999));
 
 	// svelte-ignore state_referenced_locally
-	let voices = $state<ScoredVoice[]>(readInstrumentation(value, config));
+	let voices = $state<PickedVoice[]>(pickedVoices(readInstrumentation(value, config)));
 	const unread = $derived(unreadEntries(value, config));
-	const written = $derived(writeInstrumentation(sorted(voices), unread));
+	const scored = $derived(scoredVoices(sorted(voices)));
+	const written = $derived(writeInstrumentation(scored, unread));
 
 	// The voices write the text; a new text from outside (not their own) is read again.
 	// svelte-ignore state_referenced_locally
@@ -52,16 +56,37 @@
 	$effect(() => {
 		if (value !== last && value !== written) {
 			last = value;
-			voices = readInstrumentation(value, config);
+			voices = pickedVoices(readInstrumentation(value, config));
 		}
 	});
 
 	const chosen = (n: string) => voices.find((voice) => voice.instrument === n);
-	const toggle = (n: string) => (voices = chosen(n) ? voices.filter((voice) => voice.instrument !== n) : [...voices, { instrument: n, numbers: [] }]);
+	const toggle = (n: string) => (voices = chosen(n) ? voices.filter((voice) => voice.instrument !== n) : [...voices, { instrument: n, numbers: [], held: {} }]);
 	function number(n: string, part: number) {
 		const voice = chosen(n);
 		if (!voice) return;
+		const had = voice.numbers.length;
 		voice.numbers = voice.numbers.includes(part) ? voice.numbers.filter((m) => m !== part) : [...voice.numbers, part].sort();
+		// What the part without a number named goes to its first number, and back.
+		if (!had && voice.held[0]) voice.held = { [part]: voice.held[0] };
+		else if (had && !voice.numbers.length && voice.held[part]) voice.held = { 0: voice.held[part] };
+		else if (!voice.numbers.includes(part)) delete voice.held[part];
+	}
+
+	// ---------- What a generic part holds ----------
+
+	const holdable = (n: string) => info.get(n)?.holds?.filter((held) => all.includes(held)) ?? [];
+	const partsOf = (voice: PickedVoice) => (voice.numbers.length ? voice.numbers : [0]);
+	function hold(n: string, part: number, held: string) {
+		const voice = chosen(n);
+		if (!voice || !held) return;
+		const now = voice.held[part] ?? [];
+		if (!now.includes(held)) voice.held = { ...voice.held, [part]: [...now, held] };
+	}
+	function unhold(n: string, part: number, held: string) {
+		const voice = chosen(n);
+		if (!voice) return;
+		voice.held = { ...voice.held, [part]: (voice.held[part] ?? []).filter((h) => h !== held) };
 	}
 
 	// ---------- The panel ----------
@@ -74,33 +99,33 @@
 
 	const info = $derived(new Map(config.instruments.map((instrument) => [instrument.name, instrument])));
 	const familyLabel = (f: InstrumentFamily) => (f === 'partitur' ? t.piece.groups.featured : t.piece.groups[f]);
-	const fold = (text: string) =>
-		text
-			.toLowerCase()
-			.normalize('NFD')
-			.replace(/\p{M}/gu, '');
-	const words = (n: string) => [instrumentLabel(n), n, ...(info.get(n)?.aliases ?? []), ...(info.get(n)?.variants ?? [])].map(fold);
+	const common = new Set(commonInstruments(config));
+	/** Families whose rare instruments are unfolded. */
+	let unfolded = $state<string[]>([]);
 
-	/** By family, like a score; a search lists what matches, those starting with it first. */
+	/**
+	 * By family, like a score, a big family's rare instruments folded away (the percussion);
+	 * a search lists what matches, the usual instruments first.
+	 */
 	const sections = $derived.by(() => {
-		const q = fold(query.trim());
-		if (q) {
-			const hits = instruments.filter((n) => words(n).some((word) => word.includes(q)));
-			const starts = (n: string) => words(n).some((word) => word.startsWith(q));
-			return [{ label: '', names: [...hits.filter(starts), ...hits.filter((n) => !starts(n))] }];
-		}
-		const families: { label: string; names: string[] }[] = [];
+		if (query.trim()) return [{ label: '', names: searchInstruments(instruments, query, info, common), folded: [] as string[] }];
+		const families: { label: string; names: string[]; folded: string[] }[] = [];
 		for (const n of instruments) {
 			const heading = familyLabel(info.get(n)?.family ?? 'sonstige');
 			const section = families.find((s) => s.label === heading);
 			if (section) section.names.push(n);
-			else families.push({ label: heading, names: [n] });
+			else families.push({ label: heading, names: [n], folded: [] });
 		}
-		return families;
+		return families.map((section) => {
+			if (unfolded.includes(section.label)) return section;
+			const { shown, folded } = foldFamily(section.names, common, (n) => !!chosen(n));
+			return { label: section.label, names: shown, folded };
+		});
 	});
 
 	async function open() {
 		query = '';
+		unfolded = [];
 		dialog?.showModal();
 		showing = true;
 		await tick();
@@ -113,7 +138,7 @@
 	<input type="hidden" {name} value={written} />
 
 	<div class="chosen">
-		{#each sorted(voices) as voice (voice.instrument)}
+		{#each scored as voice (voiceText(voice))}
 			<span class="chip">
 				<InstrumentGlyph glyph={glyphOf(voice.instrument)} size={18} />
 				{voiceText(voice)}
@@ -167,9 +192,42 @@
 									<button type="button" class="number" aria-pressed={voice.numbers.includes(part)} onclick={() => number(n, part)}>{ROMAN[part]}</button>
 								{/each}
 							</span>
+							<!-- A generic part: what each of its parts holds, "Percussion I: Triangel & Becken". -->
+							{#if holdable(n).length}
+								<div class="holds">
+									{#each partsOf(voice) as part (part)}
+										{@const held = voice.held[part] ?? []}
+										<div class="held" role="group" aria-label={t.instruments.holdsOf(`${instrumentLabel(n)}${part ? ` ${ROMAN[part]}` : ''}`)}>
+											<span class="which">{part ? `${ROMAN[part]}:` : t.instruments.holds}</span>
+											{#each held as h (h)}
+												<span class="chip small">
+													{instrumentLabel(h)}
+													<button type="button" class="drop" aria-label={t.instruments.removeNamed(instrumentLabel(h))} onclick={() => unhold(n, part, h)}><Icon name="x" size={12} /></button>
+												</span>
+											{/each}
+											<select
+												class="add-held"
+												aria-label={t.instruments.addHeld}
+												onchange={(event) => {
+													hold(n, part, event.currentTarget.value);
+													event.currentTarget.value = '';
+												}}
+											>
+												<option value="">{t.instruments.addHeld}</option>
+												{#each holdable(n).filter((h) => !held.includes(h)) as h (h)}<option value={h}>{instrumentLabel(h)}</option>{/each}
+											</select>
+										</div>
+									{/each}
+								</div>
+							{/if}
 						{/if}
 					</div>
 				{/each}
+				{#if section.folded.length}
+					<button type="button" class="more" onclick={() => (unfolded = [...unfolded, section.label])}>
+						<Icon name="plus" size={14} />{t.instruments.moreIn(section.folded.length)}
+					</button>
+				{/if}
 			</section>
 		{:else}
 			<p class="none">{t.instruments.none(query.trim())}</p>
@@ -512,6 +570,55 @@
 
 	.none {
 		color: var(--text-muted);
+	}
+
+	/* What a generic part holds: one line per part, under its name. */
+	.holds {
+		display: grid;
+		flex-basis: 100%;
+		gap: var(--space-1);
+		padding: 0 0 var(--space-2) calc(36px + var(--space-3));
+	}
+
+	.held {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 6px;
+	}
+
+	.which {
+		min-width: 2.2em;
+		color: var(--text-muted);
+		font-size: var(--text-xs);
+		font-weight: 700;
+	}
+
+	.chip.small {
+		min-height: 28px;
+		padding-left: 8px;
+		font-size: var(--text-xs);
+	}
+
+	.add-held {
+		min-height: 30px;
+		max-width: 12rem;
+		font-size: var(--text-xs);
+	}
+
+	.more {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		min-height: var(--tap);
+		padding: 0;
+		border: 0;
+		background: none;
+		color: var(--accent);
+		font: inherit;
+		font-size: var(--text-sm);
+		font-weight: 600;
+		cursor: pointer;
 	}
 
 	footer {

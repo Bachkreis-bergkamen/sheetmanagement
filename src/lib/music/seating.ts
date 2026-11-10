@@ -138,6 +138,8 @@ const PLACES: Record<string, Placement> = {
 	Tamtam: { zone: 'percussion', band: 0, order: 6 },
 	Xylophon: { zone: 'percussion', band: 0, order: 7 },
 	Glockenspiel: { zone: 'percussion', band: 0, order: 8 },
+	Marimba: { zone: 'percussion', band: 0, order: 8.4 },
+	Vibraphon: { zone: 'percussion', band: 0, order: 8.7 },
 	'Mallet Percussion': { zone: 'percussion', band: 0, order: 9 },
 	// The left flank, from the outside in: harp, then the keyboards.
 	Harfe: { zone: 'left', band: 0, order: 0 },
