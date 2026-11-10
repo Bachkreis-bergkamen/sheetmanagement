@@ -110,6 +110,7 @@ const PLACES: Record<string, Placement> = {
 	Englischhorn: { zone: 'winds', band: 0, order: 3 },
 	// Behind them: clarinets left, bassoons right.
 	Bassklarinette: { zone: 'winds', band: 1, order: 0 },
+	Altklarinette: { zone: 'winds', band: 1, order: 0.5 },
 	Klarinette: { zone: 'winds', band: 1, order: 1 },
 	Holz: { zone: 'winds', band: 1, order: 1.5 },
 	Fagott: { zone: 'winds', band: 1, order: 2 },
@@ -565,6 +566,8 @@ const SINGERS = new Set(['Sopran', 'Gesang']);
 export interface BesetzungVoice {
 	instrument: string;
 	numbers: number[];
+	/** A soloist from the Besetzung ("Solo Geige"): out front, like one with a solo part. */
+	solo?: boolean;
 }
 
 export interface FromBesetzung {
@@ -586,17 +589,18 @@ export interface FromBesetzung {
  * strings sits as a chamber orchestra and one with triple winds and four horns as a symphony.
  */
 export function sectionsFromBesetzung(input: FromBesetzung): SeatingSection[] {
-	const { voices, missing, familyOf, abbr, title } = input;
+	const { missing, familyOf, abbr, title } = input;
+	const voices = input.voices.filter((voice) => !voice.solo);
 	const family = (instrument: string): SeatingFamily => familyOf(instrument) ?? 'sonstige';
 	const warns = (voice: BesetzungVoice) => {
-		const gap = missing.find((each) => each.instrument === voice.instrument);
+		const gap = missing.find((each) => each.instrument === voice.instrument && !each.solo);
 		return !!gap && (!gap.numbers.length || !voice.numbers.length || voice.numbers.some((n) => gap.numbers.includes(n)));
 	};
 	const winds = voices
 		.filter((voice) => family(voice.instrument) === 'holz' || family(voice.instrument) === 'blech')
 		.reduce((sum, voice) => sum + Math.max(1, voice.numbers.length), 0);
 	const strings = STRING_ESTIMATES.find(([upTo]) => winds <= upTo)![1];
-	const solos = new Set(input.soloists ?? []);
+	const solos = new Set([...(input.soloists ?? []), ...input.voices.filter((voice) => voice.solo).map((voice) => voice.instrument)]);
 	const sections: SeatingSection[] = [];
 	const add = (section: SeatingSection) => sections.push({ ...section, players: input.counts?.[section.id] ?? input.counts?.[section.instrument] ?? section.players });
 
@@ -647,7 +651,8 @@ export function sectionsFromBesetzung(input: FromBesetzung): SeatingSection[] {
 			family: family(instrument),
 			players: 1,
 			label: SINGERS.has(instrument) ? abbr(instrument) : `${input.soloLabel} ${abbr(instrument)}`,
-			title: `${input.soloLabel}: ${title({ instrument, numbers: [] })}`
+			title: `${input.soloLabel}: ${title({ instrument, numbers: [] })}`,
+			warn: missing.some((each) => each.instrument === instrument && each.solo)
 		});
 	}
 	return sections;

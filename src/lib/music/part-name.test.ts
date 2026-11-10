@@ -48,6 +48,8 @@ describe('parsePartName', () => {
 		['Last-Christmas_Bass-Guitar.pdf', 'E-Bass', 'stimme'],
 		['Christmas_Memories-E-Bass.pdf', 'E-Bass', 'stimme'],
 		['Fame - Bass-Klarinette.pdf', 'Bassklarinette', 'stimme'],
+		['Fame - Alt-Klarinette.pdf', 'Altklarinette', 'stimme'],
+		['Sleigh Ride - Eb Alto Clarinet.pdf', 'Altklarinette in Es', 'stimme'],
 		['Fame - Bass-Posaune.pdf', 'Bassposaune', 'stimme'],
 		['Feuerwerksmusik-Cello_und_Bass.pdf', 'Cello & Kontrabass', 'sammelstimme'],
 		['Barcarolle-Bass-Clarinet-Trombone.pdf', 'Bassklarinette & Posaune', 'sammelstimme'],

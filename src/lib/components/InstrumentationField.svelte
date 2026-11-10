@@ -71,6 +71,15 @@
 		if (!had && voice.held[0]) voice.held = { [part]: voice.held[0] };
 		else if (had && !voice.numbers.length && voice.held[part]) voice.held = { 0: voice.held[part] };
 		else if (!voice.numbers.includes(part)) delete voice.held[part];
+		if (voice.solo) voice.tutti = voice.numbers.length > 0;
+	}
+
+	/** A soloist for the instrument; the section plays too while it has numbers. */
+	function solo(n: string) {
+		const voice = chosen(n);
+		if (!voice) return;
+		voice.solo = !voice.solo;
+		voice.tutti = voice.numbers.length > 0;
 	}
 
 	// ---------- What a generic part holds ----------
@@ -83,6 +92,25 @@
 		const now = voice.held[part] ?? [];
 		if (!now.includes(held)) voice.held = { ...voice.held, [part]: [...now, held] };
 	}
+	/**
+	 * Instruments chosen on their own that this generic part could hold: "Triangel" beside
+	 * "Percussion", offered to move in rather than picked again from the list.
+	 */
+	const loose = (n: string, part: number) =>
+		// A generic part chosen on its own (Mallet Percussion beside Percussion) stays a part of its own.
+		holdable(n).filter((h) => h !== n && chosen(h) && !info.get(h)?.holds?.length && !(chosen(n)?.held[part] ?? []).includes(h));
+	/** Moves an instrument chosen on its own into a part of a generic one: it's played from there now. */
+	function moveInto(n: string, part: number, held: string) {
+		if (held === n || !holdable(n).includes(held)) return;
+		hold(n, part, held);
+		voices = voices.filter((voice) => voice.instrument !== held);
+	}
+	/** The instrument being dragged from the list onto a generic part, and the part it is over. */
+	let dragged = $state<string | null>(null);
+	let over = $state<string | null>(null);
+	const canHoldDragged = (n: string) => !!dragged && dragged !== n && holdable(n).includes(dragged);
+	/** Whether a chosen instrument could go into another chosen generic part, so it may be dragged. */
+	const movable = (h: string) => voices.some((voice) => voice.instrument !== h && holdable(voice.instrument).includes(h));
 	function unhold(n: string, part: number, held: string) {
 		const voice = chosen(n);
 		if (!voice) return;
@@ -180,7 +208,20 @@
 				{#each section.names as n (n)}
 					{@const voice = chosen(n)}
 					<div class="item" class:on={!!voice}>
-						<button type="button" class="pick" aria-pressed={!!voice} onclick={() => toggle(n)}>
+						<button
+							type="button"
+							class="pick"
+							aria-pressed={!!voice}
+							onclick={() => toggle(n)}
+							draggable={!!voice && movable(n)}
+							title={voice && movable(n) ? t.instruments.dragHint : undefined}
+							ondragstart={(event) => {
+								dragged = n;
+								event.dataTransfer?.setData('text/plain', n);
+								if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
+							}}
+							ondragend={() => ((dragged = null), (over = null))}
+						>
 							<span class="plate"><InstrumentGlyph glyph={glyphOf(n)} size={24} /></span>
 							<span class="name">{instrumentLabel(n)}</span>
 							<span class="tick" aria-hidden="true"><Icon name="check" size={14} /></span>
@@ -191,13 +232,35 @@
 								{#each PART_NUMBERS as part (part)}
 									<button type="button" class="number" aria-pressed={voice.numbers.includes(part)} onclick={() => number(n, part)}>{ROMAN[part]}</button>
 								{/each}
+								<button type="button" class="number solo" aria-pressed={!!voice.solo} title={t.instruments.soloHint} onclick={() => solo(n)}>{t.instruments.solo}</button>
 							</span>
 							<!-- A generic part: what each of its parts holds, "Percussion I: Triangel & Becken". -->
 							{#if holdable(n).length}
 								<div class="holds">
 									{#each partsOf(voice) as part (part)}
 										{@const held = voice.held[part] ?? []}
-										<div class="held" role="group" aria-label={t.instruments.holdsOf(`${instrumentLabel(n)}${part ? ` ${ROMAN[part]}` : ''}`)}>
+										{@const where = `${instrumentLabel(n)}${part ? ` ${ROMAN[part]}` : ''}`}
+										<div
+											class="held"
+											class:target={canHoldDragged(n)}
+											class:over={over === `${n}:${part}`}
+											role="group"
+											aria-label={t.instruments.holdsOf(where)}
+											ondragover={(event) => {
+												if (!canHoldDragged(n)) return;
+												event.preventDefault();
+												over = `${n}:${part}`;
+											}}
+											ondragleave={() => {
+												if (over === `${n}:${part}`) over = null;
+											}}
+											ondrop={(event) => {
+												event.preventDefault();
+												if (dragged) moveInto(n, part, dragged);
+												dragged = null;
+												over = null;
+											}}
+										>
 											<span class="which">{part ? `${ROMAN[part]}:` : t.instruments.holds}</span>
 											{#each held as h (h)}
 												<span class="chip small">
@@ -216,6 +279,17 @@
 												<option value="">{t.instruments.addHeld}</option>
 												{#each holdable(n).filter((h) => !held.includes(h)) as h (h)}<option value={h}>{instrumentLabel(h)}</option>{/each}
 											</select>
+											<!-- What's chosen on its own and could be played from this part, one tap to move it in. -->
+											{#if loose(n, part).length}
+												<span class="suggest">
+													<span class="which">{t.instruments.suggestHeld}</span>
+													{#each loose(n, part) as h (h)}
+														<button type="button" class="suggestion" aria-label={t.instruments.moveInto(instrumentLabel(h), where)} onclick={() => moveInto(n, part, h)}>
+															<Icon name="plus" size={12} />{instrumentLabel(h)}
+														</button>
+													{/each}
+												</span>
+											{/if}
 										</div>
 									{/each}
 								</div>
@@ -486,9 +560,10 @@
 		background: var(--accent-soft);
 	}
 
+	/* The name keeps room to be read; on a phone the part buttons wrap below it. */
 	.pick {
 		display: flex;
-		flex: 1;
+		flex: 1 1 10rem;
 		align-items: center;
 		gap: var(--space-3);
 		min-width: 0;
@@ -546,7 +621,9 @@
 
 	.numbers {
 		display: inline-flex;
+		flex-wrap: wrap;
 		gap: 4px;
+		margin-left: auto;
 	}
 
 	.number {
@@ -566,6 +643,12 @@
 		border-color: var(--accent);
 		background: var(--accent);
 		color: var(--accent-contrast);
+	}
+
+	.number.solo {
+		width: auto;
+		margin-left: 4px;
+		padding: 0 10px;
 	}
 
 	.none {
@@ -598,6 +681,48 @@
 		min-height: 28px;
 		padding-left: 8px;
 		font-size: var(--text-xs);
+	}
+
+	.held.target {
+		margin: -2px;
+		padding: 2px;
+		border-radius: var(--radius-s);
+		outline: 1.5px dashed var(--accent);
+	}
+
+	.held.over {
+		background: var(--surface);
+	}
+
+	.pick[draggable='true'] {
+		cursor: grab;
+	}
+
+	.suggest {
+		display: inline-flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 4px;
+	}
+
+	.suggestion {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		min-height: 28px;
+		padding: 0 10px 0 8px;
+		border: 1px dashed var(--accent);
+		border-radius: var(--radius-pill);
+		background: none;
+		color: var(--accent);
+		font: inherit;
+		font-size: var(--text-xs);
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.suggestion:hover {
+		background: var(--surface);
 	}
 
 	.add-held {

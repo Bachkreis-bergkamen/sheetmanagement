@@ -83,6 +83,8 @@ function buildPiece(piece: IndexedPiece, config: OrchestraConfig, matcher: Instr
 				: real.some((part) => part.status === 'empty' || part.status === 'incomplete')
 					? 'incomplete'
 					: 'ok';
+	// The conductor needs a score; a placeholder (FEHLT) is none.
+	const noScore = real.length > 0 && !parts.some((part) => part.kind === 'partitur' && part.status !== 'missing');
 
 	const name = parsePieceName(piece.name, config.naming);
 	return {
@@ -95,6 +97,7 @@ function buildPiece(piece: IndexedPiece, config: OrchestraConfig, matcher: Instr
 		programs: piece.programs ?? [],
 		partCount: sections[0]?.partCount ?? 0,
 		status,
+		...(noScore ? { noScore } : {}),
 		search: searchText(name.title, name.composer, name.catalogue, piece.category, ...(piece.programs ?? []), piece.name),
 		parts,
 		sections
