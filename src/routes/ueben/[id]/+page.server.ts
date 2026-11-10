@@ -7,7 +7,8 @@ import { getStore } from '#lib/server/db/index.ts';
 import { getLibrary } from '#lib/server/library.ts';
 import { today } from '#lib/server/members.ts';
 import { archivePart, offersFor, ownPart } from '#lib/server/practice.ts';
-import { getAccessList, getMusicConfig } from '#lib/server/repertoire.ts';
+import { getAccessList, getFeedback, getMusicConfig } from '#lib/server/repertoire.ts';
+import { isActiveReport } from '#lib/feedback/feedback.ts';
 import type { PageServerLoad } from './$types';
 
 const PDF = 'application/pdf';
@@ -39,11 +40,12 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const found = own ?? (member ? archivePart(catalog.catalog, params.id) : null);
 	if (!found) elsewhere();
 	const day = today();
-	const [days, marks, offers, shared] = await Promise.all([
+	const [days, marks, offers, shared, feedback] = await Promise.all([
 		on && own ? store.practiceOf(email) : [],
 		store.marksOf(email, params.id).catch(() => []),
 		own ? offersFor(email, params.id).catch(() => []) : [],
-		own ? store.shareOf(email, params.id).catch(() => null) : null
+		own ? store.shareOf(email, params.id).catch(() => null) : null,
+		getFeedback().catch(() => null)
 	]);
 	const recording = library.piecesById.get(found!.piece.id)?.sheet?.recording;
 	return {
@@ -60,6 +62,9 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		marks: Object.fromEntries(marks.map((page) => [page.page, page.strokes])),
 		offers,
 		// When the member last offered their notes here to their section.
-		sharedAt: shared?.at ?? null
+		sharedAt: shared?.at ?? null,
+		// Problems with this part still looked after, so nobody reports them twice (#306).
+		reports: (feedback?.reports ?? []).filter((report) => report.fileId === params.id && isActiveReport(report)).map(({ kind, comment }) => ({ kind, comment })),
+		canReport: !!feedback?.tables.reports
 	};
 };

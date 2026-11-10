@@ -1,5 +1,5 @@
 import { error, fail } from '@sveltejs/kit';
-import { countingMembers, isAdminOnly, normalizeEmail } from '#lib/access/access.ts';
+import { countingMembers, isAdminOnly, mayFor, normalizeEmail } from '#lib/access/access.ts';
 import { config } from '#lib/config/index.ts';
 import { coverage, formatInstrument, parseInstruments, playableInstruments, playedParts, programInstruments } from '#lib/music/my-parts.ts';
 import { missingVoices, readInstrumentation } from '#lib/music/instrumentation.ts';
@@ -600,6 +600,11 @@ export const actions: Actions = {
 		const form = await request.formData();
 		const values = Object.fromEntries([...form].map(([name, value]) => [name, String(value)]));
 		values.orchestra = form.getAll('orchestra').map(String).join(', ');
+		// Also not moved to another orchestra by a role limited to some (#305).
+		const own = locals.access.scopes?.get('termine.planen');
+		if (own && !mayFor(locals.access, 'termine.planen', values.orchestra)) {
+			return fail(403, { eventError: t.calendar.add.otherOrchestra(own.join(', ')), eventValues: values });
+		}
 		if (!calendarWriteEnabled()) return fail(503, { eventError: t.calendar.add.readOnly, eventValues: values });
 		const library = await getLibrary();
 		const schedule = library.schedule;
@@ -641,6 +646,8 @@ export const actions: Actions = {
 		const ticked = new Set((await request.formData()).getAll('orchestra').map(String));
 		const chosen = config.orchestras.filter((name) => ticked.has(name));
 		if (!chosen.length) return fail(400, { orchestraError: t.concert.orchestras.none });
+		const own = locals.access.scopes?.get('termine.planen');
+		if (own && !mayFor(locals.access, 'termine.planen', chosen.join(', '))) return fail(403, { orchestraError: t.calendar.add.otherOrchestra(own.join(', ')) });
 		const result = await setEventOrchestras(event.id, {
 			summary: orchestraTitle(event.title, chosen, config.orchestras),
 			orchestras: chosen.join(', ')

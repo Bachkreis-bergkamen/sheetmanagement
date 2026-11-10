@@ -52,6 +52,11 @@ export interface Group {
 	row: number;
 	name: string;
 	description?: string;
+	/**
+	 * The orchestras its rights hold for (#305), e.g. a Dirigat for "EO" only. Empty: all of them.
+	 * Rights given to one person by email always hold for all.
+	 */
+	orchestras: string[];
 }
 
 export interface Grant {
@@ -122,7 +127,7 @@ export function buildAccessList(values: AccessValues): AccessList {
 
 	const groups = (tables.groups?.rows ?? [])
 		.filter(({ values: v }) => v.name)
-		.map(({ row, values: v }) => ({ row, name: v.name, description: v.description || undefined }));
+		.map(({ row, values: v }) => ({ row, name: v.name, description: v.description || undefined, orchestras: splitGroups(v.orchestras ?? '') }));
 
 	const grants: Grant[] = [];
 	for (const { row, values: v } of tables.rights?.rows ?? []) {
@@ -158,6 +163,13 @@ export interface Access {
 	/** The member list couldn't be read just now (Google slow or down), so membership is unknown. */
 	unavailable?: boolean;
 	rights: Set<Right>;
+	/**
+	 * Rights held only for some orchestras (#305), through a role limited to them; a right not
+	 * in here holds for all. See mayFor.
+	 */
+	scopes?: Map<Right, string[]>;
+	/** On one date's pages, where `rights` holds only what holds there: all rights, for the menu. */
+	everywhere?: Set<Right>;
 }
 
 /** What a signed-in person may do: bootstrap admins everything, members "ansehen" plus their grants. */
@@ -172,11 +184,39 @@ export function resolveAccess(user: User | null, list: AccessList | null, bootst
 
 	const whos = new Set([email, ...member.groups.map(normalize)]);
 	const rights = new Set<Right>(['ansehen']);
+	// Per right: the orchestras it holds for, or null once one grant holds for all (#305).
+	const reach = new Map<Right, string[] | null>();
 	for (const grant of list!.grants) {
-		const who = grant.who.includes('@') ? normalizeEmail(grant.who) : normalize(grant.who);
-		if (whos.has(who)) rights.add(grant.right);
+		const byEmail = grant.who.includes('@');
+		const who = byEmail ? normalizeEmail(grant.who) : normalize(grant.who);
+		if (!whos.has(who)) continue;
+		rights.add(grant.right);
+		const limited = byEmail ? [] : (list!.groups.find((group) => normalize(group.name) === who)?.orchestras ?? []);
+		const before = reach.get(grant.right);
+		if (!limited.length || before === null) reach.set(grant.right, null);
+		else reach.set(grant.right, [...(before ?? []), ...limited]);
 	}
-	return { user, member: true, bootstrapAdmin: false, rights };
+	const scopes = new Map([...reach].filter((entry): entry is [Right, string[]] => entry[1] !== null));
+	return { user, member: true, bootstrapAdmin: false, rights, ...(scopes.size ? { scopes } : {}) };
+}
+
+/**
+ * Whether a right holds for something of an orchestra, or of several ("EO, A"): a right limited
+ * to some orchestras (#305) holds where one of them plays. Something of no orchestra in
+ * particular (a date for everyone) is open to every holder of the right.
+ */
+export function mayFor(access: Pick<Access, 'rights' | 'scopes'>, right: Right, orchestra: string | undefined): boolean {
+	if (!access.rights.has(right)) return false;
+	const scope = access.scopes?.get(right);
+	if (!scope) return true;
+	const wanted = splitGroups(orchestra ?? '');
+	return !wanted.length || wanted.some((name) => scope.some((own) => normalize(own) === normalize(name)));
+}
+
+/** The access for one date or concert (#305): the rights that hold for its orchestra(s). */
+export function accessFor<A extends Pick<Access, 'rights' | 'scopes' | 'everywhere'>>(access: A, orchestra: string | undefined): A {
+	if (!access.scopes?.size) return access;
+	return { ...access, rights: new Set([...access.rights].filter((right) => mayFor(access, right, orchestra))), everywhere: access.rights };
 }
 
 /** "a@x.org, b@y.org" → ["a@x.org", "b@y.org"] */

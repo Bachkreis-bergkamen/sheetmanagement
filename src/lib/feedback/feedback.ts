@@ -129,6 +129,7 @@ export const SUGGESTED_STATUS: Record<ReportKind, MarkableStatus> = {
 	scan: 'incomplete',
 	empty: 'empty',
 	wrong: 'incomplete',
+	notes: 'incomplete',
 	// Not about a file: there's no name to mark.
 	recording: 'incomplete',
 	other: 'incomplete'

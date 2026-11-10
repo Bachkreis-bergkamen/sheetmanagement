@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { sendPending } from '#lib/offline/marks.ts';
+	import { sendQueuedPractice } from '#lib/offline/practice-queue.ts';
 	import '../app.css';
 	import { afterNavigate, onNavigate } from '$app/navigation';
 	import { navigating, page } from '$app/state';
@@ -73,13 +74,19 @@
 	$effect(() => {
 		if (!data.features.offline || data.auth !== 'on' || !data.user || !('serviceWorker' in navigator)) return;
 		if ((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData) return;
-		navigator.serviceWorker.ready.then((registration) => registration.active?.postMessage('warm')).catch(() => {});
+		// Not while the page itself loads: a little later, when the device is idle (#303).
+		const later = setTimeout(() => {
+			navigator.serviceWorker.ready.then((registration) => registration.active?.postMessage('warm')).catch(() => {});
+		}, 15_000);
+		return () => clearTimeout(later);
 	});
 
 	// Pen marks drawn without a connection go to the server once the device is online again, on any page.
 	$effect(() => {
 		if (data.auth !== 'on' || !data.user) return;
-		const send = () => void sendPending();
+		const account = data.user.email;
+		// Practice time kept on the device goes along (#304).
+		const send = () => void Promise.all([sendPending(), sendQueuedPractice(account)]);
 		send();
 		addEventListener('online', send);
 		return () => removeEventListener('online', send);

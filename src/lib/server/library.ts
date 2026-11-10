@@ -1,4 +1,4 @@
-import { normalizeEmail, seesDate } from '#lib/access/access.ts';
+import { accessFor, normalizeEmail, seesDate, type Access } from '#lib/access/access.ts';
 import { config } from '#lib/config/index.ts';
 import type { ShownEvent } from '#lib/events/schedule.ts';
 import type { Catalog } from '#lib/music/catalog.ts';
@@ -307,6 +307,23 @@ export function programOf(concert: Pick<LibraryConcert, 'orchestras' | 'program'
 /** The orchestras a date is for (see eventOrchestra): undefined is everyone. */
 export const orchestraOf = (library: Pick<Library, 'concertsById'>, event: Parameters<typeof eventOrchestra>[0]) =>
 	eventOrchestra(event, (id) => library.concertsById.get(id)?.orchestra);
+
+/**
+ * The access on one date's pages (#305), by its id: a role limited to some orchestras holds there
+ * only for their dates. A concert only in the archive goes by its orchestra. While the dates
+ * can't be read, the limited rights hold nowhere.
+ */
+export async function accessForDate(access: Access, id: string): Promise<Access> {
+	if (!access.scopes?.size) return access;
+	try {
+		const library = await getLibrary();
+		const event = library.schedule.ok ? library.schedule.byId.get(id) : undefined;
+		return accessFor(access, event ? orchestraOf(library, event) : library.concertsById.get(id)?.orchestra);
+	} catch {
+		const scopes = access.scopes;
+		return { ...access, rights: new Set([...access.rights].filter((right) => !scopes.has(right))), everywhere: access.rights };
+	}
+}
 
 /**
  * Which dates the pages show the viewer: a member only the rehearsals of their orchestras

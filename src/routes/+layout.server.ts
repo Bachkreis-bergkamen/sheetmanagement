@@ -25,8 +25,10 @@ export const load: LayoutServerLoad = async ({ locals, url, cookies }) => {
 
 	const on = features();
 	// Open work on the workspace tabs (#139), only on a workspace's pages and for those who see it.
-	const rights = [...access.rights];
-	const polls = access.rights.has('termine.planen') || (await visiblePolls(locals).catch(() => [])).length > 0;
+	// The menu goes by all rights, also on a date where a role limited to other orchestras holds none (#305).
+	const held = access.everywhere ?? access.rights;
+	const rights = [...held];
+	const polls = held.has('termine.planen') || (await visiblePolls(locals).catch(() => [])).length > 0;
 	const counts = workspaceOf(navGroups({ auth, rights, features: on, polls }), url.pathname) ? countsByPage(await openWork(locals)) : {};
 
 	// The first instrument from "Mitglieder" is the avatar's picture (#136).

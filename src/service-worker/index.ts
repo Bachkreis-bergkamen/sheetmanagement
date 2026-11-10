@@ -2,6 +2,7 @@ import { version } from '$app/env';
 import { assets, immutable } from '$app/manifest';
 import { self as sw } from '$app/service-worker';
 import { sendPending } from '#lib/offline/marks.ts';
+import { networkOr } from '#lib/offline/patience.ts';
 
 /**
  * Offline mode for rehearsal halls with bad reception (#62). The app's own files come from
@@ -30,6 +31,8 @@ const MAX_PAGES = 80;
 /** When the library was last kept, and by which version: page data changes shape between versions. */
 const WARMED = '/__offline-warmed';
 const DAY = 24 * 60 * 60 * 1000;
+/** How long after a failed keeping of the library it is tried again, instead of on every start. */
+const RETRY_WARM = 60 * 60 * 1000;
 /** Paths come relative to the base path; requests are matched by their absolute path. */
 const ASSETS = new Set([...immutable, ...assets].map(({ path }) => `/${path.replace(/^\//, '')}`));
 /** Big files only the door's phones need (the code reader for iPhones): kept once fetched, not on install. */
@@ -80,8 +83,9 @@ let warming: Promise<void> | null = null;
 function warm() {
 	warming ??= (async () => {
 		const cache = await caches.open(LIBRARY);
-		const [stamp, at] = (await (await cache.match(WARMED))?.text())?.split(' ') ?? [];
-		if (stamp === version && Date.now() - Number(at) < DAY) return;
+		const [stamp, at, failedBefore] = (await (await cache.match(WARMED))?.text())?.split(' ') ?? [];
+		// Once a day; after a failed run in an hour, not on every start (#303).
+		if (stamp === version && Date.now() - Number(at) < (Number(failedBefore) ? RETRY_WARM : DAY)) return;
 		const response = await fetch('/api/offline');
 		if (!response.ok) return;
 		const { pieces, parts = [] } = (await response.json()) as {
@@ -95,7 +99,8 @@ function warm() {
 			const worker = async () => {
 				while (next < items.length) await work(items[next++]);
 			};
-			await Promise.all([worker(), worker(), worker()]);
+			// Two at a time: the member's own pages come first (#303).
+			await Promise.all([worker(), worker()]);
 		};
 		await each(['/', '/stuecke', '/meine-noten', ...piecePages], async (path) => {
 			const page = await fetch(path, { headers: { accept: 'text/html' } }).catch(() => null);
@@ -141,7 +146,7 @@ function warm() {
 			const viewer = VIEWER.exec(page);
 			if (viewer && !savedIds.has(decodeURIComponent(viewer[1]))) await cache.delete(request);
 		}
-		if (!failed) await cache.put(WARMED, new Response(`${version} ${Date.now()}`));
+		await cache.put(WARMED, new Response(`${version} ${Date.now()} ${failed}`));
 	})()
 		.catch(() => undefined)
 		.finally(() => (warming = null));
@@ -248,16 +253,24 @@ sw.addEventListener('fetch', (event) => {
 		event.respondWith(
 			(async () => {
 				const cache = await caches.open(NOTEN);
-				try {
-					const response = await fetch(request);
+				let stored: Promise<unknown> = Promise.resolve();
+				const fresh = fetch(request).then(async (response) => {
 					const saved = response.ok && (await cache.match(url.pathname));
 					if (saved) {
 						const headers = new Headers(response.headers);
 						const meta = saved.headers.get(META);
 						if (meta) headers.set(META, meta);
-						event.waitUntil(response.clone().blob().then((body) => cache.put(url.pathname, new Response(body, { headers }))));
+						stored = response
+							.clone()
+							.blob()
+							.then((body) => cache.put(url.pathname, new Response(body, { headers })));
 					}
 					return response;
+				});
+				// Answered from the device, the fresh copy still lands there.
+				event.waitUntil(fresh.then(() => stored).catch(() => undefined));
+				try {
+					return await networkOr(fresh, () => cache.match(url.pathname));
 				} catch {
 					return (await cache.match(url.pathname)) ?? Response.error();
 				}
@@ -277,17 +290,25 @@ sw.addEventListener('fetch', (event) => {
 			const cache = await caches.open(library ? LIBRARY : PAGES);
 			// Page data carries a changing "x-sveltekit-invalidated" parameter; the path is what counts.
 			const key = data ? url.origin + url.pathname : request.url;
-			try {
-				const response = await fetch(request);
+			// Either cache: a page may have been kept before it moved to the library.
+			const copy = async () => (await caches.match(key)) ?? (data ? undefined : await caches.match(request, { ignoreSearch: true }));
+			let stored: Promise<unknown> = Promise.resolve();
+			const fresh = fetch(request).then((response) => {
 				// Files sent with "no-store" (a member's data export, the music list) are never kept.
-				if (keepable(response)) {
-					await cache.put(key, response.clone());
-					if (!library) event.waitUntil(trim(cache));
-				}
+				// Stored alongside, not before the page is handed over (#303).
+				if (keepable(response)) stored = cache.put(key, response.clone()).then(() => (library ? undefined : trim(cache)));
 				return response;
+			});
+			event.waitUntil(fresh.then(() => stored).catch(() => undefined));
+			try {
+				if (!library) return await fresh;
+				// A kept page that takes too long: its copy (#303). Page data is never kept, so a slow
+				// one gives way to loading the page itself, which then comes from the device.
+				if (!data) return await networkOr(fresh, copy);
+				const page = sw.location.origin + pageOf(url.pathname);
+				return await networkOr(fresh, async () => ((await caches.match(page)) ? Response.error() : undefined));
 			} catch {
-				// Either cache: a page may have been kept before it moved to the library.
-				const cached = (await caches.match(key)) ?? (data ? undefined : await caches.match(request, { ignoreSearch: true }));
+				const cached = await copy();
 				if (cached) return cached;
 				return data ? Response.error() : offlinePage();
 			}

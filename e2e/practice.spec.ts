@@ -49,6 +49,32 @@ test('Meine Noten opens the part in the practice viewer, which draws it', async 
 	await expectAccessible(page);
 });
 
+test('a problem with the part is reported from the viewer and from Meine Noten (#306)', async ({ page }) => {
+	await open(page, PART);
+	await page.getByRole('button', { name: 'Problem melden' }).click();
+	const dialog = page.getByRole('dialog', { name: 'Problem mit „Geige II“ melden' });
+	await expect(dialog.getByLabel('Art des Problems')).toHaveValue('notes');
+	await expect(dialog.getByLabel('Kommentar (optional)')).toHaveValue('Seite 1: ');
+	await dialog.getByLabel('Kommentar (optional)').fill('Seite 1: Takt 12 falsche Note');
+	await dialog.getByRole('button', { name: 'Melden' }).click();
+	await expect(dialog.getByText('Danke! Die Meldung ist eingegangen.')).toBeVisible();
+	await expectAccessible(page);
+	await dialog.getByRole('button', { name: 'Schließen' }).click();
+
+	await open(page, '/meine-noten');
+	await page.getByRole('button', { name: 'Problem mit „Geige II“ melden' }).first().click();
+	const again = page.getByRole('dialog', { name: 'Problem mit „Geige II“ melden' });
+	await again.getByLabel('Art des Problems').selectOption('scan');
+	await again.getByRole('button', { name: 'Melden' }).click();
+	await expect(again.getByText('Danke! Die Meldung ist eingegangen.')).toBeVisible();
+
+	// Both are saved: the viewer says so, so nobody reports them twice.
+	await open(page, PART);
+	await page.getByRole('button', { name: 'Problem melden' }).click();
+	await expect(dialog.getByText(/Schon gemeldet: Fehler in den Noten – Seite 1: Takt 12 falsche Note/)).toBeVisible();
+	await expect(dialog.getByText(/Schon gemeldet: Schlechter Scan/)).toBeVisible();
+});
+
 test('two fingers zoom the page, keeping the music under them, and the buttons zoom too', async ({ page }) => {
 	await open(page, PART);
 	await expect(page.locator('.slot canvas')).toHaveCount(1);

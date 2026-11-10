@@ -23,7 +23,7 @@ import { readMemberForm, today, writable } from '#lib/server/members.ts';
 import { linkToken, nextLinkVersion, revokedLinkVersion } from '#lib/server/auth/links.ts';
 import { createInvite, INVITE_DAYS, inviteUrl, openInvites, removeInvite } from '#lib/server/auth/invites.ts';
 import { getAccessList, getInstrumentGroups } from '#lib/server/repertoire.ts';
-import { appendRecords, deleteRows, readTab, refreshAfterWrite, SheetLayoutError, updateRecord } from '#lib/server/sheet-writes.ts';
+import { appendRecords, deleteRows, ensureColumns, readTab, refreshAfterWrite, SheetLayoutError, updateRecord } from '#lib/server/sheet-writes.ts';
 import { requireSetting } from '#lib/server/services.ts';
 import { getStore } from '#lib/server/db/index.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -79,6 +79,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			? [...roleRights(list)].map(([name, rights]) => ({
 					name,
 					description: list.groups.find((group) => group.name === name)?.description,
+					// The orchestras its rights hold for (#305); none: all of them.
+					orchestras: list.groups.find((group) => group.name === name)?.orchestras ?? [],
 					rights,
 					members: list.members.filter((member) => member.groups.some((g) => normalize(g) === normalize(name))).length
 				}))
@@ -342,12 +344,21 @@ export const actions: Actions = {
 			const name = field(data, 'name');
 			if (!name || name.includes('@')) return t.admin.roleNameMissing;
 			const wanted = RIGHTS.filter((right) => right !== 'ansehen' && data.getAll('right').includes(right));
-			const [groups, rights] = await Promise.all([readTab('groups'), readTab('rights')]);
+			// Limited to some orchestras (#305), when the form offered them; in the configured order.
+			const ticked = new Set(data.getAll('orchestra').map(String));
+			const scoped = data.has('scoped');
+			const orchestras = config.orchestras.filter((orchestra) => ticked.has(orchestra)).join(', ');
+			const [read, rights] = await Promise.all([readTab('groups'), readTab('rights')]);
+			const groups = scoped && orchestras && read.missing.includes('orchestras') ? await ensureColumns('groups', ['orchestras']) : read;
 			const group = groups.rows.find((row) => normalize(row.values.name) === normalize(name));
 			const description = field(data, 'description');
-			if (!group) await appendRecords('groups', groups, [{ name, description }]);
-			else if (data.has('description') && group.values.description !== description) {
-				await updateRecord('groups', groups, group.row, { description });
+			if (!group) await appendRecords('groups', groups, [{ name, description, ...(scoped ? { orchestras } : {}) }]);
+			else {
+				const changed = {
+					...(data.has('description') && group.values.description !== description ? { description } : {}),
+					...(scoped && (group.values.orchestras ?? '') !== orchestras ? { orchestras } : {})
+				};
+				if (Object.keys(changed).length) await updateRecord('groups', groups, group.row, changed);
 			}
 			const plan = planRoleRights(
 				rights.rows.map((row) => ({ row: row.row, who: row.values.who, right: row.values.right })),

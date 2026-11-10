@@ -4,7 +4,8 @@ import { config } from '#lib/config/index.ts';
 import { t } from '#lib/i18n/index.ts';
 import { normalizeEmail } from '#lib/access/access.ts';
 import { commonInstruments, formatInstrument, matchParts, parseInstruments, playableInstruments, playedParts } from '#lib/music/my-parts.ts';
-import { addReport, feedbackUser, formText, playAgain } from '#lib/server/feedback.ts';
+import { feedbackUser, formText, playAgain } from '#lib/server/feedback.ts';
+import { reportFromForm } from '#lib/server/report-form.ts';
 import { features, isOn } from '#lib/server/env.ts';
 import { requireRight } from '#lib/server/auth/index.ts';
 import { getAccessList, getFeedback, getLoans, getMusicConfig, getPartAssignments, getPieceNotes, getRehearsalPlan, getScanTasks } from '#lib/server/repertoire.ts';
@@ -15,7 +16,6 @@ import { choicesAt } from '#lib/music/part-assignments.ts';
 import { checkNote, notesOf, sectionOptions } from '#lib/notes/piece-notes.ts';
 import { today } from '#lib/server/members.ts';
 import { normalize } from '#lib/repertoire/sheet.ts';
-import { cleanLink } from '#lib/links.ts';
 import { daysUntilDue, loanState, loansOf } from '#lib/loans/loans.ts';
 import { formatDay } from '#lib/events/format.ts';
 import { pieceArt } from '#lib/music/piece-art.ts';
@@ -382,46 +382,9 @@ export const actions: Actions = {
 	report: async ({ params, request, locals }) => {
 		const user = feedbackUser(locals);
 		if (!user) return fail(403, { reportError: t.reports.signInNeeded });
-		const data = await request.formData();
-		const kind = formText(data, 'kind') as ReportKind;
-		if (!REPORT_KINDS.includes(kind)) return fail(400, { reportError: t.reports.failed });
-
-		const piece = (await getLibrary()).piecesById.get(params.id);
-		// A piece without parts has only its Hörbeispiel to report.
-		if (!piece || (!piece.detail && !(piece.sheet && kind === 'recording'))) error(404, t.messages.noPiece);
-		// A better Hörbeispiel goes along with "Hörbeispiel falsch"; only web links.
-		const rawLink = kind === 'recording' ? formText(data, 'link', 500) : '';
-		const link = rawLink ? cleanLink(rawLink) : '';
-		if (link === undefined) return fail(400, { reportError: t.wishes.invalidLink });
-		// The part's name comes from the archive, not from the form.
-		const fileId = kind === 'recording' ? '' : formText(data, 'fileId');
-		const part = fileId ? piece.detail?.parts.find((p) => p.id === fileId) : undefined;
-		if (fileId && !part) return fail(400, { reportError: t.reports.unknownPart });
-		// A missing part has no file: it's named by instrument and number, from the configured list.
-		const instrument = formText(data, 'missingInstrument');
-		let missingLabel = '';
-		if (kind === 'missing' && !fileId && instrument) {
-			if (!playableInstruments(config).includes(instrument)) return fail(400, { reportError: t.reports.unknownPart });
-			const number = Number(formText(data, 'missingNumber'));
-			missingLabel = formatInstrument({ instrument, numbers: number >= 1 && number <= 8 ? [number] : [] });
-		}
-
-		try {
-			await addReport(user, {
-				pieceId: piece.id,
-				pieceName: piece.title,
-				part: part?.label ?? missingLabel,
-				fileId,
-				kind,
-				comment: formText(data, 'comment', 1000),
-				link
-			});
-			return { reported: true };
-		} catch (cause) {
-			if (cause instanceof SheetLayoutError) return fail(409, { reportError: t.reports.notSetUp });
-			console.error('Saving a problem report failed:', cause);
-			return fail(503, { reportError: t.reports.failed });
-		}
+		// The same as from the practice viewer and "Meine Noten" (#306).
+		const result = await reportFromForm(user, params.id, await request.formData());
+		return 'reportError' in result ? fail(result.status, { reportError: result.reportError }) : result;
 	}
 };
 

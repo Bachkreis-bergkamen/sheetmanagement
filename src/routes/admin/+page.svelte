@@ -124,7 +124,24 @@
 
 	const grantable = $derived(data.state === 'ready' ? data.rights.filter((r) => r.right !== 'ansehen') : []);
 	const rightLabel = (right: string) => data.rights?.find((r) => r.right === right)?.label ?? right;
+	const orchestras = $derived(data.state === 'ready' ? data.orchestras : []);
 </script>
+
+<!-- Which orchestras a role's rights hold for (#305); with one orchestra there's nothing to pick. -->
+{#snippet roleOrchestras(chosen: string[])}
+	{#if orchestras.length > 1}
+		<fieldset class="choices">
+			<legend class="caption">{t.admin.roleOrchestras}</legend>
+			<input type="hidden" name="scoped" value="1" />
+			<div class="checks">
+				{#each orchestras as orchestra (orchestra)}
+					<label class="check"><input type="checkbox" name="orchestra" value={orchestra} checked={chosen.includes(orchestra)} />{orchestra}</label>
+				{/each}
+			</div>
+			<span class="meta">{t.admin.roleOrchestrasHint}</span>
+		</fieldset>
+	{/if}
+{/snippet}
 
 <Title title={t.admin.title} />
 <PageHeader title={t.admin.title} lead={t.admin.lead} />
@@ -443,7 +460,7 @@
 							<input type="hidden" name="name" value={role.name} />
 							<div class="role-head">
 								<strong>{role.name}</strong>
-								<span class="meta">{t.admin.roleMembers(role.members)}</span>
+								<span class="meta">{t.admin.roleMembers(role.members)}{#if role.orchestras.length}{' · '}{t.admin.roleOrchestrasShort(role.orchestras.join(', '))}{/if}</span>
 							</div>
 							<input class="role-description" name="description" value={role.description ?? ''} placeholder={t.admin.roleDescription} aria-label={t.admin.roleDescription} autocomplete="off" />
 							<div class="checks">
@@ -451,6 +468,7 @@
 									<label class="check"><input type="checkbox" name="right" value={option.right} checked={role.rights.includes(option.right)} />{option.label}</label>
 								{/each}
 							</div>
+							{@render roleOrchestras(role.orchestras)}
 							<div class="row-buttons">
 								<button class="btn small" disabled={saving.busy}><Icon name="check" size={14} />{t.admin.save}</button>
 								<button class="icon-btn" disabled={saving.busy} formaction="?/removeRole" title={t.admin.remove} aria-label={t.admin.remove} onclick={confirmLink(t.admin.confirmRemoveRole(role.name))}>
@@ -477,6 +495,7 @@
 					<label class="check"><input type="checkbox" name="right" value={option.right} />{option.label}</label>
 				{/each}
 			</div>
+			<div class="wide">{@render roleOrchestras([])}</div>
 			<div class="wide"><button class="btn" disabled={saving.busy}><Icon name="plus" size={16} />{t.admin.add}</button></div>
 		</form>
 	</details>
