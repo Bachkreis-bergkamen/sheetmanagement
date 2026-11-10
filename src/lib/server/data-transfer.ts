@@ -99,7 +99,9 @@ export function backupTabs(backup: unknown): Partial<Record<TabKey, { row: numbe
 				cells: Object.fromEntries(
 					Object.entries(row).filter((entry): entry is [string, string] => known.has(entry[0]) && typeof entry[1] === 'string' && !!entry[1])
 				)
-			}));
+			}))
+			// Older backups have the sheet's empty rows with only an unticked checkbox (FALSE) in them.
+			.filter(({ cells }) => Object.values(cells).some((value) => value.trim().toUpperCase() !== 'FALSE'));
 	}
 	if (!Object.keys(result).length) throw new BackupFormatError();
 	return result;
