@@ -70,7 +70,7 @@ export interface LibraryConcert {
 export type SheetState = 'ok' | Extract<RepertoireResult, { ok: false }>['reason'];
 
 export interface Library {
-	catalog: { ok: true; catalog: Catalog } | { ok: false; reason: 'not-configured' | 'failed' };
+	catalog: { ok: true; catalog: Catalog } | { ok: false; reason: 'not-configured' | 'loading' | 'failed' };
 	schedule: ScheduleResult;
 	sheet: SheetState;
 	pieces: LibraryPiece[];

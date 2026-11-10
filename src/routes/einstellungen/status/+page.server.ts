@@ -23,6 +23,7 @@ import { freshness } from '#lib/server/version-check.ts';
 import { APP_COMMIT, versionLabel, versionUrl } from '#lib/version.ts';
 import { getRepertoire } from '#lib/server/repertoire.ts';
 import { driveWriteEnabled, getArchiveIndex, getGoogle, NotConfiguredError, requireSetting } from '#lib/server/services.ts';import { today } from '#lib/server/members.ts';
+import { CacheMissError } from '#lib/server/cache.ts';
 import { daysBefore, SHOWN_DAYS } from '#lib/page-counts.ts';
 
 
@@ -48,6 +49,9 @@ export interface Check {
 function describeError(error: unknown, what: string, serviceAccountEmail?: string): Check {
 	if (error instanceof NotConfiguredError) {
 		return { state: 'missing', details: [], problem: t.messages.notSet(error.variable) };
+	}
+	if (error instanceof CacheMissError) {
+		return { state: 'missing', details: [], problem: t.status.indexNotBuilt };
 	}
 	if (error instanceof GoogleApiError && (error.status === 403 || error.status === 404)) {
 		return {
@@ -113,9 +117,13 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		googleReady
 			? (async (): Promise<Check> => {
 					try {
-						let result = await getArchiveIndex();
 						const refresh = url.searchParams.has('refresh');
-						if (refresh && Date.now() - result.storedAt > MIN_REFRESH_AGE_MS) {
+						// Not built yet (the cron job builds it): "Neu laden" builds it here.
+						let result = await getArchiveIndex().catch((error) => {
+							if (refresh && error instanceof CacheMissError) return undefined;
+							throw error;
+						});
+						if (!result || (refresh && Date.now() - result.storedAt > MIN_REFRESH_AGE_MS)) {
 							result = await getArchiveIndex({ force: true });
 						}
 						const index = result.value;

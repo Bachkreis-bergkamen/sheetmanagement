@@ -152,6 +152,10 @@
 
 {#if data.error === 'not-configured'}
 	<EmptyState icon="music" text={t.pieces.empty} />
+{:else if data.error === 'loading'}
+	<div class="notice">
+		<p>{t.pieces.loading}</p>
+	</div>
 {:else if data.error}
 	<div class="notice">
 		<p>{t.pieces.failed}</p>

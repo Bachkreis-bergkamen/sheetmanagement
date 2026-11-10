@@ -1,5 +1,6 @@
 import { config, type Instrument } from '#lib/config/index.ts';
 import { buildCatalog, type Catalog } from '#lib/music/catalog.ts';
+import { CacheMissError } from './cache.ts';
 import type { DriveIndex } from './drive-index.ts';
 import { version } from '$app/env';
 import { appEnv, isDemo, runInBackground } from './env.ts';
@@ -49,7 +50,8 @@ async function catalogFor(index: DriveIndex): Promise<Catalog> {
 
 export type CatalogResult =
 	| { ok: true; catalog: Catalog; storedAt: number }
-	| { ok: false; reason: 'not-configured' | 'failed' };
+	/** loading: the cron job hasn't built the archive index yet (see getArchiveIndex). */
+	| { ok: false; reason: 'not-configured' | 'loading' | 'failed' };
 
 export async function getCatalog(): Promise<CatalogResult> {
 	try {
@@ -64,6 +66,7 @@ export async function getCatalog(): Promise<CatalogResult> {
 		return { ok: true, catalog: await catalog, storedAt };
 	} catch (error) {
 		if (error instanceof NotConfiguredError) return { ok: false, reason: 'not-configured' };
+		if (error instanceof CacheMissError) return { ok: false, reason: 'loading' };
 		console.error('Loading the archive failed:', error);
 		return { ok: false, reason: 'failed' };
 	}

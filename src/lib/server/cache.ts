@@ -23,6 +23,14 @@ export interface CachedOptions<T> {
 	force?: boolean;
 	/** How long a caller waits for a build before giving up. */
 	timeoutMs?: number;
+	/**
+	 * Only serve what is cached, stale or not: never build or refresh. With nothing cached it
+	 * throws CacheMissError. For values whose build costs more CPU than a visitor's request
+	 * has (the free plan's 10 ms); the cron job builds them instead. `force` still builds.
+	 */
+	readOnly?: boolean;
+	/** Refresh a stale value before returning instead of in the background (for the cron job). */
+	waitForRefresh?: boolean;
 }
 
 export interface CachedResult<T> {
@@ -36,6 +44,42 @@ export class CacheTimeoutError extends Error {
 		super(`Building ${key} took longer than ${ms} ms`);
 		this.name = 'CacheTimeoutError';
 	}
+}
+
+/** A read-only value that isn't cached yet: nothing in memory or KV. */
+export class CacheMissError extends Error {
+	constructor(key: string) {
+		super(`${key} is not cached yet`);
+		this.name = 'CacheMissError';
+	}
+}
+
+/** KV couldn't be read, twice. Not the same as an empty cache: what's there may be fine. */
+export class KvReadError extends Error {
+	constructor(key: string, cause: unknown) {
+		super(`Reading ${key} from KV failed`, { cause });
+		this.name = 'KvReadError';
+	}
+}
+
+const KV_RETRY_MS = 200;
+/** Read-only values: how often an instance with a stale one looks in KV for a newer one. */
+const STALE_CHECK_MS = 60 * 1000;
+const staleChecks = new Map<string, number>();
+
+/** Reads a KV entry, once more after a short pause when the first read fails. */
+async function readKv<T>(kv: KvStore, key: string): Promise<Entry<T> | null> {
+	let lastError: unknown;
+	for (let attempt = 0; attempt < 2; attempt++) {
+		if (attempt) await new Promise((resolve) => setTimeout(resolve, KV_RETRY_MS));
+		try {
+			const stored = (await kv.get(key, 'json')) as Entry<T> | null;
+			return stored && typeof stored.storedAt === 'number' ? stored : null;
+		} catch (error) {
+			lastError = error;
+		}
+	}
+	throw new KvReadError(key, lastError);
 }
 
 /**
@@ -113,7 +157,7 @@ function withTimeout<T>(promise: Promise<T>, key: string, ms: number): Promise<T
  * only wait for Google when there is no cached value at all.
  */
 export async function cached<T>(options: CachedOptions<T>): Promise<CachedResult<T>> {
-	const { key, maxAgeMs, kv, waitUntil, force = false, timeoutMs = DEFAULT_TIMEOUT_MS } = options;
+	const { key, maxAgeMs, kv, waitUntil, force = false, timeoutMs = DEFAULT_TIMEOUT_MS, readOnly = false, waitForRefresh = false } = options;
 	const now = options.now ?? Date.now;
 
 	const refresh = (fresh: boolean): Promise<Entry<T>> => {
@@ -160,8 +204,25 @@ export async function cached<T>(options: CachedOptions<T>): Promise<CachedResult
 	};
 
 	const isFresh = (entry: Entry<T>) => now() - entry.storedAt < maxAgeMs;
-	const serve = (entry: Entry<T>, source: CachedResult<T>['source']): CachedResult<T> => {
-		if (!isFresh(entry)) {
+	const serve = async (entry: Entry<T>, source: CachedResult<T>['source']): Promise<CachedResult<T>> => {
+		if (!isFresh(entry) && readOnly && kv && source === 'memory') {
+			// The cron job refreshes it in another instance: take its value from KV, but ask KV at
+			// most once a minute, since reading a big value costs CPU too.
+			const checked = staleChecks.get(key) ?? 0;
+			if (Date.now() - checked >= STALE_CHECK_MS) {
+				staleChecks.set(key, Date.now());
+				const stored = await readKv<T>(kv, key).catch(() => null);
+				if (stored && stored.storedAt > entry.storedAt) {
+					memory.set(key, stored);
+					return { value: stored.value, storedAt: stored.storedAt, source: 'kv' };
+				}
+			}
+		}
+		if (!isFresh(entry) && !readOnly) {
+			if (waitForRefresh) {
+				const fresh = await refresh(false);
+				return { value: fresh.value, storedAt: fresh.storedAt, source: 'fresh' };
+			}
 			const background = refresh(false).catch((error) => console.error(`Refreshing ${key} failed:`, error));
 			waitUntil?.(background);
 		}
@@ -172,11 +233,19 @@ export async function cached<T>(options: CachedOptions<T>): Promise<CachedResult
 		const inMemory = memory.get(key) as Entry<T> | undefined;
 		if (inMemory) return serve(inMemory, 'memory');
 
-		const stored = (await kv?.get(key, 'json').catch(() => null)) as Entry<T> | null | undefined;
-		if (stored && typeof stored.storedAt === 'number') {
+		let stored: Entry<T> | null = null;
+		try {
+			stored = kv ? await readKv<T>(kv, key) : null;
+		} catch (error) {
+			// What's in KV may be fine; rebuilding a read-only value here is what it must not do.
+			if (readOnly) throw error;
+			console.error(error);
+		}
+		if (stored) {
 			memory.set(key, stored);
 			return serve(stored, 'kv');
 		}
+		if (readOnly) throw new CacheMissError(key);
 	}
 
 	// Forced: after a write, a refresh that started before it would bring old data.
@@ -191,6 +260,7 @@ export function clearMemoryCache() {
 	queued.clear();
 	persisted.clear();
 	kvWrites.clear();
+	staleChecks.clear();
 }
 
 /**

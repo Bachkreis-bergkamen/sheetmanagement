@@ -7,7 +7,11 @@ import { appEnv, isDemo, runInBackground } from './env.ts';
 import { createTokenProvider, parseServiceAccountKey, scopesFor } from './google/auth.ts';
 import { GoogleClient } from './google/client.ts';
 
-const INDEX_MAX_AGE_MS = 5 * 60 * 1000;
+/**
+ * A full rebuild reads the whole archive; the app's own changes are patched in at once, so
+ * this only sets how soon changes made directly in Drive show up.
+ */
+const INDEX_MAX_AGE_MS = 60 * 60 * 1000;
 
 export class NotConfiguredError extends Error {
 	constructor(readonly variable: string) {
@@ -74,12 +78,21 @@ export function programFolderIds(): string[] {
 		.filter((id) => /^[\w-]{10,}$/.test(id));
 }
 
-/** The archive index, served from cache and refreshed in the background every few minutes. */
-export function getArchiveIndex({ force = false } = {}): Promise<CachedResult<DriveIndex>> {
+/**
+ * The archive index, served from cache. Building it walks the whole archive in Drive, far
+ * beyond the free plan's 10 ms CPU, so a visitor's request never builds or refreshes it
+ * (Error 1102, and a 20 s wait that ended in CacheTimeoutError): the cron job does (`build`),
+ * and after the app's own changes `force` does, or patchCached puts them in. With nothing
+ * cached yet it throws CacheMissError. The demo has no KV and a small archive, so it builds.
+ */
+export function getArchiveIndex({ force = false, build = false } = {}): Promise<CachedResult<DriveIndex>> {
 	const archiveFolderId = requireSetting('DRIVE_ARCHIVE_FOLDER_ID');
 	const programs = programFolderIds();
 	const { client } = getGoogle();
+	const kv = appEnv().CACHE;
 	return cached({
+		readOnly: !build && !isDemo() && !!kv,
+		waitForRefresh: build,
 		key: archiveIndexKey(archiveFolderId, programs),
 		maxAgeMs: INDEX_MAX_AGE_MS,
 		build: () =>
@@ -89,7 +102,7 @@ export function getArchiveIndex({ force = false } = {}): Promise<CachedResult<Dr
 				programFolderIds: programs,
 				programFolderPattern: config.naming.programFolderPattern
 			}),
-		kv: appEnv().CACHE,
+		kv,
 		waitUntil: runInBackground,
 		force
 	});

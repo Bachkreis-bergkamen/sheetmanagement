@@ -142,6 +142,7 @@ export const en: Texts = {
 		lead: 'Every piece with every part.',
 		empty: 'Once Google Drive is connected, every piece in the library shows here.',
 		failed: "The library couldn't be loaded just now. Please try again in a moment.",
+		loading: 'The library is being read from Drive. This takes up to ten minutes; please check back then.',
 		checkStatus: 'Check connection',
 		search: 'Filter the archive: title, composer, part, note …',
 		searchLabel: 'Filter the archive',
@@ -2418,6 +2419,7 @@ export const en: Texts = {
 		programs: (list: string) => `Current programmes: ${list}`,
 		indexed: (when: string, fresh: boolean, requests: number) =>
 			`As of ${when} (${fresh ? 'just loaded' : 'from the cache'}, ${requests} Google requests)`,
+		indexNotBuilt: 'The archive hasn’t been read yet. The background job does it every ten minutes; “Read the library again” reads it now.',
 		events: (n: number) => `${n} dates in the next 4 months`,
 		nextEvent: (title: string, when: string) => `Next date: ${title}, ${when}`,
 		setupHint: '“Set up sheet” creates them.',
