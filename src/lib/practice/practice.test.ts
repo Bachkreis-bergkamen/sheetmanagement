@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, beatSeconds, IDLE_MINUTES, MAX_BEAT_SECONDS, PracticeClock, practiceMonth, practiceWeek, SESSION_HOURS, treeStage, weekStart } from './practice.ts';
+import { addDays, beatSeconds, GRACE_MINUTES, IDLE_MINUTES, MAX_BEAT_SECONDS, PracticeClock, practiceMonth, practiceWeek, SESSION_HOURS, treeStage, weekStart } from './practice.ts';
 
 const h = (hours: number) => hours * 3600;
 
@@ -92,15 +92,41 @@ describe('PracticeClock', () => {
 		expect(clock.take()).toBe(30);
 	});
 
-	it('pauses after a while without a touch, and counts again from the next one', () => {
+	it('pauses after a while without a touch', () => {
+		const clock = new PracticeClock(0);
+		const now = run(clock, 0, IDLE_MINUTES * 60 + 300);
+		expect(clock.idle(now)).toBe(true);
+		expect(clock.inGrace(now)).toBe(true);
+		// The tick that finds it idle adds nothing yet.
+		expect(clock.counted).toBe(IDLE_MINUTES * 60_000 - 5000);
+	});
+
+	it('counts the pause after all when the member touches it within the grace (#304)', () => {
 		const clock = new PracticeClock(0);
 		let now = run(clock, 0, IDLE_MINUTES * 60 + 300);
-		expect(clock.idle(now)).toBe(true);
-		// The tick that finds it idle adds nothing.
-		expect(clock.counted).toBe(IDLE_MINUTES * 60_000 - 5000);
 		clock.activity(now);
+		expect(clock.counted).toBe(IDLE_MINUTES * 60_000 + 300_000);
+		now = run(clock, now, 10);
+		expect(clock.counted).toBe(IDLE_MINUTES * 60_000 + 310_000);
+	});
+
+	it('drops the pause once the grace is over, and counts again from the next touch', () => {
+		const clock = new PracticeClock(0);
+		let now = run(clock, 0, (IDLE_MINUTES + GRACE_MINUTES) * 60 + 60);
+		expect(clock.inGrace(now)).toBe(false);
+		clock.activity(now);
+		expect(clock.counted).toBe(IDLE_MINUTES * 60_000 - 5000);
 		now = run(clock, now, 10);
 		expect(clock.counted).toBe(IDLE_MINUTES * 60_000 + 5000);
+	});
+
+	it('does not count a hidden pause', () => {
+		const clock = new PracticeClock(0);
+		let now = run(clock, 0, IDLE_MINUTES * 60);
+		now = run(clock, now, 300, false);
+		clock.activity(now);
+		// Only the visible time up to the pause; the five minutes with the screen off add nothing.
+		expect(clock.counted).toBe(IDLE_MINUTES * 60_000);
 	});
 
 	it('adds nothing for a long gap between ticks (the device slept)', () => {

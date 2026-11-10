@@ -316,6 +316,8 @@ export const de = {
 			places: 'Vorschläge für den Ort',
 			added: (title: string) => `„${title}“ steht jetzt im Kalender.`,
 			show: 'Ansehen',
+			/** A role limited to some orchestras (#305) plans only their dates. */
+			otherOrchestra: (orchestras: string) => `Du planst Termine nur für ${orchestras}. Bitte eins davon ankreuzen.`,
 			readOnly:
 				'Termine eintragen ist aus: Die App darf den Kalender nur lesen. Dafür CALENDAR_WRITE="true" setzen und den Kalender für das Dienstkonto mit „Änderungen an Terminen vornehmen“ freigeben.',
 			problems: {
@@ -892,8 +894,8 @@ export const de = {
 		shelf: {
 			title: 'Offline auf diesem Gerät',
 			lead: 'Diese Stimmen öffnen sich auch ohne Netz. Speichern kannst du jede Stimme auf der Seite ihres Stücks.',
-			viewAll: 'Alle ansehen',
-			view: (label: string) => `${label} ansehen`,
+			count: (n: number) => (n === 1 ? '1 Stimme' : `${n} Stimmen`),
+			view: (label: string) => `${label} zum Üben öffnen`,
 			removeAll: 'Alle löschen',
 			confirmRemoveAll: 'Alle offline gespeicherten Stimmen von diesem Gerät löschen?'
 		}
@@ -1693,6 +1695,10 @@ export const de = {
 		addRole: 'Rolle anlegen',
 		roleName: 'Name',
 		roleDescription: 'Beschreibung',
+		/** A role limited to some orchestras (#305). */
+		roleOrchestras: 'Gilt für',
+		roleOrchestrasHint: 'Nichts angekreuzt: für alle Orchester. Sonst gelten die Rechte nur für Termine, Programme und Anwesenheit dieser Orchester.',
+		roleOrchestrasShort: (orchestras: string) => `nur ${orchestras}`,
 		addPresetRoles: (names: string) => `Standardrollen anlegen: ${names}`,
 		confirmRemoveRole: (name: string) => `Rolle „${name}“ mit ihren Rechten entfernen?`,
 		singleRights: 'Einzelne Rechte',
@@ -1952,7 +1958,8 @@ export const de = {
 			back: 'Meine Noten',
 			counting: 'Zählt als Probenzeit',
 			today: (duration: string) => `Heute ${duration}`,
-			idle: 'Pausiert: tippe auf die Noten, um weiterzuzählen.',
+			idle: 'Noch am Üben? Hier tippen: die Pause zählt dann mit.',
+			paused: 'Pausiert: tippe auf die Noten, um weiterzuzählen.',
 			full: 'Dieses Öffnen hat 3 Stunden gezählt. Öffne die Stimme neu, um weiterzuzählen.',
 			stopped: 'Probenzeit ist ausgeschaltet; hier zählt nichts mehr.',
 			notCounting: 'Probenzeit ist aus.',
@@ -2763,7 +2770,8 @@ export const de = {
 			tab: 'Gruppen',
 			columns: {
 				name: 'Gruppe',
-				description: 'Beschreibung'
+				description: 'Beschreibung',
+				orchestras: 'Orchester'
 			}
 		},
 		rights: {
@@ -2991,6 +2999,8 @@ export const de = {
 			scan: 'Schlechter Scan',
 			empty: 'Datei leer',
 			wrong: 'Falsche Stimme',
+			/** A wrong note, a typo, wrong bar numbers in the music itself (#306), not the scan. */
+			notes: 'Fehler in den Noten',
 			/** The piece's Hörbeispiel is wrong or missing; the report can carry a better link. */
 			recording: 'Hörbeispiel falsch',
 			other: 'Sonstiges'
@@ -3020,6 +3030,12 @@ export const de = {
 		send: 'Melden',
 		cancel: 'Abbrechen',
 		thanks: 'Danke! Die Meldung ist eingegangen.',
+		/** The page open in the practice viewer, at the start of the comment (#306). */
+		onPage: (page: number) => `Seite ${page}: `,
+		offline: 'Ohne Verbindung geht das Melden nicht. Versuch es gleich noch einmal.',
+		closeDialog: 'Schließen',
+		/** The short button on a part in "Meine Noten" (#306). */
+		flag: 'Melden',
 		failed: 'Die Meldung konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.',
 		notSetUp: 'Meldungen: Fehlt noch in der Tabelle. Bitte einmal „Tabelle einrichten“ ausführen.',
 		signInNeeded: 'Zum Melden bitte anmelden.',

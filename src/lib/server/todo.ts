@@ -3,7 +3,8 @@ import { reportSubject } from '#lib/feedback/feedback.ts';
 import { t } from '#lib/i18n/index.ts';
 import { urgentLoans } from '#lib/loans/loans.ts';
 import { eventDay } from '#lib/repertoire/dates.ts';
-import { normalizeEmail } from '#lib/access/access.ts';
+import { mayFor, normalizeEmail } from '#lib/access/access.ts';
+import { getLibrary, orchestraOf } from './library.ts';
 import { getAccessList, getAttendance, getFeedback, getLoans, getScanTasks } from './repertoire.ts';
 import { features } from './env.ts';
 import { unansweredPolls } from './polls.ts';
@@ -125,7 +126,7 @@ async function gather(locals: App.Locals) {
 	]).catch(() => [null, null, null, null, null, null] as const);
 	const me = normalizeEmail(locals.access.user?.email ?? '');
 	// Recent rehearsals nobody has taken attendance for yet (#120), oldest first.
-	const untaken =
+	let untaken =
 		taken && schedule?.ok
 			? schedule.events.filter(
 					(event) =>
@@ -135,6 +136,11 @@ async function gather(locals: App.Locals) {
 						!taken.byEvent.get(event.id)?.size
 				)
 			: [];
+	// Attendance limited to some orchestras (#305): only their rehearsals wait for this person.
+	if (untaken.length && locals.access.scopes?.has('anwesenheit.erfassen')) {
+		const library = await getLibrary().catch(() => null);
+		untaken = library ? untaken.filter((event) => mayFor(locals.access, 'anwesenheit.erfassen', orchestraOf(library, event))) : [];
+	}
 	return {
 		reports: reports ? (feedback?.reports.filter((report) => report.status === 'open') ?? []) : [],
 		wishes: admin && on.wishes ? (feedback?.wishes.filter((wish) => wish.status === 'open') ?? []) : [],

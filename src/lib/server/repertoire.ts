@@ -230,12 +230,24 @@ async function loadRawSheet(force: boolean): Promise<{ value: RawSheet; storedAt
  * per request instead of the sheet's minute-old copy, so a change shows up everywhere at once.
  */
 let d1Sheet: { version: number; value: RawSheet; storedAt: number } | undefined;
+/**
+ * The read under way, by version: several saves at once (a rehearsal evening's Meldungen, #303)
+ * share one read of everything instead of each starting its own.
+ */
+let d1Reading: { version: number; promise: Promise<{ version: number; value: RawSheet; storedAt: number }> } | undefined;
 
 async function loadD1Sheet(force: boolean): Promise<{ value: RawSheet; storedAt: number }> {
 	const { version } = await dataState({ force });
 	if (!force && d1Sheet?.version === version) return d1Sheet;
-	d1Sheet = { version, value: await readD1Sheet(), storedAt: Date.now() };
-	return d1Sheet;
+	if (d1Reading?.version !== version) {
+		const promise = readD1Sheet().then((value) => (d1Sheet = { version, value, storedAt: Date.now() }));
+		d1Reading = { version, promise };
+		promise.then(
+			() => d1Reading?.promise === promise && (d1Reading = undefined),
+			() => d1Reading?.promise === promise && (d1Reading = undefined)
+		);
+	}
+	return d1Reading.promise;
 }
 
 // Built once per sheet snapshot and Worker instance, not on every request.

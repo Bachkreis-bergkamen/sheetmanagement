@@ -310,6 +310,8 @@ export const en: Texts = {
 			places: 'Suggestions for the location',
 			added: (title: string) => `“${title}” is in the calendar now.`,
 			show: 'View',
+			/** A role limited to some orchestras (#305) plans only their dates. */
+			otherOrchestra: (orchestras: string) => `You plan dates for ${orchestras} only. Please tick one of them.`,
 			readOnly:
 				'Adding dates is off: the app may only read the calendar. Set CALENDAR_WRITE="true" and share the calendar with the service account with “Make changes to events”.',
 			problems: {
@@ -884,8 +886,8 @@ export const en: Texts = {
 		shelf: {
 			title: 'Offline on this device',
 			lead: 'These parts open without a connection too. You can save any part on its piece’s page.',
-			viewAll: 'View all',
-			view: (label: string) => `View ${label}`,
+			count: (n: number) => (n === 1 ? '1 part' : `${n} parts`),
+			view: (label: string) => `Open ${label} to practise`,
 			removeAll: 'Delete all',
 			confirmRemoveAll: 'Delete all parts saved offline from this device?'
 		}
@@ -1676,6 +1678,10 @@ export const en: Texts = {
 		addRole: 'Add role',
 		roleName: 'Name',
 		roleDescription: 'Description',
+		/** A role limited to some orchestras (#305). */
+		roleOrchestras: 'Holds for',
+		roleOrchestrasHint: 'None ticked: all orchestras. Otherwise the rights hold only for these orchestras’ dates, programmes and attendance.',
+		roleOrchestrasShort: (orchestras: string) => `${orchestras} only`,
 		addPresetRoles: (names: string) => `Add default roles: ${names}`,
 		confirmRemoveRole: (name: string) => `Remove the role “${name}” with its rights?`,
 		singleRights: 'Single rights',
@@ -1933,7 +1939,8 @@ export const en: Texts = {
 			back: 'My parts',
 			counting: 'Counts as practice time',
 			today: (duration: string) => `Today ${duration}`,
-			idle: 'Paused: tap the music to keep counting.',
+			idle: 'Still practising? Tap here and the pause counts too.',
+			paused: 'Paused: tap the music to keep counting.',
 			full: 'This opening has counted 3 hours. Open the part again to keep counting.',
 			stopped: 'Practice time is off; nothing counts here any more.',
 			notCounting: 'Practice time is off.',
@@ -2725,7 +2732,8 @@ export const en: Texts = {
 			tab: 'Groups',
 			columns: {
 				name: 'Group',
-				description: 'Description'
+				description: 'Description',
+				orchestras: 'Orchestras'
 			}
 		},
 		rights: {
@@ -2939,6 +2947,8 @@ export const en: Texts = {
 			scan: 'Bad scan',
 			empty: 'File empty',
 			wrong: 'Wrong part',
+			/** A wrong note, a typo, wrong bar numbers in the music itself (#306), not the scan. */
+			notes: 'Mistake in the music',
 			/** The piece's recording is wrong or missing; the report can carry a better link. */
 			recording: 'Wrong recording',
 			other: 'Other'
@@ -2968,6 +2978,12 @@ export const en: Texts = {
 		send: 'Report',
 		cancel: 'Cancel',
 		thanks: 'Thank you! The report has arrived.',
+		/** The page open in the practice viewer, at the start of the comment (#306). */
+		onPage: (page: number) => `Page ${page}: `,
+		offline: "Reporting doesn't work without a connection. Please try again in a moment.",
+		closeDialog: 'Close',
+		/** The short button on a part in "My parts" (#306). */
+		flag: 'Report',
 		failed: "The report couldn't be saved just now. Please try again.",
 		notSetUp: 'Reports: not in the sheet yet. Please run “Set up sheet” once.',
 		signInNeeded: 'Please sign in to report.',

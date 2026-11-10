@@ -1,4 +1,5 @@
 import { fail } from '@sveltejs/kit';
+import { mayFor } from '#lib/access/access.ts';
 import { concertSummary, getLibrary, isPastConcert, shownDates } from '#lib/server/library.ts';
 import { config } from '#lib/config/index.ts';
 import { newEventFromForm } from '#lib/events/new-event.ts';
@@ -126,6 +127,11 @@ export const actions: Actions = {
 		}
 
 		requireRight(locals, 'termine.planen');
+		// Planning limited to some orchestras (#305): a date for one of them, or for everyone.
+		const own = locals.access.scopes?.get('termine.planen');
+		if (own && !mayFor(locals.access, 'termine.planen', values.orchestra)) {
+			return fail(403, { eventError: t.calendar.add.otherOrchestra(own.join(', ')), eventValues: values });
+		}
 		if (!calendarWriteEnabled()) return fail(503, { eventError: t.calendar.add.readOnly, eventValues: values });
 
 		const schedule = await getSchedule();

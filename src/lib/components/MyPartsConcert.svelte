@@ -8,6 +8,7 @@
 	import ConcertMode from './ConcertMode.svelte';
 	import Icon from './Icon.svelte';
 	import InstrumentGlyph from './InstrumentGlyph.svelte';
+	import QuickReport from './QuickReport.svelte';
 
 	/** One concert on "Meine Noten": its programme with the member's parts, and the merged PDF. */
 	let {
@@ -47,6 +48,10 @@
 		const marks = await ownMarks(files.map((file) => file.id));
 		if (performing) performing = marks;
 	}
+
+	/** Reporting a problem with a part, or a part that's missing, from here (#306); signed in only. */
+	const canReport = $derived(!!app.data.user);
+	let reporting = $state<{ pieceId: string; fileId?: string; part: string; missing?: { instrument: string; number?: number } } | null>(null);
 
 	let progress = $state<string | null>(null);
 	let mergeError = $state<string | null>(null);
@@ -271,11 +276,30 @@
 														{#each part.notes as note (note)}<span class="tag">{note}</span>{/each}
 														{#if offlineParts.has(part.id)}<span class="tag ok">{t.pwa.offlineBadge}</span>{/if}
 													</svelte:element>
+													{#if canReport && piece.pieceId}
+														<button
+															type="button"
+															class="flag"
+															title={t.reports.reportPart(part.label)}
+															aria-label={t.reports.reportPart(part.label)}
+															onclick={() => (reporting = { pieceId: piece.pieceId!, fileId: part.id, part: part.label })}><Icon name="flag" size={14} /></button
+														>
+													{/if}
 												</li>
 											{/each}
 										</ul>
 									{:else}
-										<span class="hint warn"><Icon name="alert" size={14} />{t.myParts.noPart(match.label)}</span>
+										<span class="hint warn"
+											><Icon name="alert" size={14} />{t.myParts.noPart(match.label)}
+											{#if canReport && piece.pieceId}
+												<button
+													type="button"
+													class="link"
+													onclick={() => (reporting = { pieceId: piece.pieceId!, part: match.label, missing: { instrument: match.instrument, number: match.number } })}
+													>{t.reports.flag}</button
+												>
+											{/if}
+										</span>
 									{/if}
 								</div>
 							{/each}
@@ -286,6 +310,12 @@
 		</ol>
 	{/if}
 </section>
+
+{#if reporting}
+	{#key reporting}
+		<QuickReport {...reporting} open onclose={() => (reporting = null)} />
+	{/key}
+{/if}
 
 <style>
 	.offline-note {
@@ -523,6 +553,42 @@
 		color: var(--accent);
 		letter-spacing: 0;
 		text-transform: none;
+	}
+
+	.parts li {
+		display: inline-flex;
+		align-items: center;
+		gap: 2px;
+	}
+
+	/* Reporting a problem with the part (#306): quiet, beside it. */
+	.flag {
+		display: grid;
+		place-items: center;
+		width: 32px;
+		height: 32px;
+		border: 0;
+		border-radius: var(--radius-control);
+		background: none;
+		color: var(--text-muted);
+		cursor: pointer;
+	}
+
+	.flag:hover {
+		background: var(--surface-2);
+		color: var(--accent);
+	}
+
+	.hint .link {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: var(--accent);
+		font: inherit;
+		font-weight: 600;
+		text-decoration: underline;
+		text-underline-offset: 3px;
+		cursor: pointer;
 	}
 
 	.parts {

@@ -8,6 +8,7 @@ import { canonicalUrl } from '#lib/server/canonical.ts';
 import { appEnv, isOn, runInBackground } from '#lib/server/env.ts';
 import { messageOf, recordError } from '#lib/server/errors.ts';
 import { isScheduledCall } from '#lib/server/jobs/token.ts';
+import { accessForDate } from '#lib/server/library.ts';
 import { refreshStoredSettings } from '#lib/server/repertoire.ts';
 import { serverTiming } from '#lib/server/timing.ts';
 
@@ -41,6 +42,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// The health check must answer even while Google doesn't.
 	event.locals.access =
 		event.url.pathname === '/api/health' ? resolveAccess(null, null, []) : await accessFromCookies(event.cookies, auth);
+	// A date's pages, its programme, plan and attendance (#305): a role limited to some orchestras
+	// counts there only for theirs, so every check on those pages goes by the date's orchestra.
+	if (event.locals.access.scopes && event.route.id?.startsWith('/kalender/[id]') && event.params.id) {
+		event.locals.access = await accessForDate(event.locals.access, event.params.id);
+	}
 	mark('access');
 
 	// Pages redirect to sign-in in the root layout's load. That doesn't cover form

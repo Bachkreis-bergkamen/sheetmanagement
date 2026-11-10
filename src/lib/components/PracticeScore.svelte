@@ -30,7 +30,8 @@
 		extra,
 		offers = [],
 		sharedAt = null,
-		share: canShare = true
+		share: canShare = true,
+		page = $bindable(1)
 	}: {
 		file: string;
 		marks: Record<number, Stroke[]>;
@@ -58,6 +59,8 @@
 		sharedAt?: string | null;
 		/** Off for a part not of the member's instrument: nobody in their section plays it. */
 		share?: boolean;
+		/** The page shown, e.g. for a report about it (#306). */
+		page?: number;
 	} = $props();
 	type Offer = { id: string; from: string; pages: Record<number, Stroke[]> };
 
@@ -71,7 +74,6 @@
 
 	let score = $state<OpenScore | null>(null);
 	let pages = $state(0);
-	let page = $state(1);
 	let failed = $state(false);
 	let fit = $state<'page' | 'width'>('page');
 	let full = $state(false);

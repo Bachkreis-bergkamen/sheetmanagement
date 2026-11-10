@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { planProgramSave, parseEntries, programVersion } from '#lib/repertoire/program-edit.ts';
 import { readTable } from '#lib/repertoire/sheet.ts';
 import {
+	accessFor,
 	buildAccessList,
+	mayFor,
 	countingMembers,
 	currentStatus,
 	lacksSurname,
@@ -47,7 +49,7 @@ describe('buildAccessList', () => {
 			['anna@example.org', ['Vorstand', 'Geigen']],
 			['ben@example.org', []]
 		]);
-		expect(list.groups).toEqual([{ row: 2, name: 'Vorstand', description: 'Leitet den Verein' }]);
+		expect(list.groups).toEqual([{ row: 2, name: 'Vorstand', description: 'Leitet den Verein', orchestras: [] }]);
 		expect(list.requests[0].email).toBe('dora@example.org');
 		expect(list.problems.map((p) => [p.kind, p.row])).toEqual([
 			['duplicate-member', 4],
@@ -79,6 +81,70 @@ describe('resolveAccess', () => {
 		const admin = resolveAccess(user('Root@Example.org'), null, parseEmailList('root@example.org, second@example.org'));
 		expect(admin.bootstrapAdmin).toBe(true);
 		expect([...admin.rights]).toEqual([...RIGHTS]);
+	});
+});
+
+describe('roles limited to some orchestras (#305)', () => {
+	const scoped = buildAccessList({
+		members: [
+			['E-Mail', 'Name', 'Instrument', 'Gruppen'],
+			['dirk@example.org', 'Dirk', '', 'Dirigat'],
+			['olga@example.org', 'Olga', '', 'Orga, Vorstand'],
+			['eva@example.org', 'Eva', '', 'Orga']
+		],
+		groups: [
+			['Gruppe', 'Beschreibung', 'Orchester'],
+			['Dirigat', '', 'EO'],
+			['Orga', '', 'A, B'],
+			['Vorstand', '', '']
+		],
+		rights: [
+			['Wer', 'Recht'],
+			['Dirigat', 'programme.bearbeiten'],
+			['Dirigat', 'anwesenheit.erfassen'],
+			['Orga', 'termine.planen'],
+			['Orga', 'anwesenheit.erfassen'],
+			['Vorstand', 'termine.planen'],
+			['eva@example.org', 'anwesenheit.erfassen']
+		]
+	});
+
+	it('reads the orchestras of a role; none is all of them', () => {
+		expect(scoped.groups.map((group) => group.orchestras)).toEqual([['EO'], ['A', 'B'], []]);
+	});
+
+	it('holds a limited right only for its orchestras, and for dates of everyone', () => {
+		const dirk = resolveAccess(user('dirk@example.org'), scoped, []);
+		expect(dirk.rights.has('programme.bearbeiten')).toBe(true);
+		expect(dirk.scopes?.get('programme.bearbeiten')).toEqual(['EO']);
+		expect(mayFor(dirk, 'programme.bearbeiten', 'EO')).toBe(true);
+		expect(mayFor(dirk, 'programme.bearbeiten', 'eo')).toBe(true);
+		expect(mayFor(dirk, 'programme.bearbeiten', 'A')).toBe(false);
+		expect(mayFor(dirk, 'programme.bearbeiten', 'A, EO')).toBe(true);
+		expect(mayFor(dirk, 'programme.bearbeiten', undefined)).toBe(true);
+		expect(mayFor(dirk, 'termine.planen', undefined)).toBe(false);
+	});
+
+	it('holds everywhere once one role or a personal grant holds for all', () => {
+		const olga = resolveAccess(user('olga@example.org'), scoped, []);
+		expect(olga.scopes?.has('termine.planen')).toBe(false);
+		expect(olga.scopes?.get('anwesenheit.erfassen')).toEqual(['A', 'B']);
+		expect(mayFor(olga, 'termine.planen', 'EO')).toBe(true);
+		const eva = resolveAccess(user('eva@example.org'), scoped, []);
+		expect(mayFor(eva, 'anwesenheit.erfassen', 'EO')).toBe(true);
+		expect(mayFor(eva, 'termine.planen', 'EO')).toBe(false);
+	});
+
+	it('narrows the rights to one date, keeping all of them for the menu', () => {
+		const dirk = resolveAccess(user('dirk@example.org'), scoped, []);
+		const there = accessFor(dirk, 'A');
+		expect([...there.rights]).toEqual(['ansehen']);
+		expect(there.everywhere).toBe(dirk.rights);
+		expect([...accessFor(dirk, 'EO').rights]).toEqual([...dirk.rights]);
+		// Nothing limited: the same access.
+		const plain = resolveAccess(user('Anna@example.org'), list, []);
+		expect(plain.scopes).toBeUndefined();
+		expect(accessFor(plain, 'A')).toBe(plain);
 	});
 });
 

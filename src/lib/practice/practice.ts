@@ -14,15 +14,22 @@ export const BEAT_SECONDS = 30;
 export const MAX_BEAT_SECONDS = 60;
 /** No touch, scroll or key for this long: the member has probably put the instrument away. */
 export const IDLE_MINUTES = 20;
+/**
+ * After that, the viewer asks "Noch am Üben?" (#304): a touch within this many minutes counts the
+ * time since the pause began too, as someone playing from one page doesn't touch the device.
+ */
+export const GRACE_MINUTES = 15;
+/** The most one report may add for time kept on the device while offline (#304): one opening's worth. */
+export const MAX_QUEUED_SECONDS = 3 * 3600;
 /** One opened part counts for at most this long; opening it again starts afresh. */
 export const SESSION_HOURS = 3;
 /** More than this in one day is a tab left open, not practice. */
 export const DAY_CAP_SECONDS = 12 * 3600;
 
 /** What one report adds: whole seconds between 0 and the most a report may add. */
-export function beatSeconds(value: unknown): number {
+export function beatSeconds(value: unknown, max = MAX_BEAT_SECONDS): number {
 	const seconds = typeof value === 'number' ? value : Number.NaN;
-	return Number.isFinite(seconds) ? Math.max(0, Math.min(MAX_BEAT_SECONDS, Math.round(seconds))) : 0;
+	return Number.isFinite(seconds) ? Math.max(0, Math.min(max, Math.round(seconds))) : 0;
 }
 
 const HOUR = 3600;
@@ -121,12 +128,15 @@ export const totalSeconds = (days: PracticeDay[]) => days.reduce((sum, day) => s
 /**
  * Counts the time a part is open in front of the member: only while the page is visible, not
  * after IDLE_MINUTES without a touch, scroll or key, and at most SESSION_HOURS per opening.
+ * Time while paused is held for GRACE_MINUTES: a touch within that counts it after all (#304).
  * Times are in milliseconds; tick() runs every few seconds, and a long gap between ticks (the
  * device slept) adds nothing.
  */
 export class PracticeClock {
 	counted = 0;
 	private pending = 0;
+	/** Visible time since the pause began, counted if the member comes back within the grace. */
+	private held = 0;
 	private lastTick: number;
 	private lastActivity: number;
 
@@ -139,7 +149,14 @@ export class PracticeClock {
 	}
 
 	activity(now: number) {
+		if (this.held && this.inGrace(now)) this.add(this.held);
+		this.held = 0;
 		this.lastActivity = now;
+	}
+
+	/** Paused, but a touch now still counts the pause. */
+	inGrace(now: number): boolean {
+		return this.idle(now) && now - this.lastActivity < (IDLE_MINUTES + GRACE_MINUTES) * 60_000;
 	}
 
 	idle(now: number): boolean {
@@ -153,8 +170,14 @@ export class PracticeClock {
 	tick(now: number, visible: boolean) {
 		const gap = now - this.lastTick;
 		this.lastTick = now;
-		if (!visible || this.idle(now) || this.full() || gap <= 0 || gap > this.tickMs * 3) return;
-		const add = Math.min(gap, SESSION_HOURS * 3600_000 - this.counted);
+		if (!visible || this.full() || gap <= 0 || gap > this.tickMs * 3) return;
+		if (!this.idle(now)) this.add(gap);
+		else if (this.inGrace(now)) this.held += gap;
+		else this.held = 0;
+	}
+
+	private add(ms: number) {
+		const add = Math.min(ms, SESSION_HOURS * 3600_000 - this.counted);
 		this.counted += add;
 		this.pending += add;
 	}

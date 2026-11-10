@@ -103,7 +103,15 @@ export const load: PageServerLoad = async ({ url, cookies, locals }) => {
 				).map((choice) => {
 					const match = parts.length ? matchParts(parts, choice, music) : { own: [], shared: [] };
 					const show = (part: Part) => shown(part, locals.access.viaLink, viewer);
-					return { label: formatInstrument(choice), assigned: !!choice.assigned, own: match.own.map(show), shared: match.shared.map(show) };
+					return {
+						label: formatInstrument(choice),
+						// For reporting the part as missing (#306).
+						instrument: choice.instrument,
+						number: choice.numbers.length === 1 ? choice.numbers[0] : undefined,
+						assigned: !!choice.assigned,
+						own: match.own.map(show),
+						shared: match.shared.map(show)
+					};
 				})
 			};
 		});
