@@ -64,7 +64,8 @@ export function readTable<K extends string>(values: string[][], columns: Record<
 			const index = indexes[key];
 			const value = index === undefined ? '' : String(cells[index] ?? '').trim();
 			row[key] = value;
-			if (value) empty = false;
+			// An unticked checkbox reads as FALSE: a row with nothing else in it is an empty row.
+			if (value && value.toUpperCase() !== 'FALSE') empty = false;
 		}
 		if (!empty) rows.push({ row: i + 2, values: row });
 	});

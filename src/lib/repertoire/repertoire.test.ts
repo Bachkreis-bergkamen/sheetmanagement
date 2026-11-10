@@ -52,6 +52,18 @@ describe('readTable', () => {
 			{ row: 4, values: { concert: '', piece: 'Bolero', notes: '' } }
 		]);
 	});
+
+	it('skips rows that only have an unticked checkbox, but keeps a FALSE next to other values', () => {
+		const table = readTable(
+			[
+				['Stück', 'Zurück'],
+				['', 'FALSE'],
+				['Bolero', 'FALSE']
+			],
+			{ piece: 'Stück', returned: 'Zurück' }
+		);
+		expect(table.rows).toEqual([{ row: 3, values: { piece: 'Bolero', returned: 'FALSE' } }]);
+	});
 });
 
 const PIECES_HEADER = ['Titel', 'Komponist', 'Werkverzeichnis', 'Arrangeur', 'Genre', 'Schwierigkeit', 'Notiz', 'Geprüft am', 'Drive-Ordner-ID', 'Hörbeispiel'];

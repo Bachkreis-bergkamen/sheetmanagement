@@ -127,6 +127,11 @@ describe('backupTabs', () => {
 		expect(tabs).toEqual({ pieces: [{ row: 2, cells: { title: 'Elegie' } }] });
 	});
 
+	it('leaves out rows with nothing but an unticked checkbox', () => {
+		const tabs = backupTabs({ tabs: { loans: [{ returned: 'FALSE' }, { piece: 'Elegie', returned: 'FALSE' }] } });
+		expect(tabs).toEqual({ loans: [{ row: 3, cells: { piece: 'Elegie', returned: 'FALSE' } }] });
+	});
+
 	it('refuses anything that is not a backup', () => {
 		for (const file of [null, {}, { tabs: [] }, { tabs: { invented: [] } }, [1, 2]]) expect(() => backupTabs(file)).toThrow(BackupFormatError);
 	});
