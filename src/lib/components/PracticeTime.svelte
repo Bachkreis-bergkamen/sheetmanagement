@@ -45,7 +45,7 @@
 </script>
 
 <section class="ui-card practice" id="probenzeit">
-	<h2><Icon name="clock" size={18} />{t.practice.title}</h2>
+	<h3><Icon name="clock" size={18} />{t.practice.title}</h3>
 	<p class="muted">{t.practice.lead}</p>
 	<p class="private"><Icon name="shield" size={14} />{t.practice.private}</p>
 
@@ -131,7 +131,7 @@
 		gap: var(--space-3);
 	}
 
-	h2 {
+	h3 {
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);

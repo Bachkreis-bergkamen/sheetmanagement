@@ -99,6 +99,36 @@ describe.each([
 		expect(await store.mailOptOuts()).toEqual(new Set(['a@x.org']));
 	});
 
+	it('keeps one password account per email, replaced by a new password', async () => {
+		const store = make();
+		expect(await store.accountOf('a@x.org')).toBeNull();
+		await store.saveAccount({ email: 'a@x.org', passwordHash: 'hash-1', stamp: 's1' });
+		await store.saveAccount({ email: 'a@x.org', passwordHash: 'hash-2', stamp: 's2' });
+		expect(await store.accountOf('a@x.org')).toEqual({ email: 'a@x.org', passwordHash: 'hash-2', stamp: 's2' });
+		await store.deleteAccount('a@x.org');
+		expect(await store.accountOf('a@x.org')).toBeNull();
+	});
+
+	it('counts page openings per route and role, summed over days, and forgets old days (#185)', async () => {
+		const store = make();
+		await store.countPage('2026-11-01', '/stuecke/[id]', 'mitglied');
+		await store.countPage('2026-11-02', '/stuecke/[id]', 'mitglied');
+		await store.countPage('2026-11-02', '/stuecke/[id]', 'verwaltung');
+		await store.countPage('2026-11-02', '/', 'mitglied');
+		await store.countPage('2026-10-01', '/', 'mitglied');
+		expect(await store.pageCounts('2026-11-01')).toEqual([
+			{ route: '/stuecke/[id]', role: 'mitglied', views: 2 },
+			{ route: '/', role: 'mitglied', views: 1 },
+			{ route: '/stuecke/[id]', role: 'verwaltung', views: 1 }
+		]);
+		await store.prunePageCounts('2026-11-02');
+		expect(await store.pageCounts('2000-01-01')).toEqual([
+			{ route: '/', role: 'mitglied', views: 1 },
+			{ route: '/stuecke/[id]', role: 'mitglied', views: 1 },
+			{ route: '/stuecke/[id]', role: 'verwaltung', views: 1 }
+		]);
+	});
+
 	it('remembers how the tour ended, until it is forgotten', async () => {
 		const store = make();
 		expect(await store.tourOf('a@x.org')).toBeNull();

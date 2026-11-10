@@ -34,7 +34,8 @@ export function tourSteps({ account }: { account: boolean }): TourStep[] {
 		{ key: 'home', chapter: 'basics', path: '/', target: ['[data-tour="next"]', '[data-tour="/"]'] },
 		{ key: 'parts', chapter: 'basics', path: '/meine-noten', target: ['[data-tour="instrument"]', '[data-tour="/meine-noten"]'] },
 		{ key: 'calendar', chapter: 'basics', path: '/kalender', target: '[data-tour="/kalender"]' },
-		{ key: 'pieces', chapter: 'basics', path: '/stuecke', target: '[data-tour="/stuecke"]' },
+		// The archive is under "Mehr" since #185: the step points at its search field.
+		{ key: 'pieces', chapter: 'basics', path: '/stuecke', target: ['[data-tour="pieces"]', '[data-tour="/stuecke"]'] },
 		{ key: 'more', chapter: 'basics', path: '/stuecke', target: '[data-tour="more"]' }
 	];
 	if (!account) return [...basics, { key: 'doneOpen', chapter: 'basics', path: '/' }];

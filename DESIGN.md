@@ -242,7 +242,7 @@ Calm, round and thumb-sized. They're quiet until touched.
 
 ### Navigation
 - **Top bar (all sizes):** sticky, 60px, frosted, with the logo, the orchestra's name, search and account. On desktop the main menu sits here too.
-- **Tab bar (below 720px):** fixed to the bottom, 64px plus the safe area, frosted, with five places (Übersicht, Meine Noten, Kalender, Archiv, Mehr). Each place is an icon over a short label. The current place's icon sits on a soft gold pill that grows in from half width, and its label turns 650 weight.
+- **Tab bar (below 720px):** fixed to the bottom, 64px plus the safe area, frosted, with five places: Übersicht, Meine Noten, Kalender, Profil and Mehr for members; organisers get **Verwaltung** in the profile's place (the profile stays behind the avatar). Verwaltung is one area for all organiser work: a hub page (`/verwaltung`) lists its groups with their open work, and their pages keep the workspace tabs. "Mehr" lists only the members' pages, plus one entry for that area (#185). Each place is an icon over a short label. The current place's icon sits on a soft gold pill that grows in from half width, and its label turns 650 weight.
 - **Segmented control:** a Stand Grey track with a white thumb that slides under the active option (a lifted tone in dark mode).
 
 ### Date block (signature)

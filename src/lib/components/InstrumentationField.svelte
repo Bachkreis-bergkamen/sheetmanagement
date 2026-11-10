@@ -9,15 +9,23 @@
 	import { PART_NUMBERS } from '#lib/music/my-parts.ts';
 	import Icon from './Icon.svelte';
 	import InstrumentGlyph from './InstrumentGlyph.svelte';
+	import ScoreViewer from './ScoreViewer.svelte';
 
 	/**
 	 * A piece's Besetzung (#249): the chosen instruments as chips, and one panel to change them,
 	 * every instrument by family, tapped on and off, its parts (I–IV) right beside it. Kept as the
 	 * sheet's text ("Flöte 1 & 2; Oboe"), in the instruments' order like a score, sent as `name`.
 	 * What it can't read stays as written. Follows `value` when it changes from outside: the
-	 * Besetzung read from the score (Vorschläge → "Aus den Noten lesen").
+	 * Besetzung read from the score (Vorschläge → "Aus den Noten lesen"). With a score, the panel
+	 * shows its first page beside the list, where the first system names every instrument.
 	 */
-	let { value = $bindable(''), name, label, instruments: all }: { value: string; name: string; label: string; instruments: string[] } = $props();
+	let {
+		value = $bindable(''),
+		name,
+		label,
+		instruments: all,
+		score = null
+	}: { value: string; name: string; label: string; instruments: string[]; score?: { id: string; label: string } | null } = $props();
 
 	// Scores and reductions are files, not a voice of the Besetzung.
 	const instruments = $derived(all.filter((n) => config.instruments.find((instrument) => instrument.name === n)?.family !== 'partitur'));
@@ -61,6 +69,8 @@
 	let dialog = $state<HTMLDialogElement>();
 	let search = $state<HTMLInputElement>();
 	let query = $state('');
+	/** The score is opened (and drawn at the panel's width) only while the panel is open. */
+	let showing = $state(false);
 
 	const info = $derived(new Map(config.instruments.map((instrument) => [instrument.name, instrument])));
 	const familyLabel = (f: InstrumentFamily) => (f === 'partitur' ? t.piece.groups.featured : t.piece.groups[f]);
@@ -92,6 +102,7 @@
 	async function open() {
 		query = '';
 		dialog?.showModal();
+		showing = true;
 		await tick();
 		if (matchMedia('(pointer: fine)').matches) search?.focus();
 	}
@@ -119,7 +130,9 @@
 <dialog
 	bind:this={dialog}
 	class="panel"
+	class:split={!!score}
 	aria-labelledby="{uid}-title"
+	onclose={() => (showing = false)}
 	onclick={(event) => {
 		if (event.target === dialog) dialog?.close();
 	}}
@@ -128,6 +141,8 @@
 		<h2 id="{uid}-title">{label}</h2>
 		<button type="button" class="close" aria-label={t.filters.close} onclick={() => dialog?.close()}><Icon name="x" size={18} /></button>
 	</header>
+	<div class="body">
+	<div class="picker">
 	<label class="search">
 		<Icon name="search" size={16} />
 		<input bind:this={search} bind:value={query} type="search" placeholder={t.instruments.search} aria-label={t.instruments.search} autocomplete="off" />
@@ -159,6 +174,13 @@
 		{:else}
 			<p class="none">{t.instruments.none(query.trim())}</p>
 		{/each}
+	</div>
+	</div>
+	{#if score && showing}
+		<aside class="score" aria-label={t.instruments.score(score.label)}>
+			<ScoreViewer fileId={score.id} hint={t.instruments.scoreHint} />
+		</aside>
+	{/if}
 	</div>
 
 	<footer>
@@ -247,7 +269,7 @@
 
 	.panel[open] {
 		display: grid;
-		grid-template-rows: auto auto 1fr auto;
+		grid-template-rows: auto 1fr auto;
 		animation: sheet-in 0.25s var(--ease);
 	}
 
@@ -262,6 +284,53 @@
 			height: min(80dvh, 720px);
 			margin: auto;
 			border-radius: var(--radius-l);
+		}
+	}
+
+	/* With the score: its first page beside the list on wide screens, above it on phones. */
+	.body,
+	.picker {
+		display: grid;
+		grid-template-rows: auto 1fr;
+		min-height: 0;
+	}
+
+	.body {
+		grid-template-rows: auto minmax(0, 1fr);
+	}
+
+	/* On phones the score comes first, above the list. */
+	.score {
+		order: -1;
+		max-height: 38dvh;
+		overflow: auto;
+		margin: 0 var(--space-5) var(--space-3);
+		overscroll-behavior: contain;
+	}
+
+	@media (min-width: 900px) {
+		.panel.split {
+			width: min(1240px, calc(100vw - 2 * var(--space-6)));
+			height: min(90dvh, 960px);
+		}
+
+		/* Choosing on the left, the score's first page on the right. */
+		.split .body {
+			grid-template-columns: minmax(320px, 1fr) minmax(0, 1.4fr);
+			grid-template-rows: minmax(0, 1fr);
+		}
+
+		.split .score {
+			order: 0;
+			max-height: none;
+			margin: 0 var(--space-5) var(--space-4) 0;
+			padding-left: var(--space-4);
+			border-left: 1px solid var(--hairline);
+		}
+
+		/* The pane scrolls, not a box inside it. */
+		.split .score :global(.box) {
+			max-height: none;
 		}
 	}
 

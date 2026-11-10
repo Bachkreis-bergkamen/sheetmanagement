@@ -107,6 +107,7 @@ export async function eraseMember(address: string): Promise<ErasePreview> {
 		store.deleteRemindersOf(email),
 		store.setMailOptOut(email, false),
 		store.setTour(email, null),
+		store.deleteAccount(email),
 		store.setPracticeOn(email, false),
 		store.deletePractice(email),
 		store.deleteMarks(email),

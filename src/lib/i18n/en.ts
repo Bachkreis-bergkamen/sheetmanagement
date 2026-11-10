@@ -6,6 +6,8 @@ export const en: Texts = {
 	nav: {
 		/** Shown after the orchestra's short name in the header. */
 		appName: 'Music library',
+		beta: 'Beta',
+		betaNote: 'Preview: the app is still being built. Please report bugs and wishes.',
 		home: 'Overview',
 		pieces: 'Library',
 		concerts: 'Calendar',
@@ -29,12 +31,37 @@ export const en: Texts = {
 		menu: 'All pages',
 		close: 'Close menu',
 		crumbs: 'Breadcrumbs',
-		groups: { musik: 'Rehearsals & music', mitmachen: 'Take part', pflege: 'Music upkeep', verwaltung: 'Admin' },
+		groups: { musik: 'Rehearsals & music', mitmachen: 'Take part', pflege: 'Music upkeep', verwaltung: 'App & members' },
+		/** The organisers' area in the tab bar, the header and "Mehr" (#185). */
+		organise: 'Admin',
 		workspace: 'Area',
 		/** After a tab's count, for screen readers: "Reports 1 open". */
 		open: 'open',
 		skip: 'Skip to content',
 		main: 'Main navigation'
+	},
+	/** Everything waiting for you, in one list (#185). */
+	todo: {
+		title: 'To do',
+		lead: 'Everything waiting for you right now, in one place. Each row leads to where you deal with it.',
+		empty: 'Nothing open. Nice!',
+		/** Before a deadline: polls and rented music. */
+		until: (date: string) => `by ${date}`,
+		kinds: {
+			report: 'Reports',
+			request: 'Access requests',
+			wish: 'Wishes',
+			loan: 'Rented music to return',
+			attendance: 'Take attendance',
+			poll: 'Date polls to answer',
+			other: 'Also'
+		} as Record<string, string>,
+		/** On the organisers' hub, above the groups. */
+		hub: (n: number) => (n === 1 ? '1 thing waiting' : `${n} things waiting`)
+	},
+	organise: {
+		title: 'Admin',
+		lead: 'Everything you look after for the orchestra: the music, the members and the app.'
 	},
 	footer: {
 		links: 'The orchestra online',
@@ -55,9 +82,9 @@ export const en: Texts = {
 	textSize: {
 		label: 'Text size',
 		hint: 'For this device.',
+		small: 'Small',
 		normal: 'Normal',
-		large: 'Large',
-		larger: 'Larger'
+		large: 'Large'
 	},
 	home: {
 		title: (orchestra: string) => `${orchestra} music library`,
@@ -105,10 +132,9 @@ export const en: Texts = {
 			'/meldungen': 'Deal with reported problems.',
 			'/leihmaterial': 'Rented music and when it goes back.',
 			'/admin': 'Members, roles and requests.',
-			'/setup': 'Create the repertoire sheet.',
-			'/einstellungen': 'Name, logo, colour and features.',
-			'/status': 'Check the connection to Google.',
-			'/termine': 'Agree on dates with the orga team.'
+			'/einstellungen': 'The orchestra, the sheet and data, the status.',
+			'/termine': 'Agree on dates with the orga team.',
+			'/ensembles': 'Choirs and orchestras we perform with.'
 		} as Record<string, string>
 	},
 	pieces: {
@@ -609,6 +635,8 @@ export const en: Texts = {
 	settings: {
 		title: 'Settings',
 		lead: 'How the app looks for everyone and what it offers.',
+		/** The settings' sections (#185): one page for every setting. */
+		sections: { label: 'Settings sections', orchestra: 'Orchestra', sheet: 'Sheet & data', status: 'Status' },
 		identity: 'Name',
 		name: 'Name of the orchestra',
 		shortName: 'Short name',
@@ -1118,6 +1146,8 @@ export const en: Texts = {
 		done: 'Done',
 		chosen: (n: number) => (n === 1 ? '1 instrument' : `${n} instruments`),
 		numbers: 'Parts',
+		score: (label: string) => `First page: ${label}`,
+		scoreHint: 'The left edge of the first page names every instrument of the score.',
 		numbersHint: 'none chosen: all parts'
 	},
 	/** Filters for a list, several at once (archive, calendar). */
@@ -1263,7 +1293,7 @@ export const en: Texts = {
 	},
 	auth: {
 		title: 'Sign in',
-		lead: 'Sign in with your Google account to see music, concerts and programmes.',
+		lead: 'Sign in to see music, concerts and programmes.',
 		button: 'Sign in with Google',
 		privacy: 'The app only learns your name and email address.',
 		notReady: "Sign-in isn't fully set up yet:",
@@ -1275,7 +1305,18 @@ export const en: Texts = {
 		} as Record<string, string>,
 		signedInAs: (email: string) => `Signed in as ${email}`,
 		logout: 'Sign out',
-		switchAccount: 'Sign in with another account'
+		switchAccount: 'Sign in with another account',
+		/** Several accounts on one device (an admin's and a member's, a shared tablet). */
+		accounts: {
+			title: 'Accounts on this device',
+			lead: 'Switch between accounts without signing in again, e.g. on a shared device.',
+			add: 'Add another account',
+			switchTo: 'Switch',
+			forget: 'Remove',
+			forgetConfirm: (name: string) => `Remove ${name} from this device?`,
+			current: 'Active',
+			onDevice: 'Saved on this device'
+		}
 	},
 	signups: {
 		title: 'Sign-up',
@@ -1387,33 +1428,85 @@ export const en: Texts = {
 		loading: 'Loading the music …',
 		hint: 'Type details from the page, or select and copy them in the new tab.'
 	},
+	/** Email and password sign-in: the form on /anmelden, signing up and resetting by email, the profile. */
+	password: {
+		email: 'Email address',
+		password: 'Password',
+		signIn: 'Sign in',
+		signInErrors: {
+			wrong: "The email address or password isn't right.",
+			limited: 'Too many attempts. Please try again in a quarter of an hour.',
+			failed: "That didn't work just now. Please try again."
+		} as Record<string, string>,
+		createOrReset: 'Create an account or forgot your password?',
+		noMailHint: 'No password yet? Ask an admin for a personal link, then set a password on your profile.',
+		requestTitle: 'Set a password',
+		requestLead: "For a new account or if you forgot your password: we'll send you a link to set a password.",
+		send: 'Send link by email',
+		sent: (email: string) => `We sent a link to ${email}. It works for an hour. Check your spam folder too.`,
+		mailErrors: {
+			invalid: 'Please enter an email address.',
+			limited: 'Too many attempts. Please try again in an hour.',
+			failed: "That didn't work just now. Please try again."
+		} as Record<string, string>,
+		noMail: 'No emails can be sent right now. Please ask an admin for a personal link; then you can set a password on your profile.',
+		toSignIn: 'To sign-in',
+		newSubject: (orchestra: string) => `Your account: ${orchestra}`,
+		newBody: (name: string, orchestra: string, link: string) =>
+			`Hello${name ? ` ${name}` : ''},\n\nwith this link you set your password for ${orchestra}. It works for an hour:\n\n${link}\n\nYou didn't want an account? Then just delete this email.`,
+		resetSubject: (orchestra: string) => `New password: ${orchestra}`,
+		resetBody: (name: string, link: string) =>
+			`Hello${name ? ` ${name}` : ''},\n\nwith this link you set a new password. It works for an hour, and only once:\n\n${link}\n\nYou didn't ask for a new password? Then just delete this email; your password stays as it is.`,
+		setTitle: 'Set a password',
+		resetTitle: 'New password',
+		setLead: (email: string) => `For ${email}.`,
+		newPassword: 'New password',
+		repeat: 'Once more',
+		current: 'Current password',
+		rule: (min: number) => `At least ${min} characters. A sentence you can remember beats a short complicated word.`,
+		problems: {
+			short: 'The password is too short.',
+			long: 'The password is too long.',
+			mismatch: "The two passwords don't match."
+		} as Record<string, string>,
+		save: 'Save password',
+		failed: "The password couldn't be saved just now. Please try again.",
+		linkInvalid: 'This link has expired or was already used.',
+		newLink: 'Ask for a new link',
+		profileTitle: 'Password',
+		profileHas: (email: string) => `You can sign in with ${email} and your password. A new password signs you out everywhere else.`,
+		profileNone: (email: string) => `Set a password to also sign in with ${email} and a password.`,
+		set: 'Set password',
+		change: 'Change password',
+		saved: 'Password saved.',
+		wrongCurrent: "The current password isn't right.",
+		forgot: 'Forgot your password?'
+	},
+	/** The member's own access link on /profil. */
+	ownLink: {
+		title: 'Personal access link',
+		lead: 'A link to sign in without a password, e.g. on a second device.',
+		create: 'Create access link',
+		show: 'Show link',
+		keep: "Personal: whoever has the link is signed in as you. Don't pass it on.",
+		confirmRenew: 'Create a new link? The old one stops working, and anyone signed in with it is signed out.',
+		confirmRenewViaLink: 'Create a new link? The old one stops working; devices signed in with it are signed out (not this one).',
+		confirmRevoke: 'Revoke the link? Anyone signed in with it is signed out.',
+		confirmRevokeViaLink: "Revoke the link? You're signed in with it, so you'll be signed out here too.",
+		revoked: 'Link revoked.'
+	},
 	accessLink: {
 		title: 'Access by link',
 		hello: (name: string) => (name ? `Hello ${name}!` : 'Hello!'),
-		lead: 'With this personal link you sign in without a Google account.',
+		lead: 'With this personal link you sign in without a password.',
 		signIn: 'Sign in',
-		keep: "Keep the link safe and don't pass it on. It works until an admin creates a new one.",
+		keep: "Keep the link safe and don't pass it on. It works until you (on your profile) or an admin create a new one.",
 		invalid: 'This link no longer works. Please ask an admin for a new one.',
-		toSignIn: 'To sign-in with Google'
+		toSignIn: 'To sign-in'
 	},
 	/** Email (#123): sign-in links, reminders, the account on /status. */
 	email: {
 		or: 'or',
-		noGoogle: "No Google account? We'll send you a link.",
-		label: 'Email address',
-		send: 'Email me a link',
-		sent: (email: string) =>
-			`If ${email} is listed in the orchestra, an email with a sign-in link is on its way. It works for 15 minutes. Check the spam folder too.`,
-		invalid: 'Please enter an email address.',
-		limited: 'Too many tries. Please try again in an hour.',
-		failed: "That didn't work just now. Please try again.",
-		signInSubject: (orchestra: string) => `Sign in: ${orchestra}`,
-		signInBody: (name: string, link: string) =>
-			`Hello${name ? ` ${name}` : ''},\n\nthis link signs you in. It works for 15 minutes:\n\n${link}\n\nYou didn't ask for a link? Then just delete this email.`,
-		linkTitle: 'Sign in by email',
-		linkLead: (email: string) => `You're signing in as ${email}.`,
-		linkButton: 'Sign in',
-		linkInvalid: "This link has expired or isn't valid. Ask for a new one on the sign-in page.",
 		toSignIn: 'To sign-in',
 		hello: (name: string) => (name ? `Hello ${name},` : 'Hello,'),
 		answerLinks: 'Answer:',
@@ -1435,13 +1528,13 @@ export const en: Texts = {
 		connected: (email: string, since: string) => `Sent from ${email} (connected on ${since}).`,
 		links: (origin: string) => `Links in emails go to ${origin}.`,
 		optOuts: (n: number) => (n === 1 ? '1 member turned email reminders off.' : `${n} members turned email reminders off.`),
-		notConnected: 'No email account connected: sign-in links and reminders by email are off.',
+		notConnected: 'No email account connected: signing up, forgotten passwords and reminders by email are off.',
 		connectHint:
 			"Sign in with the orchestra's Google account that should send the emails. Google asks for permission to send email on its behalf, nothing more. On the OAuth consent screen the app must be 'In production', else the permission ends after 7 days.",
 		needsSignIn: 'Set up sign-in with Google first (step 9).',
 		connect: 'Connect email account',
 		disconnect: 'Disconnect',
-		confirmDisconnect: 'Disconnect the email account? Sign-in links and email reminders then stop.',
+		confirmDisconnect: 'Disconnect the email account? Links to set a password and email reminders then stop.',
 		revoked: 'Google took back the permission to send. Please connect the account again.',
 		lastError: (message: string) => `The last email didn't go out: ${message}`,
 		connectedNow: 'Email account connected.',
@@ -1472,6 +1565,35 @@ export const en: Texts = {
 		'karten.einlass': 'Check tickets at the door',
 		'kummerkasten.lesen': 'Read and answer the suggestion box (without seeing who wrote)',
 		'mitglieder.verwalten': 'Manage members and rights'
+	},
+	invite: {
+		title: 'Welcome!',
+		lead: "You've been invited. Sign up here and you can get started right away.",
+		aboutYou: 'About you',
+		signIn: 'How you sign in',
+		signInLead: 'From now on you sign in with this email address and password.',
+		join: 'Sign up and get started',
+		nameMissing: 'Please enter your first and last name.',
+		instrumentMissing: 'Please choose at least one instrument.',
+		exists: "You're already signed up with this email address. Just sign in.",
+		joinFailed: "Signing up didn't work just now. Please try again.",
+		invalid: 'This invitation has expired or was already used. Please ask the admins for a new one.',
+		failed: "The invitation couldn't be saved just now. Please try again.",
+		adminTitle: 'Invite with a link',
+		adminLead: (days: number) =>
+			`You send a link, and the person enters their name, email address, password and instrument themselves. Each link works once and for ${days} days.`,
+		label: 'For whom? (optional)',
+		labelHint: 'Only for you, to recognise the link in the list.',
+		roles: 'Roles (optional)',
+		create: 'Create invitation link',
+		created: 'Link created. Copy it and send it by messenger or email.',
+		open: 'Open invitations',
+		unnamed: 'No name',
+		until: (day: string) => `valid until ${day}`,
+		revoke: 'Withdraw',
+		confirmRevoke: "Withdraw the invitation? The link won't work any more.",
+		revoked: 'Invitation withdrawn.',
+		unavailable: 'Invitations need the database (D1), because new members sign in with a password.'
 	},
 	admin: {
 		setupSections: 'Setup',
@@ -1576,8 +1698,21 @@ export const en: Texts = {
 	},
 	profile: {
 		title: 'Profile',
-		lead: "What you play and whether you're taking part at the moment.",
+		lead: 'Your details and settings, grouped by topic.',
 		settings: 'Settings',
+		sections: {
+			jump: 'On this page',
+			about: 'About you',
+			aboutLead: 'What you play and whether you are taking part right now. Your parts and the seating follow from this.',
+			notify: 'Notifications & calendar',
+			notifyLead: 'How you hear about rehearsals and concerts.',
+			app: 'Display & app',
+			appLead: 'How the app looks, on this device.',
+			practice: 'Practice & your data',
+			practiceLead: 'What the app keeps only for you, and all of it to take with you.',
+			signIn: 'Sign-in & security',
+			signInLead: 'How you sign in, and signing out.'
+		},
 		notMember: 'The profile is for registered members.',
 		name: 'First and last name',
 		instruments: 'Instruments',
@@ -1631,8 +1766,8 @@ export const en: Texts = {
 			home: { title: 'Your next date', body: 'This always shows what’s coming up next. One tap says whether you’re coming and opens your parts for it.' },
 			parts: { title: 'My parts', body: 'Your parts for the next rehearsals and concerts, matching your instrument. Saved offline, they work in the rehearsal hall without reception too.' },
 			calendar: { title: 'Calendar', body: 'Every rehearsal and concert with time, place and programme. You answer later dates here too.' },
-			pieces: { title: 'Archive', body: 'Every piece with parts, recordings and notes. The field above filters the list, by part too; the magnifier at the top finds anything in the app.' },
-			more: { title: 'More', body: 'All the other pages, such as the chronicle. At the very bottom you choose light or dark and the text size.' },
+			pieces: { title: 'Archive', body: 'Every piece with parts, recordings and notes, under “More”. The field here filters the list, by part too; the magnifier at the top finds anything in the app.' },
+			more: { title: 'More', body: 'All the other pages, such as the archive and the chronicle. At the very bottom you choose light or dark and the text size.' },
 			instruments: { title: 'Your instrument', body: 'Enter what you play; “My parts” follows it. Once saved, it counts everywhere.' },
 			view: { title: 'Look and text', body: 'Light, dark or like your device, and larger text if you like. Try it right away.' },
 			notifications: { title: 'Reminders', body: 'Get reminders about replies, rehearsals and borrowed music: on this device or by email.' },
@@ -2231,6 +2366,14 @@ export const en: Texts = {
 		shareNeedsSetup: '“Same programme as”: not in the sheet yet. Please run “Set up sheet” once.'
 	},
 	status: {
+		/** The page audit (#185). */
+		pages: {
+			title: 'Page views (30 days)',
+			lead: 'How often each page was opened, by role. Only the kind of page is counted, not who opened it; it is deleted after 180 days.',
+			route: 'Page',
+			roles: { mitglied: 'Members', verwaltung: 'Organisers', gast: 'Visitors' },
+			none: 'No views counted yet.'
+		},
 		title: 'Status',
 		lead: 'Whether the connection to Google works.',
 		account: 'Google service account',
@@ -2617,6 +2760,10 @@ export const en: Texts = {
 				driveComment: 'Drive comment ID',
 				/** A better recording, with "Wrong recording". */
 				link: 'Suggestion',
+				/** Scan job: how urgent, who scans (email), what to do. */
+				priority: 'Priority',
+				assignee: 'Who scans',
+				task: 'Scan job',
 				id: 'Report ID'
 			}
 		},
@@ -2786,14 +2933,18 @@ export const en: Texts = {
 	feedbackValues: {
 		reportKind: {
 			missing: 'Part missing',
-			scan: 'Bad scan',
 			pages: 'Pages missing',
+			cutoff: 'Notes cut off',
+			crooked: 'Crooked or rotated',
+			scan: 'Bad scan',
+			empty: 'File empty',
 			wrong: 'Wrong part',
 			/** The piece's recording is wrong or missing; the report can carry a better link. */
 			recording: 'Wrong recording',
 			other: 'Other'
 		},
-		reportStatus: { open: 'open', done: 'done' },
+		/** New → to scan (handed to the scanning team) → done; or dismissed. */
+		reportStatus: { open: 'open', scan: 'to scan', done: 'done', dismissed: 'dismissed' },
 		wishKind: { piece: 'Piece', feature: 'Feature' },
 		wishStatus: { open: 'open', planned: 'planned', done: 'done', declined: 'declined' }
 	},
@@ -2817,13 +2968,51 @@ export const en: Texts = {
 		send: 'Report',
 		cancel: 'Cancel',
 		thanks: 'Thank you! The report has arrived.',
-		known: 'Known problems',
 		failed: "The report couldn't be saved just now. Please try again.",
 		notSetUp: 'Reports: not in the sheet yet. Please run “Set up sheet” once.',
 		signInNeeded: 'Please sign in to report.',
 		title: 'Reports',
-		short: 'Problems with music that members have reported.',
-		pageLead: 'Reported problems with music.',
+		short: 'Problems with the music: check them and hand them to the scanning team.',
+		pageLead: 'What members or the app found in the music: have a quick look, hand it to the scanning team, tick it off.',
+		tabs: { inbox: 'New', scan: 'To scan', done: 'Done' },
+		byCheck: 'Found by the app',
+		checkHint: 'The app counts the pages of every part. This file is empty or has far fewer pages than the others.',
+		look: 'Look',
+		toScan: 'To the scanning team',
+		toScanHint: 'The scanning team sees the job with its priority. The piece quietly shows that the part was reported.',
+		task: 'What needs doing?',
+		taskFor: {
+			missing: 'Scan the part',
+			pages: 'Scan the missing pages',
+			cutoff: 'Scan again, whole page on the glass',
+			crooked: 'Scan again, straight',
+			scan: 'Scan again, more legible',
+			empty: 'Scan again, the file is empty',
+			wrong: 'Scan the right part',
+			recording: '',
+			other: ''
+		} as Record<string, string>,
+		dismiss: 'Dismiss',
+		dismissHint: 'Not a problem, or already sorted. The piece no longer shows anything.',
+		scanned: 'Scanned',
+		scannedHint: 'Scanned again and replaced in Drive: closes the job.',
+		backToInbox: 'Back to New',
+		changeJob: 'Change the job',
+		noInbox: 'Nothing new, all checked.',
+		noScans: 'No scan jobs.',
+		noScansMine: 'Nothing is assigned to you right now.',
+		mineOnly: 'Only mine',
+		together: (n: number) => `${n} parts, best scanned together`,
+		sent: 'Handed to the scanning team.',
+		marker: { open: 'reported', scan: 'being rescanned' } as Record<string, string>,
+		markerTitle: (kind: string, comment: string) => `Reported: ${kind}${comment ? ` – ${comment.replace(/[.!?…\s]+$/, '')}` : ''}. Someone is on it.`,
+		pieceMarker: (what: string) => `Reported: ${what}`,
+		already: (what: string) => `Already reported: ${what}. No need to report it again.`,
+		push: {
+			newTitle: 'New report',
+			body: (piece: string, what: string) => `${piece}: ${what}`,
+			doneTitle: 'Your report is done'
+		},
 		open: 'Open',
 		done: 'Done',
 		noOpen: 'No open reports.',

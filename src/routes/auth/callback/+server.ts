@@ -1,17 +1,16 @@
 import { error, redirect } from '@sveltejs/kit';
-import { authConfig, SESSION_COOKIE, STATE_COOKIE, type AuthConfig } from '#lib/server/auth/index.ts';
+import { authConfig, startSession, STATE_COOKIE, type AuthConfig } from '#lib/server/auth/index.ts';
 import { readIdToken, signIn, SignInError } from '#lib/server/auth/google.ts';
 import { connectDrive, DRIVE_SCOPE } from '#lib/server/drive-account.ts';
 import { connectMail } from '#lib/server/mail/index.ts';
 import { exchangeMailCode, GMAIL_SEND_SCOPE } from '#lib/server/mail/gmail.ts';
 import { safeReturnPath } from '#lib/server/auth/redirect.ts';
-import { SESSION_DAYS, signSession } from '#lib/server/auth/session.ts';
 import type { RequestHandler } from './$types';
 import { t } from '#lib/i18n/index.ts';
 
 export const GET: RequestHandler = async ({ url, cookies, locals }) => {
 	const auth = authConfig();
-	if (auth.mode === 'off') error(404, t.messages.signInOff);
+	if (auth.mode === 'off' || !auth.google) error(404, t.messages.signInOff);
 
 	let expected: { state?: string; returnTo?: string; purpose?: string } = {};
 	try {
@@ -24,11 +23,11 @@ export const GET: RequestHandler = async ({ url, cookies, locals }) => {
 	// Cancelled on Google's page, or the link was opened in another browser.
 	const code = url.searchParams.get('code');
 	if (expected.purpose === 'mail') {
-		if (!expected.state || expected.state !== url.searchParams.get('state')) redirect(303, '/status?mail=abgelaufen');
+		if (!expected.state || expected.state !== url.searchParams.get('state')) redirect(303, '/einstellungen/status?mail=abgelaufen');
 		redirect(303, `/status?mail=${await connectMailAccount(auth, code, url.origin, locals)}`);
 	}
 	if (expected.purpose === 'drive') {
-		if (!expected.state || expected.state !== url.searchParams.get('state')) redirect(303, '/status?drive=abgelaufen');
+		if (!expected.state || expected.state !== url.searchParams.get('state')) redirect(303, '/einstellungen/status?drive=abgelaufen');
 		redirect(303, `/status?drive=${await connectDriveAccount(auth, code, url.origin, locals)}`);
 	}
 	if (url.searchParams.get('error') || !code) redirect(303, '/anmelden?fehler=abgebrochen');
@@ -42,13 +41,7 @@ export const GET: RequestHandler = async ({ url, cookies, locals }) => {
 		redirect(303, `/anmelden?fehler=${cause instanceof SignInError ? 'konto' : 'google'}`);
 	}
 
-	const exp = Math.floor(Date.now() / 1000) + SESSION_DAYS * 86_400;
-	cookies.set(SESSION_COOKIE, await signSession({ ...user, exp }, auth.sessionSecret), {
-		path: '/',
-		httpOnly: true,
-		sameSite: 'lax',
-		maxAge: SESSION_DAYS * 86_400
-	});
+	await startSession(cookies, auth.sessionSecret, user);
 	redirect(303, safeReturnPath(expected.returnTo));
 };
 

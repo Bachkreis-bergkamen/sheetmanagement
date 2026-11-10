@@ -32,8 +32,31 @@ export function uncheckedPdfs(index: DriveIndex, checks: PartCheck[]) {
 }
 
 /** Hints for every piece, by file id, and how far the check has come. */
-export async function getPartHints(catalog: Catalog, index: DriveIndex): Promise<{ hints: Map<string, PartHint>; checked: number; total: number }> {
+export async function getPartHints(catalog: Catalog, index: DriveIndex): Promise<PartHints> {
 	const checks = await getStore().partChecks();
+	const key = checksKey(checks);
+	if (hintsMemo && hintsMemo.catalog === catalog && hintsMemo.index === index && hintsMemo.key === key) return hintsMemo.result;
+	const result = buildPartHints(catalog, index, checks);
+	hintsMemo = { catalog, index, key, result };
+	return result;
+}
+
+type PartHints = { hints: Map<string, PartHint>; checked: number; total: number };
+
+/**
+ * Reused while the catalog, archive and checks stay the same: the scan board read every part
+ * on every load, past the free plan's 10 ms (Error 1102). The checks are written by other
+ * instances too, so they are compared by content rather than kept in memory.
+ */
+let hintsMemo: { catalog: Catalog; index: DriveIndex; key: string; result: PartHints } | undefined;
+
+function checksKey(checks: PartCheck[]): string {
+	let key = '';
+	for (const c of checks) key += `${c.fileId}|${c.modified}|${c.pages}|${+c.skipped}${+c.dismissed};`;
+	return key;
+}
+
+function buildPartHints(catalog: Catalog, index: DriveIndex, checks: PartCheck[]): PartHints {
 	const pages: PageCounts = new Map(checks.filter((check) => !check.skipped).map((check) => [check.fileId, check.pages]));
 	const dismissed = new Set(checks.filter((check) => check.dismissed).map((check) => check.fileId));
 	const hints = new Map(catalog.pieces.flatMap((piece) => partHints(piece.parts, pages, dismissed)).map((hint) => [hint.id, hint]));

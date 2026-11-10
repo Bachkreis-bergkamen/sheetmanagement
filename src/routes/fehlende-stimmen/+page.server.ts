@@ -1,6 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import { normalizeEmail } from '#lib/access/access.ts';
 import { t } from '#lib/i18n/index.ts';
+import { isActiveReport } from '#lib/feedback/feedback.ts';
 import { requireRight } from '#lib/server/auth/index.ts';
 import { fileUrl } from '#lib/server/catalog.ts';
 import { getLibrary } from '#lib/server/library.ts';
@@ -40,7 +41,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	]);
 	const me = normalizeEmail(locals.access.user?.email ?? '');
 	const nameOf = new Map(people.map((person) => [person.email, person.name]));
-	const openReports = (feedback?.reports ?? []).filter((report) => report.status === 'open');
+	const openReports = (feedback?.reports ?? []).filter(isActiveReport);
 	// What the completeness check found (#93); the page works without it.
 	const catalog = library.catalog;
 	const check = catalog.ok

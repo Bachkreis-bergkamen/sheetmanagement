@@ -16,7 +16,7 @@
 	import Tour from '#lib/components/Tour.svelte';
 	import UpdateNotice from '#lib/components/UpdateNotice.svelte';
 	import WorkspaceTabs from '#lib/components/WorkspaceTabs.svelte';
-	import { currentItem, navGroups, primaryNav, workspaceOf } from '#lib/nav.ts';
+	import { currentItem, inOrganiserArea, menuGroups, navGroups, ORGANISER_HUB, primaryNav, workspaceOf } from '#lib/nav.ts';
 	import { orchestraLinks, safeLink } from '#lib/links.ts';
 	import { versionLabel } from '#lib/version.ts';
 	import { watchInstall } from '#lib/install/state.svelte.ts';
@@ -33,9 +33,12 @@
 	const path = $derived(page.url.pathname);
 	// The most specific entry counts: "Angaben ergänzen" lights up "Mehr", not "Archiv".
 	const current = $derived(currentItem(groups, path)?.item.href);
-	const isCurrent = (href: string) => (href === '/' ? path === '/' : href === current);
+	// The organisers' pages light up their area, "Verwaltung" (#185).
+	const organising = $derived(inOrganiserArea(groups, path));
+	const isCurrent = (href: string) => (href === '/' ? path === '/' : href === ORGANISER_HUB ? organising : !organising && href === current);
 	// "Mehr" is highlighted on the pages only it links to.
-	const inMore = $derived(!!current && !nav.some((item) => item.href === current));
+	const inMore = $derived(!!current && !organising && !nav.some((item) => item.href === current));
+	const menu = $derived(menuGroups(groups));
 	const workspace = $derived(workspaceOf(groups, path));
 	let menuOpen = $state(false);
 	let searching = $state(false);
@@ -48,7 +51,14 @@
 	const links = $derived(orchestraLinks(data.links));
 	const sourceUrl = safeLink(config.sourceUrl ?? '');
 
-	afterNavigate(() => (menuOpen = false));
+	afterNavigate(({ to }) => {
+		menuOpen = false;
+		// How often each page is opened, for the page audit (#185): the route pattern only
+		// ("/stuecke/[id]"), counted per day and role on the server, never per person.
+		// On the first load the navigation may not carry the route yet; the page state does.
+		const route = to?.route.id ?? page.route.id;
+		if (route && navigator.onLine) navigator.sendBeacon?.('/api/seitenaufruf', route);
+	});
 
 	// Whether the app is on the home screen, and the browser's own install dialog where it has one (#279).
 	$effect(() => watchInstall());
@@ -153,6 +163,7 @@
 				<span class="brand-full">{data.orchestraName}</span>
 				<span class="brand-short">{data.orchestraShortName} <span class="app-name">{t.nav.appName}</span></span>
 			</a>
+			{#if data.beta}<span class="beta" title={t.nav.betaNote} aria-label={t.nav.betaNote}>{t.nav.beta}</span>{/if}
 
 			<nav class="nav-desktop" aria-label={t.nav.main}>
 				{#each nav as item (item.href)}
@@ -239,7 +250,7 @@
 		</button>
 	</nav>
 
-	<NavMenu {groups} {current} user={data.user ?? null} bind:open={menuOpen} />
+	<NavMenu groups={menu} current={organising ? ORGANISER_HUB : current} user={data.user ?? null} bind:open={menuOpen} />
 	{#if groups.length}<QuickSearch {groups} bind:open={searching} />{/if}
 	<Toast />
 	<UpdateNotice />
@@ -353,6 +364,21 @@
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+	}
+
+	/* Every page of the live app says it's a preview, until RELEASE is set. */
+	.beta {
+		flex: none;
+		padding: 3px 10px;
+		border-radius: var(--radius-pill);
+		background: var(--warn);
+		color: var(--surface);
+		font-size: var(--text-xs);
+		font-weight: 800;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		line-height: 1.4;
+		cursor: help;
 	}
 
 	.app-name {
@@ -518,6 +544,12 @@
 
 		.topbar-inner {
 			justify-content: space-between;
+		}
+
+		/* Beside the name, not floating between it and the buttons. */
+		.beta {
+			margin-right: auto;
+			margin-left: calc(-1 * var(--space-2));
 		}
 
 		.brand-full {

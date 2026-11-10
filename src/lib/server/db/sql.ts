@@ -1,7 +1,7 @@
 import { sqlData } from './data-sql.ts';
 import { sqlTickets } from './tickets-sql.ts';
 import { fingerprint, type ErrorGroup, type ErrorSource } from '#lib/errors/errors.ts';
-import { reminderKey, type MarkShare, type PageMarks, type PartCheck, type PracticeDay, type PushDevice, type SentReminder, type Store, type TourOutcome } from './types.ts';
+import { reminderKey, type Account, type MarkShare, type PageCount, type PageMarks, type PartCheck, type PracticeDay, type PushDevice, type SentReminder, type Store, type TourOutcome } from './types.ts';
 
 type ErrorRow = { fingerprint: string; source: ErrorSource; place: string; message: string; status: number | null; count: number; first_at: string; last_at: string; notified: number };
 const errorFrom = (row: ErrorRow): ErrorGroup => ({
@@ -142,6 +142,36 @@ export function sqlStore(db: D1): Store {
 		async setMailOptOut(email, off) {
 			if (off) await run('INSERT OR IGNORE INTO email_opt_out (email) VALUES (?)', email);
 			else await run('DELETE FROM email_opt_out WHERE email = ?', email);
+		},
+
+		async accountOf(email) {
+			const [row] = await all<Account>('SELECT email, password_hash AS passwordHash, stamp FROM accounts WHERE email = ?', email);
+			return row ?? null;
+		},
+		async saveAccount({ email, passwordHash, stamp }) {
+			await run(
+				`INSERT INTO accounts (email, password_hash, stamp) VALUES (?, ?, ?)
+				 ON CONFLICT (email) DO UPDATE SET password_hash = excluded.password_hash, stamp = excluded.stamp, updated_at = datetime('now')`,
+				email,
+				passwordHash,
+				stamp
+			);
+		},
+		async deleteAccount(email) {
+			await run('DELETE FROM accounts WHERE email = ?', email);
+		},
+
+		async countPage(day, route, role) {
+			await run(`INSERT INTO page_counts (day, route, role, views) VALUES (?, ?, ?, 1) ON CONFLICT (day, route, role) DO UPDATE SET views = views + 1`, day, route, role);
+		},
+		async pageCounts(since) {
+			return all<PageCount>(
+				'SELECT route, role, SUM(views) AS views FROM page_counts WHERE day >= ? GROUP BY route, role ORDER BY views DESC, route, role',
+				since
+			);
+		},
+		async prunePageCounts(before) {
+			await run('DELETE FROM page_counts WHERE day < ?', before);
 		},
 
 		async tourOf(email) {

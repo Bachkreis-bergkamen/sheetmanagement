@@ -36,7 +36,7 @@ Each feature an orchestra doesn't use can be turned off; see [[Configuration]].
 
 ![History](https://raw.githubusercontent.com/lgreil/sheetmanagement/main/docs/screenshots/history.png)
 
-**Status page.** `/status` checks every connection (Drive, Calendar, Sheets, Gmail, push), shows when each background job last ran and can start one by hand.
+**Settings.** One page with three sections: the orchestra (name, logo, colour, features), the sheet and data, and the status. The status (`/einstellungen/status`) checks every connection (Drive, Calendar, Sheets, Gmail, push), shows when each background job last ran and can start one by hand.
 
 ![Status](https://raw.githubusercontent.com/lgreil/sheetmanagement/main/docs/screenshots/status.png)
 

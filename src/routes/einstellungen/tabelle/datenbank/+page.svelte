@@ -83,7 +83,7 @@
 		</form>
 	{/if}
 	<a class="link" href="/api/daten" download>{t.dataMove.download}</a>
-	<a class="link" href="/setup">{t.status.setupSheet}</a>
+	<a class="link" href="/einstellungen/tabelle">{t.status.setupSheet}</a>
 </div>
 
 {#if data.hasD1}

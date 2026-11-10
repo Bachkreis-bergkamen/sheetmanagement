@@ -66,7 +66,7 @@ export async function planScans(locals: App.Locals, request: Request) {
 }
 
 /** "Bitte scannen – Avengers: Trompete 1, Trompete 2" to the one who scans; sent after the response. */
-function announceScans(email: string, parts: { piece: string; part: string }[], priority: Priority | undefined) {
+export function announceScans(email: string, parts: { piece: string; part: string }[], priority: Priority | undefined, url = '/fehlende-stimmen?meine') {
 	if (!pushReady()) return;
 	const byPiece = new Map<string, string[]>();
 	for (const { piece, part } of parts) byPiece.set(piece, [...(byPiece.get(piece) ?? []), part]);
@@ -75,7 +75,7 @@ function announceScans(email: string, parts: { piece: string; part: string }[], 
 		notify([email], {
 			title: priority === 'high' ? t.gaps.push.titleHigh : t.gaps.push.title,
 			body: body.slice(0, 200),
-			url: '/fehlende-stimmen?meine',
+			url,
 			tag: 'scan'
 		}).catch((error) => console.error('Announcing a scan job failed:', error))
 	);

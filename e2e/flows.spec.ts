@@ -63,7 +63,7 @@ test('a new piece straight from the programme, with a guard against duplicates (
 });
 
 test('the completeness check finds a short part, which can be marked or dismissed (#93)', async ({ page }) => {
-	await open(page, '/status');
+	await open(page, '/einstellungen/status');
 	await page.getByRole('button', { name: 'Stimmen prüfen jetzt ausführen' }).click();
 	await expect(page.getByRole('status').filter({ hasText: 'Stimmen geprüft' })).toBeVisible();
 
@@ -75,7 +75,7 @@ test('the completeness check finds a short part, which can be marked or dismisse
 
 	// Back to the sample data: the hint is there again, and confirming it renames the file.
 	await resetDemo(page);
-	await open(page, '/status');
+	await open(page, '/einstellungen/status');
 	await page.getByRole('button', { name: 'Stimmen prüfen jetzt ausführen' }).click();
 	await expect(page.getByRole('status').filter({ hasText: 'Stimmen geprüft' })).toBeVisible();
 	await open(page, '/fehlende-stimmen');
@@ -110,7 +110,7 @@ test('a retention period set on the settings page, applied by its job (#158)', a
 	await open(page, '/einstellungen');
 	await expect(page.getByLabel('Namen bei Zu- und Absagen und Anwesenheit behalten für (Saisons)')).toHaveValue('2');
 
-	await open(page, '/status');
+	await open(page, '/einstellungen/status');
 	await page.getByRole('button', { name: 'Aufbewahrung jetzt ausführen' }).click();
 	// The demo's rehearsals are from the last weeks: nothing is old enough yet.
 	await expect(page.getByRole('status').filter({ hasText: /0 Einträge von vor dem \d{4}-09-01 ohne Namen/ })).toBeVisible();

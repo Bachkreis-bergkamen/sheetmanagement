@@ -8,7 +8,7 @@ import { t } from '#lib/i18n/index.ts';
 
 export const GET: RequestHandler = ({ url, cookies, locals }) => {
 	const auth = authConfig();
-	if (auth.mode === 'off') error(404, t.messages.signInOff);
+	if (auth.mode === 'off' || !auth.google) error(404, t.messages.signInOff);
 	if (auth.problems.length) error(503, auth.problems.join(' '));
 	// ?zweck=mail: an admin connects the account that sends email (#123), from /status;
 	// ?zweck=drive: the account new uploads belong to (#193).
@@ -18,7 +18,7 @@ export const GET: RequestHandler = ({ url, cookies, locals }) => {
 
 	// The state ties Google's answer to this browser (CSRF protection for the callback).
 	const state = randomToken();
-	const returnTo = purpose ? '/status' : safeReturnPath(url.searchParams.get('weiter'));
+	const returnTo = purpose ? '/einstellungen/status' : safeReturnPath(url.searchParams.get('weiter'));
 	cookies.set(STATE_COOKIE, JSON.stringify({ state, returnTo, ...(purpose ? { purpose } : {}) }), {
 		path: '/auth',
 		httpOnly: true,

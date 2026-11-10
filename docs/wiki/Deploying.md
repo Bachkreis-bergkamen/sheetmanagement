@@ -16,7 +16,7 @@ Follow [docs/setup-google.md](https://github.com/lgreil/sheetmanagement/blob/mai
 
 ## 3. Check and prepare
 
-Open `/status` on your deployment to check every connection, then `/setup` to prepare the Repertoire sheet.
+Open `/einstellungen/status` on your deployment to check every connection, then `/einstellungen/tabelle` to prepare the Repertoire sheet.
 
 ## Your own domain (optional)
 
@@ -26,7 +26,7 @@ The app runs fine on `workers.dev`. To move it to an address like `noten.example
 2. Workers & Pages → the Worker → **Settings → Domains & Routes → Add → Custom domain**: `noten.example.org`. Cloudflare creates the DNS record and the certificate.
 3. `pnpm wrangler secret put APP_URL` with `https://noten.example.org`. The `workers.dev` address then redirects there (308, path and query kept), so old bookmarks and calendar subscriptions keep working.
 4. Google Cloud → the OAuth client: add `https://noten.example.org/auth/callback` under **Authorized redirect URIs** (keep the old one until everyone has moved).
-5. If email is connected, connect it again on `/status` from the new address: links in emails use the address it was connected from.
+5. If email is connected, connect it again on `/einstellungen/status` from the new address: links in emails use the address it was connected from.
 6. Update the GitHub variable `APP_URL`.
 
 Members sign in once more, and anyone who installed the app or turned on notifications does that again on the new address: browsers keep both per address.
@@ -45,11 +45,11 @@ To keep the database in the EU, create it before the first deploy with `pnpm wra
 
 Web Push needs a key pair: `node scripts/vapid-keys.mjs`, then `pnpm wrangler secret put VAPID_PUBLIC_KEY` and `… VAPID_PRIVATE_KEY`. Members turn notifications on per device under **Profile**.
 
-A Cron Trigger (every 10 minutes) runs whatever is due: filling caches, reminders about unanswered rehearsals and rented music that's due, a daily check of the Google connection that notifies admins when it breaks, the check for missing or short parts, and, if a retention period is set, removing names from old sign-ups and attendance. `/status` shows when each last ran.
+A Cron Trigger (every 10 minutes) runs whatever is due: filling caches, reminders about unanswered rehearsals and rented music that's due, a daily check of the Google connection that notifies admins when it breaks, the check for missing or short parts, and, if a retention period is set, removing names from old sign-ups and attendance. `/einstellungen/status` shows when each last ran.
 
 ## Email (optional)
 
-An admin connects the orchestra's Google account on `/status` (Gmail, scope `gmail.send` only). Members without a Google account then get a sign-in link by email, and members without notifications get their reminders by email, with one-click answers. See "Email" in [docs/setup-google.md](https://github.com/lgreil/sheetmanagement/blob/main/docs/setup-google.md#email).
+An admin connects the orchestra's Google account on `/einstellungen/status` (Gmail, scope `gmail.send` only). Members without a Google account then get a sign-in link by email, and members without notifications get their reminders by email, with one-click answers. See "Email" in [docs/setup-google.md](https://github.com/lgreil/sheetmanagement/blob/main/docs/setup-google.md#email).
 
 ## Automatic deploys from GitHub
 

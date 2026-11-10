@@ -4,7 +4,7 @@ import { shownLogo } from '#lib/branding.ts';
 import { config, instrumentOverrides } from '#lib/config/index.ts';
 import { t } from '#lib/i18n/index.ts';
 import { DEMO_ROLE_COOKIE, isPublicPath } from '#lib/server/auth/index.ts';
-import { features, isDemo, orchestra } from '#lib/server/env.ts';
+import { features, isDemo, isRelease, orchestra } from '#lib/server/env.ts';
 import { countsByPage, openWork } from '#lib/server/todo.ts';
 import { navGroups, workspaceOf } from '#lib/nav.ts';
 import { parseInstruments } from '#lib/music/my-parts.ts';
@@ -54,6 +54,8 @@ export const load: LayoutServerLoad = async ({ locals, url, cookies }) => {
 		polls,
 		counts,
 		tour,
+		// The live app is still a preview: a "Beta" badge in the header until RELEASE is set.
+		beta: !isDemo() && !isRelease(),
 		demo: isDemo() ? { role: cookies.get(DEMO_ROLE_COOKIE) === 'mitglied' ? ('mitglied' as const) : ('verwaltung' as const) } : null
 	};
 };

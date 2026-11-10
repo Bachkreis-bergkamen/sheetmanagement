@@ -45,6 +45,17 @@
 	const mailResult = $derived(form && 'mailDisconnected' in form ? t.email.disconnectedNow : data.mail.result ? mailResults[data.mail.result] : '');
 
 	const icons: Record<string, IconName> = { ok: 'check', error: 'alert', missing: 'minus' };
+	// One row per page, a column per role, most opened first (#185).
+	const pageRows = $derived.by(() => {
+		const rows = new Map<string, { route: string; mitglied: number; verwaltung: number; gast: number }>();
+		for (const count of data.pages ?? []) {
+			const row = rows.get(count.route) ?? { route: count.route, mitglied: 0, verwaltung: 0, gast: 0 };
+			row[count.role] += count.views;
+			rows.set(count.route, row);
+		}
+		return [...rows.values()].sort((a, b) => b.mitglied + b.verwaltung + b.gast - (a.mitglied + a.verwaltung + a.gast));
+	});
+	const hasGuests = $derived(pageRows.some((row) => row.gast > 0));
 	const missingExtras = $derived(data.extras.filter((extra) => extra.state !== 'on'));
 	const setUpExtras = $derived(data.extras.filter((extra) => extra.state === 'on').map((extra) => t.status.extraNames[extra.key]));
 </script>
@@ -142,6 +153,30 @@
 	{#if setUpExtras.length}<p class="hint">{t.status.extrasOn(setUpExtras.join(', '))}</p>{/if}
 </section>
 
+<!-- The page audit (#185): which pages are opened, by whom as a role, never by name. -->
+{#if data.pages}
+	<details class="pages">
+		<summary><h2>{t.status.pages.title}</h2></summary>
+		<p class="hint">{t.status.pages.lead}</p>
+		{#if pageRows.length}
+			<div class="table-wrap">
+				<table>
+					<thead>
+						<tr><th scope="col">{t.status.pages.route}</th><th scope="col">{t.status.pages.roles.mitglied}</th><th scope="col">{t.status.pages.roles.verwaltung}</th>{#if hasGuests}<th scope="col">{t.status.pages.roles.gast}</th>{/if}</tr>
+					</thead>
+					<tbody>
+						{#each pageRows as row (row.route)}
+							<tr><th scope="row"><code>{row.route}</code></th><td>{row.mitglied}</td><td>{row.verwaltung}</td>{#if hasGuests}<td>{row.gast}</td>{/if}</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+		{:else}
+			<p>{t.status.pages.none}</p>
+		{/if}
+	</details>
+{/if}
+
 <div class="actions">
 	{#if data.checks.drive.state === 'ok'}
 		<a class="button" href="?refresh" data-sveltekit-reload>
@@ -159,8 +194,8 @@
 		</form>
 	{/each}
 	{#if data.checks.account.state === 'ok'}
-		<a class="link" href="/setup">{t.status.setupSheet}</a>
-		<a class="link" href="/setup/datenbank">{t.status.dataMove}</a>
+		<a class="link" href="/einstellungen/tabelle">{t.status.setupSheet}</a>
+		<a class="link" href="/einstellungen/tabelle/datenbank">{t.status.dataMove}</a>
 	{/if}
 	<a class="link" href="{REPOSITORY}/blob/main/docs/setup-google.md">{t.status.setupGuide}</a>
 </div>
@@ -172,6 +207,46 @@
 </p>
 
 <style>
+	.pages {
+		display: grid;
+		gap: var(--space-3);
+		margin-top: var(--space-6);
+	}
+
+	.pages summary {
+		cursor: pointer;
+	}
+
+	.pages h2 {
+		display: inline;
+		margin: 0;
+		font-size: var(--text-lg);
+	}
+
+	.table-wrap {
+		overflow-x: auto;
+	}
+
+	table {
+		width: 100%;
+		border-collapse: collapse;
+		font-size: var(--text-sm);
+		font-variant-numeric: tabular-nums;
+	}
+
+	th,
+	td {
+		padding: var(--space-2) var(--space-3);
+		border-bottom: 1px solid var(--hairline);
+		text-align: right;
+	}
+
+	th[scope='row'],
+	thead th:first-child {
+		text-align: left;
+		font-weight: 500;
+	}
+
 	.extras {
 		/* The pill's colour: neutral, it's not an error. */
 		--state: var(--text-muted);

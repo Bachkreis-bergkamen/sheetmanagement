@@ -1,6 +1,7 @@
 import { version } from '$app/env';
 import { assets, immutable } from '$app/manifest';
 import { self as sw } from '$app/service-worker';
+import { sendPending } from '#lib/offline/marks.ts';
 
 /**
  * Offline mode for rehearsal halls with bad reception (#62). The app's own files come from
@@ -190,11 +191,15 @@ sw.addEventListener('fetch', (event) => {
 	if (url.origin !== sw.location.origin) return;
 
 	// Signing out: nothing personal stays on the device, and it gets no more reminders. The
-	// device is taken off first, while the member is still signed in.
-	if (request.method === 'POST' && url.pathname === '/auth/logout') {
-		event.waitUntil(Promise.all([caches.delete(PAGES), caches.delete(LIBRARY), caches.delete(NOTEN), caches.delete(MARKS)]));
+	// device is taken off first, while the member is still signed in. Switching to another
+	// account kept on the device (/auth/konto) likewise: its pages and reminders aren't the next one's.
+	// Pen marks drawn offline go to the server first, as the account that drew them, then go too.
+	if (request.method === 'POST' && (url.pathname === '/auth/logout' || url.pathname === '/auth/konto')) {
+		event.waitUntil(Promise.all([caches.delete(PAGES), caches.delete(LIBRARY), caches.delete(NOTEN)]));
 		event.respondWith(
 			(async () => {
+				await sendPending().catch(() => 0);
+				await caches.delete(MARKS);
 				const subscription = await sw.registration.pushManager?.getSubscription().catch(() => null);
 				if (subscription) {
 					await fetch('/api/push', {

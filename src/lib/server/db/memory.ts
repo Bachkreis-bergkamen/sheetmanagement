@@ -1,5 +1,5 @@
 import { fingerprint, type ErrorGroup } from '#lib/errors/errors.ts';
-import { reminderKey, type MarkShare, type PageMarks, type PartCheck, type PushDevice, type Store, type TourOutcome } from './types.ts';
+import { reminderKey, type Account, type MarkShare, type PageCount, type PageMarks, type PageRole, type PartCheck, type PushDevice, type Store, type TourOutcome } from './types.ts';
 import { memoryData } from './data-memory.ts';
 import { memoryTickets } from './tickets-memory.ts';
 import { MIGRATIONS } from './sql.ts';
@@ -13,7 +13,10 @@ export function memoryStore(now = () => Date.now()): Store {
 	const sent = new Map<string, number>();
 	const state = new Map<string, string>();
 	const optOut = new Set<string>();
+	const accounts = new Map<string, Account>();
 	const tours = new Map<string, TourOutcome>();
+	/** Page openings by day, route and role, as a JSON key. */
+	const pageViews = new Map<string, number>();
 	const practiceOptIn = new Set<string>();
 	/** Seconds by member, then by day. */
 	const practice = new Map<string, Map<string, number>>();
@@ -69,6 +72,36 @@ export function memoryStore(now = () => Date.now()): Store {
 		async setMailOptOut(email, off) {
 			if (off) optOut.add(email);
 			else optOut.delete(email);
+		},
+
+		accountOf: async (email) => {
+			const account = accounts.get(email);
+			return account ? { ...account } : null;
+		},
+		async saveAccount(account) {
+			accounts.set(account.email, { ...account });
+		},
+		async deleteAccount(email) {
+			accounts.delete(email);
+		},
+
+		async countPage(day, route, role) {
+			const key = JSON.stringify([day, route, role]);
+			pageViews.set(key, (pageViews.get(key) ?? 0) + 1);
+		},
+		async pageCounts(since) {
+			const sums = new Map<string, PageCount>();
+			for (const [key, views] of pageViews) {
+				const [day, route, role] = JSON.parse(key) as [string, string, PageRole];
+				if (day < since) continue;
+				const sum = sums.get(route + ' ' + role) ?? { route, role, views: 0 };
+				sum.views += views;
+				sums.set(route + ' ' + role, sum);
+			}
+			return [...sums.values()].sort((a, b) => b.views - a.views || a.route.localeCompare(b.route) || a.role.localeCompare(b.role));
+		},
+		async prunePageCounts(before) {
+			for (const key of pageViews.keys()) if ((JSON.parse(key) as string[])[0] < before) pageViews.delete(key);
 		},
 
 		tourOf: async (email) => tours.get(email) ?? null,

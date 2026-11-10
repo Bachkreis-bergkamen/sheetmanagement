@@ -72,8 +72,8 @@ export async function checkConnections(): Promise<JobResult> {
 		const auth = authConfig();
 		const admins = peopleWithRight(await getAccessList().catch(() => null), auth.mode === 'on' ? auth.bootstrapAdmins : [], 'mitglieder.verwalten');
 		const notice = parts.length
-			? { title: t.reminders.checkFailedTitle, body: t.reminders.checkFailedBody(parts.map((part) => `${label(part)} (${problems[part]})`).join(', ')), url: '/status', tag: 'connection-check' }
-			: { title: t.reminders.checkOkTitle, body: t.reminders.checkOkBody, url: '/status', tag: 'connection-check' };
+			? { title: t.reminders.checkFailedTitle, body: t.reminders.checkFailedBody(parts.map((part) => `${label(part)} (${problems[part]})`).join(', ')), url: '/einstellungen/status', tag: 'connection-check' }
+			: { title: t.reminders.checkOkTitle, body: t.reminders.checkOkBody, url: '/einstellungen/status', tag: 'connection-check' };
 		// By push, else by email (#123): a broken sheet doesn't stop the mail, which needs only Google's sign-in.
 		const reached = (await Promise.all(admins.map((admin) => deliver(admin, notice, ways)))).filter(Boolean);
 		told = ` ${t.reminders.adminsTold(reached.length)}`;

@@ -79,7 +79,7 @@
 			{#if field.name === 'instrumentation'}
 				<!-- The instrument picker, as on the profile; the sheet keeps it as text (#249). -->
 				<div class="field wide">
-					<InstrumentationField name="instrumentation" label={columns.instrumentation} bind:value={current.instrumentation} instruments={data.instruments} />
+					<InstrumentationField name="instrumentation" label={columns.instrumentation} bind:value={current.instrumentation} instruments={data.instruments} score={data.score} />
 				</div>
 			{:else}
 			<label class="field" class:wide={'wide' in field}>

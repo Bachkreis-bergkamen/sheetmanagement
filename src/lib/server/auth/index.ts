@@ -1,10 +1,12 @@
 import { error, type Cookies } from '@sveltejs/kit';
 import { parseEmailList, resolveAccess, type Access, type Right, type User } from '#lib/access/access.ts';
 import { DEMO_ADMIN, DEMO_MEMBER } from '../demo/data.ts';
+import { getStore } from '../db/index.ts';
 import { appEnv, isDemo } from '../env.ts';
 import { readAccessList } from '../repertoire.ts';
 import { linkValid } from './links.ts';
-import { verifySession } from './session.ts';
+import { savedAccounts, withAccount, writeSaved } from './saved.ts';
+import { SESSION_DAYS, signSession, verifySession, type Session } from './session.ts';
 import { t } from '#lib/i18n/index.ts';
 
 export const SESSION_COOKIE = 'session';
@@ -19,6 +21,8 @@ export type AuthConfig =
 	  }
 	| {
 			mode: 'on';
+			/** Google sign-in is set up (GOOGLE_OAUTH_CLIENT_ID); without it only passwords and access links. */
+			google: boolean;
 			clientId: string;
 			clientSecret: string;
 			sessionSecret: string;
@@ -27,35 +31,62 @@ export type AuthConfig =
 			problems: string[];
 	  };
 
+/** FORCE_AUTH=true (or 1, yes, on): sign-in on without Google, with passwords and access links only. */
+export function signInRequired(value: string | undefined): boolean {
+	return ['true', '1', 'yes', 'on'].includes((value ?? '').trim().toLowerCase());
+}
+
 /** FORCE_AUTH=false (or 0, no, off) turns sign-in off; anything else, or nothing, leaves it on. */
 export function signInForced(value: string | undefined): boolean {
 	return !['false', '0', 'no', 'off'].includes((value ?? '').trim().toLowerCase());
 }
 
 /**
- * Sign-in is on as soon as GOOGLE_OAUTH_CLIENT_ID is set. Without it the app stays
- * open and read-only, as before phase 5, so a deployment can be set up step by step.
- * FORCE_AUTH=false turns it off again without removing the client id, e.g. for an
- * instance that should be open to everyone, or to get in while Google sign-in is broken.
+ * Sign-in is on as soon as GOOGLE_OAUTH_CLIENT_ID is set, or FORCE_AUTH=true for sign-in with
+ * passwords and access links only. Otherwise the app stays open and read-only, as before
+ * phase 5, so a deployment can be set up step by step. FORCE_AUTH=false turns it off again
+ * without removing the client id, e.g. for an instance that should be open to everyone.
  */
 export function authConfig(): AuthConfig {
 	const env = appEnv();
 	// The demo is "signed in" without Google: as the admin, or as a member to see their view.
 	if (isDemo()) {
-		return { mode: 'on', clientId: 'demo', clientSecret: 'demo', sessionSecret: 'demo'.repeat(8), bootstrapAdmins: [DEMO_ADMIN.email], problems: [] };
+		return { mode: 'on', google: true, clientId: 'demo', clientSecret: 'demo', sessionSecret: 'demo'.repeat(8), bootstrapAdmins: [DEMO_ADMIN.email], problems: [] };
 	}
-	const clientId = env.GOOGLE_OAUTH_CLIENT_ID?.trim();
-	if (!clientId) return { mode: 'off', reason: 'not-configured' };
+	const clientId = env.GOOGLE_OAUTH_CLIENT_ID?.trim() ?? '';
+	if (!clientId && !signInRequired(env.FORCE_AUTH)) return { mode: 'off', reason: 'not-configured' };
 	if (!signInForced(env.FORCE_AUTH)) return { mode: 'off', reason: 'disabled' };
+	const google = !!clientId;
 	const clientSecret = env.GOOGLE_OAUTH_CLIENT_SECRET?.trim() ?? '';
 	const sessionSecret = env.SESSION_SECRET?.trim() ?? '';
 	const bootstrapAdmins = parseEmailList(env.BOOTSTRAP_ADMINS);
 	const problems = [
-		...(clientSecret ? [] : [t.messages.notSet('GOOGLE_OAUTH_CLIENT_SECRET')]),
+		...(clientSecret || !google ? [] : [t.messages.notSet('GOOGLE_OAUTH_CLIENT_SECRET')]),
 		...(sessionSecret.length >= MIN_SECRET_LENGTH ? [] : [t.messages.shortSecret(MIN_SECRET_LENGTH)]),
 		...(bootstrapAdmins.length ? [] : [t.messages.noAdmins])
 	];
-	return { mode: 'on', clientId, clientSecret, sessionSecret, bootstrapAdmins, problems };
+	return { mode: 'on', google, clientId, clientSecret, sessionSecret, bootstrapAdmins, problems };
+}
+
+/** Signs someone in: a session cookie for SESSION_DAYS, whichever way they proved who they are. */
+export async function startSession(cookies: Cookies, secret: string, session: Omit<Session, 'exp'>) {
+	const exp = Math.floor(Date.now() / 1000) + SESSION_DAYS * 86_400;
+	const token = await signSession({ ...session, exp }, secret);
+	cookies.set(SESSION_COOKIE, token, {
+		path: '/',
+		httpOnly: true,
+		sameSite: 'lax',
+		maxAge: SESSION_DAYS * 86_400
+	});
+	// On a device with several accounts kept (after "add account"), this one is kept too.
+	const saved = await savedAccounts(cookies, secret);
+	if (saved.length) writeSaved(cookies, withAccount(saved, { email: session.email, name: session.name, token }));
+}
+
+/** The signed-in person's session as signed, e.g. to renew it after a new password or link. */
+export async function currentSession(cookies: Cookies): Promise<Session | null> {
+	const auth = authConfig();
+	return auth.mode === 'on' && auth.sessionSecret ? verifySession(cookies.get(SESSION_COOKIE), auth.sessionSecret) : null;
 }
 
 /** Without sign-in everyone may view, and nobody may change anything. */
@@ -74,6 +105,14 @@ export async function accessFromCookies(cookies: Cookies, auth: AuthConfig): Pro
 	const session = auth.sessionSecret ? await verifySession(cookies.get(SESSION_COOKIE), auth.sessionSecret) : null;
 	const user: User | null = session ? { email: session.email, name: session.name } : null;
 	if (!user) return resolveAccess(null, null, []);
+	// A session from a password lasts until the password changes: checked against the account's stamp.
+	if (session?.pw !== undefined) {
+		const account = await getStore()
+			.accountOf(user.email.toLowerCase())
+			.catch(() => undefined);
+		if (account === undefined) return { ...resolveAccess(user, null, []), unavailable: true };
+		if (!account || account.stamp !== session.pw) return resolveAccess(null, null, []);
+	}
 	// A session from an access link lasts only as long as the link: always checked in the sheet.
 	if (session?.link !== undefined) {
 		const { list, failed } = await readAccessList();

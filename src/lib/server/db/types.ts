@@ -8,6 +8,13 @@ import type { PracticeDay } from '#lib/practice/practice.ts';
 import type { TourOutcome } from '#lib/tour/tour.ts';
 import type { Ticket, TicketOrder, TicketSale } from '#lib/tickets/tickets.ts';
 
+/** Email and password sign-in: only the hash, and the stamp that changes with each new password. */
+export interface Account {
+	email: string;
+	passwordHash: string;
+	stamp: string;
+}
+
 export interface PushDevice {
 	/** The push service's address for this device; also its id. */
 	endpoint: string;
@@ -108,6 +115,20 @@ export interface Store {
 	/** Members who turned email reminders off (#123). */
 	mailOptOuts(): Promise<Set<string>>;
 	setMailOptOut(email: string, off: boolean): Promise<void>;
+
+	/** The password account for an email, if one was made. */
+	accountOf(email: string): Promise<Account | null>;
+	/** Sets an account's password, making the account if needed. */
+	saveAccount(account: Account): Promise<void>;
+	/** Forgets an account; for "Mitglied löschen". */
+	deleteAccount(email: string): Promise<void>;
+
+	/** Counts one opening of a page (#185): its route pattern, on a day, by role. Nothing about who. */
+	countPage(day: string, route: string, role: PageRole): Promise<void>;
+	/** The openings since a day ("2026-10-09"), summed per route and role, most opened first. */
+	pageCounts(since: string): Promise<PageCount[]>;
+	/** Forgets the counts from before a day. */
+	prunePageCounts(before: string): Promise<void>;
 
 	/** Whether a member finished or skipped the tour; null while they haven't seen it. */
 	tourOf(email: string): Promise<TourOutcome | null>;
@@ -212,3 +233,12 @@ export interface Store {
 }
 
 export const reminderKey = (subject: string, recipient: string) => `${subject}\n${recipient}`;
+
+/** Who opened a page, as a role only: members, organisers, or visitors while sign-in is off. */
+export type PageRole = 'mitglied' | 'verwaltung' | 'gast';
+
+export interface PageCount {
+	route: string;
+	role: PageRole;
+	views: number;
+}

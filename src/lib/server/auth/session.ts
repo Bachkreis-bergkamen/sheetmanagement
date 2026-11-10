@@ -12,6 +12,8 @@ export interface Session {
 	exp: number;
 	/** Signed in with a personal access link of this version; a newer version in the sheet ends the session. */
 	link?: number;
+	/** Signed in with a password; the account's stamp then. A new password changes it, which ends the session. */
+	pw?: string;
 }
 
 export const SESSION_DAYS = 30;
@@ -66,6 +68,7 @@ export async function verifySession(
 		const session = JSON.parse(new TextDecoder().decode(fromBase64url(payload))) as Session;
 		if (typeof session.email !== 'string' || typeof session.exp !== 'number') return null;
 		if (session.link !== undefined && !Number.isInteger(session.link)) return null;
+		if (session.pw !== undefined && typeof session.pw !== 'string') return null;
 		return session.exp * 1000 > now ? session : null;
 	} catch {
 		return null;

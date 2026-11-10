@@ -152,6 +152,9 @@
 
 html {
 	-webkit-text-size-adjust: 100%;
+	/* No double-tap zoom: a second tap on a tab while a slow page (the Archiv) loads zoomed in and
+	   stayed there. Pinching still zooms; the Üben score handles its own double tap. */
+	touch-action: manipulation;
 }
 
 /* Phone browsers (Samsung Internet, iOS Safari) zoom into a focused form control whose text is
@@ -173,12 +176,12 @@ html {
 }
 
 /* "Schriftgröße" on the profile: everything is in rem, so the whole page grows with it. */
-html[data-text-size='large'] {
-	font-size: 112.5%;
+html[data-text-size='small'] {
+	font-size: 87.5%;
 }
 
-html[data-text-size='larger'] {
-	font-size: 125%;
+html[data-text-size='large'] {
+	font-size: 112.5%;
 }
 
 body {

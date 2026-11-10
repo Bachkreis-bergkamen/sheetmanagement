@@ -1,4 +1,4 @@
-import { error, fail } from '@sveltejs/kit';
+import { error, redirect, fail } from '@sveltejs/kit';
 import { FEATURES, type Feature } from '#lib/features.ts';
 import { t } from '#lib/i18n/index.ts';
 import { requireRight } from '#lib/server/auth/index.ts';
@@ -27,8 +27,9 @@ import type { Actions, PageServerLoad } from './$types';
  */
 
 function requireAdmin(locals: App.Locals) {
-	// Changes everyone's app, so only with sign-in on and only for admins.
-	if (locals.auth === 'off') error(404, t.error.notFound);
+	// Changes everyone's app, so only with sign-in on and only for admins. While sign-in is
+	// off the settings start at their status, which is how a deployment is set up (#185).
+	if (locals.auth === 'off') redirect(303, '/einstellungen/status');
 	requireRight(locals, 'mitglieder.verwalten');
 }
 

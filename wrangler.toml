@@ -57,6 +57,6 @@ directory = ".svelte-kit/cloudflare"
 # (Wrangler warns about them; that's expected). Its notifications stay off.
 [env.demo]
 name = "noten-demo"
-# Nothing runs on its own in the demo; /status can start a job by hand.
+# Nothing runs on its own in the demo; /einstellungen/status can start a job by hand.
 triggers = { crons = [] }
 vars = { DEMO = "true", ORCHESTRA_NAME = "Musterorchester", ORCHESTRA_SHORT_NAME = "Muster", ORCHESTRA_LOGO = "/demo/musterorchester.svg", ORCHESTRA_ACCENT = "#2c5d8f" }

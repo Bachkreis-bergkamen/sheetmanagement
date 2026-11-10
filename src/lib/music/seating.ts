@@ -38,8 +38,13 @@ export interface SeatingSection {
 	label: string;
 	/** On hover and for screen readers: "Geige 1", "Flöte 1 & 2". */
 	title: string;
-	/** Written for, but no part to play from. */
+	/** Written for, but no part to play from: at least one of its chairs. */
 	warn?: boolean;
+	/**
+	 * Chair by chair, for a section of numbered parts ("Klarinette 1 & 2"): which chair has no
+	 * part, and what it plays. Without it every chair follows `warn` and `title`.
+	 */
+	chairs?: { warn: boolean; title: string }[];
 }
 
 /** A different spot for a section, by its id or its instrument: a concert's or an orchestra's own way. */
@@ -329,9 +334,9 @@ export function layoutSeating(sections: SeatingSection[], options: LayoutOptions
 			family: item.section.family,
 			x: at.x,
 			y: at.y,
-			warn: !!item.section.warn,
+			warn: item.section.chairs ? !!item.section.chairs[index]?.warn : !!item.section.warn,
 			solo: item.placement.zone === 'front',
-			title: item.section.title
+			title: item.section.chairs?.[index]?.title ?? item.section.title
 		});
 
 	// The strings: stand by stand, each section in its wedge, rows centred in it.
@@ -501,7 +506,8 @@ const hitsSeat = (label: { x: number; y: number; w: number; h: number }, seat: S
 };
 
 /**
- * One label per section, under the middle chair of its front row; where that's taken, above it,
+ * One label per section, in front of the middle chair of its front row (towards the conductor),
+ * else under it; where that's taken, above it,
  * then beside it, so no label covers a chair or another label.
  */
 function placeLabels(items: Placed[], seats: Seat[], h: number): SeatLabel[] {
@@ -517,7 +523,13 @@ function placeLabels(items: Placed[], seats: Seat[], h: number): SeatLabel[] {
 		const anchor = row[Math.floor((row.length - 1) / 2)];
 		const w = labelWidth(section.label, h);
 		const below = MARKER + 0.06 + h / 2;
+		// Towards the conductor from the middle chair: in front of its own section on any side of
+		// the half ring, where "below" alone would drift into a neighbour at the flanks.
+		const toward = Math.hypot(anchor.x, anchor.y) || 1;
+		const [dx, dy] = [-anchor.x / toward, -anchor.y / toward];
+		const reachIn = MARKER + 0.08 + Math.abs(dx) * (w / 2) + Math.abs(dy) * (h / 2);
 		const candidates = [
+			{ x: anchor.x + dx * reachIn, y: anchor.y + dy * reachIn },
 			{ x: anchor.x, y: anchor.y + below },
 			{ x: anchor.x - w / 3, y: anchor.y + below },
 			{ x: anchor.x + w / 3, y: anchor.y + below },
@@ -610,7 +622,15 @@ export function sectionsFromBesetzung(input: FromBesetzung): SeatingSection[] {
 								: kind === 'streicher' && voice.instrument !== 'E-Bass'
 									? strings[2]
 									: Math.max(1, voice.numbers.length);
-		add({ ...base, id: voice.instrument, players });
+		// Numbered parts, one chair each: only the chair whose part is missing is ringed (#249).
+		const chairs =
+			voice.numbers.length > 1 && players === voice.numbers.length
+				? voice.numbers.map((n) => {
+						const one = { instrument: voice.instrument, numbers: [n] };
+						return { warn: warns(one), title: title(one) };
+					})
+				: undefined;
+		add({ ...base, id: voice.instrument, players, chairs });
 	}
 	// Soloists out front, each with a chair of their own.
 	for (const instrument of solos) {

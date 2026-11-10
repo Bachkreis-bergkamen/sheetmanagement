@@ -8,6 +8,8 @@ export const de = {
 	nav: {
 		/** Shown after the orchestra's short name in the header. */
 		appName: 'Notenarchiv',
+		beta: 'Beta',
+		betaNote: 'Vorschau: Die App ist noch in Arbeit. Fehler und Wünsche gern melden.',
 		home: 'Übersicht',
 		pieces: 'Archiv',
 		concerts: 'Kalender',
@@ -31,12 +33,37 @@ export const de = {
 		menu: 'Alle Seiten',
 		close: 'Menü schließen',
 		crumbs: 'Seitenpfad',
-		groups: { musik: 'Proben & Noten', mitmachen: 'Mitmachen', pflege: 'Noten pflegen', verwaltung: 'Verwaltung' },
+		groups: { musik: 'Proben & Noten', mitmachen: 'Mitmachen', pflege: 'Noten pflegen', verwaltung: 'App & Mitglieder' },
+		/** The organisers' area in the tab bar, the header and "Mehr" (#185). */
+		organise: 'Verwaltung',
 		workspace: 'Bereich',
 		/** After a tab's count, for screen readers: "Meldungen 1 offen". */
 		open: 'offen',
 		skip: 'Zum Inhalt springen',
 		main: 'Hauptnavigation'
+	},
+	/** Everything waiting for you, in one list (#185). */
+	todo: {
+		title: 'Zu erledigen',
+		lead: 'Alles, was gerade auf dich wartet, an einem Ort. Jede Zeile führt dahin, wo du es erledigst.',
+		empty: 'Nichts offen. Schön!',
+		/** Before a deadline: polls and rented music. */
+		until: (date: string) => `bis ${date}`,
+		kinds: {
+			report: 'Meldungen',
+			request: 'Zugangsanfragen',
+			wish: 'Wünsche',
+			loan: 'Leihmaterial zurückgeben',
+			attendance: 'Anwesenheit eintragen',
+			poll: 'Terminumfragen beantworten',
+			other: 'Außerdem'
+		} as Record<string, string>,
+		/** On the organisers' hub, above the groups. */
+		hub: (n: number) => (n === 1 ? '1 Sache wartet' : `${n} Dinge warten`)
+	},
+	organise: {
+		title: 'Verwaltung',
+		lead: 'Alles, was ihr fürs Orchester erledigt: die Noten pflegen, Mitglieder und die App.'
 	},
 	footer: {
 		links: 'Das Orchester im Netz',
@@ -57,9 +84,9 @@ export const de = {
 	textSize: {
 		label: 'Schriftgröße',
 		hint: 'Gilt für dieses Gerät.',
+		small: 'Klein',
 		normal: 'Normal',
-		large: 'Groß',
-		larger: 'Sehr groß'
+		large: 'Groß'
 	},
 	home: {
 		title: (orchestra: string) => `Notenarchiv des ${orchestra}`,
@@ -110,10 +137,9 @@ export const de = {
 			'/meldungen': 'Gemeldete Probleme bearbeiten.',
 			'/leihmaterial': 'Geliehene Noten und wann sie zurückmüssen.',
 			'/admin': 'Mitglieder, Rollen und Anfragen.',
-			'/setup': 'Die Repertoire-Tabelle anlegen.',
-			'/einstellungen': 'Name, Logo, Farbe und Funktionen.',
-			'/status': 'Verbindung zu Google prüfen.',
-			'/termine': 'Termine mit dem Orga-Team abstimmen.'
+			'/einstellungen': 'Orchester, Tabelle und Daten, Status.',
+			'/termine': 'Termine mit dem Orga-Team abstimmen.',
+			'/ensembles': 'Chöre und Orchester, mit denen wir auftreten.'
 		} as Record<string, string>
 	},
 	pieces: {
@@ -617,6 +643,8 @@ export const de = {
 	settings: {
 		title: 'Einstellungen',
 		lead: 'Wie die App für alle aussieht und was sie anbietet.',
+		/** The settings' sections (#185): one page for every setting. */
+		sections: { label: 'Bereiche der Einstellungen', orchestra: 'Orchester', sheet: 'Tabelle & Daten', status: 'Status' },
 		identity: 'Name',
 		name: 'Name des Orchesters',
 		shortName: 'Kurzname',
@@ -1129,7 +1157,9 @@ export const de = {
 		done: 'Fertig',
 		chosen: (n: number) => (n === 1 ? '1 Instrument' : `${n} Instrumente`),
 		numbers: 'Stimmen',
-		numbersHint: 'keine Auswahl: alle Stimmen'
+		numbersHint: 'keine Auswahl: alle Stimmen',
+		score: (label: string) => `Erste Seite: ${label}`,
+		scoreHint: 'Am linken Rand der ersten Seite stehen alle Instrumente der Partitur.'
 	},
 	/** Filters for a list, several at once (archive, calendar). */
 	filters: {
@@ -1275,7 +1305,7 @@ export const de = {
 	},
 	auth: {
 		title: 'Anmelden',
-		lead: 'Melde dich mit deinem Google-Konto an, um Noten, Konzerte und Programme zu sehen.',
+		lead: 'Melde dich an, um Noten, Konzerte und Programme zu sehen.',
 		button: 'Mit Google anmelden',
 		privacy: 'Die App erfährt dabei nur deinen Namen und deine E-Mail-Adresse.',
 		notReady: 'Die Anmeldung ist noch nicht fertig eingerichtet:',
@@ -1287,7 +1317,18 @@ export const de = {
 		} as Record<string, string>,
 		signedInAs: (email: string) => `Angemeldet als ${email}`,
 		logout: 'Abmelden',
-		switchAccount: 'Mit einem anderen Konto anmelden'
+		switchAccount: 'Mit einem anderen Konto anmelden',
+		/** Several accounts on one device (an admin's and a member's, a shared tablet). */
+		accounts: {
+			title: 'Konten auf diesem Gerät',
+			lead: 'Ohne neue Anmeldung zwischen Konten wechseln, z. B. auf einem geteilten Gerät.',
+			add: 'Weiteres Konto hinzufügen',
+			switchTo: 'Wechseln',
+			forget: 'Entfernen',
+			forgetConfirm: (name: string) => `${name} von diesem Gerät entfernen?`,
+			current: 'Aktiv',
+			onDevice: 'Auf diesem Gerät gespeichert'
+		}
 	},
 	signups: {
 		title: 'Anmeldung',
@@ -1402,33 +1443,85 @@ export const de = {
 		loading: 'Lade die Noten …',
 		hint: 'Angaben von der Seite abtippen, oder im neuen Tab markieren und kopieren.'
 	},
+	/** Email and password sign-in: the form on /anmelden, signing up and resetting by email, the profile. */
+	password: {
+		email: 'E-Mail-Adresse',
+		password: 'Passwort',
+		signIn: 'Anmelden',
+		signInErrors: {
+			wrong: 'E-Mail-Adresse oder Passwort stimmt nicht.',
+			limited: 'Zu viele Versuche. Bitte in einer Viertelstunde noch einmal.',
+			failed: 'Das hat gerade nicht geklappt. Bitte versuch es noch einmal.'
+		} as Record<string, string>,
+		createOrReset: 'Konto anlegen oder Passwort vergessen?',
+		noMailHint: 'Noch kein Passwort? Lass dir von der Verwaltung einen persönlichen Link geben und leg im Profil ein Passwort fest.',
+		requestTitle: 'Passwort festlegen',
+		requestLead: 'Für ein neues Konto oder wenn du dein Passwort vergessen hast: Wir schicken dir einen Link, mit dem du ein Passwort festlegst.',
+		send: 'Link per E-Mail schicken',
+		sent: (email: string) => `Wir haben einen Link an ${email} geschickt. Er gilt eine Stunde. Schau auch im Spam-Ordner nach.`,
+		mailErrors: {
+			invalid: 'Bitte eine E-Mail-Adresse eingeben.',
+			limited: 'Zu viele Versuche. Bitte in einer Stunde noch einmal.',
+			failed: 'Das hat gerade nicht geklappt. Bitte versuch es noch einmal.'
+		} as Record<string, string>,
+		noMail: 'Gerade können keine E-Mails verschickt werden. Bitte frag die Verwaltung nach einem persönlichen Link; danach kannst du im Profil ein Passwort festlegen.',
+		toSignIn: 'Zur Anmeldung',
+		newSubject: (orchestra: string) => `Dein Konto: ${orchestra}`,
+		newBody: (name: string, orchestra: string, link: string) =>
+			`Hallo${name ? ` ${name}` : ''},\n\nmit diesem Link legst du dein Passwort für ${orchestra} fest. Er gilt eine Stunde:\n\n${link}\n\nDu wolltest kein Konto anlegen? Dann lösch diese E-Mail einfach.`,
+		resetSubject: (orchestra: string) => `Neues Passwort: ${orchestra}`,
+		resetBody: (name: string, link: string) =>
+			`Hallo${name ? ` ${name}` : ''},\n\nmit diesem Link legst du ein neues Passwort fest. Er gilt eine Stunde und nur einmal:\n\n${link}\n\nDu hast kein neues Passwort angefordert? Dann lösch diese E-Mail einfach; dein Passwort bleibt, wie es ist.`,
+		setTitle: 'Passwort festlegen',
+		resetTitle: 'Neues Passwort',
+		setLead: (email: string) => `Für ${email}.`,
+		newPassword: 'Neues Passwort',
+		repeat: 'Noch einmal',
+		current: 'Bisheriges Passwort',
+		rule: (min: number) => `Mindestens ${min} Zeichen. Ein Satz, den du dir merken kannst, ist besser als ein kurzes kompliziertes Wort.`,
+		problems: {
+			short: 'Das Passwort ist zu kurz.',
+			long: 'Das Passwort ist zu lang.',
+			mismatch: 'Die beiden Passwörter sind nicht gleich.'
+		} as Record<string, string>,
+		save: 'Passwort speichern',
+		failed: 'Das Passwort konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.',
+		linkInvalid: 'Dieser Link ist abgelaufen oder wurde schon benutzt.',
+		newLink: 'Neuen Link anfordern',
+		profileTitle: 'Passwort',
+		profileHas: (email: string) => `Du kannst dich mit ${email} und deinem Passwort anmelden. Ein neues Passwort meldet dich überall sonst ab.`,
+		profileNone: (email: string) => `Leg ein Passwort fest, dann meldest du dich auch mit ${email} und Passwort an.`,
+		set: 'Passwort festlegen',
+		change: 'Passwort ändern',
+		saved: 'Passwort gespeichert.',
+		wrongCurrent: 'Das bisherige Passwort stimmt nicht.',
+		forgot: 'Passwort vergessen?'
+	},
+	/** The member's own access link on /profil. */
+	ownLink: {
+		title: 'Persönlicher Zugangslink',
+		lead: 'Ein Link, mit dem du dich ohne Passwort anmeldest, z. B. auf einem zweiten Gerät.',
+		create: 'Zugangslink erzeugen',
+		show: 'Link anzeigen',
+		keep: 'Persönlich: Wer den Link hat, ist als du angemeldet. Nicht weitergeben.',
+		confirmRenew: 'Neuen Link erzeugen? Der alte gilt dann nicht mehr, und wer damit angemeldet ist, wird abgemeldet.',
+		confirmRenewViaLink: 'Neuen Link erzeugen? Der alte gilt dann nicht mehr; Geräte, die damit angemeldet sind, werden abgemeldet (dieses nicht).',
+		confirmRevoke: 'Link sperren? Wer damit angemeldet ist, wird abgemeldet.',
+		confirmRevokeViaLink: 'Link sperren? Du bist mit diesem Link angemeldet und wirst dann auch hier abgemeldet.',
+		revoked: 'Link gesperrt.'
+	},
 	accessLink: {
 		title: 'Zugang per Link',
 		hello: (name: string) => (name ? `Hallo ${name}!` : 'Hallo!'),
-		lead: 'Mit diesem persönlichen Link meldest du dich ohne Google-Konto an.',
+		lead: 'Mit diesem persönlichen Link meldest du dich ohne Passwort an.',
 		signIn: 'Anmelden',
-		keep: 'Bewahre den Link gut auf und gib ihn nicht weiter. Er gilt, bis die Verwaltung einen neuen erzeugt.',
+		keep: 'Bewahre den Link gut auf und gib ihn nicht weiter. Er gilt, bis du (im Profil) oder die Verwaltung einen neuen erzeugt.',
 		invalid: 'Dieser Link gilt nicht mehr. Bitte frag die Verwaltung nach einem neuen.',
-		toSignIn: 'Zur Anmeldung mit Google'
+		toSignIn: 'Zur Anmeldung'
 	},
 	/** Email (#123): sign-in links, reminders, the account on /status. */
 	email: {
 		or: 'oder',
-		noGoogle: 'Ohne Google-Konto: Wir schicken dir einen Link.',
-		label: 'E-Mail-Adresse',
-		send: 'Link per E-Mail schicken',
-		sent: (email: string) =>
-			`Wenn ${email} im Orchester eingetragen ist, kommt gleich eine E-Mail mit einem Anmeldelink. Er gilt 15 Minuten. Schau auch im Spam-Ordner nach.`,
-		invalid: 'Bitte eine E-Mail-Adresse eingeben.',
-		limited: 'Zu viele Versuche. Bitte in einer Stunde noch einmal.',
-		failed: 'Das hat gerade nicht geklappt. Bitte versuch es noch einmal.',
-		signInSubject: (orchestra: string) => `Anmelden: ${orchestra}`,
-		signInBody: (name: string, link: string) =>
-			`Hallo${name ? ` ${name}` : ''},\n\nmit diesem Link meldest du dich an. Er gilt 15 Minuten:\n\n${link}\n\nDu hast keinen Link angefordert? Dann lösch diese E-Mail einfach.`,
-		linkTitle: 'Anmelden per E-Mail',
-		linkLead: (email: string) => `Du meldest dich als ${email} an.`,
-		linkButton: 'Anmelden',
-		linkInvalid: 'Dieser Link ist abgelaufen oder gilt nicht. Lass dir auf der Anmeldeseite einen neuen schicken.',
 		toSignIn: 'Zur Anmeldung',
 		hello: (name: string) => (name ? `Hallo ${name},` : 'Hallo,'),
 		answerLinks: 'Antworten:',
@@ -1451,13 +1544,13 @@ export const de = {
 		connected: (email: string, since: string) => `Verschickt von ${email} (verbunden am ${since}).`,
 		links: (origin: string) => `Links in E-Mails führen zu ${origin}.`,
 		optOuts: (n: number) => (n === 1 ? '1 Mitglied hat E-Mail-Erinnerungen abbestellt.' : `${n} Mitglieder haben E-Mail-Erinnerungen abbestellt.`),
-		notConnected: 'Kein E-Mail-Konto verbunden: Anmeldelinks und Erinnerungen per E-Mail sind aus.',
+		notConnected: 'Kein E-Mail-Konto verbunden: Konto anlegen, Passwort vergessen und Erinnerungen per E-Mail sind aus.',
 		connectHint:
 			'Melde dich mit dem Google-Konto des Orchesters an, das die E-Mails verschicken soll. Google fragt nach der Erlaubnis, in seinem Namen E-Mails zu senden, mehr nicht. Im OAuth-Zustimmungsbildschirm muss die App „In Produktion“ sein, sonst endet die Erlaubnis nach 7 Tagen.',
 		needsSignIn: 'Erst die Anmeldung mit Google einrichten (Schritt 9).',
 		connect: 'E-Mail-Konto verbinden',
 		disconnect: 'Trennen',
-		confirmDisconnect: 'E-Mail-Konto trennen? Anmeldelinks und E-Mail-Erinnerungen gehen dann nicht mehr raus.',
+		confirmDisconnect: 'E-Mail-Konto trennen? Links zum Festlegen eines Passworts und E-Mail-Erinnerungen gehen dann nicht mehr raus.',
 		revoked: 'Google hat die Erlaubnis zum Senden zurückgenommen. Bitte das Konto neu verbinden.',
 		lastError: (message: string) => `Die letzte E-Mail ging nicht raus: ${message}`,
 		connectedNow: 'E-Mail-Konto verbunden.',
@@ -1488,6 +1581,36 @@ export const de = {
 		'karten.einlass': 'Karten am Einlass prüfen',
 		'kummerkasten.lesen': 'Kummerkasten lesen und beantworten (ohne zu sehen, wer schreibt)',
 		'mitglieder.verwalten': 'Mitglieder und Rechte verwalten'
+	},
+	/** Invitation links (/admin makes them, /auth/einladung/… uses them): someone new fills in their own details. */
+	invite: {
+		title: 'Willkommen!',
+		lead: 'Du bist eingeladen. Trag dich hier ein, dann kannst du gleich loslegen.',
+		aboutYou: 'Über dich',
+		signIn: 'So meldest du dich an',
+		signInLead: 'Mit dieser E-Mail-Adresse und dem Passwort meldest du dich ab jetzt an.',
+		join: 'Eintragen und loslegen',
+		nameMissing: 'Bitte deinen Vor- und Nachnamen eintragen.',
+		instrumentMissing: 'Bitte wähl mindestens ein Instrument.',
+		exists: 'Mit dieser E-Mail-Adresse bist du schon eingetragen. Melde dich einfach an.',
+		joinFailed: 'Das Eintragen hat gerade nicht geklappt. Bitte versuch es noch einmal.',
+		invalid: 'Diese Einladung ist abgelaufen oder wurde schon benutzt. Bitte frag die Verwaltung nach einer neuen.',
+		failed: 'Die Einladung konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.',
+		adminTitle: 'Per Link einladen',
+		adminLead: (days: number) =>
+			`Du schickst einen Link, und die Person trägt Name, E-Mail-Adresse, Passwort und Instrument selbst ein. Jeder Link gilt einmal und ${days} Tage.`,
+		label: 'Für wen? (optional)',
+		labelHint: 'Nur für dich, damit du den Link in der Liste wiedererkennst.',
+		roles: 'Rollen (optional)',
+		create: 'Einladungslink erzeugen',
+		created: 'Link erzeugt. Kopier ihn und schick ihn per Messenger oder E-Mail.',
+		open: 'Offene Einladungen',
+		unnamed: 'Ohne Namen',
+		until: (day: string) => `gilt bis ${day}`,
+		revoke: 'Zurückziehen',
+		confirmRevoke: 'Einladung zurückziehen? Der Link funktioniert dann nicht mehr.',
+		revoked: 'Einladung zurückgezogen.',
+		unavailable: 'Einladungen brauchen die Datenbank (D1), weil sich neue Mitglieder mit Passwort anmelden.'
 	},
 	admin: {
 		setupSections: 'Einrichtung',
@@ -1592,8 +1715,21 @@ export const de = {
 	},
 	profile: {
 		title: 'Profil',
-		lead: 'Was du spielst und ob du gerade dabei bist.',
+		lead: 'Deine Angaben und Einstellungen, nach Themen geordnet.',
 		settings: 'Einstellungen',
+		sections: {
+			jump: 'Auf dieser Seite',
+			about: 'Über dich',
+			aboutLead: 'Was du spielst und ob du gerade dabei bist. Danach richten sich deine Noten und die Besetzung.',
+			notify: 'Benachrichtigungen & Kalender',
+			notifyLead: 'Wie du von Proben und Konzerten erfährst.',
+			app: 'Ansicht & App',
+			appLead: 'Wie die App aussieht, auf diesem Gerät.',
+			practice: 'Üben & deine Daten',
+			practiceLead: 'Was die App nur für dich speichert, und alles zum Mitnehmen.',
+			signIn: 'Anmeldung & Sicherheit',
+			signInLead: 'Womit du dich anmeldest, und abmelden.'
+		},
 		notMember: 'Das Profil gibt es für eingetragene Mitglieder.',
 		name: 'Vor- und Nachname',
 		instruments: 'Instrumente',
@@ -1647,8 +1783,8 @@ export const de = {
 			home: { title: 'Dein nächster Termin', body: 'Hier steht immer, was als Nächstes ansteht. Mit einem Tipp sagst du zu oder ab und öffnest deine Noten dafür.' },
 			parts: { title: 'Meine Noten', body: 'Deine Stimmen für die nächsten Proben und Konzerte, passend zu deinem Instrument. Offline gespeichert gehen sie auch im Probenraum ohne Netz.' },
 			calendar: { title: 'Kalender', body: 'Alle Proben und Konzerte mit Zeit, Ort und Programm. Hier antwortest du auch auf spätere Termine.' },
-			pieces: { title: 'Archiv', body: 'Jedes Stück mit Noten, Hörbeispielen und Hinweisen. Das Feld darüber filtert die Liste, auch nach Stimme; die Lupe oben findet alles in der App.' },
-			more: { title: 'Mehr', body: 'Alle weiteren Seiten, zum Beispiel die Chronik. Ganz unten stellst du hell oder dunkel und die Schriftgröße ein.' },
+			pieces: { title: 'Archiv', body: 'Jedes Stück mit Noten, Hörbeispielen und Hinweisen, unter „Mehr“. Das Feld hier filtert die Liste, auch nach Stimme; die Lupe oben findet alles in der App.' },
+			more: { title: 'Mehr', body: 'Alle weiteren Seiten, zum Beispiel das Archiv und die Chronik. Ganz unten stellst du hell oder dunkel und die Schriftgröße ein.' },
 			instruments: { title: 'Dein Instrument', body: 'Trag ein, was du spielst; danach richtet sich „Meine Noten“. Mit „Speichern“ gilt es überall.' },
 			view: { title: 'Ansicht und Schrift', body: 'Hell, dunkel oder wie dein Gerät, und die Schrift größer, wenn du magst. Probier es gleich aus.' },
 			notifications: { title: 'Erinnerungen', body: 'Lass dich an Antworten, Proben und Leihmaterial erinnern: auf diesem Gerät oder per E-Mail.' },
@@ -2255,6 +2391,14 @@ export const de = {
 		shareNeedsSetup: '„Programm wie“: Fehlt noch in der Tabelle. Bitte einmal „Tabelle einrichten“ ausführen.'
 	},
 	status: {
+		/** The page audit (#185). */
+		pages: {
+			title: 'Seitenaufrufe (30 Tage)',
+			lead: 'Wie oft jede Seite geöffnet wurde, nach Rolle. Gezählt wird nur die Art der Seite, nicht wer sie geöffnet hat; nach 180 Tagen wird es gelöscht.',
+			route: 'Seite',
+			roles: { mitglied: 'Mitglieder', verwaltung: 'Verwaltung', gast: 'Gäste' },
+			none: 'Noch keine Aufrufe gezählt.'
+		},
 		title: 'Status',
 		lead: 'Ob die Verbindung zu Google funktioniert.',
 		account: 'Google-Dienstkonto',
@@ -2654,6 +2798,10 @@ export const de = {
 				driveComment: 'Drive-Kommentar-ID',
 				/** A better Hörbeispiel, with "Hörbeispiel falsch". */
 				link: 'Vorschlag',
+				/** Scan-Auftrag: wie dringend, wer scannt (E-Mail), was zu tun ist. */
+				priority: 'Priorität',
+				assignee: 'Wer scannt',
+				task: 'Scan-Auftrag',
 				id: 'Meldungs-ID'
 			}
 		},
@@ -2837,14 +2985,18 @@ export const de = {
 	feedbackValues: {
 		reportKind: {
 			missing: 'Stimme fehlt',
-			scan: 'Schlechter Scan',
 			pages: 'Seiten fehlen',
+			cutoff: 'Noten abgeschnitten',
+			crooked: 'Schief oder verdreht',
+			scan: 'Schlechter Scan',
+			empty: 'Datei leer',
 			wrong: 'Falsche Stimme',
 			/** The piece's Hörbeispiel is wrong or missing; the report can carry a better link. */
 			recording: 'Hörbeispiel falsch',
 			other: 'Sonstiges'
 		},
-		reportStatus: { open: 'offen', done: 'erledigt' },
+		/** Neu → zum Scannen (ans Scan-Team gegeben) → erledigt; oder verworfen. */
+		reportStatus: { open: 'offen', scan: 'zum Scannen', done: 'erledigt', dismissed: 'verworfen' },
 		wishKind: { piece: 'Stück', feature: 'Funktion' },
 		wishStatus: { open: 'offen', planned: 'geplant', done: 'erledigt', declined: 'abgelehnt' }
 	},
@@ -2868,13 +3020,51 @@ export const de = {
 		send: 'Melden',
 		cancel: 'Abbrechen',
 		thanks: 'Danke! Die Meldung ist eingegangen.',
-		known: 'Bekannte Probleme',
 		failed: 'Die Meldung konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.',
 		notSetUp: 'Meldungen: Fehlt noch in der Tabelle. Bitte einmal „Tabelle einrichten“ ausführen.',
 		signInNeeded: 'Zum Melden bitte anmelden.',
 		title: 'Meldungen',
-		short: 'Probleme mit Noten, die Mitglieder gemeldet haben.',
-		pageLead: 'Gemeldete Probleme mit Noten.',
+		short: 'Probleme mit Noten: prüfen und ans Scan-Team geben.',
+		pageLead: 'Was Mitglieder oder die App an den Noten gefunden haben: kurz ansehen, ans Scan-Team geben, abhaken.',
+		tabs: { inbox: 'Neu', scan: 'Zum Scannen', done: 'Erledigt' },
+		byCheck: 'Von der App gefunden',
+		checkHint: 'Die App zählt die Seiten jeder Stimme. Diese Datei ist leer oder hat viel weniger Seiten als die anderen.',
+		look: 'Ansehen',
+		toScan: 'Ans Scan-Team',
+		toScanHint: 'Das Scan-Team sieht den Auftrag mit Priorität. Am Stück steht dezent, dass die Stimme gemeldet ist.',
+		task: 'Was ist zu tun?',
+		taskFor: {
+			missing: 'Stimme scannen',
+			pages: 'Fehlende Seiten nachscannen',
+			cutoff: 'Neu scannen, ganze Seite aufs Glas',
+			crooked: 'Gerade neu scannen',
+			scan: 'Neu scannen, besser lesbar',
+			empty: 'Neu scannen, die Datei ist leer',
+			wrong: 'Die richtige Stimme scannen',
+			recording: '',
+			other: ''
+		} as Record<string, string>,
+		dismiss: 'Verwerfen',
+		dismissHint: 'Kein Problem, oder schon erledigt. Am Stück steht dann nichts mehr.',
+		scanned: 'Gescannt',
+		scannedHint: 'Neu gescannt und in Drive ersetzt: schließt den Auftrag.',
+		backToInbox: 'Zurück zu Neu',
+		changeJob: 'Auftrag ändern',
+		noInbox: 'Nichts Neues, alles geprüft.',
+		noScans: 'Keine Scan-Aufträge.',
+		noScansMine: 'Dir ist gerade nichts zugeteilt.',
+		mineOnly: 'Nur meine',
+		together: (n: number) => `${n} Stimmen, am besten zusammen scannen`,
+		sent: 'Ans Scan-Team gegeben.',
+		marker: { open: 'gemeldet', scan: 'wird neu gescannt' } as Record<string, string>,
+		markerTitle: (kind: string, comment: string) => `Gemeldet: ${kind}${comment ? ` – ${comment.replace(/[.!?…\s]+$/, '')}` : ''}. Jemand kümmert sich darum.`,
+		pieceMarker: (what: string) => `Gemeldet: ${what}`,
+		already: (what: string) => `Schon gemeldet: ${what}. Noch einmal melden ist nicht nötig.`,
+		push: {
+			newTitle: 'Neue Meldung',
+			body: (piece: string, what: string) => `${piece}: ${what}`,
+			doneTitle: 'Deine Meldung ist erledigt'
+		},
 		open: 'Offen',
 		done: 'Erledigt',
 		noOpen: 'Keine offenen Meldungen.',

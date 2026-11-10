@@ -19,7 +19,7 @@ Yes: `APP_LANGUAGE=en` when building. Choose before the first deploy; see [[Conf
 The naming rules (separator, status words, the score prefix) and instrument spellings are in the preset; see [[Configuration]].
 
 **Something says "not connected".**
-Open `/status`: it checks each connection and says what's missing.
+Open `/einstellungen/status`: it checks each connection and says what's missing.
 
 **Where's the data stored?**
 Your music and dates stay in your Google account. Member data is in your Google Sheet. The app itself only stores push subscriptions and which reminders went out (Cloudflare D1, can be kept in the EU), plus a cache.

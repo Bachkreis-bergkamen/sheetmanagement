@@ -55,7 +55,7 @@ export async function open<T = Stored>(sealed: string, secret: string): Promise<
 
 function client() {
 	const auth = authConfig();
-	return auth.mode === 'on' && !auth.problems.length && !isDemo() ? auth : null;
+	return auth.mode === 'on' && auth.google && !auth.problems.length && !isDemo() ? auth : null;
 }
 
 // One read per isolate and minute; every page with a mail form asks.

@@ -22,7 +22,9 @@ import { getSpreadsheetInfo } from '#lib/server/google/sheets.ts';
 import { freshness } from '#lib/server/version-check.ts';
 import { APP_COMMIT, versionLabel, versionUrl } from '#lib/version.ts';
 import { getRepertoire } from '#lib/server/repertoire.ts';
-import { driveWriteEnabled, getArchiveIndex, getGoogle, NotConfiguredError, requireSetting } from '#lib/server/services.ts';
+import { driveWriteEnabled, getArchiveIndex, getGoogle, NotConfiguredError, requireSetting } from '#lib/server/services.ts';import { today } from '#lib/server/members.ts';
+import { daysBefore, SHOWN_DAYS } from '#lib/page-counts.ts';
+
 
 /** Manual refreshes are ignored when the index is younger than this, to protect API and KV quotas. */
 const MIN_REFRESH_AGE_MS = 60 * 1000;
@@ -259,6 +261,10 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		// The account new uploads belong to (#193); only with DRIVE_WRITE, where uploading exists.
 		drive: driveWriteEnabled() && canConnectDrive() ? { account: await driveAccount(), result: url.searchParams.get('drive') } : null,
 		jobs: JOB_NAMES,
+		// How often each page was opened lately, per role (#185): for the page audit.
+		pages: await getStore()
+			.pageCounts(daysBefore(today(), SHOWN_DAYS))
+			.catch(() => null),
 		extras: await extras()
 	};
 };
