@@ -68,7 +68,8 @@ describe('parsePartName', () => {
 		['Ode_to_Joy-Violincello.pdf', 'Cello', 'stimme'],
 		['Ode_to_Joy-Wood_Block.pdf', 'Holzblock', 'stimme'],
 		['Ode_to_Joy-Sleigh_Bells.pdf', 'Schellen', 'stimme'],
-		['Ode_to_Joy-Marimba.pdf', 'Mallet Percussion', 'stimme'],
+		['Ode_to_Joy-Marimba.pdf', 'Marimba', 'stimme'],
+		['Ode_to_Joy-Vibraphone.pdf', 'Vibraphon', 'stimme'],
 		['Ode_to_Joy-Tubular_Bells.pdf', 'Mallet Percussion', 'stimme'],
 		['Ode_to_Joy-Bells.pdf', 'Glockenspiel', 'stimme'],
 		['Ode_to_Joy-Suspended_Cymbal.pdf', 'Hängendes Becken', 'stimme'],
@@ -79,7 +80,16 @@ describe('parsePartName', () => {
 		['Ode_to_Joy-Bass.pdf', 'Kontrabass', 'stimme'],
 		['Ode_to_Joy-Bass_Voice.pdf', 'Bass', 'stimme'],
 		['Ode_to_Joy-Crash_Cymbal.pdf', 'Crash-Becken', 'stimme'],
-		['Ode_to_Joy-Timpani.pdf', 'Pauke', 'stimme']
+		['Ode_to_Joy-Timpani.pdf', 'Pauke', 'stimme'],
+		// A generic part names what it holds, after a colon or as written before
+		['Fame - Percussion I: Triangel & Becken.pdf', 'Percussion I: Triangel & Becken', 'stimme'],
+		['Fame - Percussion I - Triangel, Becken.pdf', 'Percussion I: Triangel & Becken', 'stimme'],
+		['Fame - Triangel & Schlagwerk II.pdf', 'Schlagwerk II: Triangel', 'stimme'],
+		['Fame - Percussion: Marimba & Vibraphon.pdf', 'Percussion: Marimba & Vibraphon', 'stimme'],
+		['Fame - Chor: Sopran & Alt.pdf', 'Chor: Sopran & Alt', 'stimme'],
+		['Fame - Männerchor: Tenor & Bass Voice.pdf', 'Männerchor: Tenor & Bass', 'stimme'],
+		// Not something a generic part holds: two parts in one file
+		['Fame - Pauke & Percussion.pdf', 'Pauke & Percussion', 'sammelstimme']
 	])('%s → %s', (fileName, label, kind) => {
 		const part = parse(fileName);
 		expect(part.label).toBe(label);

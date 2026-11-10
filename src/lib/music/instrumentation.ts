@@ -50,6 +50,8 @@ export interface ScoredVoice {
 	instrument: string;
 	/** Part numbers; empty when the instrument has one part. */
 	numbers: number[];
+	/** A generic part's instruments: "Percussion 1: Triangel & Becken". */
+	holds?: string[];
 }
 
 const matchers = new WeakMap<object, InstrumentMatcher>();
@@ -74,18 +76,26 @@ function plain(label: string, config: OrchestraConfig): string {
 function voicesOf(label: string, config: OrchestraConfig): ScoredVoice[] {
 	const parsed = parsePartName(plain(label, config), 'application/pdf', config.naming, matcherFor(config));
 	if (parsed.kind === 'partitur') return [];
-	return parsed.voices;
+	// "Percussion 1: Triangel & Becken" is one voice of the Besetzung, not three.
+	const holder = parsed.voices.find((voice) => voice.holds?.length);
+	return holder ? [holder] : parsed.voices;
 }
 
-/** Voices of one instrument together, numbers merged: "Violino I" and "Violino II" → Geige 1 & 2. */
+/**
+ * Voices of one instrument together, numbers merged: "Violino I" and "Violino II" → Geige 1 & 2.
+ * A generic part naming its instruments stays apart, its instruments merged instead:
+ * "Percussion 1: Triangel" and "Percussion 1: Becken" → Percussion 1: Triangel & Becken.
+ */
 function merge(voices: ScoredVoice[]): ScoredVoice[] {
-	const byInstrument = new Map<string, Set<number>>();
-	for (const { instrument, numbers } of voices) {
-		const known = byInstrument.get(instrument) ?? new Set<number>();
-		for (const number of numbers) known.add(number);
-		byInstrument.set(instrument, known);
+	const merged = new Map<string, ScoredVoice>();
+	for (const { instrument, numbers, holds } of voices) {
+		const key = holds?.length ? `${instrument}|${[...numbers].sort().join(',')}` : instrument;
+		const known = merged.get(key) ?? { instrument, numbers: [], ...(holds?.length ? { holds: [] } : {}) };
+		for (const number of numbers) if (!known.numbers.includes(number)) known.numbers.push(number);
+		for (const held of holds ?? []) if (!known.holds!.includes(held)) known.holds!.push(held);
+		merged.set(key, known);
 	}
-	return [...byInstrument].map(([instrument, numbers]) => ({ instrument, numbers: [...numbers].sort((a, b) => a - b) }));
+	return [...merged.values()].map((voice) => ({ ...voice, numbers: voice.numbers.sort((a, b) => a - b) }));
 }
 
 /** The Besetzung as written in the piece's row; names that aren't instruments are left out. */
@@ -118,8 +128,45 @@ export function tidyRecognised(line: string): string {
 }
 
 /** "Flöte 1 & 2", with the deployment's label for the instrument. */
-export function voiceText({ instrument, numbers }: ScoredVoice): string {
-	return numbers.length ? `${instrumentLabel(instrument)} ${numbers.join(' & ')}` : instrumentLabel(instrument);
+export function voiceText({ instrument, numbers, holds }: ScoredVoice): string {
+	const text = numbers.length ? `${instrumentLabel(instrument)} ${numbers.join(' & ')}` : instrumentLabel(instrument);
+	return holds?.length ? `${text}: ${holds.map(instrumentLabel).join(' & ')}` : text;
+}
+
+/**
+ * One instrument of the Besetzung as the picker shows it: its numbers, and for a generic part
+ * the instruments each of them names (number 0: the part without a number).
+ */
+export interface PickedVoice {
+	instrument: string;
+	numbers: number[];
+	held: Record<number, string[]>;
+}
+
+/** The Besetzung's voices as the picker shows them, one per instrument. */
+export function pickedVoices(voices: ScoredVoice[]): PickedVoice[] {
+	const picked = new Map<string, PickedVoice>();
+	for (const { instrument, numbers, holds } of voices) {
+		const voice = picked.get(instrument) ?? { instrument, numbers: [], held: {} };
+		for (const number of numbers) if (!voice.numbers.includes(number)) voice.numbers.push(number);
+		if (holds?.length) for (const number of numbers.length ? numbers : [0]) voice.held[number] = [...new Set([...(voice.held[number] ?? []), ...holds])];
+		picked.set(instrument, voice);
+	}
+	return [...picked.values()].map((voice) => ({ ...voice, numbers: voice.numbers.sort((a, b) => a - b) }));
+}
+
+/** The picker's voices back as the Besetzung's: a generic part once per number that names instruments. */
+export function scoredVoices(picked: PickedVoice[]): ScoredVoice[] {
+	return picked.flatMap(({ instrument, numbers, held }) => {
+		const keys = numbers.length ? numbers : [0];
+		const naming = keys.filter((number) => held[number]?.length);
+		if (!naming.length) return [{ instrument, numbers: [...numbers] }];
+		const plain = keys.filter((number) => !naming.includes(number) && number > 0);
+		return [
+			...naming.map((number) => ({ instrument, numbers: number ? [number] : [], holds: [...held[number]] })),
+			...(plain.length ? [{ instrument, numbers: plain }] : [])
+		].sort((a, b) => (a.numbers[0] ?? 0) - (b.numbers[0] ?? 0));
+	});
 }
 
 /**
@@ -141,9 +188,9 @@ export function missingVoices(voices: ScoredVoice[], parts: Part[], config: Orch
 		const match = matchParts(parts, choice, config);
 		return match.own.length > 0 || match.shared.length > 0;
 	};
-	return voices.flatMap(({ instrument, numbers }) => {
+	return voices.flatMap(({ instrument, numbers, holds }) => {
 		const missing = numbers.length ? numbers.filter((number) => !covered({ instrument, numbers: [number] })) : covered({ instrument, numbers: [] }) ? [] : [0];
 		if (!missing.length) return [];
-		return [{ instrument, numbers: missing.filter((number) => number > 0) }];
+		return [{ instrument, numbers: missing.filter((number) => number > 0), ...(holds ? { holds } : {}) }];
 	});
 }

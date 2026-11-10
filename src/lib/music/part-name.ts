@@ -74,9 +74,12 @@ export interface Voice {
 	instrument: string;
 	/** Empty when the file has no number, i.e. it's for every player of the instrument. */
 	numbers: number[];
+	/** For a generic part ("Percussion I: Triangel & Becken"): the instruments it names. */
+	holds?: string[];
 }
 
-const JOINERS = new Set(['+', '&', '/', ',', 'und', 'and', '–']);
+// ":" after a voice or a generic part: "Stimme 3: Flöte", "Percussion I: Triangel".
+const JOINERS = new Set(['+', '&', '/', ',', 'und', 'and', '–', ':']);
 
 interface NamingWords {
 	statusWords: Record<string, PartStatus>;
@@ -348,6 +351,17 @@ export function parsePartName(
 	// A voice always leads: "Cello Part 5" reads "Stimme 5: Violoncello".
 	const voiceIndex = items.findIndex((item) => item.instrument.voice);
 	if (voiceIndex > 0) items.unshift(...items.splice(voiceIndex, 1));
+	// A generic part leads the instruments it names: "Percussion I: Triangel & Becken", "Chor: Sopran & Alt".
+	const holderIndex =
+		voiceIndex < 0 && items.length > 1
+			? items.findIndex(
+					(item) =>
+						item.instrument.holds &&
+						items.every((other) => other === item || (item.instrument.holds!.includes(other.instrument.name) && other.joiner !== '/'))
+				)
+			: -1;
+	if (holderIndex > 0) items.unshift(...items.splice(holderIndex, 1));
+	const holder = holderIndex >= 0 ? items[0] : undefined;
 
 	const describe = (item: Item, display: boolean) =>
 		[
@@ -365,7 +379,8 @@ export function parsePartName(
 		items.forEach((item, index) => {
 			const part = describe(item, display);
 			if (index === 0) text = part;
-			else if (items[index - 1].instrument.voice && index === 1) text += `: ${part}`;
+			else if (index === 1 && (items[0].instrument.voice || holder)) text += `: ${part}`;
+			else if (holder) text += ` & ${part}`;
 			else text += ` ${item.joiner} ${part}`;
 		});
 		return text;
@@ -399,7 +414,8 @@ export function parsePartName(
 	else if (!first) kind = 'sonstiges';
 	else if (first.instrument.family === 'partitur') kind = 'partitur';
 	else if (featured || notes.includes(soloNote)) kind = 'solo';
-	else if (items.filter((item) => !item.instrument.voice).length > 1 || first.numbers.length > 1) kind = 'sammelstimme';
+	// A generic part is one player's, whatever it names: "Percussion I: Triangel & Becken".
+	else if ((!holder && items.filter((item) => !item.instrument.voice).length > 1) || first.numbers.length > 1) kind = 'sammelstimme';
 	else kind = 'stimme';
 
 	if (!label) {
@@ -422,7 +438,11 @@ export function parsePartName(
 		instruments: [...new Set(items.filter((i) => !i.instrument.voice).map((i) => i.instrument.name))],
 		voices: items
 			.filter((i) => !i.instrument.voice)
-			.map((i) => ({ instrument: i.instrument.name, numbers: [...i.numbers] })),
+			.map((i) =>
+				i === holder
+					? { instrument: i.instrument.name, numbers: [...i.numbers], holds: items.slice(1).map((held) => held.instrument.name) }
+					: { instrument: i.instrument.name, numbers: [...i.numbers] }
+			),
 		notes,
 		status,
 		featured,

@@ -5,6 +5,7 @@
 	import { t } from '#lib/i18n/index.ts';
 	import { glyphOf } from '#lib/music/instrument-glyph.ts';
 	import { instrumentLabel } from '#lib/music/instrument-label.ts';
+	import { foldFamily, searchInstruments } from '#lib/music/instrument-list.ts';
 	import Icon from './Icon.svelte';
 	import InstrumentGlyph from './InstrumentGlyph.svelte';
 	import InstrumentSelect from './InstrumentSelect.svelte';
@@ -48,37 +49,35 @@
 	const family = (n: string): InstrumentFamily => info.get(n)?.family ?? 'sonstige';
 	const familyLabel = (f: InstrumentFamily) => (f === 'partitur' ? t.piece.groups.featured : t.piece.groups[f]);
 
-	/** Lower case without accents, so "flote" finds "Flöte". */
-	const fold = (text: string) =>
-		text
-			.toLowerCase()
-			.normalize('NFD')
-			.replace(/\p{M}/gu, '');
-	const words = (n: string) => [instrumentLabel(n), n, ...(info.get(n)?.aliases ?? []), ...(info.get(n)?.variants ?? [])].map(fold);
+	const usualSet = $derived(new Set(common));
+	/** Families whose rare instruments are unfolded. */
+	let unfolded = $state<string[]>([]);
 
 	const sections = $derived.by(() => {
-		const q = fold(query.trim());
-		if (q) {
-			const hits = instruments.filter((n) => words(n).some((word) => word.includes(q)));
-			// Names that start with the search come first: "horn" → Horn before Englischhorn.
-			const starts = (n: string) => words(n).some((word) => word.startsWith(q));
-			return [{ label: '', names: [...hits.filter(starts), ...hits.filter((n) => !starts(n))] }];
-		}
+		// "horn" → Horn before Englischhorn, "b" → Bratsche before Bongos.
+		if (query.trim()) return [{ label: '', names: searchInstruments(instruments, query, info, usualSet), folded: [] as string[] }];
 		const usual = instruments.filter((n) => common.includes(n));
-		const families: { label: string; names: string[] }[] = [];
-		// Each family lists all its instruments, the usual ones too: nobody has to know which those are.
+		const families: { label: string; names: string[]; folded: string[] }[] = [];
+		// Each family lists its usual instruments too: nobody has to know which those are. A big
+		// family's rare ones (the small percussion) are folded behind "N more".
 		for (const n of instruments) {
 			const heading = familyLabel(family(n));
 			const section = families.find((s) => s.label === heading);
 			if (section) section.names.push(n);
-			else families.push({ label: heading, names: [n] });
+			else families.push({ label: heading, names: [n], folded: [] });
 		}
-		return [{ label: t.instruments.common, names: usual }, ...families].filter((s) => s.names.length);
+		const folded = families.map((section) => {
+			if (unfolded.includes(section.label)) return section;
+			const { shown, folded } = foldFamily(section.names, usualSet, (n) => n === value);
+			return { label: section.label, names: shown, folded };
+		});
+		return [{ label: t.instruments.common, names: usual, folded: [] as string[] }, ...folded].filter((s) => s.names.length || s.folded.length);
 	});
 
 	async function show() {
 		open = true;
 		query = '';
+		unfolded = [];
 		await tick();
 		// Fine pointers get the search field; on a phone the keyboard would hide the grid.
 		if (matchMedia('(pointer: fine)').matches) search?.focus();
@@ -202,6 +201,12 @@
 										<span>{instrumentLabel(n)}</span>
 									</button>
 								{/each}
+								{#if section.folded.length}
+									<button type="button" class="tile more" onclick={() => (unfolded = [...unfolded, section.label])}>
+										<span class="plate"><Icon name="plus" size={20} /></span>
+										<span>{t.instruments.moreIn(section.folded.length)}</span>
+									</button>
+								{/if}
 							</div>
 						</section>
 					{:else}
@@ -474,6 +479,10 @@
 
 	.tile:active {
 		transform: scale(0.97);
+	}
+
+	.tile.more {
+		color: var(--accent);
 	}
 
 	.tile[aria-pressed='true'] {

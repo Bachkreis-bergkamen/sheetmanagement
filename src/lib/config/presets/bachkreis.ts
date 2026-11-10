@@ -5,6 +5,11 @@ const SMALL_PERCUSSION = [
 	'Triangel', 'Tomtoms', 'Konzerttoms', 'Rototoms', 'Bongos', 'Congas', 'Djembe', 'Kuhglocke', 'Amboss', 'Claves', 'Holzblock', 'Tempelblocks',
 	'Güiro', 'Maracas', 'Shaker', 'Regenmacher', 'Ratsche', 'Peitsche', 'Vibraslap', 'Flexaton', 'Schellen', 'Windspiel', 'Mark Tree'
 ];
+/** What a generic percussion part ("Percussion I: Triangel & Becken") may hold. */
+const PERCUSSION_PARTS = [
+	'Kleine Trommel', 'Trommel', 'Große Trommel', 'Becken', ...CYMBALS, 'Tamburin', 'Tamtam', ...SMALL_PERCUSSION,
+	'Glockenspiel', 'Xylophon', 'Marimba', 'Vibraphon', 'Mallet Percussion'
+];
 
 /**
  * These used to be filed under "Percussion" and named "Percussion Triangle" and so on. Those
@@ -62,11 +67,12 @@ export const bachkreis: OrchestraConfig = {
 		{ name: 'Blech', family: 'blech', aliases: ['Blechbläser', 'Brass'] },
 
 		{ name: 'Pauke', family: 'schlagwerk', common: true, aliases: ['Pauken', 'Timpani', 'Timp', 'Timpano', 'Kettledrums'] },
-		{ name: 'Schlagwerk', family: 'schlagwerk', common: true, aliases: ['Schlagzeug', 'Drum Set', 'Drumset', 'Drums'] },
+		{ name: 'Schlagwerk', family: 'schlagwerk', common: true, aliases: ['Schlagzeug', 'Drum Set', 'Drumset', 'Drums'], holds: PERCUSSION_PARTS },
 		{
 			name: 'Percussion',
 			family: 'schlagwerk',
 			aliases: ['Perc', 'Kleines Schlagwerk', 'Auxiliary Percussion', 'Aux Perc'],
+			holds: PERCUSSION_PARTS,
 			// Small percussion: no instrument of its own, but named, since a piece often has several.
 			variants: ['Agogo Bells', 'Agogo', 'Low Drum', 'Kastagnetten', 'Castanets', 'Cabasa', 'Timbales', 'Cajon']
 		},
@@ -105,8 +111,10 @@ export const bachkreis: OrchestraConfig = {
 			name: 'Mallet Percussion',
 			family: 'schlagwerk',
 			aliases: ['Mallets', 'Mallet Perc', 'Stabspiele'],
-			variants: ['Marimba', 'Marimbaphon', 'Vibraphon', 'Vibraphone', 'Vibes', 'Röhrenglocken', 'Tubular Bells', 'Chimes', 'Crotales']
+			variants: ['Röhrenglocken', 'Tubular Bells', 'Chimes', 'Crotales']
 		},
+		{ name: 'Marimba', family: 'schlagwerk', aliases: ['Marimbaphon', 'Marimbafon', 'Marimbaphone'] },
+		{ name: 'Vibraphon', family: 'schlagwerk', aliases: ['Vibraphone', 'Vibrafon', 'Vibes', 'Vibraharp'] },
 		{ name: 'Glockenspiel', family: 'schlagwerk', aliases: ['Bells', 'Orchestra Bells', 'Orchestral Bells'] },
 		{ name: 'Xylophon', family: 'schlagwerk', aliases: ['Xylophone'] },
 		{ name: 'Becken', family: 'schlagwerk', aliases: ['Cymbals', 'Cymbal', 'Piatti', 'Clash Cymbals', 'Beckenpaar'] },
@@ -127,9 +135,9 @@ export const bachkreis: OrchestraConfig = {
 		{ name: 'Tenor', family: 'gesang', aliases: ['Tenore', 'Tenorstimme'] },
 		// A bare "Bass" in a file name is the double bass, so the sung bass needs the longer word.
 		{ name: 'Bassstimme', label: 'Bass', family: 'gesang', aliases: ['Bass Voice', 'Basso', 'Chorbass', 'Gesangsbass'] },
-		{ name: 'Chor', family: 'gesang', aliases: ['SATB', 'Choir', 'Gemischter Chor', 'Mixed Choir'] },
-		{ name: 'Frauenchor', family: 'gesang', aliases: ['Female Choir', 'Women’s Choir', "Women's Choir", 'Womens Choir', 'Damenchor', 'SSA', 'SSAA'] },
-		{ name: 'Männerchor', family: 'gesang', aliases: ['Male Choir', 'Men’s Choir', "Men's Choir", 'Mens Choir', 'Herrenchor', 'TTB', 'TTBB'] },
+		{ name: 'Chor', family: 'gesang', aliases: ['SATB', 'Choir', 'Gemischter Chor', 'Mixed Choir'], holds: ['Sopran', 'Alt', 'Tenor', 'Bassstimme'] },
+		{ name: 'Frauenchor', family: 'gesang', aliases: ['Female Choir', 'Women’s Choir', "Women's Choir", 'Womens Choir', 'Damenchor', 'SSA', 'SSAA'], holds: ['Sopran', 'Alt'] },
+		{ name: 'Männerchor', family: 'gesang', aliases: ['Male Choir', 'Men’s Choir', "Men's Choir", 'Mens Choir', 'Herrenchor', 'TTB', 'TTBB'], holds: ['Tenor', 'Bassstimme'] },
 		{ name: 'Gesang', family: 'gesang', aliases: ['Vocals', 'Vocal'] },
 
 		{ name: 'C-Stimmen', family: 'sonstige' },
@@ -288,6 +296,9 @@ export const bachkreis: OrchestraConfig = {
 		// Small percussion with parts of its own is played by the percussionists, as it was under "Percussion".
 		...Object.fromEntries(SMALL_PERCUSSION.map((name) => [name, ['Schlagwerk', 'Percussion']])),
 		'Kleine Trommel': ['Trommel', 'Schlagwerk', 'Percussion'],
+		// Marimba and vibraphone were under "Mallet Percussion" and are played by its players.
+		Marimba: ['Mallet Percussion', 'Schlagwerk', 'Percussion'],
+		Vibraphon: ['Mallet Percussion', 'Schlagwerk', 'Percussion'],
 		...Object.fromEntries(CYMBALS.map((name) => [name, ['Becken', 'Schlagwerk', 'Percussion']])),
 		// Choir parts: each voice sings from them.
 		Chor: ['Sopran', 'Alt', 'Tenor', 'Bassstimme', 'Gesang'],
