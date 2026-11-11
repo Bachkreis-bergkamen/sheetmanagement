@@ -18,6 +18,8 @@ export const DEMO_IDS = {
 
 export const DEMO_ADMIN = { email: 'verwaltung@example.org', name: 'Vera Verwaltung' };
 export const DEMO_MEMBER = { email: 'mia@example.org', name: 'Mia Beispiel' };
+/** Mia's mother: a parent account, which sees only the parents' area. */
+export const DEMO_PARENT = { email: 'eltern@example.org', name: 'Petra Beispiel' };
 /** Plays next to the demo member and offers her the notes in one part. */
 export const DEMO_DESK_PARTNER = { email: 'greta@example.org', name: 'Greta Pult' };
 
@@ -376,7 +378,8 @@ export function demoSheet(now: number): Map<string, string[][]> {
 			{ email: 'tim@example.org', name: 'Tim Trompeter', instrument: 'Trompete', groups: 'Orga', orchestras: 'EO, A', status: 'aktiv' },
 			{ email: 'karl@example.org', name: 'Karl Klarinette', instrument: 'Klarinette', orchestras: 'EO', status: 'pausiert', pausedUntil: at(90) },
 			{ email: 'bea@example.org', name: 'Bea Bass', instrument: 'Kontrabass', orchestras: 'EO', status: 'aktiv' },
-			{ email: 'sven@example.org', name: 'Sven Saxer', instrument: 'Alt-Saxophon', orchestras: 'EO', status: 'aktiv' }
+			{ email: 'sven@example.org', name: 'Sven Saxer', instrument: 'Alt-Saxophon', orchestras: 'EO', status: 'aktiv' },
+			{ email: DEMO_PARENT.email, name: DEMO_PARENT.name, status: 'eltern', children: DEMO_MEMBER.email }
 		]),
 		tab(
 			'groups',

@@ -29,7 +29,7 @@
 	useInstrumentOverrides(data.instruments);
 	$effect.pre(() => useInstrumentOverrides(data.instruments));
 
-	const groups = $derived(navGroups({ auth: data.auth, rights: data.rights, features: data.features, polls: data.polls }));
+	const groups = $derived(navGroups({ auth: data.auth, rights: data.rights, features: data.features, polls: data.polls, parent: data.parent }));
 	const nav = $derived(primaryNav(groups));
 	const path = $derived(page.url.pathname);
 	// The most specific entry counts: "Angaben ergänzen" lights up "Mehr", not "Archiv".
@@ -72,7 +72,7 @@
 	// The music table and the pieces' pages kept offline for a signed-in member (#62); the worker
 	// does it at most once a day, and not on a connection that saves data.
 	$effect(() => {
-		if (!data.features.offline || data.auth !== 'on' || !data.user || !('serviceWorker' in navigator)) return;
+		if (!data.features.offline || data.auth !== 'on' || !data.user || data.parent === 'only' || !('serviceWorker' in navigator)) return;
 		if ((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData) return;
 		// Not while the page itself loads: a little later, when the device is idle (#303).
 		const later = setTimeout(() => {
@@ -190,7 +190,8 @@
 				</button>
 			</nav>
 
-			{#if groups.length}
+			<!-- The quick search finds pieces and pages a parent account can't open. -->
+			{#if groups.length && data.parent !== 'only'}
 				<button class="search" onclick={() => (searching = true)} onpointerenter={loadIndex} onfocus={loadIndex} data-shortcut={mac ? '⌘K' : t.quickSearch.shortcut}>
 					<Icon name="search" size={18} /><span class="search-label">{t.quickSearch.open}</span>
 				</button>

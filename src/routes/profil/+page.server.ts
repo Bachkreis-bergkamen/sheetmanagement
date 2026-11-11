@@ -1,5 +1,5 @@
 import { fail, redirect, type Cookies } from '@sveltejs/kit';
-import { currentStatus, normalizeEmail, parseLinkVersion } from '#lib/access/access.ts';
+import { currentStatus, normalizeEmail, parseLinkVersion, parseStatus } from '#lib/access/access.ts';
 import { config } from '#lib/config/index.ts';
 import { t } from '#lib/i18n/index.ts';
 import { commonInstruments, parseInstruments, playableInstruments } from '#lib/music/my-parts.ts';
@@ -292,7 +292,11 @@ export const actions: Actions = {
 			const email = normalizeEmail(user.email);
 			const row = members.rows.find((r) => normalizeEmail(r.values.email) === email);
 			if (!row) return fail(404, { message: t.profile.gone });
-			await updateRecord('members', members, row.row, writable(members, { ...form.values, name: form.values.name || row.values.name }));
+			const name = form.values.name || row.values.name;
+			// Only admins make an account a parent's, or a parent's a player's: a parent changes only their name.
+			const parent = parseStatus(row.values.status ?? '') === 'eltern';
+			const values = parent ? { name } : { ...form.values, name, ...(form.values.status === 'eltern' ? { status: row.values.status ?? '' } : {}) };
+			await updateRecord('members', members, row.row, writable(members, values));
 			await refreshAfterWrite();
 			return { saved: true };
 		} catch (error) {

@@ -3,7 +3,7 @@
 	import { t } from '#lib/i18n/index.ts';
 
 	/** Demo mode (#121): says that the data is invented, and switches between the two demo users. */
-	let { role }: { role: 'verwaltung' | 'mitglied' } = $props();
+	let { role }: { role: 'verwaltung' | 'mitglied' | 'eltern' } = $props();
 	const back = $derived(page.url.pathname + page.url.search);
 </script>
 
@@ -13,6 +13,7 @@
 	<span class="roles" role="group" aria-label={t.demo.viewAs}>
 		<button name="rolle" value="verwaltung" aria-pressed={role === 'verwaltung'}>{t.demo.admin}</button>
 		<button name="rolle" value="mitglied" aria-pressed={role === 'mitglied'}>{t.demo.member}</button>
+		<button name="rolle" value="eltern" aria-pressed={role === 'eltern'}>{t.demo.parent}</button>
 	</span>
 	<button class="reset" name="zuruecksetzen" value="1">{t.demo.reset}</button>
 </form>

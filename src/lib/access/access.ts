@@ -14,6 +14,8 @@ export const RIGHTS = [
 	'karten.einlass',
 	// The Kummerkasten: anonymous messages to the Leitung, answered privately.
 	'kummerkasten.lesen',
+	// Notices to the parents of young players, shown in their area (/eltern).
+	'eltern.informieren',
 	'mitglieder.verwalten'
 ] as const;
 export type Right = (typeof RIGHTS)[number];
@@ -25,9 +27,10 @@ export type AccessValues = Partial<Record<AccessTab, string[][]>>;
 /**
  * Paused or inactive members keep their access, but don't count for coverage. "verwaltung" is an
  * account that only administers (the orchestra's shared admin login): it never plays, so it is
- * left out of sign-ups, attendance and polls altogether.
+ * left out of sign-ups, attendance and polls altogether. "eltern" is a parent of young players:
+ * never a player either, and they see only their own area (/eltern), not the music.
  */
-export const MEMBER_STATUSES = ['aktiv', 'pausiert', 'inaktiv', 'verwaltung'] as const;
+export const MEMBER_STATUSES = ['aktiv', 'pausiert', 'inaktiv', 'verwaltung', 'eltern'] as const;
 export type MemberStatus = (typeof MEMBER_STATUSES)[number];
 
 export interface Member {
@@ -48,6 +51,8 @@ export interface Member {
 	status: MemberStatus;
 	/** "2027-03-31": paused up to and including this day. */
 	pausedUntil?: string;
+	/** For a parent: the emails of their children among the members ("Kinder", by name or email). */
+	children: string[];
 	/** Personal access link: 0 none, n > 0 link n is valid, -n link n was revoked (see server/auth/links.ts). */
 	linkVersion: number;
 	/** Personal calendar feed, counted the same way (see server/auth/feed.ts). */
@@ -149,12 +154,25 @@ export function buildAccessList(values: AccessValues): AccessList {
 			orchestras: splitGroups(v.orchestras),
 			status: parseStatus(v.status),
 			pausedUntil: parseDay(v.pausedUntil),
+			children: splitGroups(v.children ?? ''),
 			linkVersion: parseLinkVersion(v.linkVersion),
 			feedVersion: parseLinkVersion(v.feedVersion)
 		};
 		member.groups = member.roles.map((role) => role.name);
 		members.push(member);
 		membersByEmail.set(email, member);
+	}
+
+	// Children named by email or by name; whoever isn't (or no longer) a member is left out.
+	for (const member of members) {
+		member.children = [
+			...new Set(
+				member.children
+					.map((child) => (child.includes('@') ? membersByEmail.get(normalizeEmail(child)) : members.find((other) => normalize(other.name) === normalize(child))))
+					.filter((child): child is Member => !!child && child.email !== member.email)
+					.map((child) => child.email)
+			)
+		];
 	}
 
 	const groups = (tables.groups?.rows ?? [])
@@ -202,6 +220,11 @@ export interface Access {
 	scopes?: Map<Right, string[]>;
 	/** On one date's pages, where `rights` holds only what holds there: all rights, for the menu. */
 	everywhere?: Set<Right>;
+	/**
+	 * A parent of young players: the emails of their children. `only` for a parent account (status
+	 * "eltern"), which sees nothing but the parents' area; a playing member with children sees both.
+	 */
+	parent?: { children: string[]; only: boolean };
 }
 
 /** What a signed-in person may do: bootstrap admins everything, members "ansehen" plus their grants. */
@@ -213,6 +236,10 @@ export function resolveAccess(user: User | null, list: AccessList | null, bootst
 	}
 	const member = list?.membersByEmail.get(email);
 	if (!member) return { user, member: false, bootstrapAdmin: false, rights: new Set() };
+
+	// A parent account sees their area only: no music, no rights from roles.
+	if (member.status === 'eltern') return { user, member: true, bootstrapAdmin: false, rights: new Set(), parent: { children: member.children, only: true } };
+	const parent = member.children.length ? { parent: { children: member.children, only: false } } : {};
 
 	const whos = new Set([email, ...member.groups.map(normalize)]);
 	const rights = new Set<Right>(['ansehen']);
@@ -230,7 +257,7 @@ export function resolveAccess(user: User | null, list: AccessList | null, bootst
 		else reach.set(grant.right, [...(before ?? []), ...limited]);
 	}
 	const scopes = new Map([...reach].filter((entry): entry is [Right, string[]] => entry[1] !== null));
-	return { user, member: true, bootstrapAdmin: false, rights, ...(scopes.size ? { scopes } : {}) };
+	return { user, member: true, bootstrapAdmin: false, rights, ...(scopes.size ? { scopes } : {}), ...parent };
 }
 
 /**
@@ -343,8 +370,17 @@ export function seesDate(member: Pick<Member, 'orchestras'> | undefined, event: 
 	return !member || (event.type !== 'probe' && event.type !== 'generalprobe') || playsIn(member, orchestra);
 }
 
-/** An admin-only account: never a player, whatever else its row says. */
-export const isAdminOnly = (member: Pick<Member, 'status'> | undefined) => member?.status === 'verwaltung';
+/** An account that never plays, whatever else its row says: admin-only or a parent's. */
+export const isAdminOnly = (member: Pick<Member, 'status'> | undefined) => member?.status === 'verwaltung' || member?.status === 'eltern';
+
+/**
+ * The pages a parent account may open: their area, their profile and messages to the Leitung,
+ * and what the app itself calls in the background. Everything else leads to /eltern.
+ */
+export function parentMayOpen(path: string): boolean {
+	const under = (base: string) => path === base || path.startsWith(base + '/');
+	return ['/eltern', '/profil', '/kummerkasten', '/karte', '/demo', '/api/seitenaufruf', '/api/push', '/api/fehler', '/api/warm'].some(under);
+}
 
 /** Members who count for a concert's instrumentation: active ones in its orchestra. */
 export function countingMembers<M extends Pick<Member, 'orchestras' | 'status' | 'pausedUntil'>>(

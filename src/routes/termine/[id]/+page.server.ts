@@ -1,4 +1,5 @@
 import { error, fail, redirect } from '@sveltejs/kit';
+import { isAdminOnly } from '#lib/access/access.ts';
 import { config } from '#lib/config/index.ts';
 import { t } from '#lib/i18n/index.ts';
 import { bestOption, calendarLink, canSeePoll, choicesFromForm, isOpen, scoreOptions, type Poll } from '#lib/polls/polls.ts';
@@ -31,7 +32,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const wanted = new Set(poll.groups.map((group) => group.toLowerCase()));
 	const answered = new Set(responses.map((response) => response.email));
 	const waiting = (access?.members ?? [])
-		.filter((member) => member.status !== 'inaktiv' && member.status !== 'verwaltung' && member.groups.some((group) => wanted.has(group.toLowerCase())) && !answered.has(member.email))
+		.filter((member) => member.status !== 'inaktiv' && !isAdminOnly(member) && member.groups.some((group) => wanted.has(group.toLowerCase())) && !answered.has(member.email))
 		.map((member) => member.name);
 	return {
 		poll,

@@ -19,6 +19,10 @@ export const de = {
 		loans: 'Leihmaterial',
 		ensembles: 'Ensembles',
 		kummer: 'Kummerkasten',
+		/** The parents' area (/eltern) and what parent accounts see in the menu. */
+		parents: 'Elternbereich',
+		parentMessages: 'Nachrichten',
+		parentNotices: 'Elternmitteilungen',
 		gaps: 'Fehlende Stimmen',
 		naming: 'Dateinamen',
 		admin: 'Mitglieder & Rechte',
@@ -33,7 +37,7 @@ export const de = {
 		menu: 'Alle Seiten',
 		close: 'Menü schließen',
 		crumbs: 'Seitenpfad',
-		groups: { musik: 'Proben & Noten', mitmachen: 'Mitmachen', pflege: 'Noten pflegen', verwaltung: 'App & Mitglieder' },
+		groups: { musik: 'Proben & Noten', mitmachen: 'Mitmachen', pflege: 'Noten pflegen', verwaltung: 'App & Mitglieder', eltern: 'Eltern' },
 		/** The organisers' area in the tab bar, the header and "Mehr" (#185). */
 		organise: 'Verwaltung',
 		workspace: 'Bereich',
@@ -1452,6 +1456,7 @@ export const de = {
 		viewAs: 'Ansehen als',
 		admin: 'Verwaltung',
 		member: 'Mitglied',
+		parent: 'Eltern',
 		reset: 'Zurücksetzen'
 	},
 	viewer: {
@@ -1603,6 +1608,7 @@ export const de = {
 		'karten.verwalten': 'Kartenverkauf für Konzerte einrichten und die Gästeliste sehen',
 		'karten.einlass': 'Karten am Einlass prüfen',
 		'kummerkasten.lesen': 'Kummerkasten lesen und beantworten (ohne zu sehen, wer schreibt)',
+		'eltern.informieren': 'Mitteilungen an die Eltern schreiben',
 		'mitglieder.verwalten': 'Mitglieder und Rechte verwalten'
 	},
 	/** Invitation links (/admin makes them, /auth/einladung/… uses them): someone new fills in their own details. */
@@ -1727,6 +1733,10 @@ export const de = {
 		singleRights: 'Einzelne Rechte',
 		singleRightsLead: 'Rechte für eine einzelne Person. Meist ist eine Rolle besser.',
 		memberRoles: 'Rollen und Gruppen',
+		/** For a parent account: its children among the members. */
+		children: 'Kinder',
+		childrenHint: 'Für Eltern: ihre Kinder, die bei uns spielen, mit Komma getrennt (Name oder E-Mail). Mit Status „Eltern“ sieht das Konto nur den Elternbereich.',
+		childrenUnknown: (names: string) => `Nicht in der Mitgliederliste: ${names}`,
 		linkUnavailable: 'Zugangslinks brauchen die Anmeldung mit SESSION_SECRET.',
 		accessLink: 'Zugangslink',
 		accessLinkActive: 'Zugang per Link',
@@ -1765,12 +1775,13 @@ export const de = {
 		orchestras: 'Orchester',
 		orchestrasHint: 'Keins angekreuzt: Du siehst die Konzerte aller Orchester.',
 		status: 'Status',
-		statuses: { aktiv: 'aktiv', pausiert: 'pausiert', inaktiv: 'inaktiv', verwaltung: 'nur Verwaltung' } as Record<string, string>,
+		statuses: { aktiv: 'aktiv', pausiert: 'pausiert', inaktiv: 'inaktiv', verwaltung: 'nur Verwaltung', eltern: 'Eltern' } as Record<string, string>,
 		statusHints: {
 			aktiv: 'Du zählst bei der Besetzung mit.',
 			pausiert: 'Zum Beispiel Auslandssemester oder Elternzeit. Mit Datum wirst du danach automatisch wieder aktiv.',
 			inaktiv: 'Du behältst den Zugang, zählst aber bei der Besetzung nicht mit.',
-			verwaltung: 'Ein reines Verwaltungskonto, das nicht mitspielt: Es taucht bei Anmeldungen, Anwesenheit und Umfragen nicht auf.'
+			verwaltung: 'Ein reines Verwaltungskonto, das nicht mitspielt: Es taucht bei Anmeldungen, Anwesenheit und Umfragen nicht auf.',
+			eltern: 'Ein Elternteil, das nicht mitspielt: Es sieht nur den Elternbereich mit den Terminen seiner Kinder, keine Noten.'
 		} as Record<string, string>,
 		pausedUntil: 'Pausiert bis (optional)',
 		pausedUntilShort: (day: string) => `bis ${day}`,
@@ -2196,6 +2207,78 @@ export const de = {
 			body: 'Bitte etwas schreiben.',
 			'too-long': 'Das ist zu lang: Betreff bis 120, Nachricht bis 5000 Zeichen.',
 			recipient: 'Diese Person liest den Kummerkasten nicht (mehr). Bitte die Seite neu laden.'
+		}
+	},
+	/** The parents' area (/eltern): what a parent account sees, and the notices written for it. */
+	parents: {
+		title: 'Elternbereich',
+		lead: (name: string) => `Hallo ${name}! Hier siehst du die nächsten Termine deiner Kinder, kannst sie entschuldigen, Karten reservieren und der Leitung schreiben.`,
+		noChildren: 'Noch ist kein Kind mit deinem Konto verknüpft. Die Verwaltung trägt deine Kinder bei dir unter „Mitglieder“ ein.',
+		children: 'Deine Kinder',
+		notices: {
+			title: 'Elternmitteilungen',
+			shortTitle: 'Mitteilungen',
+			lead: 'Mitteilungen erscheinen im Elternbereich und, wo die Eltern es erlaubt haben, als Benachrichtigung auf ihren Geräten.',
+			heading: 'Überschrift',
+			body: 'Text',
+			for: 'Für',
+			forHint: 'Nichts angekreuzt: an alle Eltern. Sonst nur an Eltern von Kindern in diesen Orchestern.',
+			forAll: 'alle Eltern',
+			forSome: (orchestras: string) => `Eltern aus ${orchestras}`,
+			send: 'Veröffentlichen',
+			added: 'Veröffentlicht.',
+			remove: 'Löschen',
+			confirmRemove: (title: string) => `Mitteilung „${title}“ löschen? Die Eltern sehen sie dann nicht mehr.`,
+			empty: 'Noch keine Mitteilungen.',
+			by: (name: string, day: string) => (name ? `${name} · ${day}` : day),
+			reaches: (n: number) => (n === 1 ? 'erreicht 1 Elternteil' : `erreicht ${n} Eltern`),
+			noParents: 'Noch ist kein Eltern-Konto mit einem Kind verknüpft. Das geht in der Mitgliederverwaltung: Status „Eltern“ und die Kinder eintragen.',
+			notSetUp: 'Mitteilungen brauchen die Datenbank der App (D1). Sie ist hier noch nicht eingerichtet.',
+			failed: 'Das ging gerade nicht. Bitte versuch es gleich noch einmal.',
+			problems: {
+				title: 'Bitte eine Überschrift angeben.',
+				body: 'Bitte etwas schreiben.',
+				'too-long': 'Das ist zu lang: Überschrift bis 120, Text bis 5000 Zeichen.'
+			} as Record<string, string>
+		},
+		dates: 'Nächste Termine',
+		noDates: 'In den nächsten Wochen steht nichts an.',
+		inDays: (n: number) => (n === 0 ? 'heute' : n === 1 ? 'morgen' : `in ${n} Tagen`),
+		status: { yes: 'kommt', maybe: 'vielleicht', no: 'entschuldigt', open: 'noch keine Antwort' } as Record<string, string>,
+		comes: 'Kommt',
+		excuse: 'Entschuldigen',
+		reason: 'Grund (optional)',
+		reasonHint: 'z. B. krank, Klassenfahrt',
+		excuseSend: 'Entschuldigen',
+		cancel: 'Abbrechen',
+		saved: 'Gespeichert.',
+		/** In the sheet's comment, so the Leitung sees a parent answered. */
+		answeredBy: (name: string) => `eingetragen von ${name}`,
+		answerFailed: 'Das ging gerade nicht. Bitte lade die Seite neu und versuch es noch einmal.',
+		/** Before the Leitung's view of the writer: "Paula Beispiel (Eltern von Mia)". */
+		parentOf: (names: string) => `Eltern von ${names}`,
+		and: 'und',
+		tickets: {
+			title: 'Karten reservieren',
+			left: (n: number) => (n === 1 ? 'Noch 1 Platz frei.' : `Noch ${n} Plätze frei.`),
+			payAtDoor: 'Bezahlt wird an der Abendkasse.',
+			name: 'Auf welchen Namen?',
+			count: (label: string, price: string) => `${label} (${price})`,
+			reserve: 'Reservieren',
+			reserved: 'Reserviert!',
+			mailed: 'Eine Bestätigung ist per E-Mail unterwegs.',
+			show: 'Karten ansehen'
+		},
+		write: 'Der Leitung schreiben',
+		messages: {
+			title: 'Nachrichten',
+			lead: 'Fragen, Hinweise oder eine längere Abwesenheit: an die Leitung, mit deinem Namen. Die Antworten findest du hier.',
+			signedAs: (signature: string) => `Die Leitung sieht als Absender: ${signature}`,
+			newMessage: 'Neue Nachricht',
+			sent: 'Abgeschickt. Die Antwort erscheint hier, sobald die Leitung geschrieben hat.',
+			yours: 'Deine Nachrichten',
+			empty: 'Du hast noch nichts geschrieben.',
+			noLeitung: 'Noch liest niemand die Nachrichten. Die Verwaltung vergibt dafür das Recht „Kummerkasten lesen“.'
 		}
 	},
 	ensembles: {
@@ -2787,7 +2870,9 @@ export const de = {
 				pausedUntil: 'Pausiert bis',
 				linkVersion: 'Link-Version',
 				/** The personal calendar feed (#122): like "Link-Version", a new link ends the old one. */
-				feedVersion: 'Kalender-Version'
+				feedVersion: 'Kalender-Version',
+				/** For a parent account: their children among the members, by name or email. */
+				children: 'Kinder'
 			}
 		},
 		groups: {
@@ -3273,6 +3358,8 @@ export const de = {
 	error: {
 		title: 'Da ist etwas schiefgelaufen',
 		notFound: 'Diese Seite gibt es nicht.',
+		/** A parent account asking for something outside the parents' area. */
+		forbidden: 'Das ist im Elternbereich nicht verfügbar.',
 		notFoundLead: 'Vielleicht ist der Link alt oder ein Stück wurde umbenannt. Von hier aus geht es weiter:',
 		unavailableTitle: 'Gerade nicht erreichbar',
 		unavailable: 'Google antwortet gerade nicht. Gleich noch einmal versuchen.',

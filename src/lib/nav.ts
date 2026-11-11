@@ -20,7 +20,7 @@ export interface NavItem {
 }
 
 export interface NavGroup {
-	key: 'musik' | 'mitmachen' | 'pflege' | 'verwaltung' | 'bereich';
+	key: 'musik' | 'mitmachen' | 'pflege' | 'verwaltung' | 'bereich' | 'eltern';
 	label: string;
 	items: NavItem[];
 	/**
@@ -40,12 +40,30 @@ export interface NavContext {
 	features?: Features;
 	/** Date polls (#95): for those who plan dates, and for those a poll is meant for. */
 	polls?: boolean;
+	/**
+	 * A parent of young players: "only" for a parent account, which gets its own area and
+	 * nothing else; "also" for a member with children, who gets the area besides the rest.
+	 */
+	parent?: 'only' | 'also';
 }
 
 const has = (rights: NavContext['rights'], right: Right) =>
 	Array.isArray(rights) ? rights.includes(right) : (rights as ReadonlySet<Right>).has(right);
 
-export function navGroups({ auth, rights, features = ALL_ON, polls = false }: NavContext): NavGroup[] {
+export function navGroups({ auth, rights, features = ALL_ON, polls = false, parent }: NavContext): NavGroup[] {
+	if (parent === 'only' && auth === 'on') {
+		return [
+			{
+				key: 'eltern',
+				label: t.nav.groups.eltern,
+				items: [
+					{ href: '/eltern', label: t.nav.parents, icon: 'users', primary: true },
+					{ href: '/eltern/nachrichten', label: t.nav.parentMessages, icon: 'mail', primary: true },
+					{ href: '/profil', label: t.nav.profile, icon: 'user', primary: true }
+				]
+			}
+		];
+	}
 	const admin = has(rights, 'mitglieder.verwalten');
 	const groups: NavGroup[] = [
 		{
@@ -67,6 +85,8 @@ export function navGroups({ auth, rights, features = ALL_ON, polls = false }: Na
 					? [
 							...(features.wishes ? [{ href: '/wuensche', label: t.nav.wishes, icon: 'bulb' as const }] : []),
 							...(polls ? [{ href: '/termine', label: t.nav.polls, icon: 'poll' as const }] : []),
+							// The parents' area, for a member whose children play too.
+							...(parent === 'also' ? [{ href: '/eltern', label: t.nav.parents, icon: 'users' as const }] : []),
 							// Anonymous messages to the Leitung, and its inbox for those who read it.
 							{ href: '/kummerkasten', label: t.nav.kummer, icon: 'mail' as const },
 							// Also behind the avatar in the header; in the tab bar for members (see primaryNav).
@@ -101,6 +121,8 @@ export function navGroups({ auth, rights, features = ALL_ON, polls = false }: Na
 			organiser: true,
 			items: [
 				...(admin && auth === 'on' ? [{ href: '/admin', label: t.nav.admin, icon: 'shield' as const }] : []),
+				// Notices to the parents, shown in their area.
+				...(has(rights, 'eltern.informieren') && auth === 'on' ? [{ href: '/eltern/mitteilungen', label: t.nav.parentNotices, icon: 'bell' as const }] : []),
 				// Every setting in one place (#185): the orchestra, the sheet and data, the status.
 				...(admin || auth === 'off'
 					? [{ href: auth === 'on' ? '/einstellungen' : '/einstellungen/status', label: t.nav.settings, icon: 'sliders' as const }]
@@ -146,6 +168,8 @@ export function inOrganiserArea(groups: NavGroup[], path: string): boolean {
  * the avatar, so organisers don't lose it).
  */
 export function primaryNav(groups: NavGroup[]): NavItem[] {
+	// A parent account: its area is its start page.
+	if (groups.length === 1 && groups[0].key === 'eltern') return groups[0].items;
 	const organiser = organiserGroups(groups).length > 0;
 	const primary = groups.flatMap((group) => group.items.filter((item) => item.primary && !(organiser && item.href === '/profil')));
 	return [

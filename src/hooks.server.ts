@@ -1,5 +1,5 @@
 import type { Handle, HandleServerError } from '@sveltejs/kit/hooks';
-import { resolveAccess } from '#lib/access/access.ts';
+import { parentMayOpen, resolveAccess } from '#lib/access/access.ts';
 import { LANGUAGE, t } from '#lib/i18n/index.ts';
 import { featureOfPath } from '#lib/features.ts';
 import { movedPath } from '#lib/nav.ts';
@@ -60,6 +60,13 @@ export const handle: Handle = async ({ event, resolve }) => {
 			status: unavailable ? 503 : 403,
 			headers: { 'content-type': 'text/plain; charset=utf-8', ...SECURITY_HEADERS }
 		});
+	}
+	// A parent account sees only the parents' area: a page elsewhere leads there (the root
+	// layout does the same for client-side navigation), anything else is refused.
+	if (auth.mode === 'on' && event.locals.access.parent?.only && !isPublicPath(event.url.pathname) && !parentMayOpen(event.url.pathname) && !event.isDataRequest) {
+		const page = !write && (event.request.headers.get('accept') ?? '').includes('text/html');
+		if (page) return new Response(null, { status: 303, headers: { location: '/eltern', ...SECURITY_HEADERS } });
+		return new Response(t.error.forbidden, { status: 403, headers: { 'content-type': 'text/plain; charset=utf-8', ...SECURITY_HEADERS } });
 	}
 	// A part of the app this orchestra turned off (#134): its pages answer 404 from their load,
 	// its form actions and files (calendar feed, music list) here.

@@ -4,6 +4,8 @@ import { readTable } from '#lib/repertoire/sheet.ts';
 import {
 	accessFor,
 	buildAccessList,
+	isAdminOnly,
+	parentMayOpen,
 	formatRoles,
 	parseRoles,
 	mayFor,
@@ -472,5 +474,51 @@ describe('roles', () => {
 			{ name: 'Orga', description: '', rights: [] }
 		];
 		expect(missingRoles(presets, access.groups).map((role) => role.name)).toEqual(['Orga']);
+	});
+});
+
+describe('parents', () => {
+	const family = buildAccessList({
+		members: [
+			['E-Mail', 'Name', 'Instrument', 'Gruppen', 'Orchester', 'Status', 'Kinder'],
+			['mia@example.org', 'Mia Beispiel', 'Geige', '', 'JO', 'aktiv', ''],
+			['ben@example.org', 'Ben Beispiel', 'Cello', '', 'A', 'aktiv', ''],
+			['petra@example.org', 'Petra Beispiel', '', 'Vorstand', '', 'Eltern', 'mia@example.org; Ben Beispiel, Unbekannt, petra@example.org'],
+			['tom@example.org', 'Tom Vater', 'Horn', 'Vorstand', 'A', 'aktiv', 'Ben Beispiel']
+		],
+		rights: [
+			['Wer', 'Recht'],
+			['Vorstand', 'termine.planen']
+		]
+	});
+
+	it('links children by email or name, leaving out who is no member and the parent', () => {
+		expect(family.membersByEmail.get('petra@example.org')?.children).toEqual(['mia@example.org', 'ben@example.org']);
+		expect(family.membersByEmail.get('petra@example.org')?.status).toBe('eltern');
+	});
+
+	it('gives a parent account no rights, not even to see the music, and only their area', () => {
+		const petra = resolveAccess(user('petra@example.org'), family, []);
+		expect(petra.member).toBe(true);
+		expect([...petra.rights]).toEqual([]);
+		expect(petra.parent).toEqual({ children: ['mia@example.org', 'ben@example.org'], only: true });
+	});
+
+	it('keeps a playing parent a member with everything, plus the area', () => {
+		const tom = resolveAccess(user('tom@example.org'), family, []);
+		expect(tom.rights.has('ansehen')).toBe(true);
+		expect(tom.rights.has('termine.planen')).toBe(true);
+		expect(tom.parent).toEqual({ children: ['ben@example.org'], only: false });
+		expect(resolveAccess(user('mia@example.org'), family, []).parent).toBeUndefined();
+	});
+
+	it('never counts a parent account as a player', () => {
+		expect(isAdminOnly(family.membersByEmail.get('petra@example.org'))).toBe(true);
+		expect(isAdminOnly(family.membersByEmail.get('tom@example.org'))).toBe(false);
+	});
+
+	it('lets a parent account open its area, profile and messages only', () => {
+		for (const path of ['/eltern', '/eltern/nachrichten', '/profil', '/kummerkasten/abc', '/karte/xyz', '/api/push']) expect(parentMayOpen(path)).toBe(true);
+		for (const path of ['/', '/stuecke', '/meine-noten', '/kalender/abc', '/api/noten/1', '/elternabend', '/admin']) expect(parentMayOpen(path)).toBe(false);
 	});
 });

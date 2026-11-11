@@ -8,7 +8,9 @@
 		member,
 		instruments,
 		common,
-		orchestras
+		orchestras,
+		admin = false,
+		nameOnly = false
 	}: {
 		member: {
 			name: string;
@@ -21,6 +23,10 @@
 		common: string[];
 		/** The configured orchestras; with only one there is nothing to pick. */
 		orchestras: string[];
+		/** In /admin: also the status "Eltern", which only admins give. */
+		admin?: boolean;
+		/** A parent account on its own profile: only the name, it plays nothing. */
+		nameOnly?: boolean;
 	} = $props();
 
 	// svelte-ignore state_referenced_locally
@@ -30,6 +36,7 @@
 <div class="fields">
 	<label class="field">{t.profile.name}<input name="name" value={member.name} autocomplete="name" maxlength="200" /></label>
 
+	{#if !nameOnly}
 	<div class="group" data-tour="instruments">
 		<span class="caption">{t.profile.instruments}</span>
 		<InstrumentPicker choices={member.choices} {instruments} {common} />
@@ -51,7 +58,7 @@
 		<label class="field">
 			{t.profile.status}
 			<select name="status" bind:value={status}>
-				{#each MEMBER_STATUSES as option (option)}<option value={option}>{t.profile.statuses[option]}</option>{/each}
+				{#each MEMBER_STATUSES.filter((option) => admin || option !== 'eltern' || status === 'eltern') as option (option)}<option value={option}>{t.profile.statuses[option]}</option>{/each}
 			</select>
 		</label>
 		{#if status === 'pausiert'}
@@ -59,6 +66,7 @@
 		{/if}
 		<span class="hint wide">{t.profile.statusHints[status]}</span>
 	</div>
+	{/if}
 </div>
 
 <style>

@@ -55,7 +55,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		bootstrapAdmins: auth.mode === 'on' ? auth.bootstrapAdmins : [],
 		requests: list?.requests.map(({ email, name, requestedAt }) => ({ email, name, requestedAt })) ?? [],
 		members:
-			list?.members.map(({ email, name, instrument, groups, roles, orchestras, status, pausedUntil, linkVersion }) => {
+			list?.members.map(({ email, name, instrument, groups, roles, orchestras, status, pausedUntil, linkVersion, children }) => {
 				return {
 					email,
 					name,
@@ -65,6 +65,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 					groups,
 					// Each role with the orchestras this person holds it for (#305); none: all.
 					roles,
+					// A parent's children, by name, as the edit form shows them.
+					children: children.map((child) => list!.membersByEmail.get(child)?.name ?? child),
 					orchestras,
 					status,
 					pausedUntil,
@@ -141,10 +143,6 @@ async function change(locals: App.Locals, work: () => Promise<string | void>) {
 	}
 }
 
-const field = (data: FormData, name: string) => String(data.get(name) ?? '').trim().slice(0, 200);
-
-/** Rights apply to an email address or a group name. */
-const whoKey = (who: string) => (who.includes('@') ? normalizeEmail(who) : normalize(who));
 /**
  * The roles ticked on a member, each with the orchestras ticked for it (#305): "group" names the
  * role, "orchestra:<role>" its orchestras, in the configured order. None ticked: all orchestras.
@@ -159,6 +157,10 @@ function rolesFromForm(data: FormData): Role[] {
 	});
 }
 
+const field = (data: FormData, name: string) => String(data.get(name) ?? '').trim().slice(0, 200);
+
+/** Rights apply to an email address or a group name. */
+const whoKey = (who: string) => (who.includes('@') ? normalizeEmail(who) : normalize(who));
 
 /** One request ("email") or all shown at once (several "email" fields). */
 const emails = (data: FormData) => data.getAll('email').map((value) => normalizeEmail(String(value).slice(0, 200))).filter(Boolean);
@@ -215,9 +217,17 @@ export const actions: Actions = {
 			const members = await readTab('members');
 			const row = members.rows.find((r) => normalizeEmail(r.values.email) === email);
 			if (!row) return t.admin.memberGone;
+			// A parent's children, by name or email; kept as emails, which don't change with a name.
+			const children = splitGroups(field(data, 'children'));
+			const found = children.map((child) =>
+				members.rows.find((other) => (child.includes('@') ? normalizeEmail(other.values.email) === normalizeEmail(child) : normalize(other.values.name) === normalize(child)))
+			);
+			const unknown = children.filter((_, i) => !found[i]);
+			if (unknown.length) return t.admin.childrenUnknown(unknown.join(', '));
+			const childEmails = [...new Set(found.map((other) => normalizeEmail(other!.values.email)).filter((child) => child !== email))];
+			const table = childEmails.length && members.missing.includes('children') ? await ensureColumns('members', ['children']) : members;
 			// Roles as ticked; the form lists every group the member has, so none is lost.
-			const groups = [...new Set(data.getAll('group').map((value) => String(value).trim().slice(0, 100)).filter(Boolean))];
-			await updateRecord('members', members, row.row, writable(members, { ...form.values, groups: groups.join(', ') }));
+			await updateRecord('members', table, row.row, writable(table, { ...form.values, groups: formatRoles(rolesFromForm(data)), children: childEmails.join(', ') }));
 		}),
 
 	removeMember: ({ request, locals }) =>

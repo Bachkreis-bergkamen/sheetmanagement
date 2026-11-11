@@ -31,6 +31,8 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const nameOf = (email: string) => leitung.find((person) => person.email === email)?.name ?? email.split('@')[0];
 	return {
 		role,
+		// A parent account came from its messages page, the parents' area.
+		back: locals.access.parent?.only ? { href: '/eltern/nachrichten', label: t.parents.messages.title } : null,
 		sent: url.searchParams.has('gesendet'),
 		thread: {
 			id: thread.id,

@@ -244,7 +244,7 @@
 										<span class="meta">{member.email}</span>
 									</span>
 								</div>
-								<MemberFields {member} instruments={data.playable} common={data.common} orchestras={data.orchestras} />
+								<MemberFields {member} instruments={data.playable} common={data.common} orchestras={data.orchestras} admin />
 								<fieldset class="choices">
 									<legend class="caption">{t.admin.memberRoles}</legend>
 									<RoleChoices names={[...new Set([...data.groups.map((g) => g.name), ...member.groups])]} roles={member.roles} orchestras={data.orchestras} />
@@ -253,6 +253,12 @@
 										<p class="meta rights">{t.admin.effectiveRights}: {member.rights.map(rightLabel).join(', ')}</p>
 									{/if}
 								</fieldset>
+								<!-- A parent's children: with status "Eltern" the account sees only the parents' area. -->
+								<label class="field children">
+									{t.admin.children}
+									<input name="children" value={member.children.join(', ')} list="member-names" autocomplete="off" />
+									<span class="meta">{t.admin.childrenHint}</span>
+								</label>
 								<div class="link-box">
 									<span class="caption">{t.admin.accessLink}</span>
 									<p class="meta">{t.admin.linkHint}</p>
@@ -318,9 +324,10 @@
 									{[member.instrument, mail(member.email), member.orchestras.join(', ')].filter(Boolean).join(' · ')}
 								</span>
 							</div>
-							{#if member.groups.length || member.link || member.current !== 'aktiv'}
+							{#if member.groups.length || member.children.length || member.link || member.current !== 'aktiv'}
 								<span class="chips">
 									{#each member.roles as role (role.name)}<span class="chip accent">{roleLabel(role)}</span>{/each}
+										{#if member.children.length}<span class="chip">{t.parents.parentOf(member.children.join(', '))}</span>{/if}
 									{#if member.current !== 'aktiv'}
 										<span class="chip">
 											{t.profile.statuses[member.current]}{member.current === 'pausiert' && member.pausedUntil
@@ -562,6 +569,9 @@
 
 	<datalist id="instrument-names">
 		{#each data.instruments as name (name)}<option value={name}></option>{/each}
+	</datalist>
+	<datalist id="member-names">
+		{#each data.members as member (member.email)}<option value={member.name}></option>{/each}
 	</datalist>
 	<datalist id="group-names">
 		{#each data.groups as group (group.name)}<option value={group.name}>{group.description}</option>{/each}
