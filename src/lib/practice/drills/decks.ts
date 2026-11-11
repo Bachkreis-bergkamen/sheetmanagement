@@ -1,21 +1,24 @@
-import { profile, type ProfileId } from './instruments.ts';
-import { diatonic, LANDMARK, midiOf, pitchAt, type Clef, type Pitch } from './theory.ts';
+import { profile, type PartKey, type ProfileId } from './instruments.ts';
+import { diatonic, fromDiatonic, LANDMARK, midiOf, pitchAt, type Clef, type Pitch } from './theory.ts';
 
 /**
  * The drills' items and their questions (#300, #315). An item is a string id, so its progress
  * can be kept as a plain record on the device:
  * - "notes:treble:2": name the note on the treble clef's second line;
  * - "keys:-3:minor": name the minor key with three flats;
- * - "play:violin:treble:2": play that note on the violin.
+ * - "play:violin:treble:2": play that note on the violin;
+ * - "ear:7:melodic": name a fifth heard one note after the other;
+ * - "trans:trumpet:2:4": a note in a trumpet part "in D" (+2), on the treble staff's middle line:
+ *   which note does a B♭ trumpet play? "trans:trumpet:concert:4": which note sounds?
  * Note reading is per clef (reading treble clef is the same skill on any instrument), playing
- * per instrument.
+ * and transposing per instrument.
  */
 
-export type DrillKind = 'notes' | 'keys' | 'play';
-export const DRILL_KINDS: readonly DrillKind[] = ['notes', 'keys', 'play'];
+export type DrillKind = 'notes' | 'keys' | 'play' | 'ear' | 'trans';
+export const DRILL_KINDS: readonly DrillKind[] = ['notes', 'keys', 'play', 'ear', 'trans'];
 
 /** Answers up to this fast count as fluent: the item moves up and can be mastered. */
-export const FLUENT_MS: Record<DrillKind, number> = { notes: 2500, keys: 5000, play: 4000 };
+export const FLUENT_MS: Record<DrillKind, number> = { notes: 2500, keys: 5000, play: 4000, ear: 5000, trans: 5000 };
 
 /** Questions per round: a few minutes, short enough to fit anywhere. */
 export const ROUND = 20;
@@ -64,6 +67,48 @@ export const KEY_ORDER: string[] = (() => {
 	].flatMap(([from, to]) => [...ring(from, to).map((fifths) => keyId(fifths, 'major')), ...ring(from, to).map((fifths) => keyId(fifths, 'minor'))]);
 })();
 
+/**
+ * Intervals in the order they're learnt: the most different first (octave, fifth, third), the
+ * ones easily mixed up with a neighbour later, the tritone last. Heard one after the other before
+ * together, as melody is easier to hear apart than harmony.
+ */
+export const INTERVAL_ORDER = [12, 7, 4, 3, 5, 2, 9, 8, 1, 10, 11, 6];
+export const earId = (semitones: number, harmonic: boolean) => `ear:${semitones}:${harmonic ? 'harmonic' : 'melodic'}`;
+export const EAR_ORDER: string[] = [
+	...INTERVAL_ORDER.slice(0, 6).map((semitones) => earId(semitones, false)),
+	...INTERVAL_ORDER.slice(0, 6).map((semitones) => earId(semitones, true)),
+	...INTERVAL_ORDER.slice(6).map((semitones) => earId(semitones, false)),
+	...INTERVAL_ORDER.slice(6).map((semitones) => earId(semitones, true))
+];
+
+/** Letters spanned by each interval in semitones: a third spans two, the tritone is an augmented fourth. */
+const INTERVAL_STEPS = [0, 1, 1, 2, 2, 3, 3, 4, 5, 5, 6, 6, 7];
+
+/**
+ * Up to four intervals to choose from: the right one and its nearest neighbours in size among
+ * those learnt so far (the ones before it in INTERVAL_ORDER), sorted small to large.
+ */
+export function intervalOptions(semitones: number): number[] {
+	const known = INTERVAL_ORDER.slice(0, Math.max(2, INTERVAL_ORDER.indexOf(semitones) + 1));
+	const others = known.filter((other) => other !== semitones).sort((a, b) => Math.abs(a - semitones) - Math.abs(b - semitones) || a - b);
+	return [semitones, ...others.slice(0, 3)].sort((a, b) => a - b);
+}
+
+/** The written notes a transposing drill uses: the treble staff, outwards from G. */
+const TRANS_POSITIONS = noteOrder('treble').filter((position) => position >= 0 && position <= 8);
+export const transId = (instrument: ProfileId, part: number | 'concert', position: number) =>
+	`trans:${instrument}:${part === 'concert' ? part : part >= 0 ? `+${part}` : part}:${position}`;
+
+/**
+ * A transposing instrument's items: first which note sounds when it plays a written one, then
+ * reading the parts of the family's other keys (a trumpet part in C, in D, …), commonest first.
+ */
+export function transOrder(instrument: ProfileId): string[] {
+	const { transposition, parts = [] } = profile(instrument);
+	const keys: (number | 'concert')[] = [...(transposition % 12 ? ['concert' as const] : []), ...parts.map((part) => part.semitones)];
+	return keys.flatMap((key) => TRANS_POSITIONS.map((position) => transId(instrument, key, position)));
+}
+
 export const notesOrder = (clef: Clef) => noteOrder(clef).map((position) => noteId(clef, position));
 
 export function playOrder(instrument: ProfileId, clef: Clef): string[] {
@@ -81,7 +126,21 @@ export function interleave(...orders: string[][]): string[] {
 export type Question =
 	| { kind: 'notes'; id: string; clef: Clef; pitch: Pitch }
 	| { kind: 'keys'; id: string; clef: Clef; fifths: number; mode: 'major' | 'minor'; options: number[] }
-	| { kind: 'play'; id: string; clef: Clef; pitch: Pitch; instrument: ProfileId; midi: number };
+	| { kind: 'play'; id: string; clef: Clef; pitch: Pitch; instrument: ProfileId; midi: number }
+	| { kind: 'ear'; id: string; clef: Clef; semitones: number; harmonic: boolean; low: Pitch; high: Pitch; options: number[] }
+	| {
+			kind: 'trans';
+			id: string;
+			clef: Clef;
+			pitch: Pitch;
+			instrument: ProfileId;
+			/** The part's key; null for "which note sounds". */
+			part: PartKey | null;
+			/** The answer's pitch class: the sounding note, or the note to play. */
+			answer: number;
+			/** Semitones from the written note to the answer, within an octave, for the hint. */
+			shift: number;
+	  };
 
 const shuffle = <T>(values: T[], random: () => number) => {
 	const copy = [...values];
@@ -114,6 +173,27 @@ export function questionFor(id: string, clef: Clef, random: () => number = Math.
 	if (parts[0] === 'keys' && parts.length === 3) {
 		const fifths = Number(parts[1]);
 		return { kind: 'keys', id, clef, fifths, mode: parts[2] === 'minor' ? 'minor' : 'major', options: keyOptions(fifths, random) };
+	}
+	if (parts[0] === 'ear' && parts.length === 3) {
+		const semitones = Number(parts[1]);
+		// The lower note a natural one on the lower half of the staff, so both fit; the upper spelt as the interval.
+		const low = pitchAt(clef, Math.floor(random() * 5));
+		const upperStep = diatonic(low) + INTERVAL_STEPS[semitones];
+		const natural = midiOf(fromDiatonic(upperStep));
+		const high = fromDiatonic(upperStep, midiOf(low) + semitones - natural);
+		return { kind: 'ear', id, clef, semitones, harmonic: parts[2] === 'harmonic', low, high, options: intervalOptions(semitones) };
+	}
+	if (parts[0] === 'trans' && parts.length === 4) {
+		const instrument = parts[1] as ProfileId;
+		const { transposition, parts: keys = [] } = profile(instrument);
+		const pitch = pitchAt('treble', Number(parts[3]));
+		const part = parts[2] === 'concert' ? null : (keys.find((key) => key.semitones === Number(parts[2])) ?? null);
+		if (parts[2] !== 'concert' && !part) return null;
+		// Concert: what the instrument sounds. A part: what sounds, written for this instrument.
+		const raw = part ? part.semitones - transposition : transposition;
+		// Said as players learn it: a horn sounds a fifth lower (not a fourth higher); a part is read the nearest way.
+		const shift = part ? ((((raw + 6) % 12) + 12) % 12) - 6 : raw % 12;
+		return { kind: 'trans', id, clef: 'treble', pitch, instrument, part, answer: (((midiOf(pitch) + raw) % 12) + 12) % 12, shift };
 	}
 	if (parts[0] === 'play' && parts.length === 4) {
 		const instrument = parts[1] as ProfileId;

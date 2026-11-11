@@ -73,6 +73,6 @@ export function featureOfPath(path: string): Feature | undefined {
 	if (/^\/kalender\/[^/]+\/karten(\/|$)/.test(path)) return 'tickets';
 	if (/^\/(einlass|karte|api\/karten|api\/einlass)(\/|$)/.test(path)) return 'tickets';
 	// The hub only: /ueben/<file> is the practice viewer of a part, which stays.
-	if (/^\/ueben(\/__data\.json)?$/.test(path)) return 'drills';
+	if (/^\/(ueben(\/__data\.json)?|api\/ueben\/runde)$/.test(path)) return 'drills';
 	return undefined;
 }

@@ -697,7 +697,7 @@ export const en: Texts = {
 			seasons: 'Small drawings for the season: a snowflake, a blossom, a pumpkin.',
 			tickets: 'Reserve concert tickets on the website, paid at the door, with check-in by phone.',
 			offline: 'Save parts in “My parts” for rehearsals without a connection.',
-			drills: 'Short exercises in note reading, keys and pitch. They run entirely on the device; nothing is sent.'
+			drills: 'Short exercises in note reading, keys, intervals, pitch and transposing. They run on the device; only the time counts toward practice time.'
 		} as Record<string, string>,
 		instruments: 'Instruments',
 		instrumentsLead:
@@ -1937,8 +1937,8 @@ export const en: Texts = {
 	},
 	drills: {
 		title: 'Practice room',
-		lead: 'A few minutes a day: read notes, recognise keys, play in tune. The exercises adapt to you.',
-		private: 'Everything stays on this device: your progress and the microphone. Nothing is sent.',
+		lead: 'A few minutes a day: read notes, recognise keys, hear intervals, play in tune, transpose. The exercises adapt to you.',
+		private: 'Your progress and the microphone stay on this device. At most your practice time is sent, if you record practice time.',
 		unsaved: 'This browser can’t save your progress (a private window?). You can still practise.',
 		instrument: 'Instrument',
 		clef: 'Clef',
@@ -1976,7 +1976,9 @@ export const en: Texts = {
 			mix: { title: 'Daily round', lead: 'Notes and keys mixed, whatever is due today.' },
 			notes: { title: 'Note reading', lead: 'Which note is it? As fast as you’re sure.' },
 			keys: { title: 'Keys', lead: 'Which key has this key signature?' },
-			play: { title: 'Play the note', lead: 'Play the note; the microphone hears if it’s right.' }
+			play: { title: 'Play the note', lead: 'Play the note; the microphone hears if it’s right.' },
+			ear: { title: 'Hear intervals', lead: 'Two notes: how far apart are they?' },
+			trans: { title: 'Transposing', lead: 'Which note sounds, and how do you read parts in other keys?' }
 		},
 		start: 'Start',
 		again: 'Another round',
@@ -2029,8 +2031,24 @@ export const en: Texts = {
 			'What you know well comes back after days, then weeks. That’s how it sticks.',
 			'New items come in when most answers are right. When it’s hard going, familiar ones are mixed in.',
 			'Secure means right and fast: when sight-reading there’s no time to count lines.',
-			'If you know an item quickly the first time, it’s skipped ahead, so you reach what’s new to you soon.'
+			'If you know an item quickly the first time, it’s skipped ahead, so you reach what’s new to you soon.',
+			'It gets harder step by step: more of your instrument’s clefs (cello: bass, then tenor, then treble), intervals from distinct to easily confused, parts in other keys.'
 		],
+		intervals: ['unison', 'minor second', 'major second', 'minor third', 'major third', 'perfect fourth', 'tritone', 'perfect fifth', 'minor sixth', 'major sixth', 'minor seventh', 'major seventh', 'octave'],
+		whichInterval: (harmonic: boolean) => (harmonic ? 'Which interval, played together?' : 'Which interval?'),
+		listen: 'Listen',
+		intervalWas: (name: string, semitones: number) => `That was a ${name} (${semitones} ${semitones === 1 ? 'semitone' : 'semitones'}).`,
+		shift: (name: string, semitones: number) => `a ${name} ${semitones > 0 ? 'higher' : 'lower'}`,
+		partIn: (key: string) => `Part in ${key}`,
+		transQuestion: (part: string | null) => (part ? `${part}: which note do you play?` : 'Which note sounds?'),
+		concertTip: (instrument: string, shift: string) => `Tip: the ${instrument} sounds ${shift} than written.`,
+		partTip: (shift: string) => `Tip: read everything ${shift}.`,
+		clefAuto: (names: string) => `Automatic: ${names}`,
+		ladder: 'Clefs step by step',
+		clefLocked: (clef: string, before: string, have: number, need: number) => `${clef}: comes when ${need} notes in the ${before} are secure (now ${have}).`,
+		newClef: (clef: string) => `Unlocked: ${clef}!`,
+		treeOn: 'Your time in these rounds also counts for your practice tree.',
+		treeOff: 'Turn on “Record practice time” in your profile and your practice tree grows with these rounds too.',
 		reset: 'Delete progress on this device',
 		confirmReset: 'Delete all your practice progress on this device? This can’t be undone.',
 		letters: ['C', 'D', 'E', 'F', 'G', 'A', 'B'],
@@ -2042,7 +2060,7 @@ export const en: Texts = {
 		title: 'Practice time',
 		lead: 'How long you had your instrument’s parts open, by week and month, and a tree that grows with it.',
 		private: 'Only you can see your practice time: not the admins, not other members, not in any report.',
-		how: 'It counts while a part of your instrument from “My parts” is open in the app and the page is visible. After 20 minutes without a tap, scroll or key it pauses; one opening counts for at most 3 hours, one day for at most 12. Parts opened in Drive or on paper don’t count.',
+		how: 'It counts while a part of your instrument from “My parts” is open in the app and the page is visible. After 20 minutes without a tap, scroll or key it pauses; one opening counts for at most 3 hours, one day for at most 12. Rounds in the practice room count too, with the time you spend answering. Parts opened in Drive or on paper don’t count.',
 		question: 'Would you like to record your practice time?',
 		turnOn: 'Record practice time',
 		turnOff: 'Stop recording',

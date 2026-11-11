@@ -5,18 +5,20 @@
 	import { profile, type ProfileId } from '#lib/practice/drills/instruments.ts';
 	import { NoteJudge, type Verdict } from '#lib/practice/drills/judge.ts';
 	import { dayNumber, isMastered, median, pickNext, type States } from '#lib/practice/drills/scheduler.ts';
-	import { listenToPitch, playArpeggio, playTone, rememberedA4, triad, type MicProblem } from '#lib/practice/drills/sound.ts';
+	import { listenToPitch, playArpeggio, playChord, playTone, rememberedA4, triad, type MicProblem } from '#lib/practice/drills/sound.ts';
 	import { midiOf, tonic, type Clef } from '#lib/practice/drills/theory.ts';
 	import DrillStaff from './DrillStaff.svelte';
+	import Icon from './Icon.svelte';
 
 	/**
 	 * One round of a drill (#300, #315): twenty questions picked by the scheduler, each answered
 	 * with a tap, a key or by playing it. Right answers move on by themselves, so a fluent player
-	 * keeps a quick pace; wrong ones wait, so the feedback can be read.
+	 * keeps a quick pace; wrong ones wait, so the feedback can be read. Key signatures and
+	 * intervals are shown in any of `clefs`, so a new clef turns up between familiar ones.
 	 */
 	let {
 		order,
-		clef,
+		clefs,
 		instrument,
 		states,
 		sound: withSound,
@@ -25,7 +27,7 @@
 		onexit
 	}: {
 		order: string[];
-		clef: Clef;
+		clefs: Clef[];
 		instrument: ProfileId;
 		states: States;
 		sound: boolean;
@@ -64,10 +66,23 @@
 	};
 	const midiName = (midi: number) => `${t.practice.tuner.notes[((midi % 12) + 12) % 12]}${Math.floor(midi / 12) - 1}`;
 	const frequencyOf = (midi: number) => noteFrequency(((midi % 12) + 12) % 12, Math.floor(midi / 12) - 1, a4);
-	/** The note as it sounds on the instrument: what the tone after an answer plays. */
-	/** What an answer sounds like: the note as it sounds on the instrument, or for a key its tonic triad as an arpeggio (C major: C E G C). */
+	const pitchName = (pitchClass: number) => t.practice.tuner.notes[pitchClass];
+	const instrumentName = $derived(tx.instruments[instrument]);
+	/** "Stimme in D" for a part's key. */
+	const partLabel = (q: Extract<Question, { kind: 'trans' }>) => (q.part ? tx.partIn(noteName(q.part.step, q.part.alter)) : null);
+
+	/**
+	 * What a question sounds like: the note as it sounds on the instrument; for a key its tonic
+	 * triad as an arpeggio (C major: C E G C); for an interval its two notes, one after the other
+	 * or together.
+	 */
 	function sound(q: Question) {
 		if (q.kind === 'keys') playArpeggio(triad(midiOf({ ...tonic(q.fifths, q.mode), octave: 4 }) % 12, q.mode).map(frequencyOf));
+		else if (q.kind === 'ear') {
+			const notes = [midiOf(q.low), midiOf(q.low) + q.semitones].map(frequencyOf);
+			if (q.harmonic) playChord(notes);
+			else playArpeggio(notes, 0.7);
+		} else if (q.kind === 'trans') playTone(frequencyOf(midiOf(q.pitch) + (q.part ? q.part.semitones : profile(q.instrument).transposition)));
 		else playTone(frequencyOf(q.kind === 'play' ? q.midi : midiOf(q.pitch)));
 	}
 
@@ -80,7 +95,7 @@
 			return;
 		}
 		const pick = pickNext({ order, states, day, answers, recent });
-		const asked = pick && questionFor(pick.id, clef);
+		const asked = pick && questionFor(pick.id, clefs[Math.floor(Math.random() * clefs.length)]);
 		if (!pick || !asked) {
 			finish();
 			return;
@@ -91,6 +106,8 @@
 		count++;
 		shownAt = performance.now();
 		judge = asked.kind === 'play' ? new NoteJudge(asked.midi, { a4 }) : null;
+		// Sound before symbol: an interval is heard first, and its notes shown only after the answer.
+		if (asked.kind === 'ear') sound(asked);
 	}
 
 	function finish() {
@@ -135,6 +152,24 @@
 		answer(false, tx.itIs(`${keyLabel(right, mode)} (${tx.accidentals(Math.abs(right), right > 0)})`), tip);
 	}
 
+	/** An interval answered (its semitones), or null for "don't know". */
+	function answerInterval(semitones: number | null) {
+		if (question?.kind !== 'ear' || feedback) return;
+		chosen = semitones;
+		const right = question.semitones;
+		answer(semitones === right, semitones === right ? '' : tx.intervalWas(tx.intervals[right], right));
+	}
+
+	/** A note answered by its pitch class (any spelling counts), or null; a wrong one comes with how to transpose. */
+	function answerPitch(pitchClass: number | null) {
+		if (question?.kind !== 'trans' || feedback) return;
+		chosen = pitchClass;
+		const { answer: right, shift, part } = question;
+		if (pitchClass === right) return answer(true, '');
+		const how = shift ? tx.shift(tx.intervals[Math.abs(shift)], shift) : '';
+		answer(false, tx.itIs(pitchName(right)), !how ? undefined : part ? tx.partTip(how) : tx.concertTip(instrumentName, how));
+	}
+
 	function heard(verdict: Verdict) {
 		if (verdict.result === 'right') answer(true, Math.abs(verdict.cents) <= 10 ? tx.inTune : tx.cents(verdict.cents));
 		else answer(false, verdict.octave ? tx.octave : tx.heard(midiName(verdict.midi)));
@@ -164,6 +199,8 @@
 		if (!question || feedback) return;
 		if (question.kind === 'notes') answerNote(null);
 		else if (question.kind === 'keys') answerKey(null);
+		else if (question.kind === 'ear') answerInterval(null);
+		else if (question.kind === 'trans') answerPitch(null);
 		else answer(false, tx.itIs(midiName(midiOf(question.pitch))));
 	}
 
@@ -177,9 +214,11 @@
 		if (question?.kind === 'notes') {
 			const step = tx.letterKeys.indexOf(event.key.toLowerCase());
 			if (step >= 0) answerNote(step);
-		} else if (question?.kind === 'keys') {
+		} else if (question?.kind === 'keys' || question?.kind === 'ear') {
 			const index = Number(event.key) - 1;
-			if (index >= 0 && index < question.options.length) answerKey(question.options[index]);
+			if (index < 0 || index >= question.options.length) return;
+			if (question.kind === 'keys') answerKey(question.options[index]);
+			else answerInterval(question.options[index]);
 		}
 	}
 
@@ -210,14 +249,26 @@
 		<div class="prompt">
 			<p class="ask">
 				{#if isNew}<span class="new">{tx.new}</span>{/if}
-				{question.kind === 'notes' ? tx.whichNote : question.kind === 'keys' ? tx.whichKey(question.mode) : tx.playThis}
+				{#if question.kind === 'notes'}{tx.whichNote}
+				{:else if question.kind === 'keys'}{tx.whichKey(question.mode)}
+				{:else if question.kind === 'ear'}{tx.whichInterval(question.harmonic)}
+				{:else if question.kind === 'trans'}{tx.transQuestion(partLabel(question))}
+				{:else}{tx.playThis}{/if}
 			</p>
 			{#if question.kind === 'keys'}
 				<DrillStaff clef={question.clef} fifths={question.fifths} label={tx.whichKey(question.mode)} />
+			{:else if question.kind === 'ear'}
+				{#if feedback}
+					<DrillStaff clef={question.clef} notes={[question.low, question.high]} together={question.harmonic} label={tx.intervals[question.semitones]} />
+				{:else}
+					{@const q = question}
+					<button type="button" class="listen" onclick={() => sound(q)}><Icon name="headphones" size={36} /><span>{tx.listen}</span></button>
+				{/if}
 			{:else}
+				{#if question.kind === 'trans'}<p class="part">{partLabel(question) ?? instrumentName}</p>{/if}
 				<DrillStaff
 					clef={question.clef}
-					pitch={question.pitch}
+					notes={[question.pitch]}
 					state={feedback ? (feedback.correct ? 'right' : 'wrong') : null}
 					label={feedback ? noteName(question.pitch.step, question.pitch.alter) : tx.whichNote}
 				/>
@@ -252,6 +303,34 @@
 					>
 				{/each}
 			</div>
+		{:else if question.kind === 'ear'}
+			<div class="options" role="group" aria-label={tx.whichInterval(question.harmonic)}>
+				{#each question.options as semitones, i (semitones)}
+					{@const q = question}
+					<button
+						type="button"
+						class="answer wide"
+						class:right={!!feedback && q.semitones === semitones}
+						class:wrong={!!feedback && chosen === semitones && q.semitones !== semitones}
+						disabled={!!feedback}
+						onclick={() => answerInterval(semitones)}><kbd>{i + 1}</kbd>{tx.intervals[semitones]}</button
+					>
+				{/each}
+			</div>
+		{:else if question.kind === 'trans'}
+			<div class="chromatic" role="group" aria-label={tx.transQuestion(partLabel(question))}>
+				{#each t.practice.tuner.notes as name, pitchClass (pitchClass)}
+					{@const q = question}
+					<button
+						type="button"
+						class="answer"
+						class:right={!!feedback && q.answer === pitchClass}
+						class:wrong={!!feedback && chosen === pitchClass && q.answer !== pitchClass}
+						disabled={!!feedback}
+						onclick={() => answerPitch(pitchClass)}>{name}</button
+					>
+				{/each}
+			</div>
 		{:else}
 			<div class="play">
 				{#if transposition}<p class="hint">{tx.sounding(midiName(midiOf(question.pitch)), midiName(question.midi))}</p>{/if}
@@ -269,7 +348,7 @@
 				<p class="feedback" class:ok={feedback.correct}>{feedback.text}</p>
 				{#if feedback.tip}<p class="hint">{feedback.tip}</p>{/if}
 				<div class="row">
-					<button type="button" class="btn ghost small" onclick={() => question && sound(question)}>{question.kind === 'keys' ? tx.replayChord : tx.replay}</button>
+					<button type="button" class="btn ghost small" onclick={() => question && sound(question)}>{question.kind === 'keys' ? tx.replayChord : question.kind === 'ear' ? tx.listen : tx.replay}</button>
 					<button type="button" class="btn" onclick={next}>{tx.next}</button>
 				</div>
 			{:else}
@@ -436,6 +515,43 @@
 		background: color-mix(in oklab, var(--danger) 25%, var(--surface));
 		color: var(--danger);
 		opacity: 1;
+	}
+
+	.chromatic {
+		display: grid;
+		grid-template-columns: repeat(6, minmax(0, 1fr));
+		gap: var(--space-2);
+		max-width: 480px;
+		width: 100%;
+		margin-inline: auto;
+	}
+
+	.chromatic .answer {
+		font-size: var(--text-md);
+	}
+
+	.part {
+		padding: 2px var(--space-3);
+		border: 1px solid var(--hairline);
+		border-radius: var(--radius-pill);
+		color: var(--text-muted);
+		font-size: var(--text-sm);
+		font-weight: 600;
+	}
+
+	.listen {
+		display: grid;
+		justify-items: center;
+		gap: var(--space-2);
+		width: min(100%, 220px);
+		padding: var(--space-5) var(--space-4);
+		border: 1px dashed var(--hairline);
+		border-radius: var(--radius-l);
+		background: var(--surface-2);
+		color: var(--accent);
+		font: inherit;
+		font-weight: 600;
+		cursor: pointer;
 	}
 
 	.play {

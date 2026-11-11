@@ -31,6 +31,11 @@ export function playTone(frequency: number, seconds = 1.1) {
 	}
 }
 
+/** Notes together, as for an interval heard in harmony. */
+export function playChord(frequencies: number[]) {
+	for (const frequency of frequencies) playTone(frequency, 1.6);
+}
+
 /** Notes one after another, the last one held: a broken chord. */
 export function playArpeggio(frequencies: number[], gap = 0.22) {
 	frequencies.forEach((frequency, i) => setTimeout(() => playTone(frequency, i === frequencies.length - 1 ? 1.6 : 1.1), i * gap * 1000));

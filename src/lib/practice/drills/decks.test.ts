@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { interleave, KEY_ORDER, keyOptions, kindOf, noteOrder, notesOrder, playOrder, questionFor } from './decks.ts';
+import { EAR_ORDER, interleave, intervalOptions, KEY_ORDER, keyOptions, kindOf, noteOrder, notesOrder, playOrder, questionFor, transOrder } from './decks.ts';
 import { midiOf, pitchOf, staffPosition } from './theory.ts';
 
 describe('noteOrder', () => {
@@ -59,5 +59,60 @@ describe('playing', () => {
 describe('interleave', () => {
 	it('takes from each drill in turn', () => {
 		expect(interleave(['a1', 'a2', 'a3'], ['b1'])).toEqual(['a1', 'b1', 'a2', 'a3']);
+	});
+});
+
+describe('intervals', () => {
+	it('comes in from the most distinct, melodic before harmonic', () => {
+		expect(EAR_ORDER.slice(0, 3)).toEqual(['ear:12:melodic', 'ear:7:melodic', 'ear:4:melodic']);
+		expect(EAR_ORDER[6]).toBe('ear:12:harmonic');
+		expect(EAR_ORDER.at(-1)).toBe('ear:6:harmonic');
+		expect(new Set(EAR_ORDER).size).toBe(24);
+	});
+
+	it('offers only intervals learnt so far, nearest in size', () => {
+		expect(intervalOptions(12)).toEqual([7, 12]);
+		expect(intervalOptions(4)).toEqual([4, 7, 12]);
+		expect(intervalOptions(6)).toEqual([4, 5, 6, 7]);
+	});
+
+	it('spells the upper note as the interval', () => {
+		const fifth = questionFor('ear:7:harmonic', 'treble', () => 0);
+		expect(fifth).toMatchObject({ kind: 'ear', harmonic: true, low: pitchOf('E4'), high: { step: 6, alter: 0, octave: 4 } });
+		// From E a minor sixth is C, not B♯.
+		expect(questionFor('ear:8:melodic', 'treble', () => 0)).toMatchObject({ high: { step: 0, alter: 0, octave: 5 } });
+		// From E a major third is G♯; the tritone is spelt as a fourth (F–B), not a fifth.
+		expect(questionFor('ear:4:melodic', 'treble', () => 0)).toMatchObject({ high: { step: 4, alter: 1, octave: 4 } });
+		expect(questionFor('ear:6:melodic', 'treble', () => 0.2)).toMatchObject({ low: pitchOf('F4'), high: { step: 6, alter: 0, octave: 4 } });
+		// The bass clef's lower staff: B2 up a minor third is D3.
+		expect(questionFor('ear:3:melodic', 'bass', () => 0.4)).toMatchObject({ low: pitchOf('B2'), high: { step: 1, alter: 0, octave: 3 } });
+	});
+});
+
+describe('transposing', () => {
+	it('asks first what sounds, then parts in the family’s other keys', () => {
+		const trumpet = transOrder('trumpet');
+		expect(trumpet[0]).toBe('trans:trumpet:concert:2');
+		expect(trumpet[9]).toBe('trans:trumpet:+0:2');
+		expect(trumpet[18]).toBe('trans:trumpet:+2:2');
+		expect(transOrder('violin')).toEqual([]);
+		// A double bass sounds an octave lower: the same note, nothing to transpose.
+		expect(transOrder('doubleBass')).toEqual([]);
+	});
+
+	it('works out the note that sounds and the note to play', () => {
+		const c5 = staffPosition('treble', pitchOf('C5'));
+		// A B♭ trumpet's written C sounds B♭, a whole tone lower.
+		expect(questionFor(`trans:trumpet:concert:${c5}`, 'treble')).toMatchObject({ answer: 10, shift: -2, part: null });
+		// A horn in F sounds a fifth lower: written C is F.
+		expect(questionFor(`trans:horn:concert:${c5}`, 'treble')).toMatchObject({ answer: 5, shift: -7 });
+		// A trumpet part in D on a B♭ trumpet: read a major third higher, C → E.
+		expect(questionFor(`trans:trumpet:+2:${c5}`, 'treble')).toMatchObject({ answer: 4, shift: 4, part: { step: 1, alter: 0, semitones: 2 } });
+		// A horn part in E♭ on an F horn: a whole tone lower, C → B♭.
+		expect(questionFor(`trans:horn:-9:${c5}`, 'treble')).toMatchObject({ answer: 10, shift: -2 });
+		// A C part on an alto saxophone: a minor third lower, C → A.
+		expect(questionFor(`trans:altoSax:+0:${c5}`, 'treble')).toMatchObject({ answer: 9, shift: -3 });
+		expect(questionFor(`trans:trumpet:+7:${c5}`, 'treble')).toBeNull();
+		expect(kindOf('trans:horn:-9:4')).toBe('trans');
 	});
 });

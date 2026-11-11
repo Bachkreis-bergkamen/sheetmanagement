@@ -707,7 +707,7 @@ export const de = {
 			offline: 'Stimmen in „Meine Noten“ für die Probe ohne Netz speichern.',
 			seasons: 'Kleine Zeichnungen zur Jahreszeit: Schneeflocke, Blüte, Kürbis.',
 			tickets: 'Karten für Konzerte über die Website reservieren, bezahlt an der Abendkasse, mit Einlass per Handy.',
-			drills: 'Kurze Übungen zu Notenlesen, Tonarten und Tönen. Sie laufen ganz auf dem Gerät, nichts wird gesendet.'
+			drills: 'Kurze Übungen zu Notenlesen, Tonarten, Intervallen, Tönen und Transponieren. Sie laufen auf dem Gerät; nur die Übezeit zählt für die Probenzeit.'
 		} as Record<string, string>,
 		instruments: 'Instrumente',
 		instrumentsLead:
@@ -1958,8 +1958,8 @@ export const de = {
 	/** The Übebereich (#300, #315): drills on the device, nothing sent. */
 	drills: {
 		title: 'Übebereich',
-		lead: 'Ein paar Minuten am Tag: Noten lesen, Tonarten erkennen, Töne treffen. Die Übungen passen sich dir an.',
-		private: 'Alles bleibt auf diesem Gerät: dein Fortschritt und das Mikrofon. Nichts wird gesendet.',
+		lead: 'Ein paar Minuten am Tag: Noten lesen, Tonarten erkennen, Intervalle hören, Töne treffen, transponieren. Die Übungen passen sich dir an.',
+		private: 'Dein Fortschritt und das Mikrofon bleiben auf diesem Gerät. Gesendet wird höchstens die Übezeit, wenn du die Probenzeit aufzeichnest.',
 		unsaved: 'Dieser Browser kann den Fortschritt nicht speichern (ein privates Fenster?). Üben geht trotzdem.',
 		instrument: 'Instrument',
 		clef: 'Schlüssel',
@@ -1997,7 +1997,9 @@ export const de = {
 			mix: { title: 'Tagesrunde', lead: 'Noten und Tonarten gemischt, was heute dran ist.' },
 			notes: { title: 'Noten lesen', lead: 'Welcher Ton ist das? So schnell, wie du sicher bist.' },
 			keys: { title: 'Tonarten', lead: 'Welche Tonart hat diese Vorzeichnung?' },
-			play: { title: 'Töne spielen', lead: 'Spiel den Ton; das Mikrofon hört, ob er stimmt.' }
+			play: { title: 'Töne spielen', lead: 'Spiel den Ton; das Mikrofon hört, ob er stimmt.' },
+			ear: { title: 'Intervalle hören', lead: 'Zwei Töne: wie weit liegen sie auseinander?' },
+			trans: { title: 'Transponieren', lead: 'Welcher Ton klingt, und wie liest du Stimmen in anderen Stimmungen?' }
 		},
 		start: 'Los',
 		again: 'Noch eine Runde',
@@ -2051,8 +2053,26 @@ export const de = {
 			'Was du sicher weißt, kommt erst nach Tagen wieder, dann nach Wochen. So bleibt es im Gedächtnis.',
 			'Neues kommt dazu, wenn die meisten Antworten stimmen. Läuft es zäh, mischt die Übung Bekanntes ein.',
 			'Sicher heißt richtig und schnell: Beim Vom-Blatt-Spielen ist keine Zeit zum Abzählen.',
-			'Weißt du einen Ton schon beim ersten Mal schnell, wird er übersprungen; so kommst du rasch zu dem, was neu ist.'
+			'Weißt du einen Ton schon beim ersten Mal schnell, wird er übersprungen; so kommst du rasch zu dem, was neu ist.',
+			'Es wird nach und nach schwerer: weitere Schlüssel deines Instruments (beim Cello Bass, dann Tenor, dann Violin), Intervalle von klar verschieden bis leicht verwechselbar, Stimmen in anderen Stimmungen.'
 		] as string[],
+		/** Intervals by their size in semitones. */
+		intervals: ['Prime', 'kleine Sekunde', 'große Sekunde', 'kleine Terz', 'große Terz', 'Quarte', 'Tritonus', 'Quinte', 'kleine Sexte', 'große Sexte', 'kleine Septime', 'große Septime', 'Oktave'] as string[],
+		whichInterval: (harmonic: boolean) => (harmonic ? 'Welches Intervall, zusammen gespielt?' : 'Welches Intervall?'),
+		listen: 'Anhören',
+		intervalWas: (name: string, semitones: number) => `Das war: ${name} (${semitones} ${semitones === 1 ? 'Halbton' : 'Halbtöne'}).`,
+		/** "eine große Sekunde tiefer": `semitones` up (positive) or down. */
+		shift: (name: string, semitones: number) => `${Math.abs(semitones) === 6 ? 'einen' : 'eine'} ${name} ${semitones > 0 ? 'höher' : 'tiefer'}`,
+		partIn: (key: string) => `Stimme in ${key}`,
+		transQuestion: (part: string | null) => (part ? `${part}: welchen Ton spielst du?` : 'Welcher Ton klingt?'),
+		concertTip: (instrument: string, shift: string) => `Merkhilfe: ${instrument} klingt ${shift} als notiert.`,
+		partTip: (shift: string) => `Merkhilfe: alles ${shift} lesen.`,
+		clefAuto: (names: string) => `Automatisch: ${names}`,
+		ladder: 'Schlüssel nach und nach',
+		clefLocked: (clef: string, before: string, have: number, need: number) => `${clef}: kommt, wenn ${need} Töne im ${before} sicher sitzen (jetzt ${have}).`,
+		newClef: (clef: string) => `Neu freigeschaltet: ${clef}!`,
+		treeOn: 'Deine Zeit in den Runden zählt auch für deinen Übebaum.',
+		treeOff: 'Mit „Probenzeit aufzeichnen“ im Profil wächst dein Übebaum auch mit diesen Runden.',
 		reset: 'Fortschritt auf diesem Gerät löschen',
 		confirmReset: 'Deinen ganzen Übe-Fortschritt auf diesem Gerät löschen? Das lässt sich nicht rückgängig machen.',
 		letters: ['C', 'D', 'E', 'F', 'G', 'A', 'H'] as string[],
@@ -2074,7 +2094,7 @@ export const de = {
 		title: 'Probenzeit',
 		lead: 'Wie lange du die Noten deines Instruments geöffnet hattest, nach Woche und Monat, und ein Baum, der damit wächst.',
 		private: 'Nur du siehst deine Probenzeit: nicht die Verwaltung, nicht andere Mitglieder, in keiner Auswertung.',
-		how: 'Gezählt wird, solange eine Stimme deines Instruments aus „Meine Noten“ in der App offen und die Seite sichtbar ist. Nach 20 Minuten ohne Tippen, Blättern oder Taste pausiert die Zählung; ein Öffnen zählt höchstens 3 Stunden, ein Tag höchstens 12. Noten in Drive oder auf Papier zählen nicht.',
+		how: 'Gezählt wird, solange eine Stimme deines Instruments aus „Meine Noten“ in der App offen und die Seite sichtbar ist. Nach 20 Minuten ohne Tippen, Blättern oder Taste pausiert die Zählung; ein Öffnen zählt höchstens 3 Stunden, ein Tag höchstens 12. Runden im Übebereich zählen auch, mit der Zeit, in der du antwortest. Noten in Drive oder auf Papier zählen nicht.',
 		question: 'Möchtest du deine Probenzeit aufzeichnen?',
 		turnOn: 'Probenzeit aufzeichnen',
 		turnOff: 'Aufzeichnen ausschalten',

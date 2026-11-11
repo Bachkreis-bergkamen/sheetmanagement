@@ -1,18 +1,20 @@
 <script lang="ts">
-	import { keySignature, ledgerLines, SIGNATURE_POSITIONS, staffPosition, type Clef, type Pitch } from '#lib/practice/drills/theory.ts';
+	import { alterInKey, keySignature, ledgerLines, SIGNATURE_POSITIONS, staffPosition, type Clef, type Pitch } from '#lib/practice/drills/theory.ts';
 
 	/**
-	 * One staff for the Übebereich's drills (#300): a clef, a key signature and at most one whole
-	 * note, drawn in SVG in the text colour, so it needs no music font and works offline in either
-	 * theme. `state` colours the note after an answer.
+	 * One staff for the Übebereich's drills (#300): a clef, a key signature and up to two whole
+	 * notes, one after the other or `together` as a chord, drawn in SVG in the text colour, so it
+	 * needs no music font and works offline in either theme. A note the key signature doesn't
+	 * account for gets its accidental. `state` colours the notes after an answer.
 	 */
 	let {
 		clef,
 		fifths = 0,
-		pitch = null,
+		notes = [],
+		together = false,
 		state = null,
 		label
-	}: { clef: Clef; fifths?: number; pitch?: Pitch | null; state?: 'right' | 'wrong' | null; label: string } = $props();
+	}: { clef: Clef; fifths?: number; notes?: Pitch[]; together?: boolean; state?: 'right' | 'wrong' | null; label: string } = $props();
 
 	/** Staff units: a space is 10, the bottom line at BASE, room for three ledger lines either side. */
 	const BASE = 90;
@@ -20,9 +22,17 @@
 	const signature = $derived(keySignature(fifths));
 	const signatureAt = $derived(SIGNATURE_POSITIONS[clef][fifths >= 0 ? 'sharps' : 'flats']);
 	const SIGNATURE_X = 46;
-	const noteX = $derived(SIGNATURE_X + signature.length * 10 + (pitch ? 34 : 0));
-	const width = $derived(Math.max(150, noteX + 34));
-	const position = $derived(pitch ? staffPosition(clef, pitch) : 0);
+	/** Where each note goes: side by side, or stacked, a second's upper note beside the lower one. */
+	const placed = $derived(
+		notes.map((pitch, i) => {
+			const position = staffPosition(clef, pitch);
+			const accidental = pitch.alter !== alterInKey(pitch.step, fifths) ? pitch.alter : null;
+			const second = together && i > 0 && Math.abs(position - staffPosition(clef, notes[i - 1])) === 1;
+			const x = SIGNATURE_X + signature.length * 10 + 40 + (together ? (second ? 13 : 0) : i * 46);
+			return { position, accidental, x };
+		})
+	);
+	const width = $derived(Math.max(150, Math.max(SIGNATURE_X + signature.length * 10, ...placed.map((note) => note.x)) + 34));
 	/** The C clef's middle: the alto's third line, the tenor's fourth. */
 	const cCentre = $derived(clef === 'alto' ? y(4) : y(6));
 </script>
@@ -60,29 +70,39 @@
 		{/if}
 	</g>
 
-	{#each signature as accidental, i (i)}
-		{@const at = y(signatureAt[i])}
-		<g transform="translate({SIGNATURE_X + i * 10 + 4} {at})" class="accidental">
-			{#if accidental.alter > 0}
+	{#snippet accidentalSign(alter: number, x: number, at: number)}
+		<g transform="translate({x} {at})" class="accidental">
+			{#if alter > 0}
 				<line x1="-1.8" x2="-1.8" y1="-9" y2="11" class="thin" />
 				<line x1="1.8" x2="1.8" y1="-11" y2="9" class="thin" />
 				<line x1="-4.2" x2="4.2" y1="-2" y2="-4.6" class="bar" />
 				<line x1="-4.2" x2="4.2" y1="4.6" y2="2" class="bar" />
-			{:else}
+			{:else if alter < 0}
 				<line x1="-2.5" x2="-2.5" y1="-14" y2="4.5" class="thin" />
 				<path d="M-2.5 4.5 C4.5 0 4.5 -6.5 -2.5 -2.5" class="pen" />
+			{:else}
+				<!-- A natural: two stems and two slanted bars. -->
+				<line x1="-2.2" x2="-2.2" y1="-11" y2="5" class="thin" />
+				<line x1="2.2" x2="2.2" y1="-5" y2="11" class="thin" />
+				<line x1="-2.2" x2="2.2" y1="-1.5" y2="-3.5" class="bar" />
+				<line x1="-2.2" x2="2.2" y1="4" y2="2" class="bar" />
 			{/if}
 		</g>
+	{/snippet}
+
+	{#each signature as accidental, i (i)}
+		{@render accidentalSign(accidental.alter, SIGNATURE_X + i * 10 + 4, y(signatureAt[i]))}
 	{/each}
 
-	{#if pitch}
-		<g class="note" class:right={state === 'right'} class:wrong={state === 'wrong'}>
-			{#each ledgerLines(position) as line (line)}
-				<line x1={noteX - 11} x2={noteX + 11} y1={y(line)} y2={y(line)} class="line ledger" />
+	<g class="note" class:right={state === 'right'} class:wrong={state === 'wrong'}>
+		{#each placed as note, i (i)}
+			{#each ledgerLines(note.position) as line (line)}
+				<line x1={note.x - 11} x2={note.x + 11} y1={y(line)} y2={y(line)} class="line ledger" />
 			{/each}
-			<ellipse cx={noteX} cy={y(position)} rx="6.4" ry="4.4" transform="rotate(-20 {noteX} {y(position)})" class="head" />
-		</g>
-	{/if}
+			{#if note.accidental !== null}{@render accidentalSign(note.accidental, note.x - 16 - (together && i > 0 ? 10 : 0), y(note.position))}{/if}
+			<ellipse cx={note.x} cy={y(note.position)} rx="6.4" ry="4.4" transform="rotate(-20 {note.x} {y(note.position)})" class="head" />
+		{/each}
+	</g>
 </svg>
 
 <style>

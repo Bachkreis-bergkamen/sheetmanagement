@@ -1,6 +1,6 @@
 import type { ProfileId } from './instruments.ts';
 import type { States } from './scheduler.ts';
-import type { Clef } from './theory.ts';
+import { CLEFS, type Clef } from './theory.ts';
 
 /**
  * What the Übebereich keeps on the device (#300): every item's progress, and per day how much
@@ -20,9 +20,13 @@ export interface DrillData {
 	/** By local date, "2026-11-11". */
 	days: Record<string, DayStats>;
 	settings: { instrument?: ProfileId; clef?: Clef; sound?: boolean };
+	/** Clefs opened on the ladder (#300); they stay open. */
+	opened: Clef[];
+	/** Seconds of practice not yet counted for the practice tree (offline, or the request failed). */
+	unsent: number;
 }
 
-export const emptyData = (): DrillData => ({ version: 1, items: {}, days: {}, settings: {} });
+export const emptyData = (): DrillData => ({ version: 1, items: {}, days: {}, settings: {}, opened: [], unsent: 0 });
 
 /** Data read back from storage, with anything malformed dropped. */
 export function readData(value: unknown): DrillData {
@@ -38,8 +42,13 @@ export function readData(value: unknown): DrillData {
 		if (/^\d{4}-\d{2}-\d{2}$/.test(day) && stats && Number.isFinite(stats.answers)) data.days[day] = { answers: stats.answers | 0, right: stats.right | 0, ms: stats.ms | 0 };
 	}
 	if (raw.settings && typeof raw.settings === 'object') data.settings = { ...raw.settings };
+	if (Array.isArray(raw.opened)) data.opened = raw.opened.filter((clef): clef is Clef => (CLEFS as readonly string[]).includes(clef));
+	if (Number.isFinite(raw.unsent) && raw.unsent! > 0) data.unsent = Math.min(MAX_UNSENT, Math.round(raw.unsent!));
 	return data;
 }
+
+/** At most this much kept waiting for the tree: a few days offline, not a tab left open for weeks. */
+export const MAX_UNSENT = 3 * 3600;
 
 /** The local date, "2026-11-11". */
 export const dayKey = (date = new Date()) =>
