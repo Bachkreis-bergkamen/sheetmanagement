@@ -34,7 +34,6 @@ export const de = {
 		profile: 'Profil',
 		details: 'Angaben ergänzen',
 		chronicle: 'Chronik',
-		drills: 'Übebereich',
 		menu: 'Alle Seiten',
 		close: 'Menü schließen',
 		crumbs: 'Seitenpfad',
@@ -133,7 +132,6 @@ export const de = {
 			'/meine-noten': 'Deine Stimmen fürs nächste Konzert.',
 			'/kalender': 'Proben und Konzerte.',
 			'/chronik': 'Alle Konzerte seit den Anfängen, in Zahlen.',
-			'/ueben': 'Noten lesen, Tonarten, Töne treffen: ein paar Minuten am Tag.',
 			'/profil': 'Instrument, Orchester, eigener Kalender.',
 			'/stuecke': 'Alle Stücke mit allen Stimmen.',
 			'/stuecke/angaben': 'Fehlende Angaben zu Stücken ergänzen.',
@@ -706,8 +704,7 @@ export const de = {
 			calendarFeed: 'Persönlicher Kalender zum Abonnieren im Profil.',
 			offline: 'Stimmen in „Meine Noten“ für die Probe ohne Netz speichern.',
 			seasons: 'Kleine Zeichnungen zur Jahreszeit: Schneeflocke, Blüte, Kürbis.',
-			tickets: 'Karten für Konzerte über die Website reservieren, bezahlt an der Abendkasse, mit Einlass per Handy.',
-			drills: 'Kurze Übungen zu Notenlesen, Tonarten und Tönen. Sie laufen ganz auf dem Gerät, nichts wird gesendet.'
+			tickets: 'Karten für Konzerte über die Website reservieren, bezahlt an der Abendkasse, mit Einlass per Handy.'
 		} as Record<string, string>,
 		instruments: 'Instrumente',
 		instrumentsLead:
@@ -748,8 +745,7 @@ export const de = {
 		calendarFeed: 'Kalender-Abo',
 		offline: 'Noten offline speichern',
 		seasons: 'Jahreszeiten',
-		tickets: 'Konzertkarten',
-		drills: 'Übebereich'
+		tickets: 'Konzertkarten'
 	},
 	/** Concert tickets (docs/tickets-plan.md): the sale's setup, the mail, the ticket page and the door. */
 	tickets: {
@@ -1954,119 +1950,6 @@ export const de = {
 		myVote: 'Mein +1',
 		yes: 'ja',
 		no: 'nein'
-	},
-	/** The Übebereich (#300, #315): drills on the device, nothing sent. */
-	drills: {
-		title: 'Übebereich',
-		lead: 'Ein paar Minuten am Tag: Noten lesen, Tonarten erkennen, Töne treffen. Die Übungen passen sich dir an.',
-		private: 'Alles bleibt auf diesem Gerät: dein Fortschritt und das Mikrofon. Nichts wird gesendet.',
-		unsaved: 'Dieser Browser kann den Fortschritt nicht speichern (ein privates Fenster?). Üben geht trotzdem.',
-		instrument: 'Instrument',
-		clef: 'Schlüssel',
-		clefs: { treble: 'Violinschlüssel', bass: 'Bassschlüssel', alto: 'Altschlüssel', tenor: 'Tenorschlüssel' },
-		instruments: {
-			violin: 'Violine',
-			viola: 'Bratsche',
-			cello: 'Violoncello',
-			doubleBass: 'Kontrabass',
-			flute: 'Flöte',
-			piccolo: 'Piccolo',
-			oboe: 'Oboe',
-			englishHorn: 'Englischhorn',
-			clarinet: 'Klarinette in B',
-			bassClarinet: 'Bassklarinette',
-			bassoon: 'Fagott',
-			sopranoSax: 'Sopransaxophon',
-			altoSax: 'Altsaxophon',
-			tenorSax: 'Tenorsaxophon',
-			baritoneSax: 'Baritonsaxophon',
-			horn: 'Horn in F',
-			trumpet: 'Trompete in B',
-			trombone: 'Posaune',
-			euphonium: 'Euphonium, Tenorhorn',
-			tuba: 'Tuba',
-			timpani: 'Pauken',
-			mallets: 'Stabspiele',
-			keys: 'Tasteninstrument, Harfe',
-			highVoice: 'Hohe Stimme',
-			lowVoice: 'Tiefe Stimme',
-			treble: 'Anderes, im Violinschlüssel',
-			bass: 'Anderes, im Bassschlüssel'
-		},
-		kinds: {
-			mix: { title: 'Tagesrunde', lead: 'Noten und Tonarten gemischt, was heute dran ist.' },
-			notes: { title: 'Noten lesen', lead: 'Welcher Ton ist das? So schnell, wie du sicher bist.' },
-			keys: { title: 'Tonarten', lead: 'Welche Tonart hat diese Vorzeichnung?' },
-			play: { title: 'Töne spielen', lead: 'Spiel den Ton; das Mikrofon hört, ob er stimmt.' }
-		},
-		start: 'Los',
-		again: 'Noch eine Runde',
-		back: 'Zur Übersicht',
-		stop: 'Runde beenden',
-		mastered: (mastered: number, total: number) => `${mastered} von ${total} sicher`,
-		due: (count: number) => (count === 1 ? '1 heute dran' : `${count} heute dran`),
-		fresh: 'Noch nicht angefangen',
-		today: (minutes: number, goal: number) => `Heute ${minutes} von ${goal} Minuten`,
-		streak: (days: number) => (days === 1 ? '1 Tag in Folge' : `${days} Tage in Folge`),
-		streakHint: 'Ein freier Tag dazwischen unterbricht die Serie nicht.',
-		question: (n: number, of: number) => `${n} / ${of}`,
-		new: 'Neu',
-		whichNote: 'Welcher Ton?',
-		whichKey: (mode: 'major' | 'minor') => (mode === 'major' ? 'Welche Dur-Tonart?' : 'Welche Moll-Tonart?'),
-		playThis: 'Spiel diesen Ton',
-		right: 'Richtig!',
-		rightSlow: 'Richtig. Beim nächsten Mal schneller?',
-		/** Wrong note: which one it was, and where the one named would be (`steps` letters up or down). */
-		wrongNote: (right: string, given: string, steps: number) =>
-			`Das ist ${right}. ${given} läge ${Math.abs(steps)} ${Math.abs(steps) === 1 ? 'Stufe' : 'Stufen'} ${steps > 0 ? 'höher' : 'tiefer'}.`,
-		itIs: (right: string) => `Das ist ${right}.`,
-		accidentals: (count: number, sharps: boolean) => (count === 0 ? 'ohne Vorzeichen' : `${count} ${sharps ? '♯' : '♭'}`),
-		tips: {
-			sharps: 'Merkhilfe: Das letzte Kreuz liegt einen Halbton unter dem Grundton.',
-			flats: 'Merkhilfe: Das vorletzte ♭ nennt die Tonart (ein ♭ allein: F-Dur).',
-			minor: 'Merkhilfe: Moll liegt eine kleine Terz unter der Dur-Tonart mit denselben Vorzeichen.'
-		},
-		inTune: 'Getroffen, sauber!',
-		cents: (cents: number) => `Getroffen, ${Math.abs(cents)} Cent zu ${cents > 0 ? 'hoch' : 'tief'}.`,
-		heard: (note: string) => `Gehört: ${note}.`,
-		octave: 'Richtiger Ton, andere Oktave.',
-		listening: 'Hört zu …',
-		micStart: 'Mikrofon an und los',
-		sounding: (written: string, sounding: string) => `Geschrieben ${written}, klingt ${sounding}.`,
-		skip: 'Weiß ich nicht',
-		next: 'Weiter',
-		sound: 'Ton nach der Antwort spielen',
-		replay: 'Ton anhören',
-		keyboard: 'Auch mit der Tastatur: C D E F G A H, Leertaste für weiter.',
-		done: 'Runde geschafft',
-		doneRight: (right: number, total: number) => `${right} von ${total} richtig`,
-		doneTime: (seconds: string) => `meist ${seconds} s pro Antwort`,
-		doneNew: (count: number) => (count === 1 ? '1 Neues dazugelernt' : `${count} Neue dazugelernt`),
-		doneMastered: (count: number) => `${count} sicher`,
-		noPlay: 'Für dieses Instrument gibt es noch keine Spielübung.',
-		how: 'So funktioniert es',
-		howItems: [
-			'Kurze Runden mit 20 Fragen. Was du falsch hattest, kommt in derselben Runde wieder.',
-			'Was du sicher weißt, kommt erst nach Tagen wieder, dann nach Wochen. So bleibt es im Gedächtnis.',
-			'Neues kommt dazu, wenn die meisten Antworten stimmen. Läuft es zäh, mischt die Übung Bekanntes ein.',
-			'Sicher heißt richtig und schnell: Beim Vom-Blatt-Spielen ist keine Zeit zum Abzählen.',
-			'Weißt du einen Ton schon beim ersten Mal schnell, wird er übersprungen; so kommst du rasch zu dem, was neu ist.'
-		] as string[],
-		reset: 'Fortschritt auf diesem Gerät löschen',
-		confirmReset: 'Deinen ganzen Übe-Fortschritt auf diesem Gerät löschen? Das lässt sich nicht rückgängig machen.',
-		letters: ['C', 'D', 'E', 'F', 'G', 'A', 'H'] as string[],
-		/** The keys that answer each letter. */
-		letterKeys: ['c', 'd', 'e', 'f', 'g', 'a', 'h'] as string[],
-		noteName: (step: number, alter: number): string => {
-			if (step === 6 && alter === -1) return 'B';
-			if (step === 6 && alter === -2) return 'Heses';
-			const letter = 'CDEFGAH'[step];
-			// Es and As, not Ees and Aes.
-			const vowel = step === 2 || step === 5;
-			const suffix = { [-2]: vowel ? 'ses' : 'eses', [-1]: vowel ? 's' : 'es', 0: '', 1: 'is', 2: 'isis' }[alter] ?? '';
-			return letter + suffix;
-		},
-		keyName: (name: string, mode: 'major' | 'minor') => (mode === 'major' ? `${name}-Dur` : `${name.toLowerCase()}-Moll`)
 	},
 	/** Practice time ("Probenzeit"): opt-in on /profil, only visible to the member. */
 	practice: {
