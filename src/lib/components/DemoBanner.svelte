@@ -75,12 +75,16 @@
 		color: var(--accent);
 	}
 
-	/* One slim row on phones: the explanation is in the tooltip and the README. */
+	/*
+	 * One slim row on phones: the explanation is in the tooltip and the README. A second row
+	 * where the words are wider than the screen (three roles since the parents' area): a bar
+	 * wider than the phone widens the whole page, and taps land beside their buttons.
+	 */
 	@media (max-width: 640px) {
 		.demo {
-			flex-wrap: nowrap;
+			flex-wrap: wrap;
 			justify-content: space-between;
-			gap: var(--space-2);
+			gap: 4px var(--space-2);
 			padding: 6px var(--space-4);
 		}
 
