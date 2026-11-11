@@ -3,13 +3,14 @@ import type { Instrument, OrchestraConfig } from '../types.ts';
 const CYMBALS = ['Crash-Becken', 'Ride-Becken', 'China-Becken', 'Hängendes Becken', 'Hi-Hat', 'Fingerzimbeln'];
 const SMALL_PERCUSSION = [
 	'Triangel', 'Tomtoms', 'Konzerttoms', 'Rototoms', 'Bongos', 'Congas', 'Djembe', 'Kuhglocke', 'Amboss', 'Claves', 'Holzblock', 'Tempelblocks',
-	'Güiro', 'Maracas', 'Shaker', 'Regenmacher', 'Ratsche', 'Peitsche', 'Vibraslap', 'Flexaton', 'Schellen', 'Windspiel', 'Mark Tree'
+	'Güiro', 'Maracas', 'Shaker', 'Regenmacher', 'Ratsche', 'Peitsche', 'Vibraslap', 'Flexaton', 'Schellen', 'Windspiel', 'Mark Tree',
+	'Agogo Bells', 'Brake Drum', 'Steel Drums'
 ];
 /** What a mallet part ("Mallet Percussion: Xylophon & Marimba") may hold. */
 const MALLETS = ['Glockenspiel', 'Xylophon', 'Marimba', 'Vibraphon'];
 /** What a generic percussion part ("Percussion I: Triangel & Becken") may hold. */
 const PERCUSSION_PARTS = [
-	'Kleine Trommel', 'Trommel', 'Große Trommel', 'Becken', ...CYMBALS, 'Tamburin', 'Tamtam', ...SMALL_PERCUSSION,
+	'Snare Drum', 'Trommel', 'Bass Drum', 'Drumset', 'Becken', ...CYMBALS, 'Tamburin', 'Tamtam', ...SMALL_PERCUSSION,
 	...MALLETS, 'Mallet Percussion'
 ];
 
@@ -18,7 +19,7 @@ const PERCUSSION_PARTS = [
  * names still mean the instrument alone, not Percussion and the instrument.
  */
 function withPercussionPrefix(instrument: Instrument): Instrument {
-	if (![...SMALL_PERCUSSION, ...CYMBALS, 'Kleine Trommel'].includes(instrument.name)) return instrument;
+	if (![...SMALL_PERCUSSION, ...CYMBALS, 'Snare Drum'].includes(instrument.name)) return instrument;
 	const words = [instrument.name, ...(instrument.aliases ?? [])];
 	return { ...instrument, aliases: [...words.slice(1), ...words.map((word) => `Percussion ${word}`)] };
 }
@@ -70,18 +71,21 @@ export const bachkreis: OrchestraConfig = {
 		{ name: 'Blech', family: 'blech', aliases: ['Blechbläser', 'Brass'] },
 
 		{ name: 'Pauke', family: 'schlagwerk', common: true, aliases: ['Pauken', 'Timpani', 'Timp', 'Timpano', 'Kettledrums'] },
-		{ name: 'Schlagwerk', family: 'schlagwerk', common: true, aliases: ['Schlagzeug', 'Drum Set', 'Drumset', 'Drums'], holds: PERCUSSION_PARTS },
+		{ name: 'Schlagwerk', family: 'schlagwerk', common: true, aliases: ['Schlagzeug'], holds: PERCUSSION_PARTS },
+		// The drum kit of pop and big band arrangements; German players say Drumset too (#317).
+		{ name: 'Drumset', family: 'schlagwerk', aliases: ['Drum Set', 'Drum Kit', 'Drumkit', 'Drums'] },
 		{
 			name: 'Percussion',
 			family: 'schlagwerk',
 			aliases: ['Perc', 'Kleines Schlagwerk', 'Auxiliary Percussion', 'Aux Perc'],
 			holds: PERCUSSION_PARTS,
 			// Small percussion: no instrument of its own, but named, since a piece often has several.
-			variants: ['Agogo Bells', 'Agogo', 'Low Drum', 'Kastagnetten', 'Castanets', 'Cabasa', 'Timbales', 'Cajon']
+			variants: ['Low Drum', 'Kastagnetten', 'Castanets', 'Cabasa', 'Timbales', 'Cajon']
 		},
 		// Small percussion with parts of its own.
 		{ name: 'Triangel', family: 'schlagwerk', aliases: ['Triangle', 'Triangolo'] },
-		{ name: 'Kleine Trommel', family: 'schlagwerk', aliases: ['Snare Drum', 'Snare', 'Snaredrum'] },
+		// Snare and bass drum keep their English names in German too (#317); the German words still read.
+		{ name: 'Snare Drum', family: 'schlagwerk', aliases: ['Kleine Trommel', 'Snare', 'Snaredrum'] },
 		{ name: 'Tomtoms', family: 'schlagwerk', aliases: ['Tom-Toms', 'Tom Toms', 'Toms', 'Tom Drums'] },
 		{ name: 'Konzerttoms', family: 'schlagwerk', aliases: ['Concert Toms', 'Konzert-Toms', 'Concert Tom'] },
 		{ name: 'Rototoms', family: 'schlagwerk', aliases: ['Rototom', 'Roto Toms', 'Roto-Toms'] },
@@ -110,6 +114,9 @@ export const bachkreis: OrchestraConfig = {
 		{ name: 'Schellen', family: 'schlagwerk', aliases: ['Sleigh Bells', 'Schlittenglocken', 'Schellenkranz'] },
 		{ name: 'Windspiel', family: 'schlagwerk', aliases: ['Wind Chimes', 'Windchimes', 'Glass Chimes'] },
 		{ name: 'Mark Tree', family: 'schlagwerk', aliases: ['Marktree', 'Bar Chimes', 'Barchimes', 'Chimes Tree'] },
+		{ name: 'Agogo Bells', family: 'schlagwerk', aliases: ['Agogo', 'Agogô', 'Agogo Bell'] },
+		{ name: 'Brake Drum', family: 'schlagwerk', aliases: ['Brake Drums', 'Bremstrommel', 'Bremstrommeln', 'Automobile Brake Drum', 'Auto Brake Drum'] },
+		{ name: 'Steel Drums', family: 'schlagwerk', aliases: ['Steel Drum', 'Steeldrum', 'Steeldrums', 'Steel Pan', 'Steelpan', 'Steel Pans', 'Steelpans'] },
 		{
 			name: 'Mallet Percussion',
 			family: 'schlagwerk',
@@ -123,7 +130,7 @@ export const bachkreis: OrchestraConfig = {
 		{ name: 'Glockenspiel', family: 'schlagwerk', aliases: ['Bells', 'Orchestra Bells', 'Orchestral Bells'] },
 		{ name: 'Xylophon', family: 'schlagwerk', aliases: ['Xylophone'] },
 		{ name: 'Becken', family: 'schlagwerk', aliases: ['Cymbals', 'Cymbal', 'Piatti', 'Clash Cymbals', 'Beckenpaar'] },
-		{ name: 'Große Trommel', family: 'schlagwerk', aliases: ['Gran Cassa', 'Bass Drum', 'Grosse Trommel', 'Bassdrum'] },
+		{ name: 'Bass Drum', family: 'schlagwerk', aliases: ['Große Trommel', 'Grosse Trommel', 'Gran Cassa', 'Bassdrum'] },
 		{ name: 'Trommel', family: 'schlagwerk', aliases: ['Rührtrommel', 'Marschtrommel', 'Field Drum', 'Tenor Drum'] },
 		{ name: 'Tamburin', family: 'schlagwerk', aliases: ['Tambourine'] },
 		{ name: 'Tamtam', family: 'schlagwerk', aliases: ['Tam Tam', 'Gong'] },
@@ -296,11 +303,13 @@ export const bachkreis: OrchestraConfig = {
 		Holz: ['Flöte', 'Piccolo', 'Oboe', 'Englischhorn', 'Klarinette', 'Altklarinette', 'Bassklarinette', 'Fagott'],
 		Blech: ['Horn', 'Trompete', 'Posaune', 'Bassposaune', 'Bariton', 'Tuba'],
 		Saxophon: ['Sopran-Saxophon', 'Alt-Saxophon', 'Tenor-Saxophon', 'Bariton-Saxophon'],
-		Percussion: ['Schlagwerk', 'Pauke', 'Glockenspiel', 'Xylophon', 'Becken', 'Große Trommel', 'Trommel', 'Tamburin', 'Tamtam'],
-		Schlagwerk: ['Percussion', 'Becken', 'Große Trommel', 'Trommel', 'Tamburin', 'Tamtam'],
+		Percussion: ['Schlagwerk', 'Pauke', 'Glockenspiel', 'Xylophon', 'Becken', 'Bass Drum', 'Trommel', 'Tamburin', 'Tamtam'],
+		Schlagwerk: ['Percussion', 'Becken', 'Bass Drum', 'Trommel', 'Tamburin', 'Tamtam'],
+		// The percussionists play the drum kit.
+		Drumset: ['Schlagwerk', 'Percussion'],
 		// Small percussion with parts of its own is played by the percussionists, as it was under "Percussion".
 		...Object.fromEntries(SMALL_PERCUSSION.map((name) => [name, ['Schlagwerk', 'Percussion']])),
-		'Kleine Trommel': ['Trommel', 'Schlagwerk', 'Percussion'],
+		'Snare Drum': ['Trommel', 'Schlagwerk', 'Percussion'],
 		// Marimba and vibraphone were under "Mallet Percussion" and are played by its players.
 		Marimba: ['Mallet Percussion', 'Schlagwerk', 'Percussion'],
 		Vibraphon: ['Mallet Percussion', 'Schlagwerk', 'Percussion'],

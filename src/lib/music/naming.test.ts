@@ -173,10 +173,14 @@ describe('names from the archive that needed a person (#271)', () => {
 		expect(run(['Ode_to_Joy-Low_Drum.pdf', 'Ode_to_Joy-Triangle.pdf', 'Ode_to_Joy-Agogo_Bells.pdf'], 'Ode to Joy', ['Ode to Joy'])).toEqual([
 			'Ode to Joy - Percussion Low Drum.pdf',
 			'Ode to Joy - Triangel.pdf',
-			'Ode to Joy - Percussion Agogo Bells.pdf'
+			'Ode to Joy - Agogo Bells.pdf'
 		]);
 		// Named that way, they stay.
-		expect(check(['Ode to Joy - Percussion Agogo Bells.pdf'], 'Ode to Joy')).toEqual([['Ode to Joy - Percussion Agogo Bells.pdf', 'ok', undefined]]);
+		expect(check(['Ode to Joy - Percussion Low Drum.pdf'], 'Ode to Joy')).toEqual([['Ode to Joy - Percussion Low Drum.pdf', 'ok', undefined]]);
+		// Agogo bells have parts of their own now (#317).
+		expect(check(['Ode to Joy - Percussion Agogo Bells.pdf'], 'Ode to Joy')).toEqual([
+			['Ode to Joy - Percussion Agogo Bells.pdf', 'rename', 'Ode to Joy - Agogo Bells.pdf']
+		]);
 		// Older names of percussion that now has parts of its own mean that instrument alone.
 		expect(check(['Ode to Joy - Percussion Triangle.pdf'], 'Ode to Joy')).toEqual([['Ode to Joy - Percussion Triangle.pdf', 'rename', 'Ode to Joy - Triangel.pdf']]);
 	});
