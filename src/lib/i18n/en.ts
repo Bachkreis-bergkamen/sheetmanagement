@@ -243,7 +243,9 @@ export const en: Texts = {
 		},
 		driveHint: 'Opens in Google Drive (needs access to the music folder).',
 		portrait: (name: string) => `Portrait of ${name}`,
-		portraitCredit: 'Image: Wikimedia Commons'
+		portraitCredit: 'Image: Wikimedia Commons',
+		filmPicture: (film: string) => `Picture for the film ${film}`,
+		iconCredit: 'Icon: Iconify'
 	},
 	concerts: {
 		title: 'Calendar',

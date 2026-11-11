@@ -316,6 +316,8 @@ export function demoSheet(now: number): Map<string, string[][]> {
 				arranger: p.arranger ?? '',
 				duration: p.duration ?? '',
 				publisher: p.publisher ?? '',
+				// Film music shows the film's logo on its banner (#312).
+				...(p.id === 'demo-007' ? { genre: 'Filmmusik' } : {}),
 				driveFolderId: p.id
 			})),
 			// Played long ago, no sheet music in the archive.

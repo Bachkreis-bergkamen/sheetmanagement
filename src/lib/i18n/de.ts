@@ -250,7 +250,10 @@ export const de = {
 		},
 		driveHint: 'Öffnet sich in Google Drive (Zugriff auf den Noten-Ordner nötig).',
 		portrait: (name: string) => `Porträt von ${name}`,
-		portraitCredit: 'Bild: Wikimedia Commons'
+		portraitCredit: 'Bild: Wikimedia Commons',
+		/** A film's title logo or an icon for it (#312). */
+		filmPicture: (film: string) => `Bild zum Film ${film}`,
+		iconCredit: 'Icon: Iconify'
 	},
 	concerts: {
 		title: 'Kalender',
