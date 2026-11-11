@@ -169,3 +169,40 @@ export async function playBar({ bpm, countIn, beats, notes = [] }: { bpm: number
 		return null;
 	}
 }
+
+/**
+ * A drone held under a scale (#315): the tonic, and with `fifth` its fifth above, in the tuner's
+ * warm tone. Intonation is heard against it, so the ear does the work. Fades in; the returned
+ * function fades it out.
+ */
+export function startDrone(frequency: number, fifth = false): () => void {
+	try {
+		output ??= new AudioContext();
+		const audio = output;
+		audio.resume().catch(() => {});
+		const wave = audio.createPeriodicWave(new Float32Array(DRONE_HARMONICS.length + 1), new Float32Array([0, ...DRONE_HARMONICS]));
+		const master = audio.createGain();
+		const now = audio.currentTime;
+		master.gain.setValueAtTime(0, now);
+		master.gain.linearRampToValueAtTime(0.12, now + 0.5);
+		master.connect(audio.destination);
+		const oscillators = (fifth ? [1, 1.5] : [1]).map((ratio, i) => {
+			const oscillator = audio.createOscillator();
+			oscillator.setPeriodicWave(wave);
+			oscillator.frequency.value = frequency * ratio;
+			const level = audio.createGain();
+			level.gain.value = i ? 0.6 : 1;
+			oscillator.connect(level).connect(master);
+			oscillator.start(now);
+			return oscillator;
+		});
+		return () => {
+			const end = audio.currentTime;
+			master.gain.cancelScheduledValues(end);
+			master.gain.setTargetAtTime(0, end, 0.12);
+			oscillators.forEach((oscillator) => oscillator.stop(end + 0.8));
+		};
+	} catch {
+		return () => {};
+	}
+}

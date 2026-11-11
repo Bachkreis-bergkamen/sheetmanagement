@@ -697,7 +697,7 @@ export const en: Texts = {
 			seasons: 'Small drawings for the season: a snowflake, a blossom, a pumpkin.',
 			tickets: 'Reserve concert tickets on the website, paid at the door, with check-in by phone.',
 			offline: 'Save parts in “My parts” for rehearsals without a connection.',
-			drills: 'Short exercises in note reading, keys, intervals, rhythm, pitch and transposing. They run on the device; only the time counts toward practice time.'
+			drills: 'Short exercises in note reading, keys, intervals, rhythm, pitch, scales and transposing. They run on the device; only the time counts toward practice time.'
 		} as Record<string, string>,
 		instruments: 'Instruments',
 		instrumentsLead:
@@ -1937,7 +1937,7 @@ export const en: Texts = {
 	},
 	drills: {
 		title: 'Practice room',
-		lead: 'A few minutes a day: read notes, recognise keys, hear intervals, tap rhythms, play in tune, transpose. The exercises adapt to you.',
+		lead: 'A few minutes a day: read notes, recognise keys, hear intervals, tap rhythms, play in tune, play scales, transpose. The exercises adapt to you.',
 		private: 'Your progress and the microphone stay on this device. At most your practice time is sent, if you record practice time.',
 		unsaved: 'This browser can’t save your progress (a private window?). You can still practise.',
 		instrument: 'Instrument',
@@ -1979,6 +1979,7 @@ export const en: Texts = {
 			play: { title: 'Play the note', lead: 'Play the note; the microphone hears if it’s right.' },
 			ear: { title: 'Hear intervals', lead: 'Two notes: how far apart are they?' },
 			rhythm: { title: 'Rhythm', lead: 'Read, listen, tap it back: one bar after a count-in.' },
+			scale: { title: 'Scales', lead: 'Scales and arpeggios up and down, over a drone. Each note shows whether it was in place.' },
 			trans: { title: 'Transposing', lead: 'Which note sounds, and how do you read parts in other keys?' }
 		},
 		start: 'Start',
@@ -2045,6 +2046,40 @@ export const en: Texts = {
 		calibrateNow: 'Tap with the click …',
 		calibrateFailed: 'That wasn’t steady enough yet. Once more?',
 		recalibrate: 'check again',
+		scaleName: (key: string, type: string): string =>
+			({
+				major: `${key} scale`,
+				harmonic: key.replace(' minor', ' harmonic minor'),
+				melodic: key.replace(' minor', ' melodic minor'),
+				arpMajor: `${key} arpeggio`,
+				arpMinor: `${key} arpeggio`
+			})[type] ?? key,
+		upAndDown: 'One octave up and down, without stopping.',
+		drone: 'Drone',
+		droneOff: 'off',
+		droneTonic: 'Tonic',
+		droneFifth: 'Tonic and fifth',
+		click: (perMinute: number) => `Metronome (${perMinute} notes a minute)`,
+		hideCents: 'Show cents only afterwards',
+		headphones: 'With a drone or the metronome, headphones help: the microphone then hears only you.',
+		soundingScale: (note: string) => `Sounds from ${note}.`,
+		playingScale: 'Keep playing …',
+		doneTake: 'Done',
+		scaleClean: 'Every note in place, and in tune!',
+		scaleCents: (cents: number) => `Every note in place, ${cents} cents off on average.`,
+		scaleWrong: (wrong: number, missed: number, extra: number) =>
+			[
+				wrong ? (wrong === 1 ? '1 wrong note' : `${wrong} wrong notes`) : '',
+				missed ? `${missed} left out` : '',
+				extra ? (extra === 1 ? '1 note too many' : `${extra} notes too many`) : ''
+			]
+				.filter(Boolean)
+				.join(', ') + '. Under the notes is what was heard.',
+		scaleSharp: 'Mostly a little sharp: listen to the drone and give way until it stops beating.',
+		scaleFlat: 'Mostly a little flat: listen to the drone and place the notes a touch higher.',
+		scaleUneven: 'The notes came unevenly. Try it with the metronome.',
+		noNotes: 'No notes heard. Is the microphone free?',
+		scaleShown: 'This is how it sounds; have a listen.',
 		done: 'Round done',
 		doneRight: (right: number, total: number) => `${right} of ${total} right`,
 		doneTime: (seconds: string) => `usually ${seconds} s per answer`,
@@ -2058,6 +2093,7 @@ export const en: Texts = {
 			'New items come in when most answers are right. When it’s hard going, familiar ones are mixed in.',
 			'Secure means right and fast: when sight-reading there’s no time to count lines.',
 			'If you know an item quickly the first time, it’s skipped ahead, so you reach what’s new to you soon.',
+			'Scales go round the circle of fifths, major before minor, with arpeggios. Secure means every note in place, 15 cents off at most on average. With “Show cents only afterwards” you play by ear against the drone.',
 			'Rhythms get faster once you tap them securely, and the tolerance tighter. Secure here means even: 60 ms off at most on average.',
 			'It gets harder step by step: more of your instrument’s clefs (cello: bass, then tenor, then treble), intervals from distinct to easily confused, parts in other keys.'
 		],

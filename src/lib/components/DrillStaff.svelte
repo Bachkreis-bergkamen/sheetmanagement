@@ -5,16 +5,32 @@
 	 * One staff for the Übebereich's drills (#300): a clef, a key signature and up to two whole
 	 * notes, one after the other or `together` as a chord, drawn in SVG in the text colour, so it
 	 * needs no music font and works offline in either theme. A note the key signature doesn't
-	 * account for gets its accidental. `state` colours the notes after an answer.
+	 * account for gets its accidental. `state` colours the notes after an answer, `marks` each
+	 * note on its own (a scale: right, wrong, or right but out of tune), with `captions` under them.
 	 */
+	type Mark = 'right' | 'wrong' | 'off' | null;
 	let {
 		clef,
 		fifths = 0,
 		notes = [],
 		together = false,
 		state = null,
+		marks = [],
+		captions = [],
+		spacing = 46,
 		label
-	}: { clef: Clef; fifths?: number; notes?: Pitch[]; together?: boolean; state?: 'right' | 'wrong' | null; label: string } = $props();
+	}: {
+		clef: Clef;
+		fifths?: number;
+		notes?: Pitch[];
+		together?: boolean;
+		state?: 'right' | 'wrong' | null;
+		marks?: Mark[];
+		captions?: string[];
+		/** Room between notes side by side. */
+		spacing?: number;
+		label: string;
+	} = $props();
 
 	/** Staff units: a space is 10, the bottom line at BASE, room for three ledger lines either side. */
 	const BASE = 90;
@@ -28,7 +44,7 @@
 			const position = staffPosition(clef, pitch);
 			const accidental = pitch.alter !== alterInKey(pitch.step, fifths) ? pitch.alter : null;
 			const second = together && i > 0 && Math.abs(position - staffPosition(clef, notes[i - 1])) === 1;
-			const x = SIGNATURE_X + signature.length * 10 + 40 + (together ? (second ? 13 : 0) : i * 46);
+			const x = SIGNATURE_X + signature.length * 10 + 40 + (together ? (second ? 13 : 0) : i * spacing);
 			return { position, accidental, x };
 		})
 	);
@@ -37,7 +53,7 @@
 	const cCentre = $derived(clef === 'alto' ? y(4) : y(6));
 </script>
 
-<svg class="staff" viewBox="0 0 {width} 140" role="img" aria-label={label}>
+<svg class="staff" class:long={notes.length > 4} viewBox="0 0 {width} 140" role="img" aria-label={label}>
 	{#each [0, 2, 4, 6, 8] as line (line)}
 		<line x1="2" x2={width - 2} y1={y(line)} y2={y(line)} class="line" />
 	{/each}
@@ -94,15 +110,17 @@
 		{@render accidentalSign(accidental.alter, SIGNATURE_X + i * 10 + 4, y(signatureAt[i]))}
 	{/each}
 
-	<g class="note" class:right={state === 'right'} class:wrong={state === 'wrong'}>
-		{#each placed as note, i (i)}
+	{#each placed as note, i (i)}
+		{@const mark = marks[i] ?? state}
+		<g class="note" class:right={mark === 'right'} class:wrong={mark === 'wrong'} class:off={mark === 'off'}>
 			{#each ledgerLines(note.position) as line (line)}
 				<line x1={note.x - 11} x2={note.x + 11} y1={y(line)} y2={y(line)} class="line ledger" />
 			{/each}
 			{#if note.accidental !== null}{@render accidentalSign(note.accidental, note.x - 16 - (together && i > 0 ? 10 : 0), y(note.position))}{/if}
 			<ellipse cx={note.x} cy={y(note.position)} rx="6.4" ry="4.4" transform="rotate(-20 {note.x} {y(note.position)})" class="head" />
-		{/each}
-	</g>
+			{#if captions[i]}<text x={note.x} y="136" text-anchor="middle" class="caption">{captions[i]}</text>{/if}
+		</g>
+	{/each}
 </svg>
 
 <style>
@@ -165,5 +183,19 @@
 
 	.note.wrong {
 		color: var(--danger);
+	}
+
+	.note.off {
+		color: var(--warn);
+	}
+
+	.staff.long {
+		max-width: 640px;
+	}
+
+	.caption {
+		font-size: 9px;
+		font-weight: 600;
+		font-variant-numeric: tabular-nums;
 	}
 </style>

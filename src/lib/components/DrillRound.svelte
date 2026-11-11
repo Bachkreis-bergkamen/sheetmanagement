@@ -6,7 +6,9 @@
 	import { NoteJudge, type Verdict } from '#lib/practice/drills/judge.ts';
 	import { dayNumber, isMastered, median, pickNext, type States } from '#lib/practice/drills/scheduler.ts';
 	import { beatMs, calibrate, CALIBRATION, judgeTaps, LEANING, onsets, tempoFor, toleranceFor } from '#lib/practice/drills/rhythm.ts';
-	import { listenToPitch, playArpeggio, playBar, playChord, playTone, rememberedA4, triad, type MicProblem, type PlayedBar } from '#lib/practice/drills/sound.ts';
+	import type { DrillSettings } from '#lib/practice/drills/progress.ts';
+	import { droneMidi, IN_TUNE, isArpeggio, isMinor, judgeScale, scaleTempo, segment, UNEVEN, type NoteMark, type Reading } from '#lib/practice/drills/scales.ts';
+	import { listenToPitch, playArpeggio, playBar, playChord, playTone, rememberedA4, startDrone, triad, type MicProblem, type PlayedBar } from '#lib/practice/drills/sound.ts';
 	import { midiOf, tonic, type Clef } from '#lib/practice/drills/theory.ts';
 	import DrillStaff from './DrillStaff.svelte';
 	import Icon from './Icon.svelte';
@@ -26,8 +28,10 @@
 		sound: withSound,
 		title,
 		tapOffset,
+		settings,
 		onanswer,
 		oncalibrate,
+		onsetting,
 		onexit
 	}: {
 		order: string[];
@@ -41,6 +45,9 @@
 		/** `measure`: what counts for fluency when it isn't the time to answer (a rhythm's mean deviation). */
 		onanswer: (id: string, correct: boolean, ms: number, measure?: number) => void;
 		oncalibrate: (offset: number) => void;
+		/** The scale options: drone, metronome, cents shown or kept back. */
+		settings: DrillSettings;
+		onsetting: (change: Partial<DrillSettings>) => void;
 		onexit: () => void;
 	} = $props();
 
@@ -81,6 +88,17 @@
 	/** After an answer: each note right or wrong, and where the taps fell (sixteenths). */
 	let rhythmMarks = $state<('right' | 'wrong' | null)[]>([]);
 	let tapMarks = $state<number[]>([]);
+	// Scales: one take, from the first note to the last, without stopping.
+	let take = $state<'idle' | 'count' | 'playing'>('idle');
+	let readings: Reading[] = [];
+	let playFrom = 0;
+	let lastSound = 0;
+	/** Each note's mark so far while playing, and the verdict after. */
+	let liveMarks = $state<NoteMark[]>([]);
+	let heardNow = $state<{ midi: number; cents: number } | null>(null);
+	let stopDrone: (() => void) | null = null;
+	const drone = $derived(settings.drone ?? 'tonic');
+
 	/** Measuring the device's delay, before the first rhythm or when asked. */
 	let calibrating = $state(false);
 	let calibrationFailed = $state(false);
@@ -109,6 +127,7 @@
 			if (q.harmonic) playChord(notes);
 			else playArpeggio(notes, 0.7);
 		} else if (q.kind === 'rhythm') hearRhythm(q);
+		else if (q.kind === 'scale') playArpeggio(q.item.midis.map(frequencyOf), isArpeggio(q.item.type) ? 0.4 : 0.32);
 		else if (q.kind === 'trans') playTone(frequencyOf(midiOf(q.pitch) + (q.part ? q.part.semitones : profile(q.instrument).transposition)));
 		else playTone(frequencyOf(q.kind === 'play' ? q.midi : midiOf(q.pitch)));
 	}
@@ -122,6 +141,8 @@
 		tapMarks = [];
 		calibrating = false;
 		calibrationFailed = false;
+		stopTake();
+		liveMarks = [];
 		if (count >= ROUND) {
 			finish();
 			return;
@@ -155,6 +176,7 @@
 		question = null;
 		stopListening();
 		stopBar();
+		stopTake();
 	}
 
 	function answer(correct: boolean, text: string, tip?: string, measure?: number) {
@@ -170,8 +192,9 @@
 		feedback = { correct, text: correct ? (text || (fluent ? tx.right : tx.rightSlow)) : text, tip };
 		// A rhythm tapped right was just heard; a wrong one is played as it should be.
 		if (withSound && (question.kind !== 'rhythm' || !correct)) sound(question);
-		// Right: on by itself, a little longer when it was a new one to look at, or taps to see.
-		if (correct) autoNext = setTimeout(next, question.kind === 'rhythm' ? 1800 : isNew ? 1600 : 800);
+		// Right: on by itself, a little longer when it was a new one to look at, or taps to see;
+		// not after a scale, whose notes and cents take a moment to read.
+		if (correct && question.kind !== 'scale') autoNext = setTimeout(next, question.kind === 'rhythm' ? 1800 : isNew ? 1600 : 800);
 	}
 
 	function stopBar() {
@@ -248,6 +271,123 @@
 		else if (!relative.length) answer(false, tx.noTaps, undefined, off);
 		else answer(false, tx.rhythmWrong(missed, verdict.extra.length), leaning, off);
 	}
+
+	/** The scale's name: "G-Dur-Tonleiter", "a-Moll harmonisch", "D-Dur-Dreiklang". */
+	const scaleName = (q: Extract<Question, { kind: 'scale' }>) => tx.scaleName(keyLabel(q.item.fifths, isMinor(q.item.type) ? 'minor' : 'major'), q.item.type);
+	const scaleTempoNow = $derived(question?.kind === 'scale' ? scaleTempo(states[question.id]?.box) : 60);
+
+	/** Notes probably the drone through the speaker, not the player: its pitch class. */
+	const droneHeard = (q: Extract<Question, { kind: 'scale' }>) => {
+		const pitchClass = droneMidi(q.item.midis[0]) % 12;
+		return (midi: number) => drone !== 'off' && ((midi % 12) + 12) % 12 === pitchClass;
+	};
+
+	/** Microphone on, the drone and (if wanted) a count-in with the metronome, then play. */
+	async function startTake() {
+		if (question?.kind !== 'scale' || feedback || take !== 'idle') return;
+		const q = question;
+		readings = [];
+		liveMarks = [];
+		micProblem = null;
+		const cheap = droneHeard(q);
+		try {
+			stopMic = await listenToPitch((frequency, time) => onScaleReading(q, cheap, frequency, time));
+		} catch (problem) {
+			micProblem = problem as MicProblem;
+			return;
+		}
+		listening = true;
+		if (drone !== 'off') stopDrone = startDrone(frequencyOf(droneMidi(q.item.midis[0])), drone === 'fifth');
+		lastSound = playFrom = performance.now();
+		take = 'playing';
+		if (settings.click) {
+			bpm = scaleTempoNow;
+			take = 'count';
+			playFrom = Infinity;
+			const played = await playBar({ bpm, countIn: 4, beats: q.item.midis.length + 1 });
+			if (!played || take !== 'count') {
+				played?.stop();
+				if (!played) take = 'playing';
+				playFrom = lastSound = performance.now();
+				return;
+			}
+			bar = played;
+			// What's played before the count-in ends is the player getting ready.
+			playFrom = played.start - beatMs(bpm) / 2;
+			lastSound = played.start;
+			followBar(played, 4, 0, () => {
+				if (take === 'count') take = 'playing';
+				beat = null;
+			});
+		}
+	}
+
+	function onScaleReading(q: Extract<Question, { kind: 'scale' }>, cheap: (midi: number) => boolean, frequency: number | null, time: number) {
+		if (take === 'idle' || time < playFrom) return;
+		readings.push({ time, frequency });
+		if (frequency) {
+			const semitones = 69 + 12 * Math.log2(frequency / a4);
+			const midi = Math.round(semitones);
+			heardNow = { midi, cents: Math.round((semitones - midi) * 100) };
+			if (!cheap(midi) || q.item.midis.includes(midi)) lastSound = time;
+		}
+		const expected = q.item.midis;
+		const verdict = judgeScale(expected, segment(readings, a4), cheap);
+		liveMarks = verdict.marks;
+		const last = verdict.marks[expected.length - 1];
+		const right = verdict.marks.filter((mark) => mark.state === 'right').length;
+		// Done once the last note has sounded a moment, after most of the scale; or after a long silence.
+		const ended = last.state === 'right' && right >= expected.length / 2 && time - last.onset >= 700;
+		if (ended || (readings.some((reading) => reading.frequency) && time - lastSound > 3000) || time - playFrom > 90_000) finishTake(q);
+	}
+
+	function stopTake() {
+		stopDrone?.();
+		stopDrone = null;
+		if (take !== 'idle') stopListening();
+		take = 'idle';
+		heardNow = null;
+	}
+
+	function finishTake(q: Extract<Question, { kind: 'scale' }>) {
+		if (take === 'idle') return;
+		const cheap = droneHeard(q);
+		stopTake();
+		stopBar();
+		const verdict = judgeScale(q.item.midis, segment(readings, a4), cheap);
+		liveMarks = verdict.marks;
+		const off = Number.isFinite(verdict.meanCents) ? Math.round(verdict.meanCents) : 999;
+		const tip =
+			verdict.leaning > 0
+				? tx.scaleSharp
+				: verdict.leaning < 0
+					? tx.scaleFlat
+					: verdict.unevenness !== null && verdict.unevenness > UNEVEN
+						? tx.scaleUneven
+						: undefined;
+		if (verdict.correct) answer(true, off <= IN_TUNE ? tx.scaleClean : tx.scaleCents(off), tip, off);
+		else if (verdict.marks.every((mark) => mark.state === 'missed')) answer(false, tx.noNotes, undefined, off);
+		else answer(false, tx.scaleWrong(verdict.wrong, verdict.missed, verdict.extra), tip, off);
+	}
+
+	/** Each note's colour on the staff: while playing only as far as played, and the tuning only when it's shown. */
+	const scaleMarks = $derived.by(() => {
+		const reached = liveMarks.findLastIndex((mark) => mark && mark.state !== 'missed');
+		const showTuning = !!feedback || !settings.hideCents;
+		return liveMarks.map((mark, i) => {
+			if (!mark || (!feedback && i > reached)) return null;
+			if (mark.state !== 'right') return 'wrong' as const;
+			return showTuning && Math.abs(mark.cents) > IN_TUNE ? ('off' as const) : ('right' as const);
+		});
+	});
+	/** Under each note after the take: cents off, the note heard instead, or a dash for one left out. */
+	const scaleCaptions = $derived(
+		feedback
+			? liveMarks.map((mark) =>
+					!mark ? '' : mark.state === 'missed' ? '–' : mark.state === 'wrong' ? pitchName(((mark.midi % 12) + 12) % 12) : Math.abs(mark.cents) > IN_TUNE ? `${mark.cents > 0 ? '+' : ''}${mark.cents}` : ''
+				)
+			: []
+	);
 
 	/** A tap, timed by the event itself (the clock `playBar` reports on), not when it's handled. */
 	function tap(time: number) {
@@ -368,6 +508,10 @@
 		else if (question.kind === 'rhythm') {
 			stopBar();
 			answer(false, tx.rhythmShown, undefined, 999);
+		} else if (question.kind === 'scale') {
+			stopTake();
+			stopBar();
+			answer(false, tx.scaleShown, undefined, 999);
 		} else answer(false, tx.itIs(midiName(midiOf(question.pitch))));
 	}
 
@@ -430,9 +574,21 @@
 				{:else if question.kind === 'ear'}{tx.whichInterval(question.harmonic)}
 				{:else if question.kind === 'trans'}{tx.transQuestion(partLabel(question))}
 				{:else if question.kind === 'rhythm'}{calibrating ? tx.calibrateTitle : tx.tapThis}
+				{:else if question.kind === 'scale'}{scaleName(question)}
 				{:else}{tx.playThis}{/if}
 			</p>
-			{#if question.kind === 'rhythm'}
+			{#if question.kind === 'scale'}
+				<DrillStaff
+					clef={question.clef}
+					fifths={question.item.fifths}
+					notes={question.item.pitches}
+					marks={scaleMarks}
+					captions={scaleCaptions}
+					spacing={28}
+					label={scaleName(question)}
+				/>
+				<p class="hint">{tx.upAndDown}</p>
+			{:else if question.kind === 'rhythm'}
 				{#if calibrating}
 					<p class="hint calibrate">{tx.calibrateLead}</p>
 				{:else}
@@ -515,6 +671,49 @@
 					>
 				{/each}
 			</div>
+		{:else if question.kind === 'scale'}
+			<div class="play">
+				{#if take === 'idle' && !feedback}
+					<div class="options-row">
+						<label class="field small">
+							{tx.drone}
+							<select value={drone} onchange={(event) => onsetting({ drone: event.currentTarget.value as DrillSettings['drone'] })}>
+								<option value="off">{tx.droneOff}</option>
+								<option value="tonic">{tx.droneTonic}</option>
+								<option value="fifth">{tx.droneFifth}</option>
+							</select>
+						</label>
+						<label class="check">
+							<input type="checkbox" checked={!!settings.click} onchange={(event) => onsetting({ click: event.currentTarget.checked })} />
+							{tx.click(scaleTempoNow)}
+						</label>
+						<label class="check">
+							<input type="checkbox" checked={!!settings.hideCents} onchange={(event) => onsetting({ hideCents: event.currentTarget.checked })} />
+							{tx.hideCents}
+						</label>
+					</div>
+					{#if transposition}<p class="hint">{tx.soundingScale(midiName(question.item.midis[0]))}</p>{/if}
+					<button type="button" class="btn" onclick={startTake}><span class="mic" aria-hidden="true"></span>{tx.micStart}</button>
+					{#if drone !== 'off' || settings.click}<p class="hint">{tx.headphones}</p>{/if}
+				{:else if take !== 'idle'}
+					{@const q = question}
+					{#if take === 'count'}
+						<ol class="beats" aria-hidden="true">
+							{#each [0, 1, 2, 3] as each (each)}<li class:lit={beat !== null && (beat + 4) % 4 === each} class:counting={true}>{each + 1}</li>{/each}
+						</ol>
+						<p class="listening" role="status">{tx.countIn}</p>
+					{:else}
+						<p class="listening" role="status">
+							<span class="mic live" aria-hidden="true"></span>{tx.playingScale}
+							{#if heardNow}
+								<span class="heard">{midiName(heardNow.midi)}{#if !settings.hideCents}{' '}{heardNow.cents > 0 ? '+' : ''}{heardNow.cents} ct{/if}</span>
+							{/if}
+						</p>
+					{/if}
+					<button type="button" class="btn ghost small" onclick={() => finishTake(q)}>{tx.doneTake}</button>
+				{/if}
+				{#if micProblem}<p class="msg error">{micProblem === 'insecure' ? t.practice.tuner.insecure : t.practice.tuner.noMic}</p>{/if}
+			</div>
 		{:else if question.kind === 'rhythm'}
 			<div class="tapping">
 				<ol class="beats" aria-hidden="true">
@@ -569,11 +768,11 @@
 				{#if feedback.tip}<p class="hint">{feedback.tip}</p>{/if}
 				<div class="row">
 					<button type="button" class="btn ghost small" onclick={() => question && sound(question)}
-						>{question.kind === 'keys' ? tx.replayChord : question.kind === 'ear' || question.kind === 'rhythm' ? tx.listen : tx.replay}</button
+						>{question.kind === 'keys' ? tx.replayChord : question.kind === 'ear' || question.kind === 'rhythm' || question.kind === 'scale' ? tx.listen : tx.replay}</button
 					>
 					<button type="button" class="btn" onclick={next}>{tx.next}</button>
 				</div>
-			{:else if !calibrating}
+			{:else if !calibrating && take === 'idle'}
 				<button type="button" class="btn ghost small" onclick={skip}>{tx.skip}</button>
 			{/if}
 		</div>
@@ -782,6 +981,32 @@
 		font: inherit;
 		font-weight: 600;
 		cursor: pointer;
+	}
+
+	.options-row {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: end;
+		justify-content: center;
+		gap: var(--space-2) var(--space-4);
+	}
+
+	.check {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
+		min-height: 40px;
+		font-size: var(--text-sm);
+	}
+
+	.field.small {
+		font-size: var(--text-sm);
+	}
+
+	.heard {
+		margin-left: var(--space-2);
+		color: var(--text);
+		font-variant-numeric: tabular-nums;
 	}
 
 	.tapping {

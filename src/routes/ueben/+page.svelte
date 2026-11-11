@@ -11,6 +11,7 @@
 	import { isProfileId, PROFILE_IDS, profile, profileFor, type ProfileId } from '#lib/practice/drills/instruments.ts';
 	import { clefLadder, UNLOCK_AT } from '#lib/practice/drills/levels.ts';
 	import { RHYTHM_ORDER } from '#lib/practice/drills/rhythm.ts';
+	import { scaleOrder } from '#lib/practice/drills/scales.ts';
 	import { addAnswer, DAILY_GOAL_MINUTES, dayKey, emptyData, MAX_UNSENT, streak, type DrillData } from '#lib/practice/drills/progress.ts';
 	import { dayNumber, record, summary } from '#lib/practice/drills/scheduler.ts';
 	import { clearDrills, loadDrills, saveDrills } from '#lib/practice/drills/store.ts';
@@ -51,7 +52,7 @@
 		saveDrills(data.account, drills).then((ok) => (saved = ok));
 	}
 
-	type Kind = 'mix' | 'notes' | 'keys' | 'ear' | 'rhythm' | 'play' | 'trans';
+	type Kind = 'mix' | 'notes' | 'keys' | 'ear' | 'rhythm' | 'play' | 'scale' | 'trans';
 	const orders = $derived.by<Record<Kind, string[]>>(() => {
 		const notes = interleave(...clefs.map(notesOrder));
 		return {
@@ -61,6 +62,7 @@
 			ear: EAR_ORDER,
 			rhythm: RHYTHM_ORDER,
 			play: interleave(...clefs.map((clef) => playOrder(instrument, clef))),
+			scale: scaleOrder(instrument),
 			trans: transOrder(instrument)
 		};
 	});
@@ -141,6 +143,7 @@
 		{ kind: 'ear', icon: 'headphones' },
 		{ kind: 'rhythm', icon: 'activity' },
 		{ kind: 'play', icon: 'gauge' },
+		{ kind: 'scale', icon: 'music' },
 		{ kind: 'trans', icon: 'refresh' }
 	];
 	/** A small picture for each card. */
@@ -151,10 +154,11 @@
 		ear: { notes: [pitchOf('E4'), pitchOf('B4')] },
 		rhythm: {},
 		play: { notes: [pitchOf('D5')] },
+		scale: { fifths: 1, notes: [pitchOf('G4'), pitchOf('A4'), pitchOf('B4')] },
 		trans: { notes: [pitchOf('C5')] }
 	};
-	/** The transposing drill only for instruments that transpose or read parts in other keys. */
-	const kinds = $derived(KINDS.filter(({ kind }) => kind !== 'trans' || orders.trans.length));
+	/** The transposing drill only for instruments that transpose or read parts in other keys; scales only for those that play them. */
+	const kinds = $derived(KINDS.filter(({ kind }) => (kind !== 'trans' && kind !== 'scale') || orders[kind].length));
 	const steps = $derived(prof.clefs.length > 1 && !prof.together ? ladder : []);
 </script>
 
@@ -170,8 +174,10 @@
 		{sound}
 		title={tx.kinds[playing].title}
 		tapOffset={drills.settings.tapOffset}
+		settings={drills.settings}
 		{onanswer}
 		oncalibrate={(tapOffset) => setting({ tapOffset })}
+		onsetting={setting}
 		onexit={exit}
 	/>
 {:else}
@@ -239,7 +245,13 @@
 						{#if kind === 'rhythm'}
 							<RhythmStaff pattern="4 2 2 6 2" label="" />
 						{:else}
-							<DrillStaff clef={kind === 'trans' ? 'treble' : clefs[0]} fifths={PREVIEW[kind].fifths ?? 0} notes={PREVIEW[kind].notes} label="" />
+							<DrillStaff
+								clef={kind === 'trans' || kind === 'scale' ? 'treble' : clefs[0]}
+								fifths={PREVIEW[kind].fifths ?? 0}
+								notes={PREVIEW[kind].notes}
+								spacing={kind === 'scale' ? 30 : 46}
+								label=""
+							/>
 						{/if}
 					</div>
 					<h2><Icon name={icon} size={18} />{tx.kinds[kind].title}</h2>

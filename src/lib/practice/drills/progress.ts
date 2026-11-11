@@ -14,13 +14,24 @@ export interface DayStats {
 	ms: number;
 }
 
+export interface DrillSettings {
+	instrument?: ProfileId;
+	clef?: Clef;
+	sound?: boolean;
+	/** Milliseconds from a click to a tap on this device, measured once for the rhythm drill. */
+	tapOffset?: number;
+	/** Scales: a drone under them, the metronome, and the cents kept back until the end. */
+	drone?: 'off' | 'tonic' | 'fifth';
+	click?: boolean;
+	hideCents?: boolean;
+}
+
 export interface DrillData {
 	version: 1;
 	items: States;
 	/** By local date, "2026-11-11". */
 	days: Record<string, DayStats>;
-	/** `tapOffset`: milliseconds from a click to a tap on this device, measured once for the rhythm drill. */
-	settings: { instrument?: ProfileId; clef?: Clef; sound?: boolean; tapOffset?: number };
+	settings: DrillSettings;
 	/** Clefs opened on the ladder (#300); they stay open. */
 	opened: Clef[];
 	/** Seconds of practice not yet counted for the practice tree (offline, or the request failed). */
@@ -46,6 +57,7 @@ export function readData(value: unknown): DrillData {
 		data.settings = { ...raw.settings };
 		const offset = raw.settings.tapOffset;
 		if (offset !== undefined && !(Number.isFinite(offset) && Math.abs(offset) <= 250)) delete data.settings.tapOffset;
+		if (!['off', 'tonic', 'fifth', undefined].includes(raw.settings.drone)) delete data.settings.drone;
 	}
 	if (Array.isArray(raw.opened)) data.opened = raw.opened.filter((clef): clef is Clef => (CLEFS as readonly string[]).includes(clef));
 	if (Number.isFinite(raw.unsent) && raw.unsent! > 0) data.unsent = Math.min(MAX_UNSENT, Math.round(raw.unsent!));

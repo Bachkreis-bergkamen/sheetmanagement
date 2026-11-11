@@ -707,7 +707,7 @@ export const de = {
 			offline: 'Stimmen in „Meine Noten“ für die Probe ohne Netz speichern.',
 			seasons: 'Kleine Zeichnungen zur Jahreszeit: Schneeflocke, Blüte, Kürbis.',
 			tickets: 'Karten für Konzerte über die Website reservieren, bezahlt an der Abendkasse, mit Einlass per Handy.',
-			drills: 'Kurze Übungen zu Notenlesen, Tonarten, Intervallen, Rhythmus, Tönen und Transponieren. Sie laufen auf dem Gerät; nur die Übezeit zählt für die Probenzeit.'
+			drills: 'Kurze Übungen zu Notenlesen, Tonarten, Intervallen, Rhythmus, Tönen, Tonleitern und Transponieren. Sie laufen auf dem Gerät; nur die Übezeit zählt für die Probenzeit.'
 		} as Record<string, string>,
 		instruments: 'Instrumente',
 		instrumentsLead:
@@ -1958,7 +1958,7 @@ export const de = {
 	/** The Übebereich (#300, #315): drills on the device, nothing sent. */
 	drills: {
 		title: 'Übebereich',
-		lead: 'Ein paar Minuten am Tag: Noten lesen, Tonarten erkennen, Intervalle hören, Rhythmen klopfen, Töne treffen, transponieren. Die Übungen passen sich dir an.',
+		lead: 'Ein paar Minuten am Tag: Noten lesen, Tonarten erkennen, Intervalle hören, Rhythmen klopfen, Töne treffen, Tonleitern spielen, transponieren. Die Übungen passen sich dir an.',
 		private: 'Dein Fortschritt und das Mikrofon bleiben auf diesem Gerät. Gesendet wird höchstens die Übezeit, wenn du die Probenzeit aufzeichnest.',
 		unsaved: 'Dieser Browser kann den Fortschritt nicht speichern (ein privates Fenster?). Üben geht trotzdem.',
 		instrument: 'Instrument',
@@ -2000,6 +2000,7 @@ export const de = {
 			play: { title: 'Töne spielen', lead: 'Spiel den Ton; das Mikrofon hört, ob er stimmt.' },
 			ear: { title: 'Intervalle hören', lead: 'Zwei Töne: wie weit liegen sie auseinander?' },
 			rhythm: { title: 'Rhythmus', lead: 'Lesen, anhören, nachklopfen: ein Takt nach dem Einzählen.' },
+			scale: { title: 'Tonleitern', lead: 'Tonleitern und Dreiklänge auf und ab, über einem Liegeton. Jeder Ton zeigt, ob er saß.' },
 			trans: { title: 'Transponieren', lead: 'Welcher Ton klingt, und wie liest du Stimmen in anderen Stimmungen?' }
 		},
 		start: 'Los',
@@ -2067,6 +2068,35 @@ export const de = {
 		calibrateNow: 'Mit dem Klick tippen …',
 		calibrateFailed: 'Das war noch nicht gleichmäßig genug. Noch einmal?',
 		recalibrate: 'neu abgleichen',
+		/** "G-Dur-Tonleiter", "a-Moll harmonisch": `key` is the key's name ("G-Dur", "a-Moll"). */
+		scaleName: (key: string, type: string): string =>
+			({ major: `${key}-Tonleiter`, harmonic: `${key} harmonisch`, melodic: `${key} melodisch`, arpMajor: `${key}-Dreiklang`, arpMinor: `${key}-Dreiklang` })[type] ?? key,
+		upAndDown: 'Eine Oktave auf und ab, ohne anzuhalten.',
+		drone: 'Liegeton',
+		droneOff: 'aus',
+		droneTonic: 'Grundton',
+		droneFifth: 'Grundton und Quinte',
+		click: (perMinute: number) => `Metronom (${perMinute} Töne pro Minute)`,
+		hideCents: 'Cent erst danach zeigen',
+		headphones: 'Mit Liegeton oder Metronom helfen Kopfhörer: dann hört das Mikrofon nur dich.',
+		soundingScale: (note: string) => `Klingt ab ${note}.`,
+		playingScale: 'Spiel durch …',
+		doneTake: 'Fertig',
+		scaleClean: 'Alle Töne getroffen, und sauber!',
+		scaleCents: (cents: number) => `Alle Töne getroffen, im Schnitt ${cents} Cent daneben.`,
+		scaleWrong: (wrong: number, missed: number, extra: number) =>
+			[
+				wrong ? (wrong === 1 ? '1 falscher Ton' : `${wrong} falsche Töne`) : '',
+				missed ? `${missed} ausgelassen` : '',
+				extra ? (extra === 1 ? '1 Ton zu viel' : `${extra} Töne zu viel`) : ''
+			]
+				.filter(Boolean)
+				.join(', ') + '. Unter den Noten steht, was zu hören war.',
+		scaleSharp: 'Meist etwas zu hoch: hör auf den Liegeton und gib nach, bis es nicht mehr schwebt.',
+		scaleFlat: 'Meist etwas zu tief: hör auf den Liegeton und greif die Töne etwas höher.',
+		scaleUneven: 'Die Töne kamen ungleichmäßig. Probier es mit dem Metronom.',
+		noNotes: 'Keine Töne gehört. Ist das Mikrofon frei?',
+		scaleShown: 'So klingt sie; hör sie dir an.',
 		done: 'Runde geschafft',
 		doneRight: (right: number, total: number) => `${right} von ${total} richtig`,
 		doneTime: (seconds: string) => `meist ${seconds} s pro Antwort`,
@@ -2080,6 +2110,7 @@ export const de = {
 			'Neues kommt dazu, wenn die meisten Antworten stimmen. Läuft es zäh, mischt die Übung Bekanntes ein.',
 			'Sicher heißt richtig und schnell: Beim Vom-Blatt-Spielen ist keine Zeit zum Abzählen.',
 			'Weißt du einen Ton schon beim ersten Mal schnell, wird er übersprungen; so kommst du rasch zu dem, was neu ist.',
+			'Tonleitern gehen den Quintenzirkel entlang, Dur vor Moll, mit Dreiklängen. Sicher heißt: alle Töne getroffen, im Schnitt höchstens 15 Cent daneben. Mit „Cent erst danach zeigen“ spielst du nach Gehör gegen den Liegeton.',
 			'Rhythmen werden schneller, sobald du sie sicher klopfst, und die Toleranz wird enger. Sicher heißt hier: gleichmäßig, im Schnitt höchstens 60 ms daneben.',
 			'Es wird nach und nach schwerer: weitere Schlüssel deines Instruments (beim Cello Bass, dann Tenor, dann Violin), Intervalle von klar verschieden bis leicht verwechselbar, Stimmen in anderen Stimmungen.'
 		] as string[],

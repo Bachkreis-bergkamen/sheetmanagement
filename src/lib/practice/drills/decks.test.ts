@@ -125,3 +125,10 @@ describe('rhythm', () => {
 		expect(questionFor('rhythm:4-4', 'treble')).toBeNull();
 	});
 });
+
+describe('scales', () => {
+	it('asks a scale with its clef and notes', () => {
+		expect(questionFor('scale:cello:0:major', 'treble')).toMatchObject({ kind: 'scale', clef: 'bass', item: { fifths: 0, type: 'major' } });
+		expect(questionFor('scale:timpani:0:major', 'bass')).toBeNull();
+	});
+});
