@@ -253,6 +253,7 @@ export const de = {
 		portraitCredit: 'Bild: Wikimedia Commons',
 		/** A film's title logo or an icon for it (#312). */
 		filmPicture: (film: string) => `Bild zum Film ${film}`,
+		bandPicture: (band: string) => `Logo von ${band}`,
 		iconCredit: 'Icon: Iconify'
 	},
 	concerts: {

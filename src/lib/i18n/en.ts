@@ -245,6 +245,7 @@ export const en: Texts = {
 		portrait: (name: string) => `Portrait of ${name}`,
 		portraitCredit: 'Image: Wikimedia Commons',
 		filmPicture: (film: string) => `Picture for the film ${film}`,
+		bandPicture: (band: string) => `Logo of ${band}`,
 		iconCredit: 'Icon: Iconify'
 	},
 	concerts: {

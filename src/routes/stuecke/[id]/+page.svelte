@@ -105,10 +105,12 @@
 	let filmFailed = $state<string | null>(null);
 	const film = $derived(filmFailed === piece.id ? null : data.banner.film);
 	/**
-	 * How a logo sits on the banner, measured once it's loaded: one with its own background as a
-	 * tile ("boxed"), a dark wordmark turned light ("dark"), a light one as it is ("light").
+	 * How a logo sits on the banner, measured once it's loaded: a dark wordmark turned light
+	 * ("dark"), a light one as it is ("light"); one on a plain background of its own has the
+	 * background blended away, so only its letters show ("on-dark", "on-light" turned around);
+	 * a photo (a musical's production) fades in like a composer's portrait ("photo").
 	 */
-	let logoLook = $state<'boxed' | 'dark' | 'light' | null>(null);
+	let logoLook = $state<'dark' | 'light' | 'on-dark' | 'on-light' | 'photo' | null>(null);
 	/** Measures the logo when it has loaded, also when it was already there before the page woke up. */
 	function measured(img: HTMLImageElement) {
 		const run = () => measureLogo(img);
@@ -125,17 +127,23 @@
 			if (!context) return;
 			context.drawImage(img, 0, 0, size, size);
 			const { data: pixels } = context.getImageData(0, 0, size, size);
-			const alpha = (x: number, y: number) => pixels[(y * size + x) * 4 + 3];
-			const corners = [alpha(0, 0), alpha(size - 1, 0), alpha(0, size - 1), alpha(size - 1, size - 1)];
-			if (corners.every((value) => value > 200)) {
-				logoLook = 'boxed';
+			const at = (x: number, y: number) => (y * size + x) * 4;
+			const luma = (i: number) => (0.2126 * pixels[i] + 0.7152 * pixels[i + 1] + 0.0722 * pixels[i + 2]) / 255;
+			// The edge all round: transparent somewhere is a plain logo; opaque and of one shade a background.
+			const edge: number[] = [];
+			for (let n = 0; n < size; n++) edge.push(at(n, 0), at(n, size - 1), at(0, n), at(size - 1, n));
+			if (edge.every((i) => pixels[i + 3] > 200)) {
+				const shades = edge.map(luma);
+				const mean = shades.reduce((sum, value) => sum + value, 0) / shades.length;
+				const plain = shades.filter((value) => Math.abs(value - mean) < 0.12).length / shades.length > 0.85;
+				logoLook = !plain ? 'photo' : mean < 0.5 ? 'on-dark' : 'on-light';
 				return;
 			}
 			let light = 0;
 			let count = 0;
 			for (let i = 0; i < pixels.length; i += 4) {
 				if (pixels[i + 3] < 128) continue;
-				light += (0.2126 * pixels[i] + 0.7152 * pixels[i + 1] + 0.0722 * pixels[i + 2]) / 255;
+				light += luma(i);
 				count++;
 			}
 			logoLook = count && light / count < 0.45 ? 'dark' : 'light';
@@ -188,11 +196,11 @@
 		<img
 			class="film {film.kind} {film.kind === 'logo' ? (logoLook ?? 'measuring') : ''}"
 			src={film.src}
-			alt={t.piece.filmPicture(film.name)}
+			alt={film.band ? t.piece.bandPicture(film.name) : t.piece.filmPicture(film.name)}
 			use:measured
 			onerror={() => (filmFailed = piece.id)}
 		/>
-		<a class="credit" href={film.source} target="_blank" rel="noopener noreferrer">{film.kind === 'logo' ? t.piece.portraitCredit : t.piece.iconCredit}</a>
+		<a class="credit" href={film.source} target="_blank" rel="noopener noreferrer">{film.kind === 'icon' ? t.piece.iconCredit : t.piece.portraitCredit}</a>
 	{:else if portrait}
 		<img class="portrait" src={portrait.src} alt={t.piece.portrait(portrait.name)} onerror={() => (portraitFailed = piece.id)} />
 		<a class="credit" href={portrait.source} target="_blank" rel="noopener noreferrer">{t.piece.portraitCredit}</a>
@@ -650,20 +658,35 @@
 		filter: grayscale(1) invert(1);
 	}
 
-	/* A logo with its own background: a small tile, not a box fading into the banner. */
-	.film.logo.boxed {
-		width: auto;
-		max-width: min(40%, 260px);
-		height: auto;
-		max-height: 60%;
-		top: 50%;
-		right: var(--space-5);
-		bottom: auto;
+	/*
+	 * A logo on a plain background of its own (Interstellar's white on black): the background
+	 * blends away (screen keeps only what's lighter than black), a light one turned dark first,
+	 * and the edges fade out all round, so no box shows.
+	 */
+	.film.logo.on-dark,
+	.film.logo.on-light {
+		mix-blend-mode: screen;
+		opacity: 0.85;
+		mask-image: radial-gradient(ellipse 80% 70% at 65% 50%, var(--brand-ink) 55%, transparent 100%);
+	}
+
+	.film.logo.on-dark {
+		filter: grayscale(1) contrast(1.4);
+	}
+
+	.film.logo.on-light {
+		filter: grayscale(1) invert(1) contrast(1.4);
+	}
+
+	/* A photo (a musical's production) like a composer's portrait: the banner's colour, fading in. */
+	.film.logo.photo {
+		width: min(42%, 280px);
 		padding: 0;
-		border-radius: var(--radius-m);
-		transform: translateY(-50%);
-		mask-image: none;
-		filter: grayscale(0.3);
+		object-fit: cover;
+		object-position: center;
+		filter: grayscale(1) contrast(1.08);
+		mix-blend-mode: luminosity;
+		opacity: 0.75;
 	}
 
 	/* An icon keeps its colours, a little quieter than a picture. */

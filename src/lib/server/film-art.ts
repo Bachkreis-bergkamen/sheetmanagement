@@ -1,26 +1,51 @@
 import { LANGUAGE } from '#lib/i18n/index.ts';
-import { FILM, FILM_SERIES, filmQuery, iconTerms, ICON_SETS, iconUrl, logoFile, MUSICAL, pickIcon, subjectIds, TV_SERIES } from '#lib/music/film-art.ts';
+import {
+	BAND_KINDS,
+	type Candidate,
+	candidateName,
+	candidatePicture,
+	candidateQuery,
+	FILM_KINDS,
+	filmQuery,
+	iconTerms,
+	ICON_SETS,
+	iconUrl,
+	isLogoFile,
+	MUSICAL_KINDS,
+	namedExactly,
+	pickIcon,
+	rankCandidates,
+	readCandidates
+} from '#lib/music/film-art.ts';
 import { searchText } from '#lib/music/text.ts';
+import { splitList } from '#lib/repertoire/lists.ts';
 import { cached } from './cache.ts';
 import { appEnv, runInBackground } from './env.ts';
-import { portraitHeaders, portraitImageUrl, portraitPageUrl } from './portraits.ts';
+import { portraitHeaders, portraitImageUrl, portraitPageUrl, sparqlRows } from './portraits.ts';
 
 /**
  * A film's picture for a piece's banner (#312): its title logo from Wikimedia Commons, else an
- * open icon for what it's about. Found through Wikidata like the composers' portraits, cached
- * for a month, and passed on by /api/filmbild, so members' devices never contact the sources.
+ * open icon for what it's about; for pop and jazz the band's logo (#319). Found through Wikidata
+ * like the composers' portraits, cached for a month, and passed on by /api/filmbild, so members'
+ * devices never contact the sources.
+ *
+ * Each lookup is one search and one small query that returns only the few facts a picture needs:
+ * reading whole entities (hundreds of KB for Star Wars) cost the Worker more CPU than a request
+ * has, and such pieces didn't open (#318).
  */
 
 const WIKIDATA = 'https://www.wikidata.org/w/api.php';
+const COMMONS = 'https://commons.wikimedia.org/w/api.php';
 const ICONIFY = 'https://api.iconify.design';
 const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 /** A page doesn't wait longer than this for a first lookup; it shows the genre's drawing meanwhile. */
 const LOOKUP_TIMEOUT_MS = 2500;
+const HITS = 15;
 
 export interface FilmArt {
-	/** The film as Wikidata names it, for the picture's description. */
+	/** The film or band as Wikidata names it, for the picture's description. */
 	name: string;
-	/** The logo's file on Wikimedia Commons. */
+	/** The logo's (or a musical's picture's) file on Wikimedia Commons. */
 	logo?: string;
 	/** Else an icon, e.g. "noto:lion". */
 	icon?: string;
@@ -28,17 +53,28 @@ export interface FilmArt {
 
 type Json = Record<string, any>;
 
-async function wikidata(params: Record<string, string>): Promise<Json> {
-	const response = await fetch(`${WIKIDATA}?${new URLSearchParams({ ...params, format: 'json' })}`, { headers: portraitHeaders, signal: AbortSignal.timeout(8000) });
+/** Item ids for a query among items of some classes, in the search's order. */
+async function search(query: string, kinds: string[]): Promise<string[]> {
+	const classes = kinds.map((kind) => `P31=${kind}`).join('|');
+	const url = `${WIKIDATA}?${new URLSearchParams({ action: 'query', list: 'search', srsearch: `${query} haswbstatement:${classes}`, srlimit: String(HITS), srprop: '', format: 'json' })}`;
+	const response = await fetch(url, { headers: portraitHeaders, signal: AbortSignal.timeout(8000) });
 	if (!response.ok) throw new Error(`Wikidata answered ${response.status}`);
-	return response.json();
+	const hits: Json[] = (await response.json())?.query?.search ?? [];
+	return hits.map((hit) => hit.title).filter((id): id is string => typeof id === 'string');
 }
 
-/** The best match among items of one class; only the first counts, like for portraits. */
-async function find(query: string, kind: string): Promise<string | undefined> {
-	const search = await wikidata({ action: 'query', list: 'search', srsearch: `${query} haswbstatement:P31=${kind}`, srlimit: '1' });
-	const id = search.query?.search?.[0]?.title;
-	return typeof id === 'string' ? id : undefined;
+async function candidates(ids: string[]): Promise<Candidate[]> {
+	return ids.length ? readCandidates(await sparqlRows(candidateQuery(ids))) : [];
+}
+
+/** A logo file on Commons named after the work, found by a search of the file names. */
+async function commonsLogo(name: string): Promise<string | undefined> {
+	const url = `${COMMONS}?${new URLSearchParams({ action: 'query', list: 'search', srnamespace: '6', srsearch: `intitle:logo ${name}`, srlimit: '10', srprop: '', format: 'json' })}`;
+	const response = await fetch(url, { headers: portraitHeaders, signal: AbortSignal.timeout(8000) });
+	if (!response.ok) throw new Error(`Commons answered ${response.status}`);
+	const hits: Json[] = (await response.json())?.query?.search ?? [];
+	const file = hits.map((hit) => hit.title).find((title): title is string => typeof title === 'string' && isLogoFile(title, name));
+	return file?.replace(/^File:/, '');
 }
 
 async function icon(terms: string[]): Promise<string | undefined> {
@@ -54,46 +90,43 @@ async function icon(terms: string[]): Promise<string | undefined> {
 	return undefined;
 }
 
-const entityOf = async (id: string): Promise<Json | undefined> =>
-	(await wikidata({ action: 'wbgetentities', ids: id, props: 'claims|labels', languages: 'de|en' })).entities?.[id];
-
-/** The picture of one item: its logo, else its series' logo (P179), else an icon for its subjects. */
-async function pictureOf(entity: Json | undefined): Promise<Omit<FilmArt, 'name'> | null> {
-	const logo = logoFile(entity);
-	if (logo) return { logo };
-	const series = entity?.claims?.P179?.[0]?.mainsnak?.datavalue?.value?.id;
-	const seriesLogo = typeof series === 'string' ? logoFile(await entityOf(series)) : undefined;
-	if (seriesLogo) return { logo: seriesLogo };
-	const subjects = subjectIds(entity).slice(0, 6);
-	if (!subjects.length) return null;
-	const labels = (await wikidata({ action: 'wbgetentities', ids: subjects.join('|'), props: 'labels', languages: 'en' })).entities ?? {};
-	const found = await icon(iconTerms(subjects.map((subject) => labels[subject]?.labels?.en?.value ?? '')));
-	return found ? { icon: found } : null;
-}
-
-/** The best match of each kind in turn, until one has a picture. */
-async function lookUp(query: string, musical: boolean): Promise<FilmArt | null> {
-	const [first, second] = LANGUAGE === 'en' ? ['en', 'de'] : ['de', 'en'];
-	for (const kind of musical ? [MUSICAL, FILM] : [FILM, FILM_SERIES, TV_SERIES]) {
-		const id = await find(query, kind);
-		if (!id) continue;
-		const entity = await entityOf(id);
-		const picture = await pictureOf(entity);
-		if (picture) return { name: entity?.labels?.[first]?.value ?? entity?.labels?.[second]?.value ?? query, ...picture };
+/** The best hit with a logo, else an icon for what the best hit is about. */
+async function lookUpFilm(query: string, musical: boolean): Promise<FilmArt | null> {
+	// A musical's film and a musical film's stage show both do.
+	const kinds = musical ? [...MUSICAL_KINDS, ...FILM_KINDS] : [...FILM_KINDS, ...MUSICAL_KINDS];
+	const ids = await search(query, kinds);
+	const hits = await candidates(ids);
+	const ranked = rankCandidates(query, ids, hits, kinds);
+	for (const candidate of ranked) {
+		const logo = candidatePicture(candidate);
+		if (logo) return { name: candidateName(candidate, LANGUAGE) ?? query, logo };
 	}
-	return null;
+	// No logo on Wikidata: a file on Commons named for it ("007 logo", "The Lord of the Rings logo").
+	const named = [...new Set([query, ...(ranked[0] ? [ranked[0].labels.en, ranked[0].labels.mul] : [])].filter((name): name is string => !!name))];
+	for (const name of named.slice(0, 2)) {
+		const logo = await commonsLogo(name).catch(() => undefined);
+		if (logo) return { name: (ranked[0] && candidateName(ranked[0], LANGUAGE)) ?? query, logo };
+	}
+	// Else the franchise's: broader ("Marvel Cinematic Universe"), but of the same world.
+	const franchise = ranked.find((candidate) => candidate.franchiseLogo);
+	if (franchise?.franchiseLogo) return { name: candidateName(franchise, LANGUAGE) ?? query, logo: franchise.franchiseLogo };
+	const best = ranked[0];
+	const found = best && (await icon(iconTerms(best.subjects)));
+	return found ? { name: candidateName(best, LANGUAGE) ?? query, icon: found } : null;
 }
 
-/** The picture for a piece of film music or a musical, cached; null when there's none or the sources don't answer in time. */
-export async function filmArt(title: string, musical = false): Promise<FilmArt | null> {
-	const query = filmQuery(title);
-	const key = searchText(query).replace(/\s+/g, ' ').trim();
-	if (!key) return null;
+/** A band's logo: only for a band named exactly so, never a stranger's. */
+async function lookUpBand(name: string): Promise<FilmArt | null> {
+	const found = (await candidates(await search(name, BAND_KINDS))).find((candidate) => namedExactly(candidate, name) && candidate.logo);
+	return found?.logo ? { name: candidateName(found, LANGUAGE) ?? name, logo: found.logo } : null;
+}
+
+async function cachedArt(key: string, build: () => Promise<FilmArt | null>): Promise<FilmArt | null> {
 	try {
 		const { value } = await cached<FilmArt | null>({
-			key: `film-art:v1:${musical ? 'musical' : 'film'}:${key}`,
+			key,
 			maxAgeMs: MAX_AGE_MS,
-			build: () => lookUp(query, musical),
+			build,
 			kv: appEnv().CACHE,
 			waitUntil: runInBackground,
 			timeoutMs: LOOKUP_TIMEOUT_MS
@@ -103,6 +136,31 @@ export async function filmArt(title: string, musical = false): Promise<FilmArt |
 		console.error('Looking up a film picture failed:', cause instanceof Error ? cause.message : cause);
 		return null;
 	}
+}
+
+const keyOf = (text: string) => searchText(text).replace(/\s+/g, ' ').trim();
+
+/** The picture for a piece of film music or a musical, cached; null when there's none or the sources don't answer in time. */
+export async function filmArt(title: string, musical = false): Promise<FilmArt | null> {
+	const query = filmQuery(title);
+	const key = keyOf(query);
+	if (!key) return null;
+	return cachedArt(`film-art:v6:${musical ? 'musical' : 'film'}:${key}`, () => lookUpFilm(query, musical));
+}
+
+/** The logo of a band among a piece's composers ("Queen", "ABBA"), cached. */
+export async function bandArt(name: string): Promise<FilmArt | null> {
+	const key = keyOf(name);
+	if (!key) return null;
+	return cachedArt(`band-art:v1:${key}`, () => lookUpBand(name.trim()));
+}
+
+/** The first of a piece's composers that is a band with a logo, with the name it was found by; looked up side by side. */
+export async function bandFor(composers: string | undefined): Promise<(FilmArt & { query: string }) | null> {
+	const names = splitList(composers).slice(0, 3);
+	const found = await Promise.all(names.map(bandArt));
+	const i = found.findIndex(Boolean);
+	return i === -1 ? null : { ...found[i]!, query: names[i] };
 }
 
 /** Where the picture itself is: a 600 px rendering of the logo, or the icon's SVG. */
