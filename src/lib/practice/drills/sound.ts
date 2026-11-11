@@ -133,7 +133,20 @@ export interface PlayedBar {
  * rhythm to hear, or (without notes) a bar to tap into. Scheduled on the audio clock, so it
  * stays exact however busy the page is. Null without audio.
  */
-export async function playBar({ bpm, countIn, beats, notes = [] }: { bpm: number; countIn: number; beats: number; notes?: number[] }): Promise<PlayedBar | null> {
+export async function playBar({
+	bpm,
+	countIn,
+	beats,
+	notes = [],
+	meter = 4
+}: {
+	bpm: number;
+	countIn: number;
+	beats: number;
+	notes?: number[];
+	/** Beats in a bar, for the accent on each first beat. */
+	meter?: number;
+}): Promise<PlayedBar | null> {
 	try {
 		output ??= new AudioContext();
 		const audio = output;
@@ -144,7 +157,7 @@ export async function playBar({ bpm, countIn, beats, notes = [] }: { bpm: number
 		const nodes: AudioScheduledSourceNode[] = [];
 		for (let i = 0; i < countIn + beats; i++) {
 			const counting = i < countIn;
-			strike(audio, first + i * beat, i % 4 === 0 ? 1760 : 1320, counting ? 0.32 : 0.12, 0.04, nodes);
+			strike(audio, first + i * beat, i % meter === 0 ? 1760 : 1320, counting ? 0.32 : 0.12, 0.04, nodes);
 		}
 		for (const note of notes) strike(audio, downbeat + note / 1000, 660, 0.4, 0.12, nodes);
 		// From the audio clock to the page's: the output's own timestamp where there is one (it
@@ -205,4 +218,10 @@ export function startDrone(frequency: number, fifth = false): () => void {
 	} catch {
 		return () => {};
 	}
+}
+
+/** Notes one after another as written: each `frequency` from `at` seconds for `seconds`. Returns a stop. */
+export function playMelody(notes: { frequency: number; at: number; seconds: number }[]): () => void {
+	const timers = notes.map((note) => setTimeout(() => playTone(note.frequency, Math.max(0.35, note.seconds)), note.at * 1000));
+	return () => timers.forEach(clearTimeout);
 }

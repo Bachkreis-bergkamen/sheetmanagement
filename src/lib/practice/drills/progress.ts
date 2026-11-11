@@ -1,5 +1,6 @@
 import type { ProfileId } from './instruments.ts';
 import type { States } from './scheduler.ts';
+import { MAX_LEVEL, type SightLevel } from './sight.ts';
 import { CLEFS, type Clef } from './theory.ts';
 
 /**
@@ -24,6 +25,9 @@ export interface DrillSettings {
 	drone?: 'off' | 'tonic' | 'fifth';
 	click?: boolean;
 	hideCents?: boolean;
+	/** Sight-reading: the level per instrument, and bars disappearing just before they're played. */
+	sight?: Partial<Record<ProfileId, SightLevel>>;
+	readAhead?: boolean;
 }
 
 export interface DrillData {
@@ -58,6 +62,16 @@ export function readData(value: unknown): DrillData {
 		const offset = raw.settings.tapOffset;
 		if (offset !== undefined && !(Number.isFinite(offset) && Math.abs(offset) <= 250)) delete data.settings.tapOffset;
 		if (!['off', 'tonic', 'fifth', undefined].includes(raw.settings.drone)) delete data.settings.drone;
+		const sight = raw.settings.sight;
+		if (sight !== undefined) {
+			const levels: DrillSettings['sight'] = {};
+			for (const [id, state] of Object.entries(sight && typeof sight === 'object' ? sight : {})) {
+				if (state && Number.isInteger(state.level) && state.level >= 1 && state.level <= MAX_LEVEL) {
+					levels[id as ProfileId] = { level: state.level, good: state.good | 0, poor: state.poor | 0 };
+				}
+			}
+			data.settings.sight = levels;
+		}
 	}
 	if (Array.isArray(raw.opened)) data.opened = raw.opened.filter((clef): clef is Clef => (CLEFS as readonly string[]).includes(clef));
 	if (Number.isFinite(raw.unsent) && raw.unsent! > 0) data.unsent = Math.min(MAX_UNSENT, Math.round(raw.unsent!));

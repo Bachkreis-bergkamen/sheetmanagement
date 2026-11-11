@@ -6,12 +6,15 @@
 	import Icon, { type IconName } from '#lib/components/Icon.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import RhythmStaff from '#lib/components/RhythmStaff.svelte';
+	import SightRound from '#lib/components/SightRound.svelte';
+	import SightStaff from '#lib/components/SightStaff.svelte';
 	import Title from '#lib/components/Title.svelte';
 	import { EAR_ORDER, FLUENT_MS, interleave, KEY_ORDER, kindOf, notesOrder, playOrder, transOrder } from '#lib/practice/drills/decks.ts';
 	import { isProfileId, PROFILE_IDS, profile, profileFor, type ProfileId } from '#lib/practice/drills/instruments.ts';
 	import { clefLadder, UNLOCK_AT } from '#lib/practice/drills/levels.ts';
 	import { RHYTHM_ORDER } from '#lib/practice/drills/rhythm.ts';
 	import { scaleOrder } from '#lib/practice/drills/scales.ts';
+	import { firstLevel, makeMelody, MAX_LEVEL, seeded, type SightLevel } from '#lib/practice/drills/sight.ts';
 	import { addAnswer, DAILY_GOAL_MINUTES, dayKey, emptyData, MAX_UNSENT, streak, type DrillData } from '#lib/practice/drills/progress.ts';
 	import { dayNumber, record, summary } from '#lib/practice/drills/scheduler.ts';
 	import { clearDrills, loadDrills, saveDrills } from '#lib/practice/drills/store.ts';
@@ -52,7 +55,7 @@
 		saveDrills(data.account, drills).then((ok) => (saved = ok));
 	}
 
-	type Kind = 'mix' | 'notes' | 'keys' | 'ear' | 'rhythm' | 'play' | 'scale' | 'trans';
+	type Kind = 'mix' | 'notes' | 'keys' | 'ear' | 'rhythm' | 'play' | 'scale' | 'sight' | 'trans';
 	const orders = $derived.by<Record<Kind, string[]>>(() => {
 		const notes = interleave(...clefs.map(notesOrder));
 		return {
@@ -63,6 +66,8 @@
 			rhythm: RHYTHM_ORDER,
 			play: interleave(...clefs.map((clef) => playOrder(instrument, clef))),
 			scale: scaleOrder(instrument),
+			// Sight-reading has no items: every melody is new.
+			sight: [],
 			trans: transOrder(instrument)
 		};
 	});
@@ -94,6 +99,11 @@
 	/** `measure` is what counts for fluency: the time to answer, or for a rhythm how far the taps were off. */
 	function onanswer(id: string, correct: boolean, ms: number, measure = ms) {
 		drills.items[id] = record(drills.items[id], correct, measure, dayNumber(), FLUENT_MS[kindOf(id)]);
+		practised(correct, ms);
+	}
+
+	/** The day's practice and the practice tree: every answer, and every melody read at sight. */
+	function practised(correct: boolean, ms: number) {
 		drills.days = addAnswer(drills.days, dayKey(), correct, ms);
 		// A clef that opens stays open.
 		const opening = clefLadder(prof, drills.items, drills.opened).filter((step) => step.open && !drills.opened.includes(step.clef));
@@ -144,6 +154,7 @@
 		{ kind: 'rhythm', icon: 'activity' },
 		{ kind: 'play', icon: 'gauge' },
 		{ kind: 'scale', icon: 'music' },
+		{ kind: 'sight', icon: 'eye' },
 		{ kind: 'trans', icon: 'refresh' }
 	];
 	/** A small picture for each card. */
@@ -153,19 +164,37 @@
 		keys: { fifths: -3 },
 		ear: { notes: [pitchOf('E4'), pitchOf('B4')] },
 		rhythm: {},
+		sight: {},
 		play: { notes: [pitchOf('D5')] },
 		scale: { fifths: 1, notes: [pitchOf('G4'), pitchOf('A4'), pitchOf('B4')] },
 		trans: { notes: [pitchOf('C5')] }
 	};
-	/** The transposing drill only for instruments that transpose or read parts in other keys; scales only for those that play them. */
-	const kinds = $derived(KINDS.filter(({ kind }) => (kind !== 'trans' && kind !== 'scale') || orders[kind].length));
+	/** The transposing drill only for instruments that transpose or read parts in other keys; scales and sight-reading only for those that play them. */
+	const kinds = $derived(
+		KINDS.filter(({ kind }) => (kind === 'sight' ? !!sightPreview : (kind !== 'trans' && kind !== 'scale') || orders[kind].length))
+	);
+	const sightLevel = $derived<SightLevel>(drills.settings.sight?.[instrument] ?? firstLevel());
+	/** A small melody of the member's level for the card, the same one each visit. */
+	const sightPreview = $derived(instrument === 'timpani' ? null : makeMelody(instrument, prof.clefs[0], 1, seeded(3)))
 	const steps = $derived(prof.clefs.length > 1 && !prof.together ? ladder : []);
 </script>
 
 <Title title={tx.title} />
 <PageHeader title={tx.title} lead={tx.lead} />
 
-{#if playing}
+{#if playing === 'sight'}
+	<SightRound
+		{instrument}
+		{clefs}
+		level={drills.settings.sight?.[instrument]}
+		readAhead={!!drills.settings.readAhead}
+		title={tx.kinds.sight.title}
+		onlevel={(state) => setting({ sight: { ...drills.settings.sight, [instrument]: state } })}
+		onreadahead={(readAhead) => setting({ readAhead })}
+		onpractice={(ms, good) => practised(good, ms)}
+		onexit={exit}
+	/>
+{:else if playing}
 	<DrillRound
 		order={orders[playing]}
 		{clefs}
@@ -244,6 +273,8 @@
 					<div class="preview" aria-hidden="true">
 						{#if kind === 'rhythm'}
 							<RhythmStaff pattern="4 2 2 6 2" label="" />
+						{:else if kind === 'sight' && sightPreview}
+							<SightStaff melody={sightPreview} label="" />
 						{:else}
 							<DrillStaff
 								clef={kind === 'trans' || kind === 'scale' ? 'treble' : clefs[0]}
@@ -256,7 +287,11 @@
 					</div>
 					<h2><Icon name={icon} size={18} />{tx.kinds[kind].title}</h2>
 					<p class="lead">{tx.kinds[kind].lead}</p>
-					{#if !order.length}
+					{#if kind === 'sight'}
+						<p class="hint">{tx.level(sightLevel.level, MAX_LEVEL)}</p>
+						<div class="meter" aria-hidden="true"><span style:width="{(sightLevel.level / MAX_LEVEL) * 100}%"></span></div>
+						<button type="button" class="btn" disabled={!ready} onclick={() => start(kind)}>{tx.start}</button>
+					{:else if !order.length}
 						<p class="hint">{tx.noPlay}</p>
 					{:else}
 						<p class="hint">

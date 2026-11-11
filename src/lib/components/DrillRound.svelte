@@ -13,6 +13,7 @@
 	import DrillStaff from './DrillStaff.svelte';
 	import Icon from './Icon.svelte';
 	import RhythmStaff from './RhythmStaff.svelte';
+	import TempoMark from './staff/TempoMark.svelte';
 
 	/**
 	 * One round of a drill (#300, #315): twenty questions picked by the scheduler, each answered
@@ -593,7 +594,7 @@
 					<p class="hint calibrate">{tx.calibrateLead}</p>
 				{:else}
 					<RhythmStaff pattern={question.pattern} marks={rhythmMarks} taps={tapMarks} label={tx.tapThis} />
-					<p class="hint">{tx.tempo(bpm)}</p>
+					<p class="hint"><TempoMark {bpm} /></p>
 				{/if}
 			{:else if question.kind === 'keys'}
 				<DrillStaff clef={question.clef} fifths={question.fifths} label={tx.whichKey(question.mode)} />
