@@ -697,7 +697,7 @@ export const en: Texts = {
 			seasons: 'Small drawings for the season: a snowflake, a blossom, a pumpkin.',
 			tickets: 'Reserve concert tickets on the website, paid at the door, with check-in by phone.',
 			offline: 'Save parts in “My parts” for rehearsals without a connection.',
-			drills: 'Short exercises in note reading, keys, intervals, pitch and transposing. They run on the device; only the time counts toward practice time.'
+			drills: 'Short exercises in note reading, keys, intervals, rhythm, pitch and transposing. They run on the device; only the time counts toward practice time.'
 		} as Record<string, string>,
 		instruments: 'Instruments',
 		instrumentsLead:
@@ -1937,7 +1937,7 @@ export const en: Texts = {
 	},
 	drills: {
 		title: 'Practice room',
-		lead: 'A few minutes a day: read notes, recognise keys, hear intervals, play in tune, transpose. The exercises adapt to you.',
+		lead: 'A few minutes a day: read notes, recognise keys, hear intervals, tap rhythms, play in tune, transpose. The exercises adapt to you.',
 		private: 'Your progress and the microphone stay on this device. At most your practice time is sent, if you record practice time.',
 		unsaved: 'This browser can’t save your progress (a private window?). You can still practise.',
 		instrument: 'Instrument',
@@ -1978,6 +1978,7 @@ export const en: Texts = {
 			keys: { title: 'Keys', lead: 'Which key has this key signature?' },
 			play: { title: 'Play the note', lead: 'Play the note; the microphone hears if it’s right.' },
 			ear: { title: 'Hear intervals', lead: 'Two notes: how far apart are they?' },
+			rhythm: { title: 'Rhythm', lead: 'Read, listen, tap it back: one bar after a count-in.' },
 			trans: { title: 'Transposing', lead: 'Which note sounds, and how do you read parts in other keys?' }
 		},
 		start: 'Start',
@@ -2019,6 +2020,31 @@ export const en: Texts = {
 		replay: 'Hear the note',
 		replayChord: 'Hear the chord',
 		keyboard: 'The keyboard works too: C D E F G A B, space for next.',
+		tapThis: 'Tap this rhythm',
+		tempo: (bpm: number) => `Quarter = ${bpm}`,
+		example: 'This is how it sounds …',
+		countIn: 'Counting in …',
+		tapNow: 'Tap now!',
+		tapPad: 'Tap here',
+		tapStart: 'Count in and tap',
+		keyboardRhythm: 'The space bar works too: once to count in, then in rhythm.',
+		inTime: 'Right in time!',
+		rhythmLoose: (ms: number) => `Right, ${ms} ms off on average.`,
+		rhythmWrong: (missed: number, extra: number) =>
+			[missed ? (missed === 1 ? '1 note missed' : `${missed} notes missed`) : '', extra ? (extra === 1 ? '1 tap too many' : `${extra} taps too many`) : '']
+				.filter(Boolean)
+				.join(', ') + '. Red: missed; the triangles show your taps.',
+		noTaps: 'No taps heard. Tap the pad or press the space bar.',
+		rhythmShown: 'This is how it goes; have a listen.',
+		dragging: 'You’re a little late: think the short notes before they come.',
+		rushing: 'You’re a little early: let long notes and rests last their full length.',
+		calibrateTitle: 'A quick check',
+		calibrateLead:
+			'Every device takes a moment before a click is heard and a tap arrives. After the count-in, tap eight times exactly with the click, so the exercise measures your taps right. This happens only once.',
+		calibrateStart: 'Check',
+		calibrateNow: 'Tap with the click …',
+		calibrateFailed: 'That wasn’t steady enough yet. Once more?',
+		recalibrate: 'check again',
 		done: 'Round done',
 		doneRight: (right: number, total: number) => `${right} of ${total} right`,
 		doneTime: (seconds: string) => `usually ${seconds} s per answer`,
@@ -2032,6 +2058,7 @@ export const en: Texts = {
 			'New items come in when most answers are right. When it’s hard going, familiar ones are mixed in.',
 			'Secure means right and fast: when sight-reading there’s no time to count lines.',
 			'If you know an item quickly the first time, it’s skipped ahead, so you reach what’s new to you soon.',
+			'Rhythms get faster once you tap them securely, and the tolerance tighter. Secure here means even: 60 ms off at most on average.',
 			'It gets harder step by step: more of your instrument’s clefs (cello: bass, then tenor, then treble), intervals from distinct to easily confused, parts in other keys.'
 		],
 		intervals: ['unison', 'minor second', 'major second', 'minor third', 'major third', 'perfect fourth', 'tritone', 'perfect fifth', 'minor sixth', 'major sixth', 'minor seventh', 'major seventh', 'octave'],

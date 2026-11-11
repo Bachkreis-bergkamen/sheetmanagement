@@ -5,10 +5,12 @@
 	import DrillStaff from '#lib/components/DrillStaff.svelte';
 	import Icon, { type IconName } from '#lib/components/Icon.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
+	import RhythmStaff from '#lib/components/RhythmStaff.svelte';
 	import Title from '#lib/components/Title.svelte';
 	import { EAR_ORDER, FLUENT_MS, interleave, KEY_ORDER, kindOf, notesOrder, playOrder, transOrder } from '#lib/practice/drills/decks.ts';
 	import { isProfileId, PROFILE_IDS, profile, profileFor, type ProfileId } from '#lib/practice/drills/instruments.ts';
 	import { clefLadder, UNLOCK_AT } from '#lib/practice/drills/levels.ts';
+	import { RHYTHM_ORDER } from '#lib/practice/drills/rhythm.ts';
 	import { addAnswer, DAILY_GOAL_MINUTES, dayKey, emptyData, MAX_UNSENT, streak, type DrillData } from '#lib/practice/drills/progress.ts';
 	import { dayNumber, record, summary } from '#lib/practice/drills/scheduler.ts';
 	import { clearDrills, loadDrills, saveDrills } from '#lib/practice/drills/store.ts';
@@ -49,7 +51,7 @@
 		saveDrills(data.account, drills).then((ok) => (saved = ok));
 	}
 
-	type Kind = 'mix' | 'notes' | 'keys' | 'ear' | 'play' | 'trans';
+	type Kind = 'mix' | 'notes' | 'keys' | 'ear' | 'rhythm' | 'play' | 'trans';
 	const orders = $derived.by<Record<Kind, string[]>>(() => {
 		const notes = interleave(...clefs.map(notesOrder));
 		return {
@@ -57,6 +59,7 @@
 			notes,
 			keys: KEY_ORDER,
 			ear: EAR_ORDER,
+			rhythm: RHYTHM_ORDER,
 			play: interleave(...clefs.map((clef) => playOrder(instrument, clef))),
 			trans: transOrder(instrument)
 		};
@@ -86,8 +89,9 @@
 		sendTime();
 	}
 
-	function onanswer(id: string, correct: boolean, ms: number) {
-		drills.items[id] = record(drills.items[id], correct, ms, dayNumber(), FLUENT_MS[kindOf(id)]);
+	/** `measure` is what counts for fluency: the time to answer, or for a rhythm how far the taps were off. */
+	function onanswer(id: string, correct: boolean, ms: number, measure = ms) {
+		drills.items[id] = record(drills.items[id], correct, measure, dayNumber(), FLUENT_MS[kindOf(id)]);
 		drills.days = addAnswer(drills.days, dayKey(), correct, ms);
 		// A clef that opens stays open.
 		const opening = clefLadder(prof, drills.items, drills.opened).filter((step) => step.open && !drills.opened.includes(step.clef));
@@ -135,6 +139,7 @@
 		{ kind: 'notes', icon: 'note' },
 		{ kind: 'keys', icon: 'tag' },
 		{ kind: 'ear', icon: 'headphones' },
+		{ kind: 'rhythm', icon: 'activity' },
 		{ kind: 'play', icon: 'gauge' },
 		{ kind: 'trans', icon: 'refresh' }
 	];
@@ -144,6 +149,7 @@
 		notes: { notes: [pitchOf('G4')] },
 		keys: { fifths: -3 },
 		ear: { notes: [pitchOf('E4'), pitchOf('B4')] },
+		rhythm: {},
 		play: { notes: [pitchOf('D5')] },
 		trans: { notes: [pitchOf('C5')] }
 	};
@@ -156,7 +162,18 @@
 <PageHeader title={tx.title} lead={tx.lead} />
 
 {#if playing}
-	<DrillRound order={orders[playing]} {clefs} {instrument} states={drills.items} {sound} title={tx.kinds[playing].title} {onanswer} onexit={exit} />
+	<DrillRound
+		order={orders[playing]}
+		{clefs}
+		{instrument}
+		states={drills.items}
+		{sound}
+		title={tx.kinds[playing].title}
+		tapOffset={drills.settings.tapOffset}
+		{onanswer}
+		oncalibrate={(tapOffset) => setting({ tapOffset })}
+		onexit={exit}
+	/>
 {:else}
 	<div class="hub">
 		{#if unlocked}<p class="msg ok unlocked" role="status"><Icon name="sparkle" size={18} />{tx.newClef(tx.clefs[unlocked])}</p>{/if}
@@ -219,7 +236,11 @@
 				{@const stand = standing(order)}
 				<li class="ui-card kind">
 					<div class="preview" aria-hidden="true">
-						<DrillStaff clef={kind === 'trans' ? 'treble' : clefs[0]} fifths={PREVIEW[kind].fifths ?? 0} notes={PREVIEW[kind].notes} label="" />
+						{#if kind === 'rhythm'}
+							<RhythmStaff pattern="4 2 2 6 2" label="" />
+						{:else}
+							<DrillStaff clef={kind === 'trans' ? 'treble' : clefs[0]} fifths={PREVIEW[kind].fifths ?? 0} notes={PREVIEW[kind].notes} label="" />
+						{/if}
 					</div>
 					<h2><Icon name={icon} size={18} />{tx.kinds[kind].title}</h2>
 					<p class="lead">{tx.kinds[kind].lead}</p>
@@ -359,6 +380,9 @@
 	}
 
 	.preview {
+		display: grid;
+		align-items: center;
+		min-height: 90px;
 		max-width: 180px;
 		color: var(--text-muted);
 		opacity: 0.7;

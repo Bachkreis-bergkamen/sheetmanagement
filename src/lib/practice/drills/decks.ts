@@ -1,4 +1,5 @@
 import { profile, type PartKey, type ProfileId } from './instruments.ts';
+import { parsePattern, patternOf, type RhythmEvent } from './rhythm.ts';
 import { diatonic, fromDiatonic, LANDMARK, midiOf, pitchAt, type Clef, type Pitch } from './theory.ts';
 
 /**
@@ -10,15 +11,20 @@ import { diatonic, fromDiatonic, LANDMARK, midiOf, pitchAt, type Clef, type Pitc
  * - "ear:7:melodic": name a fifth heard one note after the other;
  * - "trans:trumpet:2:4": a note in a trumpet part "in D" (+2), on the treble staff's middle line:
  *   which note does a B♭ trumpet play? "trans:trumpet:concert:4": which note sounds?
+ * - "rhythm:4-4-r4-4": tap a bar of rhythm back (see rhythm.ts).
  * Note reading is per clef (reading treble clef is the same skill on any instrument), playing
  * and transposing per instrument.
  */
 
-export type DrillKind = 'notes' | 'keys' | 'play' | 'ear' | 'trans';
-export const DRILL_KINDS: readonly DrillKind[] = ['notes', 'keys', 'play', 'ear', 'trans'];
+export type DrillKind = 'notes' | 'keys' | 'play' | 'ear' | 'trans' | 'rhythm';
+export const DRILL_KINDS: readonly DrillKind[] = ['notes', 'keys', 'play', 'ear', 'trans', 'rhythm'];
 
-/** Answers up to this fast count as fluent: the item moves up and can be mastered. */
-export const FLUENT_MS: Record<DrillKind, number> = { notes: 2500, keys: 5000, play: 4000, ear: 5000, trans: 5000 };
+/**
+ * Answers up to this fast count as fluent: the item moves up and can be mastered. For rhythm
+ * it's not the time to answer but how far the taps were off on average: a bar takes as long as
+ * it takes, and what makes it fluent is being even.
+ */
+export const FLUENT_MS: Record<DrillKind, number> = { notes: 2500, keys: 5000, play: 4000, ear: 5000, trans: 5000, rhythm: 60 };
 
 /** Questions per round: a few minutes, short enough to fit anywhere. */
 export const ROUND = 20;
@@ -140,7 +146,8 @@ export type Question =
 			answer: number;
 			/** Semitones from the written note to the answer, within an octave, for the hint. */
 			shift: number;
-	  };
+	  }
+	| { kind: 'rhythm'; id: string; clef: Clef; pattern: string; events: RhythmEvent[] };
 
 const shuffle = <T>(values: T[], random: () => number) => {
 	const copy = [...values];
@@ -194,6 +201,11 @@ export function questionFor(id: string, clef: Clef, random: () => number = Math.
 		// Said as players learn it: a horn sounds a fifth lower (not a fourth higher); a part is read the nearest way.
 		const shift = part ? ((((raw + 6) % 12) + 12) % 12) - 6 : raw % 12;
 		return { kind: 'trans', id, clef: 'treble', pitch, instrument, part, answer: (((midiOf(pitch) + raw) % 12) + 12) % 12, shift };
+	}
+	if (parts[0] === 'rhythm' && parts.length === 2) {
+		const pattern = patternOf(id);
+		const events = parsePattern(pattern);
+		return events ? { kind: 'rhythm', id, clef, pattern, events } : null;
 	}
 	if (parts[0] === 'play' && parts.length === 4) {
 		const instrument = parts[1] as ProfileId;

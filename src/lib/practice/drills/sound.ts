@@ -105,3 +105,67 @@ export function rememberedA4(): number {
 		return 440;
 	}
 }
+
+/** A short percussive sound at `time` on the audio clock: a click for the beat, a lower "tock" for a rhythm's note. */
+function strike(audio: AudioContext, time: number, frequency: number, volume: number, decay: number, nodes: AudioScheduledSourceNode[]) {
+	const oscillator = audio.createOscillator();
+	oscillator.type = 'triangle';
+	oscillator.frequency.value = frequency;
+	const gain = audio.createGain();
+	gain.gain.setValueAtTime(0, time);
+	gain.gain.linearRampToValueAtTime(volume, time + 0.002);
+	gain.gain.exponentialRampToValueAtTime(0.0001, time + decay);
+	oscillator.connect(gain).connect(audio.destination);
+	oscillator.start(time);
+	oscillator.stop(time + decay + 0.02);
+	nodes.push(oscillator);
+}
+
+export interface PlayedBar {
+	/** When the first beat after the count-in is heard, on the clock of `performance.now()` and events' `timeStamp`. */
+	start: number;
+	stop: () => void;
+}
+
+/**
+ * A count-in of `countIn` beats (the first accented), then `beats` more beats of quieter clicks,
+ * with `notes` (milliseconds from the first beat after the count-in) played as a lower sound: a
+ * rhythm to hear, or (without notes) a bar to tap into. Scheduled on the audio clock, so it
+ * stays exact however busy the page is. Null without audio.
+ */
+export async function playBar({ bpm, countIn, beats, notes = [] }: { bpm: number; countIn: number; beats: number; notes?: number[] }): Promise<PlayedBar | null> {
+	try {
+		output ??= new AudioContext();
+		const audio = output;
+		if (audio.state !== 'running') await audio.resume();
+		const beat = 60 / bpm;
+		const first = audio.currentTime + 0.15;
+		const downbeat = first + countIn * beat;
+		const nodes: AudioScheduledSourceNode[] = [];
+		for (let i = 0; i < countIn + beats; i++) {
+			const counting = i < countIn;
+			strike(audio, first + i * beat, i % 4 === 0 ? 1760 : 1320, counting ? 0.32 : 0.12, 0.04, nodes);
+		}
+		for (const note of notes) strike(audio, downbeat + note / 1000, 660, 0.4, 0.12, nodes);
+		// From the audio clock to the page's: the output's own timestamp where there is one (it
+		// includes the delay to the speaker), else now plus the reported output latency.
+		const stamp = audio.getOutputTimestamp?.();
+		const start =
+			stamp?.performanceTime && stamp.contextTime !== undefined
+				? stamp.performanceTime + (downbeat - stamp.contextTime) * 1000
+				: performance.now() + (downbeat - audio.currentTime + (audio.outputLatency || audio.baseLatency || 0)) * 1000;
+		return {
+			start,
+			stop: () =>
+				nodes.forEach((node) => {
+					try {
+						node.stop();
+					} catch {
+						// Already stopped.
+					}
+				})
+		};
+	} catch {
+		return null;
+	}
+}

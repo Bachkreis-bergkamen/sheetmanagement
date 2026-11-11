@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { EAR_ORDER, interleave, intervalOptions, KEY_ORDER, keyOptions, kindOf, noteOrder, notesOrder, playOrder, questionFor, transOrder } from './decks.ts';
+import { RHYTHM_ORDER } from './rhythm.ts';
 import { midiOf, pitchOf, staffPosition } from './theory.ts';
 
 describe('noteOrder', () => {
@@ -114,5 +115,13 @@ describe('transposing', () => {
 		expect(questionFor(`trans:altoSax:+0:${c5}`, 'treble')).toMatchObject({ answer: 9, shift: -3 });
 		expect(questionFor(`trans:trumpet:+7:${c5}`, 'treble')).toBeNull();
 		expect(kindOf('trans:horn:-9:4')).toBe('trans');
+	});
+});
+
+describe('rhythm', () => {
+	it('asks every pattern as a bar to tap', () => {
+		for (const id of RHYTHM_ORDER) expect(questionFor(id, 'treble')).toMatchObject({ kind: 'rhythm', id });
+		expect(questionFor('rhythm:4-4-r4-4', 'bass')).toMatchObject({ pattern: '4 4 r4 4', events: [{ at: 0 }, { at: 4 }, { at: 8, rest: true }, { at: 12 }] });
+		expect(questionFor('rhythm:4-4', 'treble')).toBeNull();
 	});
 });

@@ -707,7 +707,7 @@ export const de = {
 			offline: 'Stimmen in „Meine Noten“ für die Probe ohne Netz speichern.',
 			seasons: 'Kleine Zeichnungen zur Jahreszeit: Schneeflocke, Blüte, Kürbis.',
 			tickets: 'Karten für Konzerte über die Website reservieren, bezahlt an der Abendkasse, mit Einlass per Handy.',
-			drills: 'Kurze Übungen zu Notenlesen, Tonarten, Intervallen, Tönen und Transponieren. Sie laufen auf dem Gerät; nur die Übezeit zählt für die Probenzeit.'
+			drills: 'Kurze Übungen zu Notenlesen, Tonarten, Intervallen, Rhythmus, Tönen und Transponieren. Sie laufen auf dem Gerät; nur die Übezeit zählt für die Probenzeit.'
 		} as Record<string, string>,
 		instruments: 'Instrumente',
 		instrumentsLead:
@@ -1958,7 +1958,7 @@ export const de = {
 	/** The Übebereich (#300, #315): drills on the device, nothing sent. */
 	drills: {
 		title: 'Übebereich',
-		lead: 'Ein paar Minuten am Tag: Noten lesen, Tonarten erkennen, Intervalle hören, Töne treffen, transponieren. Die Übungen passen sich dir an.',
+		lead: 'Ein paar Minuten am Tag: Noten lesen, Tonarten erkennen, Intervalle hören, Rhythmen klopfen, Töne treffen, transponieren. Die Übungen passen sich dir an.',
 		private: 'Dein Fortschritt und das Mikrofon bleiben auf diesem Gerät. Gesendet wird höchstens die Übezeit, wenn du die Probenzeit aufzeichnest.',
 		unsaved: 'Dieser Browser kann den Fortschritt nicht speichern (ein privates Fenster?). Üben geht trotzdem.',
 		instrument: 'Instrument',
@@ -1999,6 +1999,7 @@ export const de = {
 			keys: { title: 'Tonarten', lead: 'Welche Tonart hat diese Vorzeichnung?' },
 			play: { title: 'Töne spielen', lead: 'Spiel den Ton; das Mikrofon hört, ob er stimmt.' },
 			ear: { title: 'Intervalle hören', lead: 'Zwei Töne: wie weit liegen sie auseinander?' },
+			rhythm: { title: 'Rhythmus', lead: 'Lesen, anhören, nachklopfen: ein Takt nach dem Einzählen.' },
 			trans: { title: 'Transponieren', lead: 'Welcher Ton klingt, und wie liest du Stimmen in anderen Stimmungen?' }
 		},
 		start: 'Los',
@@ -2041,6 +2042,31 @@ export const de = {
 		replay: 'Ton anhören',
 		replayChord: 'Dreiklang anhören',
 		keyboard: 'Auch mit der Tastatur: C D E F G A H, Leertaste für weiter.',
+		tapThis: 'Klopf diesen Rhythmus',
+		tempo: (bpm: number) => `Viertel = ${bpm}`,
+		example: 'So klingt es …',
+		countIn: 'Einzählen …',
+		tapNow: 'Jetzt klopfen!',
+		tapPad: 'Hier tippen',
+		tapStart: 'Einzählen und klopfen',
+		keyboardRhythm: 'Auch mit der Leertaste: einmal zum Einzählen, dann im Rhythmus.',
+		inTime: 'Genau im Takt!',
+		rhythmLoose: (ms: number) => `Richtig, im Schnitt ${ms} ms daneben.`,
+		rhythmWrong: (missed: number, extra: number) =>
+			[missed ? (missed === 1 ? '1 Note nicht getroffen' : `${missed} Noten nicht getroffen`) : '', extra ? (extra === 1 ? '1 Schlag zu viel' : `${extra} Schläge zu viel`) : '']
+				.filter(Boolean)
+				.join(', ') + '. Rot: verpasst; die Dreiecke zeigen deine Schläge.',
+		noTaps: 'Keine Schläge gehört. Tipp auf die Fläche oder drück die Leertaste.',
+		rhythmShown: 'So geht er; hör ihn dir an.',
+		dragging: 'Du bist etwas spät dran: denk die kurzen Werte schon mit, bevor sie kommen.',
+		rushing: 'Du bist etwas zu früh: lass lange Noten und Pausen ganz ausklingen.',
+		calibrateTitle: 'Kurz abgleichen',
+		calibrateLead:
+			'Jedes Gerät braucht etwas Zeit, bis ein Klick zu hören ist und ein Tippen ankommt. Tippe nach dem Einzählen achtmal genau mit dem Klick, dann misst die Übung deine Schläge richtig. Das passiert nur einmal.',
+		calibrateStart: 'Abgleichen',
+		calibrateNow: 'Mit dem Klick tippen …',
+		calibrateFailed: 'Das war noch nicht gleichmäßig genug. Noch einmal?',
+		recalibrate: 'neu abgleichen',
 		done: 'Runde geschafft',
 		doneRight: (right: number, total: number) => `${right} von ${total} richtig`,
 		doneTime: (seconds: string) => `meist ${seconds} s pro Antwort`,
@@ -2054,6 +2080,7 @@ export const de = {
 			'Neues kommt dazu, wenn die meisten Antworten stimmen. Läuft es zäh, mischt die Übung Bekanntes ein.',
 			'Sicher heißt richtig und schnell: Beim Vom-Blatt-Spielen ist keine Zeit zum Abzählen.',
 			'Weißt du einen Ton schon beim ersten Mal schnell, wird er übersprungen; so kommst du rasch zu dem, was neu ist.',
+			'Rhythmen werden schneller, sobald du sie sicher klopfst, und die Toleranz wird enger. Sicher heißt hier: gleichmäßig, im Schnitt höchstens 60 ms daneben.',
 			'Es wird nach und nach schwerer: weitere Schlüssel deines Instruments (beim Cello Bass, dann Tenor, dann Violin), Intervalle von klar verschieden bis leicht verwechselbar, Stimmen in anderen Stimmungen.'
 		] as string[],
 		/** Intervals by their size in semitones. */
