@@ -20,7 +20,7 @@
 </script>
 
 <Title title={data.thread.subject} />
-<Crumbs items={[{ href: leitung ? '/kummerkasten?ansicht=eingang' : '/kummerkasten?ansicht=meine', label: t.kummer.title }]} />
+<Crumbs items={[data.back ?? { href: leitung ? '/kummerkasten?ansicht=eingang' : '/kummerkasten?ansicht=meine', label: t.kummer.title }]} />
 
 <header class="head">
 	<h1>{data.thread.subject}</h1>

@@ -1,6 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import {
 	currentStatus,
+	formatRoles,
 	missingRoles,
 	normalizeEmail,
 	parseLinkVersion,
@@ -9,8 +10,10 @@ import {
 	resolveAccess,
 	RIGHTS,
 	roleRights,
+	parseRoles,
 	splitGroups,
-	type Right
+	type Right,
+	type Role
 } from '#lib/access/access.ts';
 import { t } from '#lib/i18n/index.ts';
 import { normalize } from '#lib/repertoire/sheet.ts';
@@ -52,7 +55,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		bootstrapAdmins: auth.mode === 'on' ? auth.bootstrapAdmins : [],
 		requests: list?.requests.map(({ email, name, requestedAt }) => ({ email, name, requestedAt })) ?? [],
 		members:
-			list?.members.map(({ email, name, instrument, groups, orchestras, status, pausedUntil, linkVersion }) => {
+			list?.members.map(({ email, name, instrument, groups, roles, orchestras, status, pausedUntil, linkVersion, children }) => {
 				return {
 					email,
 					name,
@@ -60,6 +63,10 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 					// For the edit form: the instruments as picked from the list.
 					choices: parseInstruments(instrument ?? '', config),
 					groups,
+					// Each role with the orchestras this person holds it for (#305); none: all.
+					roles,
+					// A parent's children, by name, as the edit form shows them.
+					children: children.map((child) => list!.membersByEmail.get(child)?.name ?? child),
 					orchestras,
 					status,
 					pausedUntil,
@@ -79,8 +86,6 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			? [...roleRights(list)].map(([name, rights]) => ({
 					name,
 					description: list.groups.find((group) => group.name === name)?.description,
-					// The orchestras its rights hold for (#305); none: all of them.
-					orchestras: list.groups.find((group) => group.name === name)?.orchestras ?? [],
 					rights,
 					members: list.members.filter((member) => member.groups.some((g) => normalize(g) === normalize(name))).length
 				}))
@@ -138,6 +143,20 @@ async function change(locals: App.Locals, work: () => Promise<string | void>) {
 	}
 }
 
+/**
+ * The roles ticked on a member, each with the orchestras ticked for it (#305): "group" names the
+ * role, "orchestra:<role>" its orchestras, in the configured order. None ticked: all orchestras.
+ */
+function rolesFromForm(data: FormData): Role[] {
+	const names = [...new Set(data.getAll('group').map((value) => String(value).replace(/[(),;]/g, '').trim().slice(0, 100)).filter(Boolean))];
+	return names.map((name) => {
+		const ticked = new Set(data.getAll(`orchestra:${name}`).map(String));
+		const orchestras = config.orchestras.filter((orchestra) => ticked.has(orchestra));
+		// Every orchestra ticked is the same as none: the role holds for all of them.
+		return { name, orchestras: orchestras.length === config.orchestras.length ? [] : orchestras };
+	});
+}
+
 const field = (data: FormData, name: string) => String(data.get(name) ?? '').trim().slice(0, 200);
 
 /** Rights apply to an email address or a group name. */
@@ -184,7 +203,7 @@ export const actions: Actions = {
 					email,
 					name: field(data, 'name'),
 					instrument: field(data, 'instrument'),
-					groups: splitGroups(field(data, 'groups')).join(', ')
+					groups: formatRoles(parseRoles(field(data, 'groups')))
 				}
 			]);
 		}),
@@ -198,9 +217,17 @@ export const actions: Actions = {
 			const members = await readTab('members');
 			const row = members.rows.find((r) => normalizeEmail(r.values.email) === email);
 			if (!row) return t.admin.memberGone;
+			// A parent's children, by name or email; kept as emails, which don't change with a name.
+			const children = splitGroups(field(data, 'children'));
+			const found = children.map((child) =>
+				members.rows.find((other) => (child.includes('@') ? normalizeEmail(other.values.email) === normalizeEmail(child) : normalize(other.values.name) === normalize(child)))
+			);
+			const unknown = children.filter((_, i) => !found[i]);
+			if (unknown.length) return t.admin.childrenUnknown(unknown.join(', '));
+			const childEmails = [...new Set(found.map((other) => normalizeEmail(other!.values.email)).filter((child) => child !== email))];
+			const table = childEmails.length && members.missing.includes('children') ? await ensureColumns('members', ['children']) : members;
 			// Roles as ticked; the form lists every group the member has, so none is lost.
-			const groups = [...new Set(data.getAll('group').map((value) => String(value).trim().slice(0, 100)).filter(Boolean))];
-			await updateRecord('members', members, row.row, writable(members, { ...form.values, groups: groups.join(', ') }));
+			await updateRecord('members', table, row.row, writable(table, { ...form.values, groups: formatRoles(rolesFromForm(data)), children: childEmails.join(', ') }));
 		}),
 
 	removeMember: ({ request, locals }) =>
@@ -344,21 +371,12 @@ export const actions: Actions = {
 			const name = field(data, 'name');
 			if (!name || name.includes('@')) return t.admin.roleNameMissing;
 			const wanted = RIGHTS.filter((right) => right !== 'ansehen' && data.getAll('right').includes(right));
-			// Limited to some orchestras (#305), when the form offered them; in the configured order.
-			const ticked = new Set(data.getAll('orchestra').map(String));
-			const scoped = data.has('scoped');
-			const orchestras = config.orchestras.filter((orchestra) => ticked.has(orchestra)).join(', ');
-			const [read, rights] = await Promise.all([readTab('groups'), readTab('rights')]);
-			const groups = scoped && orchestras && read.missing.includes('orchestras') ? await ensureColumns('groups', ['orchestras']) : read;
+			const [groups, rights] = await Promise.all([readTab('groups'), readTab('rights')]);
 			const group = groups.rows.find((row) => normalize(row.values.name) === normalize(name));
 			const description = field(data, 'description');
-			if (!group) await appendRecords('groups', groups, [{ name, description, ...(scoped ? { orchestras } : {}) }]);
-			else {
-				const changed = {
-					...(data.has('description') && group.values.description !== description ? { description } : {}),
-					...(scoped && (group.values.orchestras ?? '') !== orchestras ? { orchestras } : {})
-				};
-				if (Object.keys(changed).length) await updateRecord('groups', groups, group.row, changed);
+			if (!group) await appendRecords('groups', groups, [{ name, description }]);
+			else if (data.has('description') && group.values.description !== description) {
+				await updateRecord('groups', groups, group.row, { description });
 			}
 			const plan = planRoleRights(
 				rights.rows.map((row) => ({ row: row.row, who: row.values.who, right: row.values.right })),

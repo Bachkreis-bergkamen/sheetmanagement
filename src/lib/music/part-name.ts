@@ -79,7 +79,9 @@ export interface Voice {
 }
 
 // ":" after a voice or a generic part: "Stimme 3: Flöte", "Percussion I: Triangel".
-const JOINERS = new Set(['+', '&', '/', ',', 'und', 'and', '–', ':']);
+const JOINERS = new Set(['+', '&', '/', ',', 'und', 'and', '–', ':', 'or', 'oder']);
+/** Joiners for alternative instruments: "Oboe or Clarinet" is one part for either. */
+const ALTERNATIVES = new Set(['/', 'or', 'oder']);
 
 interface NamingWords {
 	statusWords: Record<string, PartStatus>;
@@ -270,7 +272,10 @@ export function parsePartName(
 				// Singers aren't transposed: "Gesang B" means the bass voice, kept as a note below.
 				if (!item.transposition && item.instrument.family !== 'gesang') {
 					const strings = item.instrument.family === 'streicher';
-					const [transposition, after] = readTransposition(i, false, false, strings);
+					// Right after a wind instrument "C" and "D" are keys ("Trumpet-C"); "a" only
+					// at the end, since "Flöte a 2" means both players.
+					const ambiguous = tokens[i] !== 'a' || i === tokens.length - 1;
+					const [transposition, after] = readTransposition(i, false, ambiguous, strings);
 					if (transposition) {
 						item.transposition = transposition;
 						i = after;
@@ -314,7 +319,7 @@ export function parsePartName(
 			i = after;
 			continue;
 		} else if (JOINERS.has(token)) {
-			if (token === '/') joiner = '/';
+			if (ALTERNATIVES.has(token)) joiner = '/';
 		} else if (ignored.has(token)) {
 			// A source like "IMSLP": says nothing about the part.
 		} else if (token === 'in' && items.length > 0) {

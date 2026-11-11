@@ -1,5 +1,5 @@
 import { error, redirect } from '@sveltejs/kit';
-import { normalizeEmail } from '#lib/access/access.ts';
+import { normalizeEmail, parentMayOpen } from '#lib/access/access.ts';
 import { shownLogo } from '#lib/branding.ts';
 import { config, instrumentOverrides } from '#lib/config/index.ts';
 import { t } from '#lib/i18n/index.ts';
@@ -21,6 +21,8 @@ export const load: LayoutServerLoad = async ({ locals, url, cookies }) => {
 		if (!access.user) redirect(303, `/anmelden?weiter=${encodeURIComponent(url.pathname + url.search)}`);
 		if (access.unavailable) error(503, t.error.unavailable);
 		if (!access.member) redirect(303, '/zugang');
+		// A parent account has its own area and nothing else.
+		if (access.parent?.only && !parentMayOpen(url.pathname)) redirect(303, '/eltern');
 	}
 
 	const on = features();
@@ -28,8 +30,10 @@ export const load: LayoutServerLoad = async ({ locals, url, cookies }) => {
 	// The menu goes by all rights, also on a date where a role limited to other orchestras holds none (#305).
 	const held = access.everywhere ?? access.rights;
 	const rights = [...held];
-	const polls = held.has('termine.planen') || (await visiblePolls(locals).catch(() => [])).length > 0;
-	const counts = workspaceOf(navGroups({ auth, rights, features: on, polls }), url.pathname) ? countsByPage(await openWork(locals)) : {};
+	// A parent: only their area ("only"), or a member who also has children there ("also").
+	const parent = access.parent ? (access.parent.only ? ('only' as const) : ('also' as const)) : undefined;
+	const polls = parent !== 'only' && (held.has('termine.planen') || (await visiblePolls(locals).catch(() => [])).length > 0);
+	const counts = workspaceOf(navGroups({ auth, rights, features: on, polls, parent }), url.pathname) ? countsByPage(await openWork(locals)) : {};
 
 	// The first instrument from "Mitglieder" is the avatar's picture (#136).
 	const member = access.user ? (await getAccessList().catch(() => null))?.membersByEmail.get(normalizeEmail(access.user.email)) : undefined;
@@ -37,7 +41,7 @@ export const load: LayoutServerLoad = async ({ locals, url, cookies }) => {
 
 	const { name, shortName, logo, links, colours, style, look } = orchestra();
 	// The tour for new members, until they finish or skip it; not on sign-in or legal pages.
-	const tour = isPublicPath(url.pathname) ? ('seen' as const) : await tourState(access.user?.email);
+	const tour = isPublicPath(url.pathname) || parent === 'only' ? ('seen' as const) : await tourState(access.user?.email);
 	return {
 		orchestraName: name,
 		orchestraShortName: shortName,
@@ -53,14 +57,18 @@ export const load: LayoutServerLoad = async ({ locals, url, cookies }) => {
 		auth,
 		user: access.user ? { ...access.user, instrument } : null,
 		rights,
+		parent,
 		polls,
 		counts,
 		tour,
 		// The live app is still a preview: a "Beta" badge in the header until RELEASE is set.
 		beta: !isDemo() && !isRelease(),
-		demo: isDemo() ? { role: cookies.get(DEMO_ROLE_COOKIE) === 'mitglied' ? ('mitglied' as const) : ('verwaltung' as const) } : null
+		demo: isDemo() ? { role: demoRole(cookies.get(DEMO_ROLE_COOKIE)) } : null
 	};
 };
+
+/** The demo user the banner shows as chosen. */
+const demoRole = (value: string | undefined): 'verwaltung' | 'mitglied' | 'eltern' => (value === 'mitglied' || value === 'eltern' ? value : 'verwaltung');
 
 /**
  * Whether to offer the tour: from D1 for someone signed in; "local" leaves it to the browser,

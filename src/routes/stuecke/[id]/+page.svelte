@@ -101,6 +101,48 @@
 	// A portrait that doesn't load (Wikimedia unreachable) gives way to the drawing.
 	let portraitFailed = $state<string | null>(null);
 	const portrait = $derived(portraitFailed === piece.id ? null : data.banner.portrait);
+	// The same for a film's logo or icon (#312).
+	let filmFailed = $state<string | null>(null);
+	const film = $derived(filmFailed === piece.id ? null : data.banner.film);
+	/**
+	 * How a logo sits on the banner, measured once it's loaded: one with its own background as a
+	 * tile ("boxed"), a dark wordmark turned light ("dark"), a light one as it is ("light").
+	 */
+	let logoLook = $state<'boxed' | 'dark' | 'light' | null>(null);
+	/** Measures the logo when it has loaded, also when it was already there before the page woke up. */
+	function measured(img: HTMLImageElement) {
+		const run = () => measureLogo(img);
+		if (img.complete && img.naturalWidth) run();
+		img.addEventListener('load', run);
+		return { destroy: () => img.removeEventListener('load', run) };
+	}
+	function measureLogo(img: HTMLImageElement) {
+		try {
+			const size = 48;
+			const canvas = document.createElement('canvas');
+			canvas.width = canvas.height = size;
+			const context = canvas.getContext('2d', { willReadFrequently: true });
+			if (!context) return;
+			context.drawImage(img, 0, 0, size, size);
+			const { data: pixels } = context.getImageData(0, 0, size, size);
+			const alpha = (x: number, y: number) => pixels[(y * size + x) * 4 + 3];
+			const corners = [alpha(0, 0), alpha(size - 1, 0), alpha(0, size - 1), alpha(size - 1, size - 1)];
+			if (corners.every((value) => value > 200)) {
+				logoLook = 'boxed';
+				return;
+			}
+			let light = 0;
+			let count = 0;
+			for (let i = 0; i < pixels.length; i += 4) {
+				if (pixels[i + 3] < 128) continue;
+				light += (0.2126 * pixels[i] + 0.7152 * pixels[i + 1] + 0.0722 * pixels[i + 2]) / 255;
+				count++;
+			}
+			logoLook = count && light / count < 0.45 ? 'dark' : 'light';
+		} catch {
+			logoLook = 'light';
+		}
+	}
 
 	// The member's own parts (#216): one tap from the top, and marked in the list.
 	const mine = $derived(data.mine.filter((part) => part.status !== 'missing'));
@@ -142,7 +184,16 @@
      the genre), the facts underneath. -->
 <div class="piece-card">
 <header class="hero">
-	{#if portrait}
+	{#if film}
+		<img
+			class="film {film.kind} {film.kind === 'logo' ? (logoLook ?? 'measuring') : ''}"
+			src={film.src}
+			alt={t.piece.filmPicture(film.name)}
+			use:measured
+			onerror={() => (filmFailed = piece.id)}
+		/>
+		<a class="credit" href={film.source} target="_blank" rel="noopener noreferrer">{film.kind === 'logo' ? t.piece.portraitCredit : t.piece.iconCredit}</a>
+	{:else if portrait}
 		<img class="portrait" src={portrait.src} alt={t.piece.portrait(portrait.name)} onerror={() => (portraitFailed = piece.id)} />
 		<a class="credit" href={portrait.source} target="_blank" rel="noopener noreferrer">{t.piece.portraitCredit}</a>
 	{:else}
@@ -551,6 +602,7 @@
 
 	/* The picture on the right, fading into the banner towards the text. */
 	.portrait,
+	.film,
 	.art {
 		position: absolute;
 		top: 0;
@@ -569,6 +621,55 @@
 		filter: grayscale(1) contrast(1.08);
 		mix-blend-mode: luminosity;
 		opacity: 0.9;
+	}
+
+	/* A film's title logo (#312): whole, not cropped, in the banner's ink so any logo suits any orchestra. */
+	.film {
+		width: min(44%, 300px);
+		height: 100%;
+		padding: var(--space-5) var(--space-5) var(--space-6) 0;
+		object-fit: contain;
+		object-position: right center;
+	}
+
+	/* Logos in the banner's light ink: whatever their colours, they read on any orchestra's colour. */
+	.film.logo {
+		opacity: 0.9;
+		transition: opacity var(--fast) var(--ease);
+	}
+
+	.film.logo.measuring {
+		opacity: 0;
+	}
+
+	.film.logo.light {
+		filter: grayscale(1) brightness(1.15);
+	}
+
+	.film.logo.dark {
+		filter: grayscale(1) invert(1);
+	}
+
+	/* A logo with its own background: a small tile, not a box fading into the banner. */
+	.film.logo.boxed {
+		width: auto;
+		max-width: min(40%, 260px);
+		height: auto;
+		max-height: 60%;
+		top: 50%;
+		right: var(--space-5);
+		bottom: auto;
+		padding: 0;
+		border-radius: var(--radius-m);
+		transform: translateY(-50%);
+		mask-image: none;
+		filter: grayscale(0.3);
+	}
+
+	/* An icon keeps its colours, a little quieter than a picture. */
+	.film.icon {
+		width: min(36%, 200px);
+		opacity: 0.8;
 	}
 
 	.art {

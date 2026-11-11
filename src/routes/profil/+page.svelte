@@ -82,7 +82,7 @@
 			<form class="ui-card card" method="POST" action="?/save" use:enhance={saving.submit()} data-tour="profile">
 				<!-- Rebuilt after saving, so the form shows what's in the sheet now. -->
 				{#key JSON.stringify(data.member)}
-					<MemberFields member={data.member} instruments={data.instruments} common={data.common} orchestras={data.orchestras} />
+					<MemberFields member={data.member} instruments={data.instruments} common={data.common} orchestras={data.orchestras} nameOnly={data.member.status === 'eltern'} />
 				{/key}
 
 				{#if data.member.groups.length}

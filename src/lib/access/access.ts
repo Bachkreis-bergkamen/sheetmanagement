@@ -14,6 +14,8 @@ export const RIGHTS = [
 	'karten.einlass',
 	// The Kummerkasten: anonymous messages to the Leitung, answered privately.
 	'kummerkasten.lesen',
+	// Notices to the parents of young players, shown in their area (/eltern).
+	'eltern.informieren',
 	'mitglieder.verwalten'
 ] as const;
 export type Right = (typeof RIGHTS)[number];
@@ -25,9 +27,10 @@ export type AccessValues = Partial<Record<AccessTab, string[][]>>;
 /**
  * Paused or inactive members keep their access, but don't count for coverage. "verwaltung" is an
  * account that only administers (the orchestra's shared admin login): it never plays, so it is
- * left out of sign-ups, attendance and polls altogether.
+ * left out of sign-ups, attendance and polls altogether. "eltern" is a parent of young players:
+ * never a player either, and they see only their own area (/eltern), not the music.
  */
-export const MEMBER_STATUSES = ['aktiv', 'pausiert', 'inaktiv', 'verwaltung'] as const;
+export const MEMBER_STATUSES = ['aktiv', 'pausiert', 'inaktiv', 'verwaltung', 'eltern'] as const;
 export type MemberStatus = (typeof MEMBER_STATUSES)[number];
 
 export interface Member {
@@ -36,27 +39,37 @@ export interface Member {
 	name: string;
 	/** As entered, e.g. "Geige I & II, Viola"; read with parseInstruments. */
 	instrument?: string;
+	/** The names of their roles ("Gruppen"), as in `roles`. */
 	groups: string[];
+	/**
+	 * Their roles, each maybe for some orchestras only: "Dirigat (A, B)" in the Gruppen column
+	 * makes this person the Dirigat of A and B, not of the others. No orchestras: all of them.
+	 */
+	roles: Role[];
 	/** Short orchestra names ("EO", "A"). Empty: not set, so the member counts for every orchestra. */
 	orchestras: string[];
 	status: MemberStatus;
 	/** "2027-03-31": paused up to and including this day. */
 	pausedUntil?: string;
+	/** For a parent: the emails of their children among the members ("Kinder", by name or email). */
+	children: string[];
 	/** Personal access link: 0 none, n > 0 link n is valid, -n link n was revoked (see server/auth/links.ts). */
 	linkVersion: number;
 	/** Personal calendar feed, counted the same way (see server/auth/feed.ts). */
 	feedVersion: number;
 }
 
+/** A role one member holds, maybe only for some orchestras (#305). */
+export interface Role {
+	name: string;
+	/** Short orchestra names its rights hold for, for this person. Empty: all of them. */
+	orchestras: string[];
+}
+
 export interface Group {
 	row: number;
 	name: string;
 	description?: string;
-	/**
-	 * The orchestras its rights hold for (#305), e.g. a Dirigat for "EO" only. Empty: all of them.
-	 * Rights given to one person by email always hold for all.
-	 */
-	orchestras: string[];
 }
 
 export interface Grant {
@@ -94,6 +107,28 @@ export const splitGroups = (text: string) =>
 		.map((group) => group.trim())
 		.filter(Boolean);
 
+/**
+ * A member's Gruppen cell: "Dirigat (A, B), Vorstand" → Dirigat for A and B, Vorstand for all.
+ * Commas inside the brackets name orchestras, outside them they separate roles.
+ */
+export function parseRoles(text: string): Role[] {
+	const roles: Role[] = [];
+	for (const match of (text ?? '').matchAll(/([^,;(]+)(?:\(([^)]*)\))?/g)) {
+		const name = match[1].trim();
+		if (!name) continue;
+		const orchestras = splitGroups(match[2] ?? '');
+		const known = roles.find((role) => normalize(role.name) === normalize(name));
+		// The same role twice: for all once either says so, else for both lists.
+		if (known) known.orchestras = known.orchestras.length && orchestras.length ? [...new Set([...known.orchestras, ...orchestras])] : [];
+		else roles.push({ name, orchestras });
+	}
+	return roles;
+}
+
+/** The other way round, for the sheet: [Dirigat (A, B), Vorstand] → "Dirigat (A, B), Vorstand". */
+export const formatRoles = (roles: Role[]) =>
+	roles.map((role) => (role.orchestras.length ? `${role.name} (${role.orchestras.join(', ')})` : role.name)).join(', ');
+
 export function buildAccessList(values: AccessValues): AccessList {
 	const problems: Problem[] = [];
 	const read = <K extends AccessTab>(key: K) =>
@@ -114,20 +149,35 @@ export function buildAccessList(values: AccessValues): AccessList {
 			email,
 			name: v.name || email,
 			instrument: v.instrument || undefined,
-			groups: splitGroups(v.groups),
+			groups: [],
+			roles: parseRoles(v.groups),
 			orchestras: splitGroups(v.orchestras),
 			status: parseStatus(v.status),
 			pausedUntil: parseDay(v.pausedUntil),
+			children: splitGroups(v.children ?? ''),
 			linkVersion: parseLinkVersion(v.linkVersion),
 			feedVersion: parseLinkVersion(v.feedVersion)
 		};
+		member.groups = member.roles.map((role) => role.name);
 		members.push(member);
 		membersByEmail.set(email, member);
 	}
 
+	// Children named by email or by name; whoever isn't (or no longer) a member is left out.
+	for (const member of members) {
+		member.children = [
+			...new Set(
+				member.children
+					.map((child) => (child.includes('@') ? membersByEmail.get(normalizeEmail(child)) : members.find((other) => normalize(other.name) === normalize(child))))
+					.filter((child): child is Member => !!child && child.email !== member.email)
+					.map((child) => child.email)
+			)
+		];
+	}
+
 	const groups = (tables.groups?.rows ?? [])
 		.filter(({ values: v }) => v.name)
-		.map(({ row, values: v }) => ({ row, name: v.name, description: v.description || undefined, orchestras: splitGroups(v.orchestras ?? '') }));
+		.map(({ row, values: v }) => ({ row, name: v.name, description: v.description || undefined }));
 
 	const grants: Grant[] = [];
 	for (const { row, values: v } of tables.rights?.rows ?? []) {
@@ -164,12 +214,17 @@ export interface Access {
 	unavailable?: boolean;
 	rights: Set<Right>;
 	/**
-	 * Rights held only for some orchestras (#305), through a role limited to them; a right not
+	 * Rights held only for some orchestras (#305), through a role this person holds only for them; a right not
 	 * in here holds for all. See mayFor.
 	 */
 	scopes?: Map<Right, string[]>;
 	/** On one date's pages, where `rights` holds only what holds there: all rights, for the menu. */
 	everywhere?: Set<Right>;
+	/**
+	 * A parent of young players: the emails of their children. `only` for a parent account (status
+	 * "eltern"), which sees nothing but the parents' area; a playing member with children sees both.
+	 */
+	parent?: { children: string[]; only: boolean };
 }
 
 /** What a signed-in person may do: bootstrap admins everything, members "ansehen" plus their grants. */
@@ -182,6 +237,10 @@ export function resolveAccess(user: User | null, list: AccessList | null, bootst
 	const member = list?.membersByEmail.get(email);
 	if (!member) return { user, member: false, bootstrapAdmin: false, rights: new Set() };
 
+	// A parent account sees their area only: no music, no rights from roles.
+	if (member.status === 'eltern') return { user, member: true, bootstrapAdmin: false, rights: new Set(), parent: { children: member.children, only: true } };
+	const parent = member.children.length ? { parent: { children: member.children, only: false } } : {};
+
 	const whos = new Set([email, ...member.groups.map(normalize)]);
 	const rights = new Set<Right>(['ansehen']);
 	// Per right: the orchestras it holds for, or null once one grant holds for all (#305).
@@ -191,13 +250,14 @@ export function resolveAccess(user: User | null, list: AccessList | null, bootst
 		const who = byEmail ? normalizeEmail(grant.who) : normalize(grant.who);
 		if (!whos.has(who)) continue;
 		rights.add(grant.right);
-		const limited = byEmail ? [] : (list!.groups.find((group) => normalize(group.name) === who)?.orchestras ?? []);
+		// A role held only for some orchestras (#305): as the member's own Gruppen cell says.
+		const limited = byEmail ? [] : (member.roles.find((role) => normalize(role.name) === who)?.orchestras ?? []);
 		const before = reach.get(grant.right);
 		if (!limited.length || before === null) reach.set(grant.right, null);
 		else reach.set(grant.right, [...(before ?? []), ...limited]);
 	}
 	const scopes = new Map([...reach].filter((entry): entry is [Right, string[]] => entry[1] !== null));
-	return { user, member: true, bootstrapAdmin: false, rights, ...(scopes.size ? { scopes } : {}) };
+	return { user, member: true, bootstrapAdmin: false, rights, ...(scopes.size ? { scopes } : {}), ...parent };
 }
 
 /**
@@ -310,8 +370,17 @@ export function seesDate(member: Pick<Member, 'orchestras'> | undefined, event: 
 	return !member || (event.type !== 'probe' && event.type !== 'generalprobe') || playsIn(member, orchestra);
 }
 
-/** An admin-only account: never a player, whatever else its row says. */
-export const isAdminOnly = (member: Pick<Member, 'status'> | undefined) => member?.status === 'verwaltung';
+/** An account that never plays, whatever else its row says: admin-only or a parent's. */
+export const isAdminOnly = (member: Pick<Member, 'status'> | undefined) => member?.status === 'verwaltung' || member?.status === 'eltern';
+
+/**
+ * The pages a parent account may open: their area, their profile and messages to the Leitung,
+ * and what the app itself calls in the background. Everything else leads to /eltern.
+ */
+export function parentMayOpen(path: string): boolean {
+	const under = (base: string) => path === base || path.startsWith(base + '/');
+	return ['/eltern', '/profil', '/kummerkasten', '/karte', '/demo', '/api/seitenaufruf', '/api/push', '/api/fehler', '/api/warm'].some(under);
+}
 
 /** Members who count for a concert's instrumentation: active ones in its orchestra. */
 export function countingMembers<M extends Pick<Member, 'orchestras' | 'status' | 'pausedUntil'>>(

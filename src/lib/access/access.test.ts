@@ -4,6 +4,10 @@ import { readTable } from '#lib/repertoire/sheet.ts';
 import {
 	accessFor,
 	buildAccessList,
+	isAdminOnly,
+	parentMayOpen,
+	formatRoles,
+	parseRoles,
 	mayFor,
 	countingMembers,
 	currentStatus,
@@ -49,7 +53,7 @@ describe('buildAccessList', () => {
 			['anna@example.org', ['Vorstand', 'Geigen']],
 			['ben@example.org', []]
 		]);
-		expect(list.groups).toEqual([{ row: 2, name: 'Vorstand', description: 'Leitet den Verein', orchestras: [] }]);
+		expect(list.groups).toEqual([{ row: 2, name: 'Vorstand', description: 'Leitet den Verein' }]);
 		expect(list.requests[0].email).toBe('dora@example.org');
 		expect(list.problems.map((p) => [p.kind, p.row])).toEqual([
 			['duplicate-member', 4],
@@ -84,19 +88,20 @@ describe('resolveAccess', () => {
 	});
 });
 
-describe('roles limited to some orchestras (#305)', () => {
+describe('roles a person holds for some orchestras only (#305)', () => {
 	const scoped = buildAccessList({
 		members: [
 			['E-Mail', 'Name', 'Instrument', 'Gruppen'],
-			['dirk@example.org', 'Dirk', '', 'Dirigat'],
-			['olga@example.org', 'Olga', '', 'Orga, Vorstand'],
-			['eva@example.org', 'Eva', '', 'Orga']
+			['dirk@example.org', 'Dirk', '', 'Dirigat (EO)'],
+			['olga@example.org', 'Olga', '', 'Orga (A, B), Vorstand'],
+			['eva@example.org', 'Eva', '', 'Orga (A; B)'],
+			['dora@example.org', 'Dora', '', 'Dirigat']
 		],
 		groups: [
-			['Gruppe', 'Beschreibung', 'Orchester'],
-			['Dirigat', '', 'EO'],
-			['Orga', '', 'A, B'],
-			['Vorstand', '', '']
+			['Gruppe', 'Beschreibung'],
+			['Dirigat', ''],
+			['Orga', ''],
+			['Vorstand', '']
 		],
 		rights: [
 			['Wer', 'Recht'],
@@ -109,8 +114,35 @@ describe('roles limited to some orchestras (#305)', () => {
 		]
 	});
 
-	it('reads the orchestras of a role; none is all of them', () => {
-		expect(scoped.groups.map((group) => group.orchestras)).toEqual([['EO'], ['A', 'B'], []]);
+	it("reads the orchestras of each person's role; none is all of them", () => {
+		expect(scoped.members.map((member) => member.roles)).toEqual([
+			[{ name: 'Dirigat', orchestras: ['EO'] }],
+			[
+				{ name: 'Orga', orchestras: ['A', 'B'] },
+				{ name: 'Vorstand', orchestras: [] }
+			],
+			[{ name: 'Orga', orchestras: ['A', 'B'] }],
+			[{ name: 'Dirigat', orchestras: [] }]
+		]);
+		expect(scoped.members[1].groups).toEqual(['Orga', 'Vorstand']);
+	});
+
+	it('limits the role for the person, not for everyone holding it', () => {
+		const dora = resolveAccess(user('dora@example.org'), scoped, []);
+		expect(dora.scopes).toBeUndefined();
+		expect(mayFor(dora, 'programme.bearbeiten', 'A')).toBe(true);
+	});
+
+	it('reads and writes the Gruppen cell', () => {
+		expect(parseRoles('Dirigat (A, B), Vorstand; Notenwart(EO)')).toEqual([
+			{ name: 'Dirigat', orchestras: ['A', 'B'] },
+			{ name: 'Vorstand', orchestras: [] },
+			{ name: 'Notenwart', orchestras: ['EO'] }
+		]);
+		expect(parseRoles('Dirigat (A), Dirigat (B)')).toEqual([{ name: 'Dirigat', orchestras: ['A', 'B'] }]);
+		expect(parseRoles('Dirigat (A), dirigat')).toEqual([{ name: 'Dirigat', orchestras: [] }]);
+		expect(parseRoles('')).toEqual([]);
+		expect(formatRoles(parseRoles('Dirigat (A,B),Vorstand'))).toBe('Dirigat (A, B), Vorstand');
 	});
 
 	it('holds a limited right only for its orchestras, and for dates of everyone', () => {
@@ -442,5 +474,51 @@ describe('roles', () => {
 			{ name: 'Orga', description: '', rights: [] }
 		];
 		expect(missingRoles(presets, access.groups).map((role) => role.name)).toEqual(['Orga']);
+	});
+});
+
+describe('parents', () => {
+	const family = buildAccessList({
+		members: [
+			['E-Mail', 'Name', 'Instrument', 'Gruppen', 'Orchester', 'Status', 'Kinder'],
+			['mia@example.org', 'Mia Beispiel', 'Geige', '', 'JO', 'aktiv', ''],
+			['ben@example.org', 'Ben Beispiel', 'Cello', '', 'A', 'aktiv', ''],
+			['petra@example.org', 'Petra Beispiel', '', 'Vorstand', '', 'Eltern', 'mia@example.org; Ben Beispiel, Unbekannt, petra@example.org'],
+			['tom@example.org', 'Tom Vater', 'Horn', 'Vorstand', 'A', 'aktiv', 'Ben Beispiel']
+		],
+		rights: [
+			['Wer', 'Recht'],
+			['Vorstand', 'termine.planen']
+		]
+	});
+
+	it('links children by email or name, leaving out who is no member and the parent', () => {
+		expect(family.membersByEmail.get('petra@example.org')?.children).toEqual(['mia@example.org', 'ben@example.org']);
+		expect(family.membersByEmail.get('petra@example.org')?.status).toBe('eltern');
+	});
+
+	it('gives a parent account no rights, not even to see the music, and only their area', () => {
+		const petra = resolveAccess(user('petra@example.org'), family, []);
+		expect(petra.member).toBe(true);
+		expect([...petra.rights]).toEqual([]);
+		expect(petra.parent).toEqual({ children: ['mia@example.org', 'ben@example.org'], only: true });
+	});
+
+	it('keeps a playing parent a member with everything, plus the area', () => {
+		const tom = resolveAccess(user('tom@example.org'), family, []);
+		expect(tom.rights.has('ansehen')).toBe(true);
+		expect(tom.rights.has('termine.planen')).toBe(true);
+		expect(tom.parent).toEqual({ children: ['ben@example.org'], only: false });
+		expect(resolveAccess(user('mia@example.org'), family, []).parent).toBeUndefined();
+	});
+
+	it('never counts a parent account as a player', () => {
+		expect(isAdminOnly(family.membersByEmail.get('petra@example.org'))).toBe(true);
+		expect(isAdminOnly(family.membersByEmail.get('tom@example.org'))).toBe(false);
+	});
+
+	it('lets a parent account open its area, profile and messages only', () => {
+		for (const path of ['/eltern', '/eltern/nachrichten', '/profil', '/kummerkasten/abc', '/karte/xyz', '/api/push']) expect(parentMayOpen(path)).toBe(true);
+		for (const path of ['/', '/stuecke', '/meine-noten', '/kalender/abc', '/api/noten/1', '/elternabend', '/admin']) expect(parentMayOpen(path)).toBe(false);
 	});
 });

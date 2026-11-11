@@ -93,7 +93,7 @@
 
 	// Every page by group, so the start page doubles as a map of the app. The organisers' work
 	// is one entry, "Verwaltung", its groups named underneath (#185); its page leads on from there.
-	const all = $derived(navGroups({ auth: data.auth, rights: data.rights, features: data.features, polls: data.polls }));
+	const all = $derived(navGroups({ auth: data.auth, rights: data.rights, features: data.features, polls: data.polls, parent: data.parent }));
 	const work = $derived(organiserGroups(all));
 	const sections = $derived([
 		...all

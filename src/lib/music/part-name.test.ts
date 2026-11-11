@@ -114,6 +114,18 @@ describe('parsePartName', () => {
 		expect(parse('Section II ViolineII.pdf').label).toBe('Geige II');
 	});
 
+	it('reads keys written as a bare letter and alternatives joined by "or"', () => {
+		const read = (name: string) => {
+			const part = parse(name, 'Transeamus-');
+			return { label: part.label, unrecognized: part.unrecognized };
+		};
+		expect(read('Transeamus-Trumpet-C.pdf')).toEqual({ label: 'Trompete in C', unrecognized: [] });
+		expect(read('Transeamus-Oboe_or_Clarinet-C.pdf')).toEqual({ label: 'Oboe / Klarinette in C', unrecognized: [] });
+		expect(read('Transeamus-OboeII_or_Clarinet-CII.pdf')).toEqual({ label: 'Oboe II / Klarinette II in C', unrecognized: [] });
+		expect(read('Transeamus-Flöte oder Geige.pdf').label).toBe('Flöte / Geige');
+		expect(read('Transeamus-Klarinette A.pdf').label).toBe('Klarinette in A');
+	});
+
 	it('reads status words, notes and featured parts', () => {
 		expect(parse('Sword Dance - Partitur - FEHLT', '', 'application/vnd.google-apps.document')).toMatchObject({
 			label: 'Partitur',

@@ -47,7 +47,7 @@ export function readMemberForm(data: FormData): { values: MemberValues } | { pro
  * editing a name still works before /setup added "Orchester" or "Status".
  */
 export function writable(table: Table<Columns>, values: MemberValues): MemberValues {
-	const defaults: MemberValues = { orchestras: '', status: 'aktiv', pausedUntil: '' };
+	const defaults: MemberValues = { orchestras: '', status: 'aktiv', pausedUntil: '', children: '' };
 	return Object.fromEntries(
 		Object.entries(values).filter(([key, value]) => table.indexes[key as Columns] !== undefined || value !== (defaults[key as Columns] ?? null))
 	);

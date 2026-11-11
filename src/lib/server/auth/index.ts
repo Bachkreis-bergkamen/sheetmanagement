@@ -1,6 +1,6 @@
 import { error, type Cookies } from '@sveltejs/kit';
 import { parseEmailList, resolveAccess, type Access, type Right, type User } from '#lib/access/access.ts';
-import { DEMO_ADMIN, DEMO_MEMBER } from '../demo/data.ts';
+import { DEMO_ADMIN, DEMO_MEMBER, DEMO_PARENT } from '../demo/data.ts';
 import { getStore } from '../db/index.ts';
 import { appEnv, isDemo } from '../env.ts';
 import { readAccessList } from '../repertoire.ts';
@@ -94,7 +94,10 @@ const OPEN: Access = { user: null, member: true, bootstrapAdmin: false, rights: 
 
 /** Which demo user is "signed in": the admin by default, or the member (cookie set from the demo banner). */
 export const DEMO_ROLE_COOKIE = 'demo_rolle';
-export const demoUser = (cookies: Cookies) => (cookies.get(DEMO_ROLE_COOKIE) === 'mitglied' ? DEMO_MEMBER : DEMO_ADMIN);
+export const demoUser = (cookies: Cookies) => {
+	const role = cookies.get(DEMO_ROLE_COOKIE);
+	return role === 'mitglied' ? DEMO_MEMBER : role === 'eltern' ? DEMO_PARENT : DEMO_ADMIN;
+};
 
 export async function accessFromCookies(cookies: Cookies, auth: AuthConfig): Promise<Access> {
 	if (auth.mode === 'off') return OPEN;

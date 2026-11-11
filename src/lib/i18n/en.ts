@@ -17,6 +17,9 @@ export const en: Texts = {
 		loans: 'Rentals',
 		ensembles: 'Ensembles',
 		kummer: 'Suggestion box',
+		parents: 'Parents',
+		parentMessages: 'Messages',
+		parentNotices: 'Notices to parents',
 		gaps: 'Missing parts',
 		naming: 'File names',
 		admin: 'Members & rights',
@@ -31,7 +34,7 @@ export const en: Texts = {
 		menu: 'All pages',
 		close: 'Close menu',
 		crumbs: 'Breadcrumbs',
-		groups: { musik: 'Rehearsals & music', mitmachen: 'Take part', pflege: 'Music upkeep', verwaltung: 'App & members' },
+		groups: { musik: 'Rehearsals & music', mitmachen: 'Take part', pflege: 'Music upkeep', verwaltung: 'App & members', eltern: 'Parents' },
 		/** The organisers' area in the tab bar, the header and "Mehr" (#185). */
 		organise: 'Admin',
 		workspace: 'Area',
@@ -240,7 +243,9 @@ export const en: Texts = {
 		},
 		driveHint: 'Opens in Google Drive (needs access to the music folder).',
 		portrait: (name: string) => `Portrait of ${name}`,
-		portraitCredit: 'Image: Wikimedia Commons'
+		portraitCredit: 'Image: Wikimedia Commons',
+		filmPicture: (film: string) => `Picture for the film ${film}`,
+		iconCredit: 'Icon: Iconify'
 	},
 	concerts: {
 		title: 'Calendar',
@@ -1437,6 +1442,7 @@ export const en: Texts = {
 		viewAs: 'View as',
 		admin: 'Admin',
 		member: 'Member',
+		parent: 'Parent',
 		reset: 'Reset'
 	},
 	viewer: {
@@ -1587,6 +1593,7 @@ export const en: Texts = {
 		'karten.verwalten': 'Set up ticket sales for concerts and see the guest list',
 		'karten.einlass': 'Check tickets at the door',
 		'kummerkasten.lesen': 'Read and answer the suggestion box (without seeing who wrote)',
+		'eltern.informieren': 'Write notices to parents',
 		'mitglieder.verwalten': 'Manage members and rights'
 	},
 	invite: {
@@ -1700,14 +1707,19 @@ export const en: Texts = {
 		roleName: 'Name',
 		roleDescription: 'Description',
 		/** A role limited to some orchestras (#305). */
-		roleOrchestras: 'Holds for',
-		roleOrchestrasHint: 'None ticked: all orchestras. Otherwise the rights hold only for these orchestras’ dates, programmes and attendance.',
-		roleOrchestrasShort: (orchestras: string) => `${orchestras} only`,
+		/** A role one person holds for some orchestras only (#305): conductor of A and B, not of the others. */
+		roleOnlyFor: 'only for some orchestras',
+		roleOrchestrasFor: (role: string) => `Orchestras ${role} holds for`,
+		roleOrchestrasHint:
+			'A role holds for all orchestras unless you limit it for this person. Then its rights hold only for these orchestras’ dates, programmes and attendance. The sheet writes it as “Conductor (A, B)”.',
 		addPresetRoles: (names: string) => `Add default roles: ${names}`,
 		confirmRemoveRole: (name: string) => `Remove the role “${name}” with its rights?`,
 		singleRights: 'Single rights',
 		singleRightsLead: 'Rights for a single person. A role is usually better.',
 		memberRoles: 'Roles and groups',
+		children: 'Children',
+		childrenHint: 'For parents: their children who play with us, separated by commas (name or email). With status “parent” the account sees only the parents’ area.',
+		childrenUnknown: (names: string) => `Not in the member list: ${names}`,
 		linkUnavailable: 'Access links need sign-in with SESSION_SECRET.',
 		accessLink: 'Access link',
 		accessLinkActive: 'Access by link',
@@ -1746,12 +1758,13 @@ export const en: Texts = {
 		orchestras: 'Orchestras',
 		orchestrasHint: "None ticked: you see the concerts of every orchestra.",
 		status: 'Status',
-		statuses: { aktiv: 'active', pausiert: 'paused', inaktiv: 'inactive', verwaltung: 'admin only' } as Record<string, string>,
+		statuses: { aktiv: 'active', pausiert: 'paused', inaktiv: 'inactive', verwaltung: 'admin only', eltern: 'parent' } as Record<string, string>,
 		statusHints: {
 			aktiv: 'You count for the instrumentation.',
 			pausiert: 'For example a semester abroad or parental leave. With a date you become active again automatically.',
 			inaktiv: "You keep your access but don't count for the instrumentation.",
-			verwaltung: "An admin-only account that doesn't play: it doesn't appear in sign-ups, attendance or polls."
+			verwaltung: "An admin-only account that doesn't play: it doesn't appear in sign-ups, attendance or polls.",
+			eltern: "A parent who doesn't play: the account sees only the parents' area with their children's dates, no music."
 		} as Record<string, string>,
 		pausedUntil: 'Paused until (optional)',
 		pausedUntilShort: (day: string) => `until ${day}`,
@@ -2170,6 +2183,75 @@ export const en: Texts = {
 			body: 'Please write something.',
 			'too-long': 'That’s too long: subject up to 120, message up to 5000 characters.',
 			recipient: 'That person doesn’t read the suggestion box (any more). Please reload the page.'
+		}
+	},
+	parents: {
+		title: 'Parents',
+		lead: (name: string) => `Hello ${name}! Here you see your children's next dates, can excuse them, reserve tickets and write to the team.`,
+		noChildren: 'No child is linked to your account yet. The admins add your children to your entry under “Members”.',
+		children: 'Your children',
+		notices: {
+			title: 'Notices to parents',
+			shortTitle: 'Notices',
+			lead: 'Notices show in the parents’ area and, where parents allowed it, as notifications on their devices.',
+			heading: 'Heading',
+			body: 'Text',
+			for: 'For',
+			forHint: 'None ticked: all parents. Otherwise only parents of children in these orchestras.',
+			forAll: 'all parents',
+			forSome: (orchestras: string) => `parents in ${orchestras}`,
+			send: 'Publish',
+			added: 'Published.',
+			remove: 'Delete',
+			confirmRemove: (title: string) => `Delete the notice “${title}”? Parents won't see it any more.`,
+			empty: 'No notices yet.',
+			by: (name: string, day: string) => (name ? `${name} · ${day}` : day),
+			reaches: (n: number) => (n === 1 ? 'reaches 1 parent' : `reaches ${n} parents`),
+			noParents: 'No parent account is linked to a child yet. Do that under members: status “parent” and their children.',
+			notSetUp: 'Notices need the app’s database (D1), which isn’t set up here yet.',
+			failed: "That didn't work just now. Please try again in a moment.",
+			problems: {
+				title: 'Please give a heading.',
+				body: 'Please write something.',
+				'too-long': 'That’s too long: heading up to 120, text up to 5000 characters.'
+			} as Record<string, string>
+		},
+		dates: 'Next dates',
+		noDates: 'Nothing coming up in the next weeks.',
+		inDays: (n: number) => (n === 0 ? 'today' : n === 1 ? 'tomorrow' : `in ${n} days`),
+		status: { yes: 'coming', maybe: 'maybe', no: 'excused', open: 'no answer yet' } as Record<string, string>,
+		comes: 'Coming',
+		excuse: 'Excuse',
+		reason: 'Reason (optional)',
+		reasonHint: 'e.g. ill, school trip',
+		excuseSend: 'Excuse',
+		cancel: 'Cancel',
+		saved: 'Saved.',
+		answeredBy: (name: string) => `entered by ${name}`,
+		answerFailed: "That didn't work just now. Please reload the page and try again.",
+		parentOf: (names: string) => `parent of ${names}`,
+		and: 'and',
+		tickets: {
+			title: 'Reserve tickets',
+			left: (n: number) => (n === 1 ? '1 seat left.' : `${n} seats left.`),
+			payAtDoor: 'You pay at the door.',
+			name: 'In whose name?',
+			count: (label: string, price: string) => `${label} (${price})`,
+			reserve: 'Reserve',
+			reserved: 'Reserved!',
+			mailed: 'A confirmation is on its way by email.',
+			show: 'Show tickets'
+		},
+		write: 'Write to the team',
+		messages: {
+			title: 'Messages',
+			lead: 'Questions, notes or a longer absence: to the team, with your name. You find the answers here.',
+			signedAs: (signature: string) => `The team sees as sender: ${signature}`,
+			newMessage: 'New message',
+			sent: 'Sent. The answer shows here once the team has written.',
+			yours: 'Your messages',
+			empty: "You haven't written anything yet.",
+			noLeitung: 'Nobody reads the messages yet. The admins give the right “Read the suggestion box” for it.'
 		}
 	},
 	ensembles: {
@@ -2747,15 +2829,15 @@ export const en: Texts = {
 				status: 'Status',
 				pausedUntil: 'Paused until',
 				linkVersion: 'Link version',
-				feedVersion: 'Calendar version'
+				feedVersion: 'Calendar version',
+				children: 'Children'
 			}
 		},
 		groups: {
 			tab: 'Groups',
 			columns: {
 				name: 'Group',
-				description: 'Description',
-				orchestras: 'Orchestras'
+				description: 'Description'
 			}
 		},
 		rights: {
@@ -3218,6 +3300,7 @@ export const en: Texts = {
 	error: {
 		title: 'Something went wrong',
 		notFound: "This page doesn't exist.",
+		forbidden: "This isn't available in the parents' area.",
 		notFoundLead: 'Maybe the link is old or a piece was renamed. You can carry on from here:',
 		unavailableTitle: "Can't be reached just now",
 		unavailable: "Google isn't answering just now. Try again in a moment.",

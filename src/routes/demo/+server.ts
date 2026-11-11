@@ -9,6 +9,7 @@ import { getStore } from '#lib/server/db/index.ts';
 import { isDemo } from '#lib/server/env.ts';
 import { resetDemoPolls } from '#lib/server/polls.ts';
 import { resetDemoKummer } from '#lib/server/kummer.ts';
+import { resetDemoParentNotices } from '#lib/server/parent-notices.ts';
 import { getArchiveIndex } from '#lib/server/services.ts';
 import { refreshAfterWrite } from '#lib/server/sheet-writes.ts';
 import type { RequestHandler } from './$types';
@@ -18,13 +19,14 @@ export const POST: RequestHandler = async ({ request, cookies, url }) => {
 	if (!isDemo()) error(404, 'Not found');
 	const data = await request.formData();
 	const role = data.get('rolle');
-	if (role === 'mitglied' || role === 'verwaltung') {
+	if (role === 'mitglied' || role === 'verwaltung' || role === 'eltern') {
 		cookies.set(DEMO_ROLE_COOKIE, role, { path: '/', httpOnly: true, sameSite: 'lax', secure: url.protocol === 'https:' });
 	}
 	if (data.has('zuruecksetzen')) {
 		resetDemo();
 		resetDemoPolls();
 		resetDemoKummer();
+		resetDemoParentNotices();
 		// Both demo users are new again: the tour is offered once more, and their practice time and
 		// notes are the sample ones.
 		const store = getStore();

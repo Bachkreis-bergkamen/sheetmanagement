@@ -8,7 +8,7 @@
 	let { data } = $props();
 
 	// The same groups as the workspace tabs on their pages, so the area and its pages agree.
-	const groups = $derived(organiserGroups(navGroups({ auth: data.auth, rights: data.rights, features: data.features, polls: data.polls })));
+	const groups = $derived(organiserGroups(navGroups({ auth: data.auth, rights: data.rights, features: data.features, polls: data.polls, parent: data.parent })));
 </script>
 
 <Title title={t.organise.title} />

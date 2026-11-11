@@ -143,3 +143,21 @@ describe('settingsSections', () => {
 		expect(settingsSections({ auth: 'off', rights: [] }).map((section) => section.href)).toEqual(['/einstellungen/tabelle', '/einstellungen/status']);
 	});
 });
+
+describe('parents', () => {
+	it('gives a parent account its own area and nothing else', () => {
+		const groups = navGroups({ auth: 'on', rights: [], parent: 'only' });
+		expect(groups.map((group) => group.key)).toEqual(['eltern']);
+		expect(primaryNav(groups).map((item) => item.href)).toEqual(['/eltern', '/eltern/nachrichten', '/profil']);
+	});
+
+	it('adds the area for a member whose children play too', () => {
+		expect(hrefs('on', ['ansehen']).mitmachen).not.toContain('/eltern');
+		const groups = navGroups({ auth: 'on', rights: ['ansehen'], parent: 'also' });
+		expect(groups.find((group) => group.key === 'mitmachen')?.items.map((item) => item.href)).toContain('/eltern');
+	});
+
+	it('gives the notices to parents to those who write them, as organiser work', () => {
+		expect(hrefs('on', ['ansehen', 'eltern.informieren']).verwaltung).toEqual(['/eltern/mitteilungen']);
+	});
+});

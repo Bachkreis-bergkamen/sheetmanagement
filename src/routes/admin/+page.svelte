@@ -11,6 +11,7 @@
 	import FilterPanel from '#lib/components/FilterPanel.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import MemberFields from '#lib/components/MemberFields.svelte';
+	import RoleChoices from '#lib/components/RoleChoices.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import Title from '#lib/components/Title.svelte';
 
@@ -124,24 +125,9 @@
 
 	const grantable = $derived(data.state === 'ready' ? data.rights.filter((r) => r.right !== 'ansehen') : []);
 	const rightLabel = (right: string) => data.rights?.find((r) => r.right === right)?.label ?? right;
-	const orchestras = $derived(data.state === 'ready' ? data.orchestras : []);
+	/** "Dirigat" or, held for some orchestras only (#305), "Dirigat · A, B". */
+	const roleLabel = (role: { name: string; orchestras: string[] }) => (role.orchestras.length ? `${role.name} · ${role.orchestras.join(', ')}` : role.name);
 </script>
-
-<!-- Which orchestras a role's rights hold for (#305); with one orchestra there's nothing to pick. -->
-{#snippet roleOrchestras(chosen: string[])}
-	{#if orchestras.length > 1}
-		<fieldset class="choices">
-			<legend class="caption">{t.admin.roleOrchestras}</legend>
-			<input type="hidden" name="scoped" value="1" />
-			<div class="checks">
-				{#each orchestras as orchestra (orchestra)}
-					<label class="check"><input type="checkbox" name="orchestra" value={orchestra} checked={chosen.includes(orchestra)} />{orchestra}</label>
-				{/each}
-			</div>
-			<span class="meta">{t.admin.roleOrchestrasHint}</span>
-		</fieldset>
-	{/if}
-{/snippet}
 
 <Title title={t.admin.title} />
 <PageHeader title={t.admin.title} lead={t.admin.lead} />
@@ -258,19 +244,21 @@
 										<span class="meta">{member.email}</span>
 									</span>
 								</div>
-								<MemberFields {member} instruments={data.playable} common={data.common} orchestras={data.orchestras} />
+								<MemberFields {member} instruments={data.playable} common={data.common} orchestras={data.orchestras} admin />
 								<fieldset class="choices">
 									<legend class="caption">{t.admin.memberRoles}</legend>
-									<div class="checks">
-										{#each [...new Set([...data.groups.map((g) => g.name), ...member.groups])] as group (group)}
-											<label class="check"><input type="checkbox" name="group" value={group} checked={member.groups.includes(group)} />{group}</label>
-										{/each}
-									</div>
+									<RoleChoices names={[...new Set([...data.groups.map((g) => g.name), ...member.groups])]} roles={member.roles} orchestras={data.orchestras} />
 									{#if member.rights.length}
 										<!-- What the roles add up to, as saved: it follows the roles and is not set here. -->
 										<p class="meta rights">{t.admin.effectiveRights}: {member.rights.map(rightLabel).join(', ')}</p>
 									{/if}
 								</fieldset>
+								<!-- A parent's children: with status "Eltern" the account sees only the parents' area. -->
+								<label class="field children">
+									{t.admin.children}
+									<input name="children" value={member.children.join(', ')} list="member-names" autocomplete="off" />
+									<span class="meta">{t.admin.childrenHint}</span>
+								</label>
 								<div class="link-box">
 									<span class="caption">{t.admin.accessLink}</span>
 									<p class="meta">{t.admin.linkHint}</p>
@@ -336,9 +324,10 @@
 									{[member.instrument, mail(member.email), member.orchestras.join(', ')].filter(Boolean).join(' · ')}
 								</span>
 							</div>
-							{#if member.groups.length || member.link || member.current !== 'aktiv'}
+							{#if member.groups.length || member.children.length || member.link || member.current !== 'aktiv'}
 								<span class="chips">
-									{#each member.groups as group (group)}<span class="chip accent">{group}</span>{/each}
+									{#each member.roles as role (role.name)}<span class="chip accent">{roleLabel(role)}</span>{/each}
+										{#if member.children.length}<span class="chip">{t.parents.parentOf(member.children.join(', '))}</span>{/if}
 									{#if member.current !== 'aktiv'}
 										<span class="chip">
 											{t.profile.statuses[member.current]}{member.current === 'pausiert' && member.pausedUntil
@@ -460,7 +449,7 @@
 							<input type="hidden" name="name" value={role.name} />
 							<div class="role-head">
 								<strong>{role.name}</strong>
-								<span class="meta">{t.admin.roleMembers(role.members)}{#if role.orchestras.length}{' · '}{t.admin.roleOrchestrasShort(role.orchestras.join(', '))}{/if}</span>
+								<span class="meta">{t.admin.roleMembers(role.members)}</span>
 							</div>
 							<input class="role-description" name="description" value={role.description ?? ''} placeholder={t.admin.roleDescription} aria-label={t.admin.roleDescription} autocomplete="off" />
 							<div class="checks">
@@ -468,7 +457,6 @@
 									<label class="check"><input type="checkbox" name="right" value={option.right} checked={role.rights.includes(option.right)} />{option.label}</label>
 								{/each}
 							</div>
-							{@render roleOrchestras(role.orchestras)}
 							<div class="row-buttons">
 								<button class="btn small" disabled={saving.busy}><Icon name="check" size={14} />{t.admin.save}</button>
 								<button class="icon-btn" disabled={saving.busy} formaction="?/removeRole" title={t.admin.remove} aria-label={t.admin.remove} onclick={confirmLink(t.admin.confirmRemoveRole(role.name))}>
@@ -495,7 +483,6 @@
 					<label class="check"><input type="checkbox" name="right" value={option.right} />{option.label}</label>
 				{/each}
 			</div>
-			<div class="wide">{@render roleOrchestras([])}</div>
 			<div class="wide"><button class="btn" disabled={saving.busy}><Icon name="plus" size={16} />{t.admin.add}</button></div>
 		</form>
 	</details>
@@ -582,6 +569,9 @@
 
 	<datalist id="instrument-names">
 		{#each data.instruments as name (name)}<option value={name}></option>{/each}
+	</datalist>
+	<datalist id="member-names">
+		{#each data.members as member (member.email)}<option value={member.name}></option>{/each}
 	</datalist>
 	<datalist id="group-names">
 		{#each data.groups as group (group.name)}<option value={group.name}>{group.description}</option>{/each}

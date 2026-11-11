@@ -11,6 +11,8 @@ export function tokenize(input: string): string[] {
 			.replace(/”/g, 'ö')
 			// English ordinals stay one token ("1st"); the § keeps the split below off them.
 			.replace(/(\d)(st|nd|rd|th)(?![a-z])/gi, '$1§$2')
+			// A key glued to a roman number: "Clarinet-CII" → "C II"
+			.replace(/(?<![A-Za-zÄÖÜäöüß])([A-H])(I{1,3}|IV|VI{0,3})(?![A-Za-zÄÖÜäöüß])/g, '$1 $2')
 			// camelCase and glued numbers: "ViolinII" → "Violin II", "Clari1" → "Clari 1"
 			.replace(/([a-zäöüß])([A-ZÄÖÜ])/g, '$1 $2')
 			.replace(/([A-Za-zÄÖÜäöüß])(\d)/g, '$1 $2')

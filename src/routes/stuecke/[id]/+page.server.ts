@@ -20,6 +20,7 @@ import { daysUntilDue, loanState, loansOf } from '#lib/loans/loans.ts';
 import { formatDay } from '#lib/events/format.ts';
 import { pieceArt } from '#lib/music/piece-art.ts';
 import { missingVoices, readInstrumentation } from '#lib/music/instrumentation.ts';
+import { filmArt, filmSourceUrl } from '#lib/server/film-art.ts';
 import { portraitFor, portraitPageUrl } from '#lib/server/portraits.ts';
 import { appendRecords, deleteRows, ensureTab, readTab, refreshAfterWrite, SheetLayoutError } from '#lib/server/sheet-writes.ts';
 import { folderUrl, partUrl } from '#lib/server/catalog.ts';
@@ -60,8 +61,12 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 	// "Wieder spielen": the +1s on the piece's open or planned wish.
 	const user = feedbackUser(locals);
 	const againWish = (feedback?.wishes ?? []).find((wish) => wish.pieceId === piece.id && (wish.status === 'open' || wish.status === 'planned'));
-	// The banner's picture: the composer's portrait, else a drawing for the genre or the title.
-	const portrait = await portraitFor(piece.composer);
+	// The banner's picture: for film music and musicals the film's logo or an icon for it (#312),
+	// else the composer's portrait, else a drawing for the genre or the title.
+	const art = pieceArt({ genre: sheet?.genre, title: piece.title });
+	const screen = art === 'filmmusik' || art === 'musical';
+	const film = screen ? await filmArt(piece.title, art === 'musical') : null;
+	const portrait = film ? null : await portraitFor(piece.composer);
 	// The member's own parts (#216), matched like "Meine Noten": from their instruments in "Mitglieder".
 	const member = locals.access.user ? access?.membersByEmail.get(normalizeEmail(locals.access.user.email)) : undefined;
 	// What they play here: their own instruments, or the part assigned to them (#262) for this piece and its coming concerts.
@@ -85,7 +90,13 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 	});
 	return {
 		banner: {
-			art: pieceArt({ genre: sheet?.genre, title: piece.title }),
+			art,
+			film: film && {
+				src: `/api/filmbild?${new URLSearchParams({ titel: piece.title, ...(art === 'musical' ? { musical: '' } : {}) })}`,
+				name: film.name,
+				kind: film.logo ? ('logo' as const) : ('icon' as const),
+				source: filmSourceUrl(film)
+			},
 			portrait: portrait && {
 				src: `/api/portraet?komponist=${encodeURIComponent(portrait.query)}`,
 				name: portrait.name,
