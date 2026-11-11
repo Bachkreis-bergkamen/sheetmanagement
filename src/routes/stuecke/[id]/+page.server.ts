@@ -20,7 +20,7 @@ import { daysUntilDue, loanState, loansOf } from '#lib/loans/loans.ts';
 import { formatDay } from '#lib/events/format.ts';
 import { pieceArt } from '#lib/music/piece-art.ts';
 import { missingVoices, readInstrumentation } from '#lib/music/instrumentation.ts';
-import { filmArt, filmSourceUrl } from '#lib/server/film-art.ts';
+import { bandFor, filmArt, filmSourceUrl } from '#lib/server/film-art.ts';
 import { portraitFor, portraitPageUrl } from '#lib/server/portraits.ts';
 import { appendRecords, deleteRows, ensureTab, readTab, refreshAfterWrite, SheetLayoutError } from '#lib/server/sheet-writes.ts';
 import { folderUrl, partUrl } from '#lib/server/catalog.ts';
@@ -62,11 +62,12 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 	const user = feedbackUser(locals);
 	const againWish = (feedback?.wishes ?? []).find((wish) => wish.pieceId === piece.id && (wish.status === 'open' || wish.status === 'planned'));
 	// The banner's picture: for film music and musicals the film's logo or an icon for it (#312),
-	// else the composer's portrait, else a drawing for the genre or the title.
+	// else the composer's portrait, else their band's logo (#319), else a drawing for the genre or the title.
 	const art = pieceArt({ genre: sheet?.genre, title: piece.title });
 	const screen = art === 'filmmusik' || art === 'musical';
 	const film = screen ? await filmArt(piece.title, art === 'musical') : null;
-	const portrait = film ? null : await portraitFor(piece.composer);
+	const [portrait, band] = film ? [null, null] : await Promise.all([portraitFor(piece.composer), bandFor(piece.composer)]);
+	const logo = film ?? (portrait ? null : band);
 	// The member's own parts (#216), matched like "Meine Noten": from their instruments in "Mitglieder".
 	const member = locals.access.user ? access?.membersByEmail.get(normalizeEmail(locals.access.user.email)) : undefined;
 	// What they play here: their own instruments, or the part assigned to them (#262) for this piece and its coming concerts.
@@ -91,11 +92,16 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 	return {
 		banner: {
 			art,
-			film: film && {
-				src: `/api/filmbild?${new URLSearchParams({ titel: piece.title, ...(art === 'musical' ? { musical: '' } : {}) })}`,
-				name: film.name,
-				kind: film.logo ? ('logo' as const) : ('icon' as const),
-				source: filmSourceUrl(film)
+			film: logo && {
+				// The picture's file in the address too: the browser keeps each answer for a month, so another picture needs another address.
+				src: `/api/filmbild?${new URLSearchParams({
+					...(film ? { titel: piece.title, ...(art === 'musical' ? { musical: '' } : {}) } : { band: band!.query }),
+					bild: logo.logo ?? logo.icon ?? ''
+				})}`,
+				name: logo.name,
+				band: !film,
+				kind: logo.logo ? ('logo' as const) : ('icon' as const),
+				source: filmSourceUrl(logo)
 			},
 			portrait: portrait && {
 				src: `/api/portraet?komponist=${encodeURIComponent(portrait.query)}`,

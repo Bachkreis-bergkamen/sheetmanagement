@@ -204,7 +204,12 @@ export async function cached<T>(options: CachedOptions<T>): Promise<CachedResult
 			if (inflight.get(key)?.promise === promise) inflight.delete(key);
 		});
 		inflight.set(key, { promise, startedAt: Date.now(), forced: fresh });
-		return withTimeout(promise, key, timeoutMs);
+		return withTimeout(promise, key, timeoutMs).catch((error) => {
+			// A caller that gives up waiting still gets the value cached for the next one, instead
+			// of the build being cancelled with the response and started over on every visit.
+			if (error instanceof CacheTimeoutError) waitUntil?.(promise.catch(() => undefined));
+			throw error;
+		});
 	};
 
 	const isFresh = (entry: Entry<T>) => now() - entry.storedAt < maxAgeMs;

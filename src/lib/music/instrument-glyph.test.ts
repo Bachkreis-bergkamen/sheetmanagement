@@ -11,7 +11,7 @@ describe('instrumentGlyph', () => {
 		expect(instrumentGlyph('Alt-Saxophon', 'holz')).toBe('sax');
 		expect(instrumentGlyph('Tenor-Blockflöte', 'holz')).toBe('flute');
 		expect(instrumentGlyph('Bassposaune', 'blech')).toBe('trombone');
-		expect(instrumentGlyph('Große Trommel', 'schlagwerk')).toBe('drum');
+		expect(instrumentGlyph('Bass Drum', 'schlagwerk')).toBe('drum');
 		expect(instrumentGlyph('Xylophon', 'schlagwerk')).toBe('mallets');
 	});
 

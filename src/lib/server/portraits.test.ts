@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deathYear, portraitOf, portraitPageUrl } from './portraits.ts';
+import { deathYear, portraitFacts, portraitFrom, portraitOf, portraitPageUrl } from './portraits.ts';
 
 const entity = (died: string | undefined, file?: string) => ({
 	labels: { de: { value: 'Ludwig van Beethoven' } },
@@ -32,5 +32,19 @@ describe('deathYear and portraitPageUrl', () => {
 		expect(portraitPageUrl('Joseph Karl Stieler\'s Beethoven mit dem Manuskript.jpg')).toBe(
 			'https://commons.wikimedia.org/wiki/File:Joseph_Karl_Stieler\'s_Beethoven_mit_dem_Manuskript.jpg'
 		);
+	});
+});
+
+describe('portraitFacts (#318)', () => {
+	it('reads the small query instead of the whole entity', () => {
+		const facts = portraitFacts({
+			image: { value: 'http://commons.wikimedia.org/wiki/Special:FilePath/Beethoven.jpg' },
+			died: { value: '1827' },
+			labels: { value: 'mul:Ludwig van Beethoven|en:Beethoven' }
+		});
+		expect(facts).toEqual({ file: 'Beethoven.jpg', died: 1827, labels: { mul: 'Ludwig van Beethoven', en: 'Beethoven' } });
+		expect(portraitFrom(facts)).toEqual({ name: 'Ludwig van Beethoven', file: 'Beethoven.jpg' });
+		expect(portraitFrom(portraitFacts({ image: { value: 'x/John.jpg' }, died: { value: '1960' }, labels: { value: '' } }))).toBeNull();
+		expect(portraitFrom(portraitFacts(undefined))).toBeNull();
 	});
 });

@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { t } from '#lib/i18n/index.ts';
-import { filmArt, filmImageUrl } from '#lib/server/film-art.ts';
+import { bandArt, filmArt, filmImageUrl } from '#lib/server/film-art.ts';
 import { portraitHeaders } from '#lib/server/portraits.ts';
 import type { RequestHandler } from './$types';
 
@@ -8,14 +8,16 @@ import type { RequestHandler } from './$types';
 const MAX_AGE_S = 30 * 24 * 60 * 60;
 
 /**
- * A film's logo or icon for the piece page (#312), ?titel=Jurassic Park[&musical]. Only what the
+ * A film's logo or icon for the piece page (#312), ?titel=Jurassic Park[&musical], or a band's
+ * logo (#319), ?band=Queen. Only what the
  * lookup found is passed on, so this can't fetch other files; members' devices never contact
  * Wikimedia or Iconify.
  */
 export const GET: RequestHandler = async ({ url, locals }) => {
 	if (locals.auth === 'on' && !locals.access.member) error(401, t.messages.signInFirst);
 	const title = url.searchParams.get('titel')?.trim().slice(0, 200) ?? '';
-	const art = title ? await filmArt(title, url.searchParams.has('musical')) : null;
+	const band = url.searchParams.get('band')?.trim().slice(0, 200) ?? '';
+	const art = title ? await filmArt(title, url.searchParams.has('musical')) : band ? await bandArt(band) : null;
 	const source = art && filmImageUrl(art);
 	if (!source) error(404, t.messages.noPicture);
 	const response = await fetch(source, { headers: portraitHeaders, signal: AbortSignal.timeout(10_000) }).catch(() => null);

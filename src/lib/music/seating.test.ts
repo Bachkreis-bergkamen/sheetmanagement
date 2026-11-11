@@ -38,7 +38,7 @@ const SYMPHONY = [
 	'Pauke',
 	'Schlagwerk 1 & 2 & 3',
 	'Becken',
-	'Große Trommel',
+	'Bass Drum',
 	'Harfe 1 & 2',
 	'Klavier',
 	...CHAMBER.slice(2)

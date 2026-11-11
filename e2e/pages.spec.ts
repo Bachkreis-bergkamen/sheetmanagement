@@ -10,6 +10,8 @@ test('start page: greeting, open work and the next dates', async ({ page }) => {
 	// The next date is the heading; what follows comes after it.
 	await expect(page.getByRole('region', { name: 'Als Nächstes' }).getByRole('heading', { level: 2 })).toBeVisible();
 	await expect(page.getByRole('heading', { name: 'Danach' })).toBeVisible();
+	// Nothing wider than the screen: on a phone that widens the page, and taps land beside their buttons.
+	expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
 	await expectAccessible(page);
 });
 

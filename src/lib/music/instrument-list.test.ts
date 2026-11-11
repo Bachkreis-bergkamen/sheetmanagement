@@ -12,13 +12,14 @@ describe('searchInstruments', () => {
 		expect(search('b').slice(0, 1)).toEqual(['Viola']);
 		const k = search('k');
 		expect(k.indexOf('Kontrabass')).toBeLessThan(k.indexOf('Kuhglocke'));
-		expect(k.indexOf('Klarinette')).toBeLessThan(k.indexOf('Kleine Trommel'));
+		expect(k.indexOf('Klarinette')).toBeLessThan(k.indexOf('Snare Drum'));
 		expect(search('pau')[0]).toBe('Pauke');
 	});
 
 	it('finds rarer ones by their own name and other spellings', () => {
 		expect(search('tri')[0]).toBe('Triangel');
-		expect(search('snare')[0]).toBe('Kleine Trommel');
+		expect(search('snare')[0]).toBe('Snare Drum');
+		expect(search('kleine trommel')[0]).toBe('Snare Drum');
 		expect(search('vibes')).toEqual(['Vibraphon']);
 		expect(search('becken').slice(0, 2)).toEqual(['Becken', 'Crash-Becken']);
 	});
