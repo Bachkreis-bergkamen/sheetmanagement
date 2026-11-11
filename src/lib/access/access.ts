@@ -36,7 +36,13 @@ export interface Member {
 	name: string;
 	/** As entered, e.g. "Geige I & II, Viola"; read with parseInstruments. */
 	instrument?: string;
+	/** The names of their roles ("Gruppen"), as in `roles`. */
 	groups: string[];
+	/**
+	 * Their roles, each maybe for some orchestras only: "Dirigat (A, B)" in the Gruppen column
+	 * makes this person the Dirigat of A and B, not of the others. No orchestras: all of them.
+	 */
+	roles: Role[];
 	/** Short orchestra names ("EO", "A"). Empty: not set, so the member counts for every orchestra. */
 	orchestras: string[];
 	status: MemberStatus;
@@ -48,15 +54,17 @@ export interface Member {
 	feedVersion: number;
 }
 
+/** A role one member holds, maybe only for some orchestras (#305). */
+export interface Role {
+	name: string;
+	/** Short orchestra names its rights hold for, for this person. Empty: all of them. */
+	orchestras: string[];
+}
+
 export interface Group {
 	row: number;
 	name: string;
 	description?: string;
-	/**
-	 * The orchestras its rights hold for (#305), e.g. a Dirigat for "EO" only. Empty: all of them.
-	 * Rights given to one person by email always hold for all.
-	 */
-	orchestras: string[];
 }
 
 export interface Grant {
@@ -94,6 +102,28 @@ export const splitGroups = (text: string) =>
 		.map((group) => group.trim())
 		.filter(Boolean);
 
+/**
+ * A member's Gruppen cell: "Dirigat (A, B), Vorstand" → Dirigat for A and B, Vorstand for all.
+ * Commas inside the brackets name orchestras, outside them they separate roles.
+ */
+export function parseRoles(text: string): Role[] {
+	const roles: Role[] = [];
+	for (const match of (text ?? '').matchAll(/([^,;(]+)(?:\(([^)]*)\))?/g)) {
+		const name = match[1].trim();
+		if (!name) continue;
+		const orchestras = splitGroups(match[2] ?? '');
+		const known = roles.find((role) => normalize(role.name) === normalize(name));
+		// The same role twice: for all once either says so, else for both lists.
+		if (known) known.orchestras = known.orchestras.length && orchestras.length ? [...new Set([...known.orchestras, ...orchestras])] : [];
+		else roles.push({ name, orchestras });
+	}
+	return roles;
+}
+
+/** The other way round, for the sheet: [Dirigat (A, B), Vorstand] → "Dirigat (A, B), Vorstand". */
+export const formatRoles = (roles: Role[]) =>
+	roles.map((role) => (role.orchestras.length ? `${role.name} (${role.orchestras.join(', ')})` : role.name)).join(', ');
+
 export function buildAccessList(values: AccessValues): AccessList {
 	const problems: Problem[] = [];
 	const read = <K extends AccessTab>(key: K) =>
@@ -114,20 +144,22 @@ export function buildAccessList(values: AccessValues): AccessList {
 			email,
 			name: v.name || email,
 			instrument: v.instrument || undefined,
-			groups: splitGroups(v.groups),
+			groups: [],
+			roles: parseRoles(v.groups),
 			orchestras: splitGroups(v.orchestras),
 			status: parseStatus(v.status),
 			pausedUntil: parseDay(v.pausedUntil),
 			linkVersion: parseLinkVersion(v.linkVersion),
 			feedVersion: parseLinkVersion(v.feedVersion)
 		};
+		member.groups = member.roles.map((role) => role.name);
 		members.push(member);
 		membersByEmail.set(email, member);
 	}
 
 	const groups = (tables.groups?.rows ?? [])
 		.filter(({ values: v }) => v.name)
-		.map(({ row, values: v }) => ({ row, name: v.name, description: v.description || undefined, orchestras: splitGroups(v.orchestras ?? '') }));
+		.map(({ row, values: v }) => ({ row, name: v.name, description: v.description || undefined }));
 
 	const grants: Grant[] = [];
 	for (const { row, values: v } of tables.rights?.rows ?? []) {
@@ -164,7 +196,7 @@ export interface Access {
 	unavailable?: boolean;
 	rights: Set<Right>;
 	/**
-	 * Rights held only for some orchestras (#305), through a role limited to them; a right not
+	 * Rights held only for some orchestras (#305), through a role this person holds only for them; a right not
 	 * in here holds for all. See mayFor.
 	 */
 	scopes?: Map<Right, string[]>;
@@ -191,7 +223,8 @@ export function resolveAccess(user: User | null, list: AccessList | null, bootst
 		const who = byEmail ? normalizeEmail(grant.who) : normalize(grant.who);
 		if (!whos.has(who)) continue;
 		rights.add(grant.right);
-		const limited = byEmail ? [] : (list!.groups.find((group) => normalize(group.name) === who)?.orchestras ?? []);
+		// A role held only for some orchestras (#305): as the member's own Gruppen cell says.
+		const limited = byEmail ? [] : (member.roles.find((role) => normalize(role.name) === who)?.orchestras ?? []);
 		const before = reach.get(grant.right);
 		if (!limited.length || before === null) reach.set(grant.right, null);
 		else reach.set(grant.right, [...(before ?? []), ...limited]);

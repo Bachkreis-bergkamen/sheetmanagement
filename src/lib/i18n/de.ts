@@ -1717,9 +1717,11 @@ export const de = {
 		roleName: 'Name',
 		roleDescription: 'Beschreibung',
 		/** A role limited to some orchestras (#305). */
-		roleOrchestras: 'Gilt für',
-		roleOrchestrasHint: 'Nichts angekreuzt: für alle Orchester. Sonst gelten die Rechte nur für Termine, Programme und Anwesenheit dieser Orchester.',
-		roleOrchestrasShort: (orchestras: string) => `nur ${orchestras}`,
+		/** A role one person holds for some orchestras only (#305): Dirigat of A and B, not of the others. */
+		roleOnlyFor: 'nur für bestimmte Orchester',
+		roleOrchestrasFor: (role: string) => `Orchester, für die ${role} gilt`,
+		roleOrchestrasHint:
+			'Eine Rolle gilt für alle Orchester, außer du schränkst sie bei dieser Person ein. Dann gelten ihre Rechte nur für Termine, Programme und Anwesenheit dieser Orchester. In der Tabelle steht das als „Dirigat (A, B)“.',
 		addPresetRoles: (names: string) => `Standardrollen anlegen: ${names}`,
 		confirmRemoveRole: (name: string) => `Rolle „${name}“ mit ihren Rechten entfernen?`,
 		singleRights: 'Einzelne Rechte',
@@ -2792,8 +2794,7 @@ export const de = {
 			tab: 'Gruppen',
 			columns: {
 				name: 'Gruppe',
-				description: 'Beschreibung',
-				orchestras: 'Orchester'
+				description: 'Beschreibung'
 			}
 		},
 		rights: {

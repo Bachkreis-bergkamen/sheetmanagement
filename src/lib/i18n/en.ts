@@ -1700,9 +1700,11 @@ export const en: Texts = {
 		roleName: 'Name',
 		roleDescription: 'Description',
 		/** A role limited to some orchestras (#305). */
-		roleOrchestras: 'Holds for',
-		roleOrchestrasHint: 'None ticked: all orchestras. Otherwise the rights hold only for these orchestras’ dates, programmes and attendance.',
-		roleOrchestrasShort: (orchestras: string) => `${orchestras} only`,
+		/** A role one person holds for some orchestras only (#305): conductor of A and B, not of the others. */
+		roleOnlyFor: 'only for some orchestras',
+		roleOrchestrasFor: (role: string) => `Orchestras ${role} holds for`,
+		roleOrchestrasHint:
+			'A role holds for all orchestras unless you limit it for this person. Then its rights hold only for these orchestras’ dates, programmes and attendance. The sheet writes it as “Conductor (A, B)”.',
 		addPresetRoles: (names: string) => `Add default roles: ${names}`,
 		confirmRemoveRole: (name: string) => `Remove the role “${name}” with its rights?`,
 		singleRights: 'Single rights',
@@ -2754,8 +2756,7 @@ export const en: Texts = {
 			tab: 'Groups',
 			columns: {
 				name: 'Group',
-				description: 'Description',
-				orchestras: 'Orchestras'
+				description: 'Description'
 			}
 		},
 		rights: {

@@ -366,7 +366,7 @@ export function demoSheet(now: number): Map<string, string[][]> {
 		tab('members', [
 			{ email: DEMO_ADMIN.email, name: DEMO_ADMIN.name, groups: 'Vorstand', orchestras: 'EO', status: 'aktiv' },
 			{ email: DEMO_MEMBER.email, name: DEMO_MEMBER.name, instrument: 'Geige II', orchestras: 'EO', status: 'aktiv' },
-			{ email: 'david@example.org', name: 'David Dirigent', groups: 'Dirigat', orchestras: 'EO', status: 'aktiv' },
+			{ email: 'david@example.org', name: 'David Dirigent', groups: 'Dirigat (EO)', orchestras: 'EO', status: 'aktiv' },
 			{ email: 'nora@example.org', name: 'Nora Notenwart', instrument: 'Viola', groups: 'Notenwart', orchestras: 'EO', status: 'aktiv' },
 			{ email: DEMO_DESK_PARTNER.email, name: DEMO_DESK_PARTNER.name, instrument: 'Geige II', orchestras: 'EO', status: 'aktiv' },
 			{ email: 'jonas@example.org', name: 'Jonas Geiger', instrument: 'Geige I', orchestras: 'EO', status: 'aktiv' },
