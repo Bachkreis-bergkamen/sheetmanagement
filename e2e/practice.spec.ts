@@ -272,7 +272,10 @@ test('turning keys, the metronome and the tuner panel', async ({ page }) => {
 	await page.getByRole('button', { name: 'Werkzeuge schließen' }).click();
 	await page.getByRole('button', { name: 'Vollbild' }).click();
 	await expect(page.locator('.score.full')).toBeVisible();
-	// The page fills the screen below the controls (#235): down to its foot, or its whole width on a narrow screen.
+	// This part has the section's marks on offer: the offer waits for an answer, so the controls stay
+	// above the page rather than fading (the concert mode's test sees them fade). The page fills the
+	// screen below them (#235): down to its foot, or its whole width on a narrow screen.
+	await expect(page.locator('.full .controls.floating')).toHaveCount(0);
 	await expect
 		.poll(() =>
 			page.locator('.sheet').evaluate((sheet) => {
@@ -338,10 +341,11 @@ test('the concert mode turns on into the next piece, its head clear of the contr
 	await expect(piece).toHaveValue('1');
 	await expect.poll(() => canvas.evaluate((each: HTMLCanvasElement) => each.toDataURL())).not.toBe(first);
 
-	// The page starts below the controls, which never lie over it (#235).
-	const controls = (await page.locator('.concert-mode .controls').boundingBox())!;
+	// The page gets the whole screen; the controls over its head fade after a few quiet seconds, so the head is clear (#235).
+	await expect(page.locator('.concert-mode .controls.bare')).toHaveCount(1, { timeout: 8000 });
 	const sheet = (await page.locator('.concert-mode .sheet').boundingBox())!;
-	expect(sheet.y).toBeGreaterThanOrEqual(controls.y + controls.height - 1);
+	expect(sheet.y).toBeLessThanOrEqual(1);
+	await expect(page.locator('.concert-mode .controls')).toHaveCSS('opacity', '0');
 });
 
 test('the metronome’s weight sets the tempo when dragged', async ({ page }) => {

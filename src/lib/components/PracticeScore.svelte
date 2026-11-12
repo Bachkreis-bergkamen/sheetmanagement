@@ -624,6 +624,45 @@
 	}
 
 	/**
+	 * In full screen the controls float over the top of the page, so the page gets the whole
+	 * height, and fade away after a few quiet seconds. A mouse moving, a tap on the small button
+	 * in the corner or a key into the bar brings them back. Not while drawing or answering an
+	 * offer: those bars stay put above the page.
+	 */
+	let bare = $state(false);
+	let controlsBox = $state<HTMLDivElement>();
+	const floating = $derived(full && !pen && !(penAllowed && offer) && !shareNote);
+	const QUIET = 3500;
+	let quiet: ReturnType<typeof setTimeout> | undefined;
+	/** A mouse over the bar keeps it; a finger's tap leaves a "hover" behind on phones, which doesn't. */
+	let mouseOver = false;
+	function wake() {
+		bare = false;
+		clearTimeout(quiet);
+		quiet = setTimeout(() => {
+			// Not while the mouse or the keyboard is in the bar; a tapped button keeping focus doesn't count.
+			if (floating && !mouseOver && !controlsBox?.querySelector(':focus-visible')) bare = true;
+			else if (floating) wake();
+		}, QUIET);
+	}
+	function hideControls() {
+		clearTimeout(quiet);
+		(document.activeElement as HTMLElement | null)?.blur?.();
+		bare = true;
+	}
+	$effect(() => {
+		if (floating) wake();
+		else {
+			clearTimeout(quiet);
+			bare = false;
+		}
+		return () => clearTimeout(quiet);
+	});
+	function onrootmove(event: PointerEvent) {
+		if (floating && event.pointerType === 'mouse') wake();
+	}
+
+	/**
 	 * Where the tools go, so they never cover the music and the page never shrinks for them:
 	 * beside the page where its margin has room (moving the page aside, at the same size, when
 	 * only both margins together do), below it where a page narrower than the screen leaves room,
@@ -771,9 +810,12 @@
 
 <svelte:window {onkeydown} bind:innerWidth={windowWidth} bind:innerHeight={windowHeight} />
 
-<!-- In full screen the controls take a row of their own above the page, which gets the rest. -->
-<div class="score" class:full class:night bind:this={root}>
-	<div class="controls">
+<!-- In full screen the controls float over the page's top and fade away; the page gets the whole height. -->
+<div class="score" class:full class:night bind:this={root} onpointermove={onrootmove}>
+	{#if floating && bare}
+		<button type="button" class="reveal" onclick={wake} aria-label={t.practice.viewer.showControls} title={t.practice.viewer.showControls}><Icon name="menu" size={18} /></button>
+	{/if}
+	<div class="controls" class:floating class:bare={floating && bare} bind:this={controlsBox} onfocusin={() => floating && wake()} onpointerdown={() => floating && wake()} onpointerenter={(event) => (mouseOver = event.pointerType === 'mouse')} onpointerleave={() => (mouseOver = false)} inert={floating && bare}>
 	<div class="bar">
 		{#if extra}<div class="group">{@render extra()}</div>{/if}
 		<div class="group">
@@ -808,6 +850,9 @@
 			<button type="button" class="tool text" onclick={() => (full ? leaveFull() : enterFull())} aria-pressed={full}>
 				{full ? t.practice.viewer.exitFullscreen : t.practice.viewer.fullscreen}
 			</button>
+			{#if floating}
+				<button type="button" class="tool" onclick={hideControls} aria-label={t.practice.viewer.hideControls} title={t.practice.viewer.hideControls}><Icon name="up" size={16} /></button>
+			{/if}
 		</div>
 	</div>
 
@@ -1027,6 +1072,50 @@
 		gap: 0;
 		padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 		background: var(--bg);
+	}
+
+	/* Full screen: the bar over the page's top, fading away when quiet. */
+	.controls.floating {
+		position: absolute;
+		top: env(safe-area-inset-top);
+		left: env(safe-area-inset-left);
+		right: env(safe-area-inset-right);
+		z-index: 5;
+		padding: var(--space-2);
+		background: color-mix(in srgb, var(--bg) 92%, transparent);
+		box-shadow: var(--shadow);
+		transition:
+			opacity 0.25s ease,
+			transform 0.25s ease;
+	}
+
+	.controls.floating.bare {
+		opacity: 0;
+		transform: translateY(-100%);
+		pointer-events: none;
+	}
+
+	/* The way back to the hidden bar: small and faint, in the top corner. */
+	.reveal {
+		position: absolute;
+		top: calc(env(safe-area-inset-top) + var(--space-2));
+		right: calc(env(safe-area-inset-right) + var(--space-2));
+		z-index: 6;
+		display: grid;
+		place-items: center;
+		width: 40px;
+		height: 40px;
+		border: 1px solid var(--hairline);
+		border-radius: 50%;
+		background: var(--surface);
+		color: var(--text-muted);
+		opacity: 0.55;
+		cursor: pointer;
+	}
+
+	.reveal:hover,
+	.reveal:focus-visible {
+		opacity: 1;
 	}
 
 	/* Night: the page inverted, light notes on black, for a dark stage. */
