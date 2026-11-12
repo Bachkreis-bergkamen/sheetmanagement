@@ -7,12 +7,12 @@ const answer = (body: object, ok = true) => vi.fn(async () => ({ ok, json: async
 describe('versionLabel and versionUrl', () => {
 	it('shows the short commit and links to it', () => {
 		expect(versionLabel('0.15.0', 'a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0')).toBe('v0.15.0 (a1b2c3d)');
-		expect(versionUrl('a1b2c3d4e5f6')).toBe('https://github.com/lgreil/sheetmanagement/commit/a1b2c3d4e5f6');
+		expect(versionUrl('a1b2c3d4e5f6')).toBe('https://github.com/Bachkreis-bergkamen/sheetmanagement/commit/a1b2c3d4e5f6');
 	});
 
 	it('falls back to the version and the repository without a commit', () => {
 		expect(versionLabel('0.15.0', '')).toBe('v0.15.0');
-		expect(versionUrl('')).toBe('https://github.com/lgreil/sheetmanagement');
+		expect(versionUrl('')).toBe('https://github.com/Bachkreis-bergkamen/sheetmanagement');
 	});
 });
 
@@ -20,7 +20,7 @@ describe('freshness', () => {
 	it("reads main's lead as what isn't deployed", async () => {
 		const fetcher = answer({ ahead_by: 3, behind_by: 0, html_url: 'https://github.com/x' });
 		expect(await freshness('aaaaaaa1', { fetcher })).toEqual({ behind: 3, ahead: 0, url: 'https://github.com/x' });
-		expect(fetcher).toHaveBeenCalledWith(expect.stringContaining('/repos/lgreil/sheetmanagement/compare/aaaaaaa1...main'), expect.anything());
+		expect(fetcher).toHaveBeenCalledWith(expect.stringContaining('/repos/Bachkreis-bergkamen/sheetmanagement/compare/aaaaaaa1...main'), expect.anything());
 	});
 
 	it('asks once an hour per commit', async () => {

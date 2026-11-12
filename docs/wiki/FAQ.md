@@ -25,4 +25,4 @@ Open `/einstellungen/status`: it checks each connection and says what's missing.
 Your music and dates stay in your Google account. Member data is in your Google Sheet. The app itself only stores push subscriptions and which reminders went out (Cloudflare D1, can be kept in the EU), plus a cache.
 
 **Something else?**
-[Open an issue](https://github.com/lgreil/sheetmanagement/issues/new/choose).
+[Open an issue](https://github.com/Bachkreis-bergkamen/sheetmanagement/issues/new/choose).

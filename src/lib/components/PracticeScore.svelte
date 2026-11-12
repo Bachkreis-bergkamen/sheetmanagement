@@ -810,11 +810,14 @@
 
 <svelte:window {onkeydown} bind:innerWidth={windowWidth} bind:innerHeight={windowHeight} />
 
-<!-- In full screen the controls float over the page's top and fade away; the page gets the whole height. -->
+<!-- In full screen the controls float over the page's top and fade away; the page gets the whole height.
+     The pointer handlers here and on .controls only wake the controls; keyboard users get them through focusin. -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="score" class:full class:night bind:this={root} onpointermove={onrootmove}>
 	{#if floating && bare}
 		<button type="button" class="reveal" onclick={wake} aria-label={t.practice.viewer.showControls} title={t.practice.viewer.showControls}><Icon name="menu" size={18} /></button>
 	{/if}
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div class="controls" class:floating class:bare={floating && bare} bind:this={controlsBox} onfocusin={() => floating && wake()} onpointerdown={() => floating && wake()} onpointerenter={(event) => (mouseOver = event.pointerType === 'mouse')} onpointerleave={() => (mouseOver = false)} inert={floating && bare}>
 	<div class="bar">
 		{#if extra}<div class="group">{@render extra()}</div>{/if}

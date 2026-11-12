@@ -6,13 +6,13 @@
 
 **The sheet music library, rehearsals and concerts of an orchestra in one place, on top of the Google Drive, Calendar and Sheets you already use.**
 
-[![CI](https://github.com/lgreil/sheetmanagement/actions/workflows/ci.yml/badge.svg)](https://github.com/lgreil/sheetmanagement/actions/workflows/ci.yml)
-[![Deploy](https://github.com/lgreil/sheetmanagement/actions/workflows/deploy.yml/badge.svg)](https://github.com/lgreil/sheetmanagement/actions/workflows/deploy.yml)
+[![CI](https://github.com/Bachkreis-bergkamen/sheetmanagement/actions/workflows/ci.yml/badge.svg)](https://github.com/Bachkreis-bergkamen/sheetmanagement/actions/workflows/ci.yml)
+[![Deploy](https://github.com/Bachkreis-bergkamen/sheetmanagement/actions/workflows/deploy.yml/badge.svg)](https://github.com/Bachkreis-bergkamen/sheetmanagement/actions/workflows/deploy.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-![Version](https://img.shields.io/github/package-json/v/lgreil/sheetmanagement)
+![Version](https://img.shields.io/github/package-json/v/Bachkreis-bergkamen/sheetmanagement)
 ![Cost to run: €0](https://img.shields.io/badge/cost%20to%20run-%E2%82%AC0-2c5d8f)
 
-[**Try the live demo**](https://noten-demo.bachkreis.workers.dev) · [Wiki](https://github.com/lgreil/sheetmanagement/wiki) · [Roadmap](https://github.com/lgreil/sheetmanagement/issues/73) · [Report a bug](https://github.com/lgreil/sheetmanagement/issues/new/choose)
+[**Try the live demo**](https://noten-demo.bachkreis.workers.dev) · [Wiki](https://github.com/Bachkreis-bergkamen/sheetmanagement/wiki) · [Roadmap](https://github.com/Bachkreis-bergkamen/sheetmanagement/issues/73) · [Report a bug](https://github.com/Bachkreis-bergkamen/sheetmanagement/issues/new/choose)
 
 <img src="docs/screenshots/overview.png" alt="The overview page: the next rehearsal with what's rehearsed and notes from the last one, the next concert with its programme, and a sign-up" width="860">
 
@@ -24,7 +24,7 @@ Most amateur orchestras already keep their sheet music in Google Drive (one fold
 
 Drive, Calendar and Sheets stay fully usable on their own. Nothing is locked in.
 
-- **Free to run:** Cloudflare's free plan and Google's free APIs. No paid services, no domain needed.
+- **Free to run:** Cloudflare's free plan and Google's free APIs. No paid services, no domain needed. Workers Paid ($5 a month) only adds headroom.
 - **For members on the phone:** installable, works offline, big touch targets, light and dark mode.
 - **For organisers on a laptop:** programmes, sign-ups, rehearsal plans, attendance, rented music, the GEMA list.
 - **Lightweight:** SvelteKit on Cloudflare Workers, no runtime dependencies besides SvelteKit, Google APIs called with plain `fetch`.
@@ -56,7 +56,7 @@ Drive, Calendar and Sheets stay fully usable on their own. Nothing is locked in.
 - **Practice tools:** metronome, tuner and drone next to the part.
 - **Privacy built in:** sign-in with Google or by email link, data export per member (GDPR Art. 15), optional retention period.
 
-More in the [wiki](https://github.com/lgreil/sheetmanagement/wiki/Features).
+More in the [wiki](https://github.com/Bachkreis-bergkamen/sheetmanagement/wiki/Features).
 
 ## Quick start
 
@@ -90,7 +90,7 @@ APP_LANGUAGE=en pnpm dev:demo
 3. Open `/einstellungen/status` to check every connection, then `/einstellungen/tabelle` to prepare the sheet.
 4. Name, logo, colour and features: an admin changes them on `/einstellungen`, no code needed.
 
-Step by step, with automatic deploys from GitHub, reminders, email and backups: **[Deploying](https://github.com/lgreil/sheetmanagement/wiki/Deploying)** and **[Configuration](https://github.com/lgreil/sheetmanagement/wiki/Configuration)** in the wiki.
+Step by step, with automatic deploys from GitHub, reminders, email and backups: **[Deploying](https://github.com/Bachkreis-bergkamen/sheetmanagement/wiki/Deploying)** and **[Configuration](https://github.com/Bachkreis-bergkamen/sheetmanagement/wiki/Configuration)** in the wiki.
 
 **Nothing deployment-specific belongs in the repository.** Ids, keys and member data go into Cloudflare secrets or the Google Sheet.
 
@@ -98,7 +98,7 @@ Step by step, with automatic deploys from GitHub, reminders, email and backups: 
 
 | | |
 |---|---|
-| [Wiki](https://github.com/lgreil/sheetmanagement/wiki) | Features, deploying, configuration, the demo, FAQ |
+| [Wiki](https://github.com/Bachkreis-bergkamen/sheetmanagement/wiki) | Features, deploying, configuration, the demo, FAQ |
 | [docs/setup-google.md](docs/setup-google.md) | Connecting Google Drive, Calendar, Sheets and Gmail |
 | [PRODUCT.md](PRODUCT.md) | Who it's for and what it's meant to do |
 | [DESIGN.md](DESIGN.md) | The design system |

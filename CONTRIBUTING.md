@@ -31,7 +31,7 @@ CI runs all three plus an accessibility check (axe) on desktop and phone sizes; 
 
 ## Reporting bugs and ideas
 
-Use the [issue templates](https://github.com/lgreil/sheetmanagement/issues/new/choose). The [Roadmap issue](https://github.com/lgreil/sheetmanagement/issues/73) shows what's planned. Security problems go privately; see [SECURITY.md](SECURITY.md).
+Use the [issue templates](https://github.com/Bachkreis-bergkamen/sheetmanagement/issues/new/choose). The [Roadmap issue](https://github.com/Bachkreis-bergkamen/sheetmanagement/issues/73) shows what's planned. Security problems go privately; see [SECURITY.md](SECURITY.md).
 
 ## Code of conduct
 

@@ -10,7 +10,10 @@ compatibility_flags = ["nodejs_als"]
 keep_vars = true
 
 # Workers Logs: CPU time and outcome per request with its path, so pages that run into the
-# free plan's 10 ms CPU limit (Error 1102) can be found. Free plan: 200,000 events a day, kept 3 days.
+# free plan's 10 ms CPU limit (Error 1102) can be found. Free plan: 200,000 events a day, kept 3 days;
+# Workers Paid: 20 million a month, kept 7 days.
+# The code is written for the free plan. On Workers Paid the CPU limit is 30 s by default; there is
+# no [limits] cpu_ms here: that setting is for Workers Paid, and this config stays deployable on both.
 [observability]
 enabled = true
 head_sampling_rate = 1

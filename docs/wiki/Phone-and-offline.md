@@ -10,6 +10,6 @@ Most members use Sheetmanagement on a phone, at rehearsal or on the way there.
 - **Notifications:** turned on per device under **Profile**; reminders for unanswered dates and rented music that's due.
 
 <p>
-<img src="https://raw.githubusercontent.com/lgreil/sheetmanagement/main/docs/screenshots/phone-overview.png" width="250" alt="Overview on a phone">
-<img src="https://raw.githubusercontent.com/lgreil/sheetmanagement/main/docs/screenshots/phone-rehearsal.png" width="250" alt="A rehearsal on a phone">
+<img src="https://raw.githubusercontent.com/Bachkreis-bergkamen/sheetmanagement/main/docs/screenshots/phone-overview.png" width="250" alt="Overview on a phone">
+<img src="https://raw.githubusercontent.com/Bachkreis-bergkamen/sheetmanagement/main/docs/screenshots/phone-rehearsal.png" width="250" alt="A rehearsal on a phone">
 </p>

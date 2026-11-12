@@ -14,7 +14,7 @@ import { driveWriteEnabled } from './services.ts';
 export const EXTRAS = ['currentProgram', 'driveWrite', 'youtube', 'push', 'database', 'legal', 'email'] as const;
 export type Extra = (typeof EXTRAS)[number];
 
-const GUIDE = 'https://github.com/lgreil/sheetmanagement/blob/main/docs/setup-google.md';
+const GUIDE = 'https://github.com/Bachkreis-bergkamen/sheetmanagement/blob/main/docs/setup-google.md';
 
 /** Each extra's section in docs/setup-google.md, step 10. */
 export const EXTRA_GUIDES: Record<Extra, string> = {

@@ -19,7 +19,7 @@
 	<div class="card">
 		<p>{t.setup.notConfigured}</p>
 		{#if data.serviceAccountEmail}<p class="muted">{t.setup.share(data.serviceAccountEmail)}</p>{/if}
-		<a class="link" href="https://github.com/lgreil/sheetmanagement/blob/main/docs/setup-google.md">{t.status.setupGuide}</a>
+		<a class="link" href="https://github.com/Bachkreis-bergkamen/sheetmanagement/blob/main/docs/setup-google.md">{t.status.setupGuide}</a>
 	</div>
 {:else if data.state === 'failed'}
 	<div class="card error">
