@@ -290,7 +290,8 @@
 	.minutes {
 		display: none;
 		padding-top: 3px;
-		color: #fff;
+		/* Contrast on the 70 % green: dark ink in light mode, white in dark mode (axe, both ≥ 4.5). */
+		color: light-dark(var(--text), #fff);
 		font-size: var(--text-2xs);
 		font-weight: 700;
 		font-variant-numeric: tabular-nums;
@@ -321,6 +322,10 @@
 
 	.fill.today {
 		background: var(--ok);
+	}
+
+	.fill.today .minutes {
+		color: var(--surface);
 	}
 
 	.fill.future {
