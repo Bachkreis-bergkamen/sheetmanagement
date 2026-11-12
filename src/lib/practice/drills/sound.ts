@@ -53,6 +53,33 @@ export function triad(rootPitchClass: number, mode: 'major' | 'minor'): number[]
 export type MicProblem = 'insecure' | 'noMic';
 
 /**
+ * When the metronome's clicks (and a rhythm's tocks) are heard, on the clock of `performance.now()`:
+ * the microphone hears them through the speaker, and the detector reads them as high notes.
+ */
+let clicks: number[] = [];
+/** A reading this long after a click may still hold it: the analysed window, the click's ring, the microphone's delay. */
+const CLICK_AFTER_MS = 150;
+const CLICK_BEFORE_MS = 15;
+
+/** Whether a reading taken at `time` may have heard a click. */
+export function nearClick(time: number, times: readonly number[] = clicks): boolean {
+	return times.some((click) => time >= click - CLICK_BEFORE_MS && time <= click + CLICK_AFTER_MS);
+}
+
+/**
+ * A reading that may be a click is let through only when it continues the note already
+ * sounding (within half a semitone): a held note goes on, a click doesn't become one.
+ */
+export function clickFilter(times: () => readonly number[] = () => clicks) {
+	let last: number | null = null;
+	return (frequency: number | null, time: number): boolean => {
+		if (nearClick(time, times()) && !(frequency && last && Math.abs(12 * Math.log2(frequency / last)) < 0.5)) return false;
+		last = frequency;
+		return true;
+	};
+}
+
+/**
  * Listen to the microphone: `onReading` gets a frequency (or null in silence) about twelve times
  * a second. Resolves to a function that stops listening; rejects with a MicProblem.
  */
@@ -80,6 +107,7 @@ export async function listenToPitch(onReading: (frequency: number | null, time: 
 	const step = context.sampleRate > 30_000 ? 2 : 1;
 	const samples = new Float32Array(buffer.length / step);
 	const rate = context.sampleRate / step;
+	const filter = clickFilter();
 	const timer = setInterval(() => {
 		if (context.state !== 'running') {
 			context.resume().catch(() => {});
@@ -87,7 +115,10 @@ export async function listenToPitch(onReading: (frequency: number | null, time: 
 		}
 		analyser.getFloatTimeDomainData(buffer);
 		for (let i = 0; i < samples.length; i++) samples[i] = buffer[i * step];
-		onReading(detectPitch(samples, rate), performance.now());
+		const frequency = detectPitch(samples, rate);
+		const time = performance.now();
+		// The metronome through the speaker isn't the player: such a reading is skipped, not read as silence.
+		if (filter(frequency, time)) onReading(frequency, time);
 	}, 80);
 	return () => {
 		clearInterval(timer);
@@ -193,16 +224,23 @@ export async function playBar({
 			stamp?.performanceTime && stamp.contextTime !== undefined
 				? stamp.performanceTime + (downbeat - stamp.contextTime) * 1000
 				: performance.now() + (downbeat - audio.currentTime + (audio.outputLatency || audio.baseLatency || 0)) * 1000;
+		// When each click and tock is heard, so the microphone can leave them out.
+		const heard = [...Array.from({ length: countIn + beats }, (_, i) => start + (i - countIn) * beat * 1000), ...notes.map((note) => start + note)];
+		const now = performance.now();
+		clicks = [...clicks.filter((time) => time > now - 1000), ...heard];
 		return {
 			start,
-			stop: () =>
+			stop: () => {
+				const stopped = performance.now();
+				clicks = clicks.filter((time) => time <= stopped || !heard.includes(time));
 				nodes.forEach((node) => {
 					try {
 						node.stop();
 					} catch {
 						// Already stopped.
 					}
-				})
+				});
+			}
 		};
 	} catch {
 		return null;

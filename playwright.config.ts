@@ -15,8 +15,9 @@ export default defineConfig({
 	workers: DEMO_SERVERS,
 	fullyParallel: true,
 	retries: process.env.CI ? 1 : 0,
-	timeout: 60_000,
-	expect: { timeout: 15_000 },
+	// Short, so a broken page fails in seconds rather than holding the run up for a minute a test.
+	timeout: 30_000,
+	expect: { timeout: 8_000 },
 	reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
 	use: {
 		locale: 'de-DE',

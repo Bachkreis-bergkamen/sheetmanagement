@@ -162,10 +162,13 @@ test('the Besetzung read from the score flags an instrument without a part (#249
 });
 
 test('every score read at once, counted by text layer, and taken over (#249)', async ({ page }) => {
+	// Reading eight scores, the scans by text recognition, is slower than a click.
+	test.setTimeout(60_000);
 	await open(page, '/fehlende-stimmen');
 	const run = page.locator('.run');
 	await run.getByRole('button', { name: 'Partituren lesen' }).click();
-	await expect(run.getByRole('button', { name: '1 Besetzung übernehmen' })).toBeVisible();
+	// Text recognition of the scans takes its time.
+	await expect(run.getByRole('button', { name: '1 Besetzung übernehmen' })).toBeVisible({ timeout: 25_000 });
 	await expect(run.locator('.stats')).toContainText('8 mit Textebene');
 	await expect(run.getByRole('textbox', { name: 'Egmont Ouvertüre' })).toHaveValue(/^Piccolo; Flöte 1 & 2/);
 	await run.getByRole('button', { name: '1 Besetzung übernehmen' }).click();

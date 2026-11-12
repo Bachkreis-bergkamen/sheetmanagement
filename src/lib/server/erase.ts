@@ -115,6 +115,7 @@ export async function eraseMember(address: string): Promise<ErasePreview> {
 		store.deletePractice(email),
 		store.setDrillSharing(email, { board: false, leaders: false, parents: false }),
 		store.setDrillConsent(email, '', false),
+		store.setDrillUnlocks(email, [], ''),
 		store.deleteMarks(email),
 		pollStore()?.forget(email, stand),
 		authorKey(email).then((key) => (key ? kummerStore()?.forget(email, key, stand) : undefined))

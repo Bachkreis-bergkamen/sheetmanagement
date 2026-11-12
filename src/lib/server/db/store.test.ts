@@ -200,6 +200,20 @@ describe.each([
 		expect(await store.drillConsentOf('kid@x.org')).toBeNull();
 	});
 
+	it('keeps the drills an administrator opened for a member (#327)', async () => {
+		const store = make();
+		expect(await store.drillUnlocksOf('pro@x.org')).toEqual([]);
+		await store.setDrillUnlocks('pro@x.org', ['sight', 'entry', 'sight'], 'admin@x.org');
+		await store.setDrillUnlocks('b@x.org', ['tune'], 'admin@x.org');
+		expect(await store.drillUnlocksOf('pro@x.org')).toEqual(['entry', 'sight']);
+		expect(await store.drillUnlocksAll()).toEqual(new Map([['b@x.org', ['tune']], ['pro@x.org', ['entry', 'sight']]]));
+		// Replaced as a whole; none forgets them.
+		await store.setDrillUnlocks('pro@x.org', ['scale'], 'admin@x.org');
+		expect(await store.drillUnlocksOf('pro@x.org')).toEqual(['scale']);
+		await store.setDrillUnlocks('pro@x.org', [], 'admin@x.org');
+		expect(await store.drillUnlocksOf('pro@x.org')).toEqual([]);
+	});
+
 	it('keeps a member’s own marks per part and page, for that member only', async () => {
 		const store = make();
 		const line = (color: 'red' | 'blue') => [{ color, points: [0.1, 0.2, 0.3, 0.4] }];

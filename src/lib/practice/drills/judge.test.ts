@@ -39,4 +39,21 @@ describe('NoteJudge', () => {
 	it('starts again after silence', () => {
 		expect(play(new NoteJudge(A4), [440, 440, null, 440, 440, null, 440])).toBeNull();
 	});
+
+	it('doesn’t take the last question’s note, still sounding, as an attempt at this one', () => {
+		const F4 = noteFrequency(5, 4);
+		// F still bowed when A is asked: no verdict, however long.
+		expect(play(new NoteJudge(A4, { carried: 65 }), hold(F4, 20))).toBeNull();
+		// Then the A: right.
+		expect(play(new NoteJudge(A4, { carried: 65 }), [...hold(F4, 6), ...hold(440, 5)])).toEqual({ result: 'right', cents: 0 });
+		// A wobble of a semitone isn't a new note.
+		expect(play(new NoteJudge(A4, { carried: 65 }), [...hold(F4, 3), noteFrequency(6, 4), ...hold(F4, 12)])).toBeNull();
+		// After a break the same F counts as a wrong note.
+		expect(play(new NoteJudge(A4, { carried: 65 }), [...hold(F4, 3), null, ...hold(F4, 12)])).toMatchObject({ result: 'wrong', midi: 65 });
+	});
+
+	it('asked the same note again, wants it played again after a break', () => {
+		expect(play(new NoteJudge(A4, { carried: A4 }), hold(440, 10))).toBeNull();
+		expect(play(new NoteJudge(A4, { carried: A4 }), [...hold(440, 3), null, ...hold(440, 5)])).toEqual({ result: 'right', cents: 0 });
+	});
 });

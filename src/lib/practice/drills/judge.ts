@@ -16,6 +16,11 @@ export interface JudgeOptions {
 	holdMs?: number;
 	/** How long another note must sound. */
 	wrongMs?: number;
+	/**
+	 * The MIDI note still sounding from the question before, if any: a held or ringing note isn't
+	 * an attempt at this one. It's ignored until a break: silence, or a clearly different note.
+	 */
+	carried?: number | null;
 }
 
 export class NoteJudge {
@@ -23,12 +28,14 @@ export class NoteJudge {
 	private readonly a4: number;
 	private readonly holdMs: number;
 	private readonly wrongMs: number;
+	private carried: number | null;
 
 	constructor(
 		/** The sounding MIDI note asked for. */
 		private readonly target: number,
-		{ a4 = 440, holdMs = 250, wrongMs = 700 }: JudgeOptions = {}
+		{ a4 = 440, holdMs = 250, wrongMs = 700, carried = null }: JudgeOptions = {}
 	) {
+		this.carried = carried;
 		this.a4 = a4;
 		this.holdMs = holdMs;
 		this.wrongMs = wrongMs;
@@ -38,11 +45,20 @@ export class NoteJudge {
 	push(frequency: number | null, time: number): Verdict | null {
 		if (!frequency) {
 			this.run = null;
+			this.carried = null;
 			return null;
 		}
 		const semitones = 69 + 12 * Math.log2(frequency / this.a4);
 		const midi = Math.round(semitones);
 		const cents = Math.round((semitones - midi) * 100);
+		if (this.carried !== null) {
+			if (midi === this.carried) {
+				this.run = null;
+				return null;
+			}
+			// A semitone's wobble of the detector isn't a new note; a clearly different one is.
+			if (Math.abs(midi - this.carried) > 1) this.carried = null;
+		}
 		if (!this.run || this.run.midi !== midi) this.run = { midi, since: time, cents: [] };
 		this.run.cents.push(cents);
 		const held = time - this.run.since;

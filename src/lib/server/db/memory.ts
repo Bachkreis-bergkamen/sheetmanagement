@@ -26,6 +26,8 @@ export function memoryStore(now = () => Date.now()): Store {
 	const drillDays = new Map<string, Map<string, SummaryRow>>();
 	/** Parent consent by child. */
 	const drillConsent = new Map<string, string>();
+	/** Drills opened by an administrator, by member. */
+	const drillUnlocks = new Map<string, string[]>();
 	/** Marks by member, then by `${page} ${file}`. */
 	const marks = new Map<string, Map<string, PageMarks>>();
 	/** Offers by id; answers as `${id} ${email}`. */
@@ -154,6 +156,12 @@ export function memoryStore(now = () => Date.now()): Store {
 		async setDrillConsent(child, parent, allowed) {
 			if (allowed) drillConsent.set(child, parent);
 			else drillConsent.delete(child);
+		},
+		drillUnlocksOf: async (email) => [...(drillUnlocks.get(email) ?? [])],
+		drillUnlocksAll: async () => new Map([...drillUnlocks].map(([email, cards]) => [email, [...cards]])),
+		async setDrillUnlocks(email, cards) {
+			if (cards.length) drillUnlocks.set(email, [...new Set(cards)].sort());
+			else drillUnlocks.delete(email);
 		},
 		marksOf: async (email, file) =>
 			[...(marks.get(email)?.values() ?? [])]

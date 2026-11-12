@@ -21,7 +21,7 @@
 	import { knownOf, newlyOpen, progression, STAGES, type DrillCard } from '#lib/practice/drills/progression.ts';
 	import { firstLevel, makeMelody, MAX_LEVEL, seeded, type SightLevel } from '#lib/practice/drills/sight.ts';
 	import { makeEntry, MAX_ENTRY_LEVEL, tuneOrder } from '#lib/practice/drills/together.ts';
-	import { makePlacement, nextProbe, placementResult, progress as placementProgress, recordProbe, type Placement, type PlacementResult } from '#lib/practice/drills/placement.ts';
+	import { makePlacement, masteredState, nextProbe, placementResult, progress as placementProgress, recordProbe, type Placement, type PlacementResult } from '#lib/practice/drills/placement.ts';
 	import { badgeProgress, badgesFor, newBadges, type Badge, type BadgeGroup } from '#lib/practice/drills/badges.ts';
 	import { addAnswer, DAILY_GOAL_MINUTES, dayKey, emptyData, history, MAX_UNSENT, REFLECTION_MAX, streak, type DrillData } from '#lib/practice/drills/progress.ts';
 	import PracticeHistory from '#lib/components/PracticeHistory.svelte';
@@ -117,7 +117,7 @@
 				ear: knownOf(EAR_ORDER, drills.items),
 				sightLevel: drills.settings.sight?.[instrument]?.level ?? 1
 			},
-			drills.unlocked ?? [],
+			[...(drills.unlocked ?? []), ...(data.granted ?? [])],
 			() => false
 		)
 	);
@@ -132,9 +132,9 @@
 		persist();
 	}
 
-	/** Drills just opened are kept open. */
+	/** Drills just opened are kept open; not those an administrator opened, which they can close again. */
 	function syncUnlocks() {
-		const fresh = newlyOpen(drills.unlocked ?? [], cards);
+		const fresh = newlyOpen(drills.unlocked ?? [], cards).filter((card) => !(data.granted ?? []).includes(card));
 		if (fresh.length) {
 			drills.unlocked = [...(drills.unlocked ?? []), ...fresh];
 			persist();
@@ -191,7 +191,7 @@
 	let dailySteps = $state<DailyStep[]>(['review', 'done']);
 	let dailyFrom = 0;
 	/** Questions in the review step: with a warm-up and a melody around it, fewer than a full round. */
-	const DAILY_REVIEW = 12;
+	const DAILY_REVIEW = 8;
 	const dailyPlan = (): DailyStep[] => [
 		...(cards.scale.open && warmupScale ? (['warmup'] as const) : []),
 		'review',
@@ -318,6 +318,17 @@
 		const result = placementResult(placement, dayNumber());
 		for (const [id, state] of Object.entries(result.states)) drills.items[id] ??= state;
 		drills.opened = [...new Set([...drills.opened, ...result.opened])];
+		// A professional: every drill open, every clef, and what the test didn't ask counted as mastered too.
+		if (result.expert) {
+			const day = dayNumber();
+			const all = [
+				...prof.clefs.flatMap((clef) => [...notesOrder(clef), ...playOrder(instrument, clef)]),
+				...Object.values(orders).flat()
+			];
+			for (const id of new Set(all)) drills.items[id] ??= masteredState(day, FLUENT_MS[kindOf(id)] * 0.6);
+			drills.opened = [...new Set([...drills.opened, ...prof.clefs])];
+			drills.unlocked = [...new Set([...(drills.unlocked ?? []), ...STAGES.flat()])];
+		}
 		const level = (value: number) => ({ level: value, good: 0, poor: 0 });
 		drills.settings = {
 			...drills.settings,
@@ -453,10 +464,21 @@
 	);
 	/** The stage the member is working in: the last one with a drill open. */
 	const current = $derived(stageList.reduce((at, stage) => (stage.open ? stage.number : at), 0));
+
+	// A round starts at the top of the screen, not where the button that started it was.
+	const inRound = $derived(!!((testing && placement) || playing));
+	$effect(() => {
+		if (inRound) window.scrollTo({ top: 0 });
+	});
 </script>
 
 <Title title={tx.title} />
-<PageHeader title={tx.title} lead={tx.lead} />
+<!-- In a round the exercise starts at the top: no page heading or intro above it, which on a phone pushed it down. -->
+{#if inRound}
+	<h1 class="sr-only">{tx.title}</h1>
+{:else}
+	<div class="intro"><PageHeader title={tx.title} lead={tx.lead} /></div>
+{/if}
 
 {#if testing && placement}
 	{@const test = placement}
@@ -584,7 +606,7 @@
 			<section class="ui-card chosen" aria-labelledby="chosen-title">
 				<h2 id="chosen-title"><Icon name="music" size={18} />{own === 'treble' ? tx.chosenNone : tx.chosen(tx.instruments[instrument])}</h2>
 				<p class="lead">
-					{own === 'treble' ? tx.chosenNoneLead : tx.chosenLead(clefs.map((clef) => tx.clefs[clef]).join(', '))}
+					{own === 'treble' ? tx.chosenNoneLead : tx.chosenLead(clefs.map((clef) => tx.clefs[clef]).join(', '), prof.clefs.length > 1)}
 					{#if others.length}{' '}{tx.chosenOthers(others.map((id) => tx.instruments[id]).join(', '))}{/if}
 				</p>
 				<div class="row">
@@ -707,7 +729,7 @@
 								{tx.sound}
 							</label>
 						</div>
-						<p class="hint">{tx.changeHint}</p>
+						<p class="hint">{tx.changeHint(prof.clefs.length > 1)}</p>
 					{/if}
 				</div>
 			</div>
@@ -1494,5 +1516,16 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: var(--space-2);
+	}
+
+	/* A phone: the title alone; what the exercises are is in the cards below. */
+	@media (max-width: 560px) {
+		.intro :global(.page-header) {
+			margin-bottom: var(--space-3);
+		}
+
+		.intro :global(.page-header p) {
+			display: none;
+		}
 	}
 </style>

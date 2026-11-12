@@ -31,6 +31,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const treeSeconds = signedIn && email && practising ? await getStore().practiceOf(email).then(totalSeconds, () => null) : null;
 	const state = signedIn && email && access && !locals.access.parent?.only ? await sharingState(access, email).catch(() => null) : null;
 	const board = state && email && access ? await boardFor(access, email, state).catch(() => null) : null;
+	// Drills an administrator opened for this member (#327), on top of what their progress opens.
+	const granted = email && locals.access.member ? await getStore().drillUnlocksOf(email).catch(() => []) : [];
 	return {
 		// Progress is kept per account on the device, so a shared device keeps each member's own.
 		account: email ?? 'guest',
@@ -40,6 +42,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		treeSeconds,
 		// Null without an account: sharing needs someone signed in.
 		sharing: state ? { chosen: state.chosen, effective: state.effective, child: state.child, consented: state.consented } : null,
-		board
+		board,
+		granted
 	};
 };

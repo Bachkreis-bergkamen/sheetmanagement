@@ -133,16 +133,17 @@ describe('keeping the pulse', () => {
 	});
 
 	it('fades the metronome out over a bar and brings back one click', () => {
-		const loud = Array.from({ length: 4 + 12 + 8 + 2 }, (_, i) => pulseLoudness(i, 2));
-		expect(loud.slice(0, 12)).toEqual(Array(12).fill(1));
-		expect(loud.slice(12, 16)).toEqual([0.7, 0.45, 0.25, 0.1]);
-		expect(loud.slice(16, 24)).toEqual(Array(8).fill(0));
-		expect(loud[24]).toBe(1);
-		expect(loud[25]).toBe(0);
+		// The count-in and one bar with the metronome, a bar fading, two alone, the click back.
+		const loud = Array.from({ length: 4 + 4 + 4 + 8 + 2 }, (_, i) => pulseLoudness(i, 2));
+		expect(loud.slice(0, 8)).toEqual(Array(8).fill(1));
+		expect(loud.slice(8, 12)).toEqual([0.7, 0.45, 0.25, 0.1]);
+		expect(loud.slice(12, 20)).toEqual(Array(8).fill(0));
+		expect(loud[20]).toBe(1);
+		expect(loud[21]).toBe(0);
 	});
 
 	it('takes an even pulse as held, ignoring taps along with the metronome', () => {
-		const along = [0, 500, 1000, 1500, 5500];
+		const along = [0, 500, 1000, 1500, 3500];
 		const verdict = judgePulse(120, 2, [...along, ...silentBeats(2, (i) => (i % 2 ? 15 : -15))]);
 		expect(verdict.correct).toBe(true);
 		expect(verdict.meanOff).toBe(15);

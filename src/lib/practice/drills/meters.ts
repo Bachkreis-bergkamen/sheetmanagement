@@ -28,7 +28,7 @@ export const meterName = (meter: DrillMeter) => `${meter}/${meterUnit(meter)}`;
 export const beamLength = (meter: DrillMeter) => (meter === 6 ? 6 : 4);
 
 /** Beats of count-in: a bar, or two of 2/4 so there's time to feel the tempo. */
-export const countInBeats = (meter: DrillMeter) => (meter === 2 ? 4 : meter);
+export const countInBeats = (meter: DrillMeter) => meter;
 
 /**
  * The beats per minute a level's quarter tempo is played at in this meter. 6/8 is felt in

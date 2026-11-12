@@ -209,7 +209,7 @@ export const PULSE_ORDER = ['pulse:90:2', 'pulse:72:2', 'pulse:108:2', 'pulse:90
 
 export const PULSE = {
 	/** Bars with the metronome, then the bar it fades in. */
-	heard: 2,
+	heard: 1,
 	fading: 1
 };
 
