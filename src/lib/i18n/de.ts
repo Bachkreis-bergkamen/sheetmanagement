@@ -2231,6 +2231,28 @@ export const de = {
 				? `Vom Blatt Stufe ${count} (jetzt ${Math.max(1, have)})`
 				: `${count} ${{ notes: 'Noten sicher lesen', keys: 'Tonarten sicher', rhythm: 'Rhythmen sicher', play: 'Töne sicher gespielt', ear: 'Intervalle sicher' }[of] ?? of} (jetzt ${have})`,
 		newDrills: (names: string[]) => `Neu freigeschaltet: ${names.join(', ')}!`,
+		badges: {
+			title: 'Abzeichen',
+			count: (earned: number, total: number) => `${earned} von ${total}`,
+			lead: 'Jedes Abzeichen steht für etwas, das du jetzt kannst: alles darin richtig und schnell.',
+			earned: (names: string[]) => (names.length === 1 ? `Neues Abzeichen: ${names[0]}!` : `Neue Abzeichen: ${names.join(', ')}!`),
+			since: (day: string) => `seit ${day}`,
+			progress: (have: number, need: number) => `${have} von ${need}`,
+			groups: { read: 'Lesen', hear: 'Hören', play: 'Spielen', steady: 'Dranbleiben' },
+			staff: (clef: string) => `${clef}: alle Linien und Zwischenräume`,
+			ledger: (clef: string) => `${clef} mit Hilfslinien`,
+			keys: { sharps: 'Alle Kreuz-Tonarten', flats: 'Alle B-Tonarten', minor: 'Alle Moll-Tonarten' },
+			ear: (harmonic: boolean) => (harmonic ? 'Intervalle zusammen gehört' : 'Intervalle nacheinander gehört'),
+			rhythm: 'Alle Rhythmen',
+			pulse: 'Ruhiger Puls',
+			play: 'Jeden Ton getroffen',
+			scales: 'Alle Tonleitern',
+			trans: (parts: boolean) => (parts ? 'Stimmen in allen Stimmungen' : 'Klingend gedacht'),
+			tune: 'Sauber im Akkord',
+			sight: (level: number) => `Vom Blatt: Stufe ${level}`,
+			entry: 'Einsätze: höchste Stufe',
+			streak: (days: number) => `${days} Tage in Folge`
+		},
 		chosen: (instrument: string) => `Eingestellt: ${instrument}`,
 		chosenLead: (clefs: string) =>
 			`Das ist dein Instrument laut Mitgliederliste. Geübt wird im ${clefs}; weitere Schlüssel deines Instruments kommen dazu, sobald du so weit bist.`,

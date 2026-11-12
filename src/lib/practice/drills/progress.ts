@@ -64,6 +64,8 @@ export interface DrillData {
 	unlocked?: string[];
 	/** Seconds of practice not yet counted for the practice tree (offline, or the request failed). */
 	unsent: number;
+	/** Badges earned (#300), each with the day it was earned, "2026-11-12"; they stay. */
+	badges?: Record<string, string>;
 }
 
 export const emptyData = (): DrillData => ({ version: 1, items: {}, days: {}, settings: {}, opened: [], unsent: 0 });
@@ -91,6 +93,9 @@ export function readData(value: unknown): DrillData {
 	}
 	if (Array.isArray(raw.unlocked)) data.unlocked = raw.unlocked.filter((card): card is string => typeof card === 'string');
 	if (Array.isArray(raw.opened)) data.opened = raw.opened.filter((clef): clef is Clef => (CLEFS as readonly string[]).includes(clef));
+	if (raw.badges && typeof raw.badges === 'object') {
+		data.badges = Object.fromEntries(Object.entries(raw.badges).filter(([id, day]) => typeof id === 'string' && typeof day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(day)));
+	}
 	if (Number.isFinite(raw.unsent) && raw.unsent! > 0) data.unsent = Math.min(MAX_UNSENT, Math.round(raw.unsent!));
 	return data;
 }

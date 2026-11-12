@@ -21,10 +21,11 @@
 	import { firstLevel, makeMelody, MAX_LEVEL, seeded, type SightLevel } from '#lib/practice/drills/sight.ts';
 	import { makeEntry, MAX_ENTRY_LEVEL, tuneOrder } from '#lib/practice/drills/together.ts';
 	import { makePlacement, nextProbe, placementResult, progress as placementProgress, recordProbe, type Placement, type PlacementResult } from '#lib/practice/drills/placement.ts';
+	import { badgeProgress, badgesFor, newBadges, type Badge, type BadgeGroup } from '#lib/practice/drills/badges.ts';
 	import { addAnswer, DAILY_GOAL_MINUTES, dayKey, emptyData, MAX_UNSENT, streak, type DrillData } from '#lib/practice/drills/progress.ts';
 	import { dayNumber, record, summary } from '#lib/practice/drills/scheduler.ts';
 	import { clearDrills, loadDrills, saveDrills } from '#lib/practice/drills/store.ts';
-	import { CLEFS, pitchOf, type Clef, type Pitch } from '#lib/practice/drills/theory.ts';
+	import { alterInKey, CLEFS, pitchAt, type Clef, type Pitch } from '#lib/practice/drills/theory.ts';
 
 	let { data } = $props();
 	const tx = t.drills;
@@ -47,6 +48,7 @@
 		}
 		ready = true;
 		syncUnlocks();
+		syncBadges();
 		sendTime();
 	});
 
@@ -113,6 +115,16 @@
 		)
 	);
 
+	/** Badges (#300): what this instrument offers, and those reached now kept for good with the day. */
+	const badges = $derived(badgesFor(instrument));
+	function syncBadges() {
+		const fresh = newBadges(badges, drills, instrument, streak(drills.days));
+		if (!fresh.length) return;
+		const today = dayKey();
+		drills.badges = { ...drills.badges, ...Object.fromEntries(fresh.map((id) => [id, today])) };
+		persist();
+	}
+
 	/** Drills just opened are kept open. */
 	function syncUnlocks() {
 		const fresh = newlyOpen(drills.unlocked ?? [], cards);
@@ -134,7 +146,11 @@
 	let freshCards = $state<DrillCard[]>([]);
 	let openBefore: Clef[] = [];
 	let cardsBefore: string[] = [];
+	let badgesBefore: string[] = [];
+	let freshBadges = $state<Badge[]>([]);
 	function remember() {
+		badgesBefore = Object.keys(drills.badges ?? {});
+		freshBadges = [];
 		openBefore = ladder.filter((step) => step.open).map((step) => step.clef);
 		cardsBefore = [...(drills.unlocked ?? [])];
 		unlocked = null;
@@ -144,6 +160,8 @@
 		unlocked = ladder.find((step) => step.open && !openBefore.includes(step.clef))?.clef ?? null;
 		syncUnlocks();
 		freshCards = newlyOpen(cardsBefore, cards).filter((card) => kinds.some((each) => each.kind === card));
+		syncBadges();
+		freshBadges = badges.filter((badge) => drills.badges?.[badge.id] && !badgesBefore.includes(badge.id));
 	}
 	function start(kind: Kind) {
 		remember();
@@ -171,6 +189,7 @@
 		if (data.practising) drills.unsent = Math.min(MAX_UNSENT, drills.unsent + Math.min(ms, 60_000) / 1000);
 		persist();
 		syncUnlocks();
+		syncBadges();
 	}
 
 	/**
@@ -252,6 +271,33 @@
 	const treeName = (stage: TreeStage) => (stage.kind === 'tree' ? t.practice.tree.tree(stage.age) : t.practice.tree[stage.kind]);
 	const treeLeft = $derived(Math.max(0, tree.next - ((data.treeSeconds ?? 0) + sent + (data.practising ? drills.unsent : 0))));
 
+	const bx = tx.badges;
+	/** A badge's name, from what it stands for. */
+	function badgeName(badge: Badge): string {
+		const kind = badge.kind;
+		switch (kind.type) {
+			case 'staff':
+				return bx.staff(tx.clefs[kind.clef]);
+			case 'ledger':
+				return bx.ledger(tx.clefs[kind.clef]);
+			case 'keys':
+				return bx.keys[kind.set];
+			case 'ear':
+				return bx.ear(kind.harmonic);
+			case 'trans':
+				return bx.trans(kind.parts);
+			case 'sight':
+				return bx.sight(kind.level);
+			case 'streak':
+				return bx.streak(kind.days);
+			default:
+				return bx[kind.type];
+		}
+	}
+	const BADGE_GROUPS: BadgeGroup[] = ['read', 'hear', 'play', 'steady'];
+	const earnedCount = $derived(badges.filter((badge) => drills.badges?.[badge.id]).length);
+	const dateOf = (day: string) => new Date(`${day}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+
 	async function reset() {
 		if (!confirm(tx.confirmReset)) return;
 		await clearDrills(data.account);
@@ -283,21 +329,33 @@
 		{ kind: 'tune', icon: 'sliders' },
 		{ kind: 'trans', icon: 'refresh' }
 	];
-	/** A small picture for each card. */
-	const PREVIEW: Record<Kind, { fifths?: number; notes?: Pitch[]; together?: boolean }> = {
-		mix: { fifths: 2, notes: [pitchOf('A4')] },
-		notes: { notes: [pitchOf('G4')] },
+	/**
+	 * A small picture for each card, as staff positions (0 the bottom line, 8 the top), so the
+	 * notes sit on the staff in whichever clef is shown; spelt in the key, as the drill would.
+	 */
+	const PREVIEW: Record<Kind, { fifths?: number; positions?: number[]; together?: boolean }> = {
+		mix: { fifths: 2, positions: [3] },
+		notes: { positions: [2] },
 		keys: { fifths: -3 },
-		ear: { notes: [pitchOf('E4'), pitchOf('B4')] },
+		ear: { positions: [1, 5] },
 		rhythm: {},
 		pulse: {},
 		sight: {},
 		entry: {},
-		tune: { notes: [pitchOf('C4'), pitchOf('E4'), pitchOf('G4')], together: true },
-		play: { notes: [pitchOf('D5')] },
-		scale: { fifths: 1, notes: [pitchOf('G4'), pitchOf('A4'), pitchOf('B4')] },
-		trans: { notes: [pitchOf('C5')] }
+		tune: { positions: [1, 3, 5], together: true },
+		play: { positions: [5] },
+		scale: { fifths: 1, positions: [2, 3, 4] },
+		trans: { positions: [4] }
 	};
+	/** Transposing is read in treble clef; every other picture in the clef the member reads first. */
+	const previewClef = (kind: Kind): Clef => (kind === 'trans' ? 'treble' : clefs[0]);
+	function previewNotes(kind: Kind): Pitch[] {
+		const { positions = [], fifths = 0 } = PREVIEW[kind];
+		return positions.map((position) => {
+			const pitch = pitchAt(previewClef(kind), position);
+			return { ...pitch, alter: alterInKey(pitch.step, fifths) };
+		});
+	}
 	/** The transposing drill only for instruments that transpose or read parts in other keys; scales and sight-reading only for those that play them. */
 	const kinds = $derived(
 		KINDS.filter(({ kind }) =>
@@ -385,6 +443,9 @@
 {:else}
 	<div class="hub">
 		{#if unlocked}<p class="msg ok unlocked" role="status"><Icon name="sparkle" size={18} />{tx.newClef(tx.clefs[unlocked])}</p>{/if}
+		{#if freshBadges.length}
+			<p class="msg ok unlocked" role="status"><Icon name="sparkle" size={18} />{bx.earned(freshBadges.map(badgeName))}</p>
+		{/if}
 		{#if freshCards.length}
 			<p class="msg ok unlocked" role="status">
 				<Icon name="sparkle" size={18} />{tx.newDrills(freshCards.map((card) => tx.kinds[card].title))}
@@ -562,9 +623,9 @@
 										<SightStaff melody={entryPreview} preview label="" />
 									{:else}
 										<DrillStaff
-											clef={kind === 'trans' || kind === 'scale' ? 'treble' : clefs[0]}
+											clef={previewClef(kind)}
 											fifths={PREVIEW[kind].fifths ?? 0}
-											notes={PREVIEW[kind].notes}
+											notes={previewNotes(kind)}
 											together={PREVIEW[kind].together}
 											spacing={kind === 'scale' ? 30 : 46}
 											label=""
@@ -609,6 +670,35 @@
 				</section>
 			{/if}
 		{/each}
+
+		{#if ready}
+			<details class="ui-card badges" open={freshBadges.length > 0}>
+				<summary>
+					<Icon name="sparkle" size={18} /><span>{bx.title}</span><span class="badge-count">{bx.count(earnedCount, badges.length)}</span>
+				</summary>
+				<p class="hint">{bx.lead}</p>
+				{#each BADGE_GROUPS as group (group)}
+					{@const list = badges.filter((badge) => badge.group === group)}
+					{#if list.length}
+						<h3>{bx.groups[group]}</h3>
+						<ul class="badge-list">
+							{#each list as badge (badge.id)}
+								{@const day = drills.badges?.[badge.id]}
+								{@const have = day ? badge.need : badgeProgress(badge, drills, instrument, days)}
+								<li class="badge" class:earned={!!day} class:fresh={freshBadges.includes(badge)}>
+									<span class="medal" aria-hidden="true"><Icon name={day ? 'check' : 'lock'} size={16} /></span>
+									<span class="badge-text">
+										<strong>{badgeName(badge)}</strong>
+										<span class="hint">{day ? bx.since(dateOf(day)) : bx.progress(have, badge.need)}</span>
+										{#if !day}<span class="meter" aria-hidden="true"><span style:width="{(have / badge.need) * 100}%"></span></span>{/if}
+									</span>
+								</li>
+							{/each}
+						</ul>
+					{/if}
+				{/each}
+			</details>
+		{/if}
 
 		<details class="ui-card how">
 			<summary>{tx.how}</summary>
@@ -1139,6 +1229,101 @@
 
 	.how {
 		padding: var(--space-3) var(--space-4);
+	}
+
+	.badges {
+		display: grid;
+		gap: var(--space-2);
+		padding: var(--space-3) var(--space-4);
+	}
+
+	.badges summary {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		min-height: 32px;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.badge-count {
+		margin-left: auto;
+		color: var(--text-muted);
+		font-size: var(--text-sm);
+		font-weight: 500;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.badges h3 {
+		margin-top: var(--space-3);
+		color: var(--text-muted);
+		font-size: var(--text-xs);
+		font-weight: 600;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+	}
+
+	.badge-list {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
+		gap: var(--space-2);
+		margin-top: var(--space-2);
+		padding: 0;
+		list-style: none;
+	}
+
+	.badge {
+		display: flex;
+		align-items: flex-start;
+		gap: var(--space-3);
+		padding: var(--space-2) var(--space-3);
+		border: 1px solid var(--hairline);
+		border-radius: var(--radius-control);
+	}
+
+	.badge-text {
+		display: grid;
+		flex: 1;
+		gap: 2px;
+		min-width: 0;
+		font-size: var(--text-sm);
+	}
+
+	.badge-text .hint {
+		font-size: var(--text-2xs);
+	}
+
+	.badge .meter {
+		margin-top: var(--space-1);
+	}
+
+	.medal {
+		display: grid;
+		flex: none;
+		place-items: center;
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+		background: var(--surface-2);
+		color: var(--text-muted);
+	}
+
+	.badge.earned {
+		border-color: color-mix(in oklab, var(--ok) 45%, var(--hairline));
+	}
+
+	.badge.earned .medal {
+		background: var(--ok);
+		color: var(--surface);
+	}
+
+	.badge:not(.earned) strong {
+		color: var(--text-muted);
+		font-weight: 500;
+	}
+
+	.badge.fresh {
+		box-shadow: 0 0 0 2px var(--ok);
 	}
 
 	.how summary {
