@@ -2211,6 +2211,28 @@ export const en: Texts = {
 				? `Sight-reading level ${count} (now ${Math.max(1, have)})`
 				: `${count} ${{ notes: 'notes read securely', keys: 'keys secure', rhythm: 'rhythms secure', play: 'notes played securely', ear: 'intervals secure' }[of] ?? of} (now ${have})`,
 		newDrills: (names: string[]) => `Newly unlocked: ${names.join(', ')}!`,
+		badges: {
+			title: 'Badges',
+			count: (earned: number, total: number) => `${earned} of ${total}`,
+			lead: 'Each badge stands for something you can now do: everything in it right and fast.',
+			earned: (names: string[]) => (names.length === 1 ? `New badge: ${names[0]}!` : `New badges: ${names.join(', ')}!`),
+			since: (day: string) => `since ${day}`,
+			progress: (have: number, need: number) => `${have} of ${need}`,
+			groups: { read: 'Reading', hear: 'Hearing', play: 'Playing', steady: 'Keeping at it' },
+			staff: (clef: string) => `${clef}: every line and space`,
+			ledger: (clef: string) => `${clef} with ledger lines`,
+			keys: { sharps: 'All sharp keys', flats: 'All flat keys', minor: 'All minor keys' },
+			ear: (harmonic: boolean) => (harmonic ? 'Intervals heard together' : 'Intervals heard one after the other'),
+			rhythm: 'All rhythms',
+			pulse: 'Steady pulse',
+			play: 'Every note hit',
+			scales: 'All scales',
+			trans: (parts: boolean) => (parts ? 'Parts in every key' : 'Thinking at concert pitch'),
+			tune: 'In tune in a chord',
+			sight: (level: number) => `Sight-reading: level ${level}`,
+			entry: 'Entries: top level',
+			streak: (days: number) => `${days} days in a row`
+		},
 		chosen: (instrument: string) => `Set to ${instrument}`,
 		chosenLead: (clefs: string) =>
 			`That’s your instrument in the members’ list. You practise in ${clefs}; your instrument’s further clefs come in once you’re ready.`,
