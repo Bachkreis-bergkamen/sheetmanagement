@@ -1992,6 +1992,7 @@ export const en: Texts = {
 		mastered: (mastered: number, total: number) => `${mastered} of ${total} secure`,
 		due: (count: number) => `${count} due today`,
 		fresh: 'Not started yet',
+		known: (count: number) => `${count} known already, checked soon`,
 		today: (minutes: number, goal: number) => `Today ${minutes} of ${goal} minutes`,
 		streak: (days: number) => (days === 1 ? '1 day in a row' : `${days} days in a row`),
 		streakHint: 'One day off in between doesn’t break the streak.',
@@ -2108,6 +2109,24 @@ export const en: Texts = {
 		noMicSight: 'Without a microphone the melody still runs along; afterwards you say how it went.',
 		sightAverage: (percent: number) => `${percent} % on average`,
 		duet: 'With a second voice (accompaniment)',
+		placement: {
+			title: 'Placement',
+			offer: 'Been playing a while?',
+			offerLead:
+				'A short test (about three minutes) finds out what you already know well: notes in your clefs, keys, intervals. That isn’t practised as new, just checked briefly over the next few days.',
+			start: 'Take the test',
+			skip: 'Start from the beginning',
+			done: 'Placement done',
+			fromStart: 'from the beginning',
+			bands: {
+				notes: ['the landmark notes', 'the whole staff', 'the first ledger lines', 'far ledger lines too'],
+				keys: ['major up to 2 accidentals', 'major and minor up to 2 accidentals', 'major up to 4 accidentals', 'major and minor up to 4 accidentals', 'major up to 7 accidentals', 'all keys'],
+				ear: ['clearly different intervals one after the other', 'the same together', 'all one after the other', 'all, together too']
+			},
+			after: 'What you know comes back over the next few days as a check. If it holds, you move on; if not, you practise it as new.',
+			close: 'Close',
+			again: 'Take the placement test'
+		},
 		lookEntry: (bars: number, beat: number) => `${bars} ${bars === 1 ? 'bar' : 'bars'} rest, come in on ${beat}`,
 		countRests: 'Count the rests, then come in …',
 		entryOnTime: 'Came in on time!',
@@ -2145,6 +2164,7 @@ export const en: Texts = {
 			'New items come in when most answers are right. When it’s hard going, familiar ones are mixed in.',
 			'Secure means right and fast: when sight-reading there’s no time to count lines.',
 			'If you know an item quickly the first time, it’s skipped ahead, so you reach what’s new to you soon.',
+			'The placement test at the start (take it again any time) skips what you already know well; it comes back soon as a check.',
 			'Playing together: for entries you count rests while the accompaniment plays; coming in on time counts as much as the notes. In a chord you tune pure, not as on the piano: a major third a little lower, a minor one a little higher.',
 			'Sight-reading: every melody is new, because sight-reading is learnt from a lot of the unknown. Two good takes in a row raise the level, two weak ones lower it: more keys, leaps, shorter notes, minor, longer melodies.',
 			'Scales go round the circle of fifths, major before minor, with arpeggios. Secure means every note in place, 15 cents off at most on average. With “Show cents only afterwards” you play by ear against the drone.',

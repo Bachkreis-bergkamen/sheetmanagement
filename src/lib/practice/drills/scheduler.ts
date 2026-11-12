@@ -115,17 +115,23 @@ export function pickNext({ order, states, day, answers, recent, random = Math.ra
 	return { id: choose(candidates.filter((id) => states[id].box === lowest)), isNew: false };
 }
 
-/** Of `order`, how many are mastered and how many due today (seen and due, or being learnt). `fluentMs` per item. */
+/**
+ * Of `order`, how many are mastered, how many due today (seen and due, or being learnt), and how
+ * many known but not yet confirmed (placed by the test, or answered right and fast the first
+ * time), waiting for their check. `fluentMs` per item.
+ */
 export function summary(order: string[], states: States, day: number, fluentMs: (id: string) => number) {
 	let mastered = 0;
 	let due = 0;
 	let seen = 0;
+	let known = 0;
 	for (const id of order) {
 		const state = states[id];
 		if (!state) continue;
 		seen++;
 		if (isMastered(state, fluentMs(id))) mastered++;
+		else if (state.box >= 3 && state.seen === 1 && state.due > day) known++;
 		if (state.due <= day) due++;
 	}
-	return { total: order.length, seen, mastered, due };
+	return { total: order.length, seen, mastered, due, known };
 }

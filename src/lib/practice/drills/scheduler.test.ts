@@ -97,6 +97,11 @@ describe('pickNext', () => {
 describe('summary', () => {
 	it('counts mastered and due items', () => {
 		const states: States = { a: { box: 5, due: 30, seen: 9, right: 9, times: [700] }, b: { box: 1, due: 9, seen: 1, right: 1, times: [3000] } };
-		expect(summary(['a', 'b', 'c'], states, 10, () => FLUENT)).toEqual({ total: 3, seen: 2, mastered: 1, due: 1 });
+		expect(summary(['a', 'b', 'c'], states, 10, () => FLUENT)).toEqual({ total: 3, seen: 2, mastered: 1, due: 1, known: 0 });
+	});
+
+	it('counts items known at first sight, waiting for their check', () => {
+		const states: States = { a: { box: 3, due: 12, seen: 1, right: 1, times: [700] }, b: { box: 3, due: 10, seen: 1, right: 1, times: [700] } };
+		expect(summary(['a', 'b'], states, 10, () => FLUENT)).toMatchObject({ known: 1, due: 1, mastered: 0 });
 	});
 });

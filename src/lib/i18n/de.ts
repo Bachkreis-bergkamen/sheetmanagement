@@ -2013,6 +2013,7 @@ export const de = {
 		mastered: (mastered: number, total: number) => `${mastered} von ${total} sicher`,
 		due: (count: number) => (count === 1 ? '1 heute dran' : `${count} heute dran`),
 		fresh: 'Noch nicht angefangen',
+		known: (count: number) => `${count} schon gekonnt, wird bald geprüft`,
 		today: (minutes: number, goal: number) => `Heute ${minutes} von ${goal} Minuten`,
 		streak: (days: number) => (days === 1 ? '1 Tag in Folge' : `${days} Tage in Folge`),
 		streakHint: 'Ein freier Tag dazwischen unterbricht die Serie nicht.',
@@ -2126,6 +2127,24 @@ export const de = {
 		noMicSight: 'Ohne Mikrofon läuft die Melodie trotzdem mit; danach sagst du, wie es ging.',
 		sightAverage: (percent: number) => `Im Schnitt ${percent} %`,
 		duet: 'Mit zweiter Stimme (Begleitung)',
+		placement: {
+			title: 'Einstufung',
+			offer: 'Spielst du schon länger?',
+			offerLead:
+				'Ein kurzer Test (etwa drei Minuten) findet heraus, was du schon sicher kannst: Noten in deinen Schlüsseln, Tonarten, Intervalle. Das wird dann nicht neu geübt, nur in den nächsten Tagen kurz geprüft.',
+			start: 'Test machen',
+			skip: 'Von vorne anfangen',
+			done: 'Einstufung fertig',
+			fromStart: 'von vorne',
+			bands: {
+				notes: ['die Orientierungstöne', 'das ganze Liniensystem', 'die ersten Hilfslinien', 'auch weite Hilfslinien'],
+				keys: ['Dur bis 2 Vorzeichen', 'Dur und Moll bis 2 Vorzeichen', 'Dur bis 4 Vorzeichen', 'Dur und Moll bis 4 Vorzeichen', 'Dur bis 7 Vorzeichen', 'alle Tonarten'],
+				ear: ['klar verschiedene Intervalle nacheinander', 'dieselben auch zusammen', 'alle nacheinander', 'alle, auch zusammen']
+			} as Record<string, string[]>,
+			after: 'Was du schon kannst, kommt in den nächsten Tagen zur Kontrolle wieder. Sitzt es, geht es weiter; wenn nicht, übst du es wie neu.',
+			close: 'Schließen',
+			again: 'Einstufung machen'
+		},
 		lookEntry: (bars: number, beat: number) => `${bars} ${bars === 1 ? 'Takt' : 'Takte'} Pause, Einsatz auf ${beat}`,
 		countRests: 'Pausen zählen, dann einsetzen …',
 		entryOnTime: 'Pünktlich eingesetzt!',
@@ -2163,6 +2182,7 @@ export const de = {
 			'Neues kommt dazu, wenn die meisten Antworten stimmen. Läuft es zäh, mischt die Übung Bekanntes ein.',
 			'Sicher heißt richtig und schnell: Beim Vom-Blatt-Spielen ist keine Zeit zum Abzählen.',
 			'Weißt du einen Ton schon beim ersten Mal schnell, wird er übersprungen; so kommst du rasch zu dem, was neu ist.',
+			'Die Einstufung am Anfang (jederzeit wiederholbar) überspringt, was du schon sicher kannst; es kommt bald zur Kontrolle wieder.',
 			'Zusammenspiel: Bei den Einsätzen zählst du Pausen, während die Begleitung spielt; pünktlich einsetzen zählt so viel wie die Töne. Im Akkord stimmst du rein, nicht wie am Klavier: eine große Terz etwas tiefer, eine kleine etwas höher.',
 			'Vom Blatt: jede Melodie ist neu, denn Blattspiel lernt man an viel Unbekanntem. Zwei gute Durchgänge nacheinander heben die Stufe, zwei schwache senken sie: mehr Tonarten, Sprünge, kürzere Noten, Moll, längere Melodien.',
 			'Tonleitern gehen den Quintenzirkel entlang, Dur vor Moll, mit Dreiklängen. Sicher heißt: alle Töne getroffen, im Schnitt höchstens 15 Cent daneben. Mit „Cent erst danach zeigen“ spielst du nach Gehör gegen den Liegeton.',

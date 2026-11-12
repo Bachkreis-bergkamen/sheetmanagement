@@ -16,6 +16,7 @@
 	import { scaleOrder } from '#lib/practice/drills/scales.ts';
 	import { firstLevel, makeMelody, MAX_LEVEL, seeded, type SightLevel } from '#lib/practice/drills/sight.ts';
 	import { makeEntry, MAX_ENTRY_LEVEL, tuneOrder } from '#lib/practice/drills/together.ts';
+	import { makePlacement, nextProbe, placementResult, progress as placementProgress, recordProbe, type Placement, type PlacementResult } from '#lib/practice/drills/placement.ts';
 	import { addAnswer, DAILY_GOAL_MINUTES, dayKey, emptyData, MAX_UNSENT, streak, type DrillData } from '#lib/practice/drills/progress.ts';
 	import { dayNumber, record, summary } from '#lib/practice/drills/scheduler.ts';
 	import { clearDrills, loadDrills, saveDrills } from '#lib/practice/drills/store.ts';
@@ -143,6 +144,45 @@
 	const todayMinutes = $derived(Math.floor((drills.days[dayKey()]?.ms ?? 0) / 60_000));
 	const days = $derived(streak(drills.days));
 
+	// The placement test (#300): offered on first use, to be taken again any time.
+	// Raw: the test changes it in place, and the progress bar has its own state.
+	let placement = $state.raw<Placement | null>(null);
+	let testing = $state(false);
+	let testProgress = $state(0);
+	let placed = $state<PlacementResult | null>(null);
+	const offerPlacement = $derived(ready && !Object.keys(drills.items).length && !drills.settings.placed);
+
+	function startPlacement() {
+		placement = makePlacement(prof);
+		testProgress = 0;
+		placed = null;
+		testing = true;
+	}
+
+	/**
+	 * What the test found into the member's progress: known items they haven't met yet (never
+	 * over progress they have), clefs to open, and where sight-reading and entries start (only if
+	 * not started yet).
+	 */
+	function finishPlacement() {
+		if (!placement) return;
+		const result = placementResult(placement, dayNumber());
+		for (const [id, state] of Object.entries(result.states)) drills.items[id] ??= state;
+		drills.opened = [...new Set([...drills.opened, ...result.opened])];
+		const level = (value: number) => ({ level: value, good: 0, poor: 0 });
+		drills.settings = {
+			...drills.settings,
+			placed: dayKey(),
+			sight: { ...drills.settings.sight, [instrument]: drills.settings.sight?.[instrument] ?? level(result.sightLevel) },
+			entry: { ...drills.settings.entry, [instrument]: drills.settings.entry?.[instrument] ?? level(result.entryLevel) }
+		};
+		persist();
+		placed = result;
+		testing = false;
+		placement = null;
+		sendTime();
+	}
+
 	async function reset() {
 		if (!confirm(tx.confirmReset)) return;
 		await clearDrills(data.account);
@@ -193,7 +233,33 @@
 <Title title={tx.title} />
 <PageHeader title={tx.title} lead={tx.lead} />
 
-{#if playing === 'sight' || playing === 'entry'}
+{#if testing && placement}
+	{@const test = placement}
+	<DrillRound
+		order={[]}
+		clefs={[prof.clefs[0]]}
+		{instrument}
+		states={drills.items}
+		{sound}
+		title={tx.placement.title}
+		tapOffset={drills.settings.tapOffset}
+		settings={drills.settings}
+		test={() => nextProbe(test)}
+		progress={testProgress}
+		onanswer={(id, correct, ms) => {
+			recordProbe(test, id, correct, ms);
+			testProgress = placementProgress(test);
+			practised(correct, ms);
+		}}
+		oncalibrate={() => {}}
+		onsetting={setting}
+		onfinish={finishPlacement}
+		onexit={() => {
+			testing = false;
+			placement = null;
+		}}
+	/>
+{:else if playing === 'sight' || playing === 'entry'}
 	{@const entry = playing === 'entry'}
 	<SightRound
 		mode={entry ? 'entry' : 'sight'}
@@ -227,6 +293,34 @@
 {:else}
 	<div class="hub">
 		{#if unlocked}<p class="msg ok unlocked" role="status"><Icon name="sparkle" size={18} />{tx.newClef(tx.clefs[unlocked])}</p>{/if}
+
+		{#if offerPlacement}
+			<section class="ui-card placement" aria-labelledby="placement-title">
+				<h2 id="placement-title"><Icon name="flag" size={18} />{tx.placement.offer}</h2>
+				<p class="lead">{tx.placement.offerLead}</p>
+				<div class="row">
+					<button type="button" class="btn" onclick={startPlacement}>{tx.placement.start}</button>
+					<button type="button" class="btn ghost" onclick={() => setting({ placed: 'skipped' })}>{tx.placement.skip}</button>
+				</div>
+			</section>
+		{/if}
+
+		{#if placed}
+			<section class="ui-card placement" aria-labelledby="placed-title" role="status">
+				<h2 id="placed-title"><Icon name="check" size={18} />{tx.placement.done}</h2>
+				<ul class="found">
+					{#each placed.skills as { skill, passed } (skill.kind === 'notes' ? skill.clef : skill.kind)}
+						<li>
+							<strong>{skill.kind === 'notes' ? tx.clefs[skill.clef] : skill.kind === 'keys' ? tx.kinds.keys.title : tx.kinds.ear.title}:</strong>
+							{passed ? tx.placement.bands[skill.kind][passed - 1] : tx.placement.fromStart}
+						</li>
+					{/each}
+					<li><strong>{tx.kinds.sight.title}:</strong> {tx.level(placed.sightLevel, MAX_LEVEL)}</li>
+				</ul>
+				<p class="lead">{tx.placement.after}</p>
+				<button type="button" class="btn ghost small" onclick={() => (placed = null)}>{tx.placement.close}</button>
+			</section>
+		{/if}
 
 		<section class="ui-card setup" aria-label={tx.instrument}>
 			<div class="fields">
@@ -314,7 +408,7 @@
 						<p class="hint">{tx.noPlay}</p>
 					{:else}
 						<p class="hint">
-							{#if !ready}…{:else if stand.seen}{tx.mastered(stand.mastered, stand.total)}{#if stand.due}{' '}· {tx.due(stand.due)}{/if}{:else}{tx.fresh}{/if}
+							{#if !ready}…{:else if stand.seen}{tx.mastered(stand.mastered, stand.total)}{#if stand.due}{' '}· {tx.due(stand.due)}{/if}{#if stand.known}{' '}· {tx.known(stand.known)}{/if}{:else}{tx.fresh}{/if}
 						</p>
 						<div class="meter" aria-hidden="true"><span style:width="{(stand.mastered / stand.total) * 100}%"></span></div>
 						<button type="button" class="btn" disabled={!ready} onclick={() => start(kind)}>{tx.start}</button>
@@ -332,9 +426,14 @@
 
 		<p class="hint private"><Icon name="shield" size={16} />{tx.private}</p>
 		{#if !saved}<p class="msg info">{tx.unsaved}</p>{/if}
-		{#if ready && Object.keys(drills.items).length}
-			<button type="button" class="btn ghost small reset" onclick={reset}><Icon name="trash" size={16} />{tx.reset}</button>
-		{/if}
+		<div class="row">
+			{#if ready && !offerPlacement}
+				<button type="button" class="btn ghost small" onclick={startPlacement}><Icon name="flag" size={16} />{tx.placement.again}</button>
+			{/if}
+			{#if ready && Object.keys(drills.items).length}
+				<button type="button" class="btn ghost small" onclick={reset}><Icon name="trash" size={16} />{tx.reset}</button>
+			{/if}
+		</div>
 	</div>
 {/if}
 
@@ -511,7 +610,35 @@
 		gap: var(--space-2);
 	}
 
-	.reset {
+	.row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-2);
+	}
+
+	.placement {
+		display: grid;
+		gap: var(--space-3);
+		padding: var(--space-4);
+		border-left: 3px solid var(--accent);
+	}
+
+	.placement h2 {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		font-size: var(--text-lg);
+	}
+
+	.placement .btn.small {
 		justify-self: start;
+	}
+
+	.found {
+		display: grid;
+		gap: var(--space-1);
+		padding: 0;
+		list-style: none;
+		font-size: var(--text-sm);
 	}
 </style>

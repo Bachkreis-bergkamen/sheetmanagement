@@ -32,6 +32,8 @@ export interface DrillSettings {
 	/** Playing together: the entries' level per instrument, and a second voice under sight-reading. */
 	entry?: Partial<Record<ProfileId, SightLevel>>;
 	duet?: boolean;
+	/** The placement test: the day it was taken, or "skipped" when the member started from the beginning. */
+	placed?: string;
 }
 
 /** Levels per instrument read back, anything malformed dropped. */

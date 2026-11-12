@@ -31,9 +31,12 @@
 		title,
 		tapOffset,
 		settings,
+		test,
+		progress,
 		onanswer,
 		oncalibrate,
 		onsetting,
+		onfinish,
 		onexit
 	}: {
 		order: string[];
@@ -50,6 +53,13 @@
 		/** The scale options: drone, metronome, cents shown or kept back. */
 		settings: DrillSettings;
 		onsetting: (change: Partial<DrillSettings>) => void;
+		/**
+		 * The placement test (#300): its next question instead of the scheduler's (null when it's
+		 * over), how far through it is, and what to do at the end instead of the round's summary.
+		 */
+		test?: () => string | null;
+		progress?: number;
+		onfinish?: () => void;
 		onexit: () => void;
 	} = $props();
 
@@ -152,11 +162,12 @@
 		liveMarks = [];
 		holdChord(null);
 		liveCents = null;
-		if (count >= ROUND) {
+		if (!test && count >= ROUND) {
 			finish();
 			return;
 		}
-		const pick = pickNext({ order, states, day, answers, recent });
+		const tested = test?.();
+		const pick = test ? (tested ? { id: tested, isNew: false } : null) : pickNext({ order, states, day, answers, recent });
 		const asked = pick && questionFor(pick.id, clefs[Math.floor(Math.random() * clefs.length)]);
 		if (!pick || !asked) {
 			finish();
@@ -189,6 +200,10 @@
 	}
 
 	function finish() {
+		if (onfinish) {
+			onfinish();
+			return;
+		}
 		finished = true;
 		question = null;
 		stopListening();
@@ -611,11 +626,11 @@
 <section class="round ui-card" aria-labelledby="round-title">
 	<header class="top">
 		<h2 id="round-title">{title}</h2>
-		{#if !finished}<span class="count" aria-label="{count} / {ROUND}">{tx.question(count, ROUND)}</span>{/if}
+		{#if !finished && !test}<span class="count" aria-label="{count} / {ROUND}">{tx.question(count, ROUND)}</span>{/if}
 		<button type="button" class="btn ghost small" onclick={onexit}>{finished ? tx.back : tx.stop}</button>
 	</header>
 	{#if !finished}
-		<div class="bar" aria-hidden="true"><span style:width="{(count / ROUND) * 100}%"></span></div>
+		<div class="bar" aria-hidden="true"><span style:width="{(test ? (progress ?? 0) : count / ROUND) * 100}%"></span></div>
 	{/if}
 
 	{#if question}
