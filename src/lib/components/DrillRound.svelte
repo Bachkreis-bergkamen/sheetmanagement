@@ -1511,7 +1511,8 @@
 	.last-note {
 		margin: 0;
 		padding: var(--space-2) var(--space-3);
-		border-left: 3px solid var(--accent);
+		border: 1px solid var(--hairline);
+		border-radius: var(--radius-sm, 6px);
 		background: var(--surface-2);
 		font-size: var(--text-sm);
 	}
