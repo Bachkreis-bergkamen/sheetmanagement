@@ -707,7 +707,7 @@ export const de = {
 			offline: 'Stimmen in „Meine Noten“ für die Probe ohne Netz speichern.',
 			seasons: 'Kleine Zeichnungen zur Jahreszeit: Schneeflocke, Blüte, Kürbis.',
 			tickets: 'Karten für Konzerte über die Website reservieren, bezahlt an der Abendkasse, mit Einlass per Handy.',
-			drills: 'Kurze Übungen zu Notenlesen, Tonarten, Intervallen, Rhythmus, Tönen, Tonleitern, Vom-Blatt-Spiel und Transponieren. Sie laufen auf dem Gerät; nur die Übezeit zählt für die Probenzeit.'
+			drills: 'Kurze Übungen zu Notenlesen, Tonarten, Intervallen, Rhythmus, Tönen, Tonleitern, Vom-Blatt-Spiel, Zusammenspiel und Transponieren. Sie laufen auf dem Gerät; nur die Übezeit zählt für die Probenzeit.'
 		} as Record<string, string>,
 		instruments: 'Instrumente',
 		instrumentsLead:
@@ -1958,7 +1958,7 @@ export const de = {
 	/** The Übebereich (#300, #315): drills on the device, nothing sent. */
 	drills: {
 		title: 'Übebereich',
-		lead: 'Ein paar Minuten am Tag: Noten lesen, Tonarten erkennen, Intervalle hören, Rhythmen klopfen, Töne treffen, Tonleitern spielen, vom Blatt spielen, transponieren. Die Übungen passen sich dir an.',
+		lead: 'Ein paar Minuten am Tag: Noten lesen, Tonarten erkennen, Intervalle hören, Rhythmen klopfen, Töne treffen, Tonleitern spielen, vom Blatt spielen, einsetzen und im Akkord stimmen, transponieren. Die Übungen passen sich dir an.',
 		private: 'Dein Fortschritt und das Mikrofon bleiben auf diesem Gerät. Gesendet wird höchstens die Übezeit, wenn du die Probenzeit aufzeichnest.',
 		unsaved: 'Dieser Browser kann den Fortschritt nicht speichern (ein privates Fenster?). Üben geht trotzdem.',
 		instrument: 'Instrument',
@@ -2000,6 +2000,8 @@ export const de = {
 			play: { title: 'Töne spielen', lead: 'Spiel den Ton; das Mikrofon hört, ob er stimmt.' },
 			ear: { title: 'Intervalle hören', lead: 'Zwei Töne: wie weit liegen sie auseinander?' },
 			rhythm: { title: 'Rhythmus', lead: 'Lesen, anhören, nachklopfen: ein Takt nach dem Einzählen.' },
+			entry: { title: 'Einsätze', lead: 'Pausen zählen, dem Dirigenten folgen, pünktlich einsetzen, mit Begleitung.' },
+			tune: { title: 'Im Akkord stimmen', lead: 'Ein Akkord klingt: spiel Terz, Quarte oder Quinte so, dass sie rein klingt.' },
 			sight: { title: 'Vom Blatt', lead: 'Jedes Mal eine neue kurze Melodie: kurz ansehen, einzählen, durchspielen.' },
 			scale: { title: 'Tonleitern', lead: 'Tonleitern und Dreiklänge auf und ab, über einem Liegeton. Jeder Ton zeigt, ob er saß.' },
 			trans: { title: 'Transponieren', lead: 'Welcher Ton klingt, und wie liest du Stimmen in anderen Stimmungen?' }
@@ -2123,6 +2125,31 @@ export const de = {
 		selfHard: 'Schwer',
 		noMicSight: 'Ohne Mikrofon läuft die Melodie trotzdem mit; danach sagst du, wie es ging.',
 		sightAverage: (percent: number) => `Im Schnitt ${percent} %`,
+		duet: 'Mit zweiter Stimme (Begleitung)',
+		lookEntry: (bars: number, beat: number) => `${bars} ${bars === 1 ? 'Takt' : 'Takte'} Pause, Einsatz auf ${beat}`,
+		countRests: 'Pausen zählen, dann einsetzen …',
+		entryOnTime: 'Pünktlich eingesetzt!',
+		entryMissed: 'Den Einsatz habe ich nicht gehört.',
+		entryOff: (beats: number) => {
+			const amount = Math.max(0.5, Math.round(Math.abs(beats) * 2) / 2);
+			const said = amount === 0.5 ? 'einen halben Schlag' : `${String(amount).replace('.', ',')} ${amount === 1 ? 'Schlag' : 'Schläge'}`;
+			return `Einsatz ${said} zu ${beats > 0 ? 'spät' : 'früh'}.`;
+		},
+		tuneRoles: { fifth: 'Quinte', fourth: 'Quarte', majorThird: 'große Terz', minorThird: 'kleine Terz' },
+		tuneAsk: (role: string) => `Spiel die ${role} rein dazu`,
+		tuneStart: 'Akkord und Mikrofon an',
+		tuneHeadphones: 'Am besten mit Kopfhörern: dann hört das Mikrofon nur dich, nicht den Akkord.',
+		tunePure: 'rein',
+		tunePiano: 'Klavier',
+		tunedPure: (cents: number) => (Math.abs(cents) <= 2 ? 'Rein!' : `Rein, ${Math.abs(cents)} Cent ${cents > 0 ? 'darüber' : 'darunter'}.`),
+		tunedOff: (cents: number) => `${Math.abs(cents)} Cent zu ${cents > 0 ? 'hoch' : 'tief'} für rein.`,
+		tuneShown: 'So klingt sie rein; hör hin.',
+		pureTips: {
+			majorThird: 'Eine reine große Terz liegt 14 Cent tiefer als auf dem Klavier. Tiefer, bis der Klang ruhig steht.',
+			minorThird: 'Eine reine kleine Terz liegt 16 Cent höher als auf dem Klavier. Höher, bis der Klang ruhig steht.',
+			fifth: 'Eine reine Quinte ist nur 2 Cent weiter als auf dem Klavier. Hör, bis nichts mehr schwebt.',
+			fourth: 'Eine reine Quarte ist nur 2 Cent enger als auf dem Klavier. Hör, bis nichts mehr schwebt.'
+		} as Record<string, string>,
 		done: 'Runde geschafft',
 		doneRight: (right: number, total: number) => `${right} von ${total} richtig`,
 		doneTime: (seconds: string) => `meist ${seconds} s pro Antwort`,
@@ -2136,6 +2163,7 @@ export const de = {
 			'Neues kommt dazu, wenn die meisten Antworten stimmen. Läuft es zäh, mischt die Übung Bekanntes ein.',
 			'Sicher heißt richtig und schnell: Beim Vom-Blatt-Spielen ist keine Zeit zum Abzählen.',
 			'Weißt du einen Ton schon beim ersten Mal schnell, wird er übersprungen; so kommst du rasch zu dem, was neu ist.',
+			'Zusammenspiel: Bei den Einsätzen zählst du Pausen, während die Begleitung spielt; pünktlich einsetzen zählt so viel wie die Töne. Im Akkord stimmst du rein, nicht wie am Klavier: eine große Terz etwas tiefer, eine kleine etwas höher.',
 			'Vom Blatt: jede Melodie ist neu, denn Blattspiel lernt man an viel Unbekanntem. Zwei gute Durchgänge nacheinander heben die Stufe, zwei schwache senken sie: mehr Tonarten, Sprünge, kürzere Noten, Moll, längere Melodien.',
 			'Tonleitern gehen den Quintenzirkel entlang, Dur vor Moll, mit Dreiklängen. Sicher heißt: alle Töne getroffen, im Schnitt höchstens 15 Cent daneben. Mit „Cent erst danach zeigen“ spielst du nach Gehör gegen den Liegeton.',
 			'Rhythmen werden schneller, sobald du sie sicher klopfst, und die Toleranz wird enger. Sicher heißt hier: gleichmäßig, im Schnitt höchstens 60 ms daneben.',

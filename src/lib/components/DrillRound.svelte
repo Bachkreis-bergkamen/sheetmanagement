@@ -8,7 +8,8 @@
 	import { beatMs, calibrate, CALIBRATION, judgeTaps, LEANING, onsets, tempoFor, toleranceFor } from '#lib/practice/drills/rhythm.ts';
 	import type { DrillSettings } from '#lib/practice/drills/progress.ts';
 	import { droneMidi, IN_TUNE, isArpeggio, isMinor, judgeScale, scaleTempo, segment, UNEVEN, type NoteMark, type Reading } from '#lib/practice/drills/scales.ts';
-	import { listenToPitch, playArpeggio, playBar, playChord, playTone, rememberedA4, startDrone, triad, type MicProblem, type PlayedBar } from '#lib/practice/drills/sound.ts';
+	import { listenToPitch, playArpeggio, playBar, playChord, playTone, rememberedA4, startChord, startDrone, triad, type MicProblem, type PlayedBar } from '#lib/practice/drills/sound.ts';
+	import { TUNED } from '#lib/practice/drills/together.ts';
 	import { midiOf, tonic, type Clef } from '#lib/practice/drills/theory.ts';
 	import DrillStaff from './DrillStaff.svelte';
 	import Icon from './Icon.svelte';
@@ -100,6 +101,10 @@
 	let stopDrone: (() => void) | null = null;
 	const drone = $derived(settings.drone ?? 'tonic');
 
+	// Tuning into a chord: the chord held, and the note's cents from pure as it's played.
+	let stopChord: (() => void) | null = null;
+	let liveCents = $state<number | null>(null);
+
 	/** Measuring the device's delay, before the first rhythm or when asked. */
 	let calibrating = $state(false);
 	let calibrationFailed = $state(false);
@@ -128,6 +133,7 @@
 			if (q.harmonic) playChord(notes);
 			else playArpeggio(notes, 0.7);
 		} else if (q.kind === 'rhythm') hearRhythm(q);
+		else if (q.kind === 'tune') playChord([...q.tune.held.map((ratio) => frequencyOf(q.tune.rootMidi) * ratio), frequencyOf(q.tune.rootMidi) * 2 ** ((q.tune.targetMidi - q.tune.rootMidi + q.tune.pure / 100) / 12)]);
 		else if (q.kind === 'scale') playArpeggio(q.item.midis.map(frequencyOf), isArpeggio(q.item.type) ? 0.4 : 0.32);
 		else if (q.kind === 'trans') playTone(frequencyOf(midiOf(q.pitch) + (q.part ? q.part.semitones : profile(q.instrument).transposition)));
 		else playTone(frequencyOf(q.kind === 'play' ? q.midi : midiOf(q.pitch)));
@@ -144,6 +150,8 @@
 		calibrationFailed = false;
 		stopTake();
 		liveMarks = [];
+		holdChord(null);
+		liveCents = null;
 		if (count >= ROUND) {
 			finish();
 			return;
@@ -159,7 +167,15 @@
 		isNew = pick.isNew;
 		count++;
 		shownAt = performance.now();
-		judge = asked.kind === 'play' ? new NoteJudge(asked.midi, { a4 }) : null;
+		judge =
+			asked.kind === 'play'
+				? new NoteJudge(asked.midi, { a4 })
+				: asked.kind === 'tune'
+					? // Held a while, as tuning takes a moment of listening; a wrong note needs holding too.
+						new NoteJudge(asked.tune.targetMidi, { a4, holdMs: 1600, wrongMs: 1000 })
+					: null;
+		// With the microphone already on, the next chord sounds straight away.
+		if (asked.kind === 'tune' && listening) holdChord(asked);
 		// Sound before symbol: an interval is heard first, and its notes shown only after the answer.
 		if (asked.kind === 'ear') sound(asked);
 		if (asked.kind === 'rhythm') {
@@ -178,6 +194,28 @@
 		stopListening();
 		stopBar();
 		stopTake();
+		holdChord(null);
+	}
+
+	/** The chord for a tuning question, held in just intonation from its root; null to let it go. */
+	function holdChord(q: Extract<Question, { kind: 'tune' }> | null) {
+		stopChord?.();
+		stopChord = q ? startChord(q.tune.held.map((ratio) => frequencyOf(q.tune.rootMidi) * ratio)) : null;
+	}
+
+	/** The chord's notes, which the microphone may hear through the speaker: not the player's. */
+	const chordHeard = (q: Extract<Question, { kind: 'tune' }>, midi: number) =>
+		q.tune.held.some((ratio) => (((midi - q.tune.rootMidi - Math.round(12 * Math.log2(ratio))) % 12) + 12) % 12 === 0);
+
+	function tuneHeard(q: Extract<Question, { kind: 'tune' }>, verdict: Verdict) {
+		holdChord(null);
+		if (verdict.result !== 'right') {
+			answer(false, verdict.octave ? tx.octave : tx.heard(midiName(verdict.midi)), undefined, 99);
+			return;
+		}
+		const off = Math.round(verdict.cents - q.tune.pure);
+		const tip = tx.pureTips[q.tune.role];
+		answer(Math.abs(off) <= TUNED, Math.abs(off) <= TUNED ? tx.tunedPure(off) : tx.tunedOff(off), tip, Math.abs(off));
 	}
 
 	function answer(correct: boolean, text: string, tip?: string, measure?: number) {
@@ -484,9 +522,20 @@
 		micProblem = null;
 		try {
 			stopMic = await listenToPitch((frequency, time) => {
+				const q = question;
+				if (q?.kind === 'tune' && frequency) {
+					const semitones = 69 + 12 * Math.log2(frequency / a4);
+					const midi = Math.round(semitones);
+					// The held chord through the speaker isn't the player.
+					if (chordHeard(q, midi) && midi !== q.tune.targetMidi) return;
+					if (midi === q.tune.targetMidi && !feedback) liveCents = Math.round((semitones - midi) * 100 - q.tune.pure);
+				}
 				const verdict = judge?.push(frequency, time);
-				if (verdict) heard(verdict);
+				if (!verdict) return;
+				if (q?.kind === 'tune') tuneHeard(q, verdict);
+				else heard(verdict);
 			});
+			if (question?.kind === 'tune') holdChord(question);
 			listening = true;
 			shownAt = performance.now();
 		} catch (problem) {
@@ -513,6 +562,9 @@
 			stopTake();
 			stopBar();
 			answer(false, tx.scaleShown, undefined, 999);
+		} else if (question.kind === 'tune') {
+			holdChord(null);
+			answer(false, tx.tuneShown, undefined, 99);
 		} else answer(false, tx.itIs(midiName(midiOf(question.pitch))));
 	}
 
@@ -576,9 +628,19 @@
 				{:else if question.kind === 'trans'}{tx.transQuestion(partLabel(question))}
 				{:else if question.kind === 'rhythm'}{calibrating ? tx.calibrateTitle : tx.tapThis}
 				{:else if question.kind === 'scale'}{scaleName(question)}
+				{:else if question.kind === 'tune'}{tx.tuneAsk(tx.tuneRoles[question.tune.role])}
 				{:else}{tx.playThis}{/if}
 			</p>
-			{#if question.kind === 'scale'}
+			{#if question.kind === 'tune'}
+				{@const held = question.tune.heldPitches}
+				<DrillStaff
+					clef={question.clef}
+					notes={[...held, question.tune.target]}
+					together
+					marks={[...held.map(() => null), feedback ? (feedback.correct ? 'right' : 'wrong') : 'now']}
+					label={tx.tuneAsk(tx.tuneRoles[question.tune.role])}
+				/>
+			{:else if question.kind === 'scale'}
 				<DrillStaff
 					clef={question.clef}
 					fifths={question.item.fifths}
@@ -671,6 +733,33 @@
 						onclick={() => answerPitch(pitchClass)}>{name}</button
 					>
 				{/each}
+			</div>
+		{:else if question.kind === 'tune'}
+			<div class="play">
+				{#if transposition}<p class="hint">{tx.sounding(midiName(midiOf(question.tune.target)), midiName(question.tune.targetMidi))}</p>{/if}
+				{#if !listening}
+					<button type="button" class="btn" onclick={startListening}><span class="mic" aria-hidden="true"></span>{tx.tuneStart}</button>
+					<p class="hint">{tx.tuneHeadphones}</p>
+				{:else if !feedback}
+					<p class="listening" role="status"><span class="mic live" aria-hidden="true"></span>{tx.listening}</p>
+				{/if}
+				{#if listening || feedback}
+					{@const pianoAt = -question.tune.pure}
+					{@const shown = Math.max(-30, Math.min(30, liveCents ?? 0))}
+					<svg class="tuning" viewBox="0 0 260 46" role="img" aria-label={liveCents === null ? tx.listening : tx.tunedOff(liveCents)}>
+						<line x1="10" x2="250" y1="22" y2="22" class="scale" />
+						{#each [-30, -20, -10, 10, 20, 30] as tick (tick)}<line x1={130 + tick * 4} x2={130 + tick * 4} y1="18" y2="26" class="scale" />{/each}
+						<rect x={130 - TUNED * 4} y="16" width={TUNED * 8} height="12" rx="3" class="zone" />
+						<line x1="130" x2="130" y1="10" y2="34" class="pure" />
+						<text x="130" y="44" text-anchor="middle" class="label">{tx.tunePure}</text>
+						{#if Math.abs(pianoAt) >= 1}
+							<line x1={130 + pianoAt * 4} x2={130 + pianoAt * 4} y1="12" y2="32" class="piano" />
+							<text x={130 + pianoAt * 4} y="9" text-anchor="middle" class="label">{tx.tunePiano}</text>
+						{/if}
+						{#if liveCents !== null}<circle cx={130 + shown * 4} cy="22" r="6" class="needle" class:in={Math.abs(liveCents) <= TUNED} />{/if}
+					</svg>
+				{/if}
+				{#if micProblem}<p class="msg error">{micProblem === 'insecure' ? t.practice.tuner.insecure : t.practice.tuner.noMic}</p>{/if}
 			</div>
 		{:else if question.kind === 'scale'}
 			<div class="play">
@@ -769,7 +858,7 @@
 				{#if feedback.tip}<p class="hint">{feedback.tip}</p>{/if}
 				<div class="row">
 					<button type="button" class="btn ghost small" onclick={() => question && sound(question)}
-						>{question.kind === 'keys' ? tx.replayChord : question.kind === 'ear' || question.kind === 'rhythm' || question.kind === 'scale' ? tx.listen : tx.replay}</button
+						>{question.kind === 'keys' || question.kind === 'tune' ? tx.replayChord : question.kind === 'ear' || question.kind === 'rhythm' || question.kind === 'scale' ? tx.listen : tx.replay}</button
 					>
 					<button type="button" class="btn" onclick={next}>{tx.next}</button>
 				</div>
@@ -982,6 +1071,45 @@
 		font: inherit;
 		font-weight: 600;
 		cursor: pointer;
+	}
+
+	.tuning {
+		width: min(100%, 360px);
+		color: var(--text-muted);
+	}
+
+	.tuning .scale {
+		stroke: currentColor;
+		stroke-width: 1.2;
+	}
+
+	.tuning .zone {
+		fill: color-mix(in oklab, var(--ok) 25%, transparent);
+	}
+
+	.tuning .pure {
+		stroke: var(--ok);
+		stroke-width: 2;
+	}
+
+	.tuning .piano {
+		stroke: currentColor;
+		stroke-width: 1.5;
+		stroke-dasharray: 2 2;
+	}
+
+	.tuning .label {
+		fill: currentColor;
+		font-size: 8px;
+	}
+
+	.tuning .needle {
+		fill: var(--warn);
+		transition: cx 0.15s;
+	}
+
+	.tuning .needle.in {
+		fill: var(--ok);
 	}
 
 	.options-row {

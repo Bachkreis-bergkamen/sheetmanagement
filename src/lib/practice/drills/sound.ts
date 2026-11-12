@@ -121,6 +121,24 @@ function strike(audio: AudioContext, time: number, frequency: number, volume: nu
 	nodes.push(oscillator);
 }
 
+/** A held note of the second voice, in the drone's warm tone, softer than the click. */
+function sustain(audio: AudioContext, time: number, frequency: number, seconds: number, nodes: AudioScheduledSourceNode[]) {
+	const wave = audio.createPeriodicWave(new Float32Array(DRONE_HARMONICS.length + 1), new Float32Array([0, ...DRONE_HARMONICS]));
+	const oscillator = audio.createOscillator();
+	oscillator.setPeriodicWave(wave);
+	oscillator.frequency.value = frequency;
+	const gain = audio.createGain();
+	const end = time + Math.max(0.2, seconds - 0.05);
+	gain.gain.setValueAtTime(0, time);
+	gain.gain.linearRampToValueAtTime(0.16, time + 0.03);
+	gain.gain.setTargetAtTime(0.1, time + 0.1, 0.3);
+	gain.gain.setTargetAtTime(0, end, 0.05);
+	oscillator.connect(gain).connect(audio.destination);
+	oscillator.start(time);
+	oscillator.stop(end + 0.4);
+	nodes.push(oscillator);
+}
+
 export interface PlayedBar {
 	/** When the first beat after the count-in is heard, on the clock of `performance.now()` and events' `timeStamp`. */
 	start: number;
@@ -138,7 +156,8 @@ export async function playBar({
 	countIn,
 	beats,
 	notes = [],
-	meter = 4
+	meter = 4,
+	voices = []
 }: {
 	bpm: number;
 	countIn: number;
@@ -146,6 +165,8 @@ export async function playBar({
 	notes?: number[];
 	/** Beats in a bar, for the accent on each first beat. */
 	meter?: number;
+	/** A second voice to play along with: each `frequency` from `at` ms after the first beat for `seconds`. */
+	voices?: { frequency: number; at: number; seconds: number }[];
 }): Promise<PlayedBar | null> {
 	try {
 		output ??= new AudioContext();
@@ -160,6 +181,7 @@ export async function playBar({
 			strike(audio, first + i * beat, i % meter === 0 ? 1760 : 1320, counting ? 0.32 : 0.12, 0.04, nodes);
 		}
 		for (const note of notes) strike(audio, downbeat + note / 1000, 660, 0.4, 0.12, nodes);
+		for (const voice of voices) sustain(audio, downbeat + voice.at / 1000, voice.frequency, voice.seconds, nodes);
 		// From the audio clock to the page's: the output's own timestamp where there is one (it
 		// includes the delay to the speaker), else now plus the reported output latency.
 		const stamp = audio.getOutputTimestamp?.();
@@ -189,6 +211,15 @@ export async function playBar({
  * function fades it out.
  */
 export function startDrone(frequency: number, fifth = false): () => void {
+	return startChord(fifth ? [frequency, frequency * 1.5] : [frequency]);
+}
+
+/**
+ * A chord held in just intonation (#315): `frequencies` as the ratios of pure intervals give
+ * them, so a note tuned into it sounds still, without beating. Fades in; the returned function
+ * fades it out.
+ */
+export function startChord(frequencies: number[]): () => void {
 	try {
 		output ??= new AudioContext();
 		const audio = output;
@@ -199,10 +230,10 @@ export function startDrone(frequency: number, fifth = false): () => void {
 		master.gain.setValueAtTime(0, now);
 		master.gain.linearRampToValueAtTime(0.12, now + 0.5);
 		master.connect(audio.destination);
-		const oscillators = (fifth ? [1, 1.5] : [1]).map((ratio, i) => {
+		const oscillators = frequencies.map((frequency, i) => {
 			const oscillator = audio.createOscillator();
 			oscillator.setPeriodicWave(wave);
-			oscillator.frequency.value = frequency * ratio;
+			oscillator.frequency.value = frequency;
 			const level = audio.createGain();
 			level.gain.value = i ? 0.6 : 1;
 			oscillator.connect(level).connect(master);

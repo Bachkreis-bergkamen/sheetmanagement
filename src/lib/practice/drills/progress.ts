@@ -1,6 +1,7 @@
 import type { ProfileId } from './instruments.ts';
 import type { States } from './scheduler.ts';
 import { MAX_LEVEL, type SightLevel } from './sight.ts';
+import { MAX_ENTRY_LEVEL } from './together.ts';
 import { CLEFS, type Clef } from './theory.ts';
 
 /**
@@ -28,6 +29,20 @@ export interface DrillSettings {
 	/** Sight-reading: the level per instrument, and bars disappearing just before they're played. */
 	sight?: Partial<Record<ProfileId, SightLevel>>;
 	readAhead?: boolean;
+	/** Playing together: the entries' level per instrument, and a second voice under sight-reading. */
+	entry?: Partial<Record<ProfileId, SightLevel>>;
+	duet?: boolean;
+}
+
+/** Levels per instrument read back, anything malformed dropped. */
+function readLevels(value: unknown, max: number): Partial<Record<ProfileId, SightLevel>> {
+	const levels: Partial<Record<ProfileId, SightLevel>> = {};
+	for (const [id, state] of Object.entries(value && typeof value === 'object' ? value : {})) {
+		if (state && Number.isInteger(state.level) && state.level >= 1 && state.level <= max) {
+			levels[id as ProfileId] = { level: state.level, good: state.good | 0, poor: state.poor | 0 };
+		}
+	}
+	return levels;
 }
 
 export interface DrillData {
@@ -62,16 +77,8 @@ export function readData(value: unknown): DrillData {
 		const offset = raw.settings.tapOffset;
 		if (offset !== undefined && !(Number.isFinite(offset) && Math.abs(offset) <= 250)) delete data.settings.tapOffset;
 		if (!['off', 'tonic', 'fifth', undefined].includes(raw.settings.drone)) delete data.settings.drone;
-		const sight = raw.settings.sight;
-		if (sight !== undefined) {
-			const levels: DrillSettings['sight'] = {};
-			for (const [id, state] of Object.entries(sight && typeof sight === 'object' ? sight : {})) {
-				if (state && Number.isInteger(state.level) && state.level >= 1 && state.level <= MAX_LEVEL) {
-					levels[id as ProfileId] = { level: state.level, good: state.good | 0, poor: state.poor | 0 };
-				}
-			}
-			data.settings.sight = levels;
-		}
+		if (raw.settings.sight !== undefined) data.settings.sight = readLevels(raw.settings.sight, MAX_LEVEL);
+		if (raw.settings.entry !== undefined) data.settings.entry = readLevels(raw.settings.entry, MAX_ENTRY_LEVEL);
 	}
 	if (Array.isArray(raw.opened)) data.opened = raw.opened.filter((clef): clef is Clef => (CLEFS as readonly string[]).includes(clef));
 	if (Number.isFinite(raw.unsent) && raw.unsent! > 0) data.unsent = Math.min(MAX_UNSENT, Math.round(raw.unsent!));

@@ -15,6 +15,7 @@
 	import { RHYTHM_ORDER } from '#lib/practice/drills/rhythm.ts';
 	import { scaleOrder } from '#lib/practice/drills/scales.ts';
 	import { firstLevel, makeMelody, MAX_LEVEL, seeded, type SightLevel } from '#lib/practice/drills/sight.ts';
+	import { makeEntry, MAX_ENTRY_LEVEL, tuneOrder } from '#lib/practice/drills/together.ts';
 	import { addAnswer, DAILY_GOAL_MINUTES, dayKey, emptyData, MAX_UNSENT, streak, type DrillData } from '#lib/practice/drills/progress.ts';
 	import { dayNumber, record, summary } from '#lib/practice/drills/scheduler.ts';
 	import { clearDrills, loadDrills, saveDrills } from '#lib/practice/drills/store.ts';
@@ -55,7 +56,7 @@
 		saveDrills(data.account, drills).then((ok) => (saved = ok));
 	}
 
-	type Kind = 'mix' | 'notes' | 'keys' | 'ear' | 'rhythm' | 'play' | 'scale' | 'sight' | 'trans';
+	type Kind = 'mix' | 'notes' | 'keys' | 'ear' | 'rhythm' | 'play' | 'scale' | 'sight' | 'entry' | 'tune' | 'trans';
 	const orders = $derived.by<Record<Kind, string[]>>(() => {
 		const notes = interleave(...clefs.map(notesOrder));
 		return {
@@ -66,8 +67,10 @@
 			rhythm: RHYTHM_ORDER,
 			play: interleave(...clefs.map((clef) => playOrder(instrument, clef))),
 			scale: scaleOrder(instrument),
-			// Sight-reading has no items: every melody is new.
+			// Sight-reading and entries have no items: every melody is new.
 			sight: [],
+			entry: [],
+			tune: tuneOrder(instrument),
 			trans: transOrder(instrument)
 		};
 	});
@@ -155,6 +158,8 @@
 		{ kind: 'play', icon: 'gauge' },
 		{ kind: 'scale', icon: 'music' },
 		{ kind: 'sight', icon: 'eye' },
+		{ kind: 'entry', icon: 'users' },
+		{ kind: 'tune', icon: 'sliders' },
 		{ kind: 'trans', icon: 'refresh' }
 	];
 	/** A small picture for each card. */
@@ -165,15 +170,21 @@
 		ear: { notes: [pitchOf('E4'), pitchOf('B4')] },
 		rhythm: {},
 		sight: {},
+		entry: {},
+		tune: { notes: [pitchOf('C4'), pitchOf('E4'), pitchOf('G4')], together: true },
 		play: { notes: [pitchOf('D5')] },
 		scale: { fifths: 1, notes: [pitchOf('G4'), pitchOf('A4'), pitchOf('B4')] },
 		trans: { notes: [pitchOf('C5')] }
 	};
 	/** The transposing drill only for instruments that transpose or read parts in other keys; scales and sight-reading only for those that play them. */
 	const kinds = $derived(
-		KINDS.filter(({ kind }) => (kind === 'sight' ? !!sightPreview : (kind !== 'trans' && kind !== 'scale') || orders[kind].length))
+		KINDS.filter(({ kind }) =>
+			kind === 'sight' || kind === 'entry' ? !!sightPreview : (kind !== 'trans' && kind !== 'scale' && kind !== 'tune') || orders[kind].length
+		)
 	);
 	const sightLevel = $derived<SightLevel>(drills.settings.sight?.[instrument] ?? firstLevel());
+	const entryLevel = $derived<SightLevel>(drills.settings.entry?.[instrument] ?? firstLevel());
+	const entryPreview = $derived(instrument === 'timpani' ? null : makeEntry(instrument, prof.clefs[0], 3, seeded(4)));
 	/** A small melody of the member's level for the card, the same one each visit. */
 	const sightPreview = $derived(instrument === 'timpani' ? null : makeMelody(instrument, prof.clefs[0], 1, seeded(3)))
 	const steps = $derived(prof.clefs.length > 1 && !prof.together ? ladder : []);
@@ -182,15 +193,19 @@
 <Title title={tx.title} />
 <PageHeader title={tx.title} lead={tx.lead} />
 
-{#if playing === 'sight'}
+{#if playing === 'sight' || playing === 'entry'}
+	{@const entry = playing === 'entry'}
 	<SightRound
+		mode={entry ? 'entry' : 'sight'}
+		duet={!!drills.settings.duet}
 		{instrument}
 		{clefs}
-		level={drills.settings.sight?.[instrument]}
+		level={entry ? drills.settings.entry?.[instrument] : drills.settings.sight?.[instrument]}
 		readAhead={!!drills.settings.readAhead}
-		title={tx.kinds.sight.title}
-		onlevel={(state) => setting({ sight: { ...drills.settings.sight, [instrument]: state } })}
+		title={tx.kinds[playing].title}
+		onlevel={(state) => setting(entry ? { entry: { ...drills.settings.entry, [instrument]: state } } : { sight: { ...drills.settings.sight, [instrument]: state } })}
 		onreadahead={(readAhead) => setting({ readAhead })}
+		onduet={(duet) => setting({ duet })}
 		onpractice={(ms, good) => practised(good, ms)}
 		onexit={exit}
 	/>
@@ -274,12 +289,15 @@
 						{#if kind === 'rhythm'}
 							<RhythmStaff pattern="4 2 2 6 2" label="" />
 						{:else if kind === 'sight' && sightPreview}
-							<SightStaff melody={sightPreview} label="" />
+							<SightStaff melody={sightPreview} preview label="" />
+						{:else if kind === 'entry' && entryPreview}
+							<SightStaff melody={entryPreview} preview label="" />
 						{:else}
 							<DrillStaff
 								clef={kind === 'trans' || kind === 'scale' ? 'treble' : clefs[0]}
 								fifths={PREVIEW[kind].fifths ?? 0}
 								notes={PREVIEW[kind].notes}
+								together={PREVIEW[kind].together}
 								spacing={kind === 'scale' ? 30 : 46}
 								label=""
 							/>
@@ -287,9 +305,10 @@
 					</div>
 					<h2><Icon name={icon} size={18} />{tx.kinds[kind].title}</h2>
 					<p class="lead">{tx.kinds[kind].lead}</p>
-					{#if kind === 'sight'}
-						<p class="hint">{tx.level(sightLevel.level, MAX_LEVEL)}</p>
-						<div class="meter" aria-hidden="true"><span style:width="{(sightLevel.level / MAX_LEVEL) * 100}%"></span></div>
+					{#if kind === 'sight' || kind === 'entry'}
+						{@const [at, of] = kind === 'sight' ? [sightLevel.level, MAX_LEVEL] : [entryLevel.level, MAX_ENTRY_LEVEL]}
+						<p class="hint">{tx.level(at, of)}</p>
+						<div class="meter" aria-hidden="true"><span style:width="{(at / of) * 100}%"></span></div>
 						<button type="button" class="btn" disabled={!ready} onclick={() => start(kind)}>{tx.start}</button>
 					{:else if !order.length}
 						<p class="hint">{tx.noPlay}</p>

@@ -20,7 +20,9 @@
 		type SightVerdict
 	} from '#lib/practice/drills/sight.ts';
 	import { listenToPitch, playBar, playMelody, rememberedA4, type MicProblem, type PlayedBar } from '#lib/practice/drills/sound.ts';
+	import { judgeEntry, makeEntry, MAX_ENTRY_LEVEL, secondVoice, type EntryVerdict } from '#lib/practice/drills/together.ts';
 	import { midiOf, tonic, type Clef, type Pitch } from '#lib/practice/drills/theory.ts';
+	import Conductor from './Conductor.svelte';
 	import SightStaff from './SightStaff.svelte';
 
 	/**
@@ -28,8 +30,14 @@
 	 * what to check (key, time, highest and lowest note, the tricky spots), then a count-in and one
 	 * take with the metronome and a cursor, without stopping; then each note marked. The level
 	 * follows the takes. Without a microphone the take still runs, and the player says how it went.
+	 *
+	 * `mode` "entry" (#315, phase 4): the melody comes after bars of rest, counted while a second
+	 * voice plays and a conductor beats time, and coming in on time counts as much as the notes.
+	 * With `duet` a second voice plays under ordinary sight-reading too.
 	 */
 	let {
+		mode = 'sight',
+		duet = false,
 		instrument,
 		clefs,
 		level: startLevel,
@@ -37,9 +45,13 @@
 		title,
 		onlevel,
 		onreadahead,
+		onduet = () => {},
 		onpractice,
 		onexit
 	}: {
+		mode?: 'sight' | 'entry';
+		duet?: boolean;
+		onduet?: (on: boolean) => void;
 		instrument: ProfileId;
 		clefs: Clef[];
 		level: SightLevel | undefined;
@@ -65,7 +77,12 @@
 	let countBeat = $state(0);
 	let now = $state<number | null>(null);
 	let hidden = $state<number[]>([]);
-	let verdict = $state<SightVerdict | null>(null);
+	let verdict = $state<SightVerdict | EntryVerdict | null>(null);
+	const maxLevel = $derived(mode === 'entry' ? MAX_ENTRY_LEVEL : MAX_LEVEL);
+	/** When the take's first beat is heard, for the conductor; null between takes. */
+	let conductorStart = $state<number | null>(null);
+	/** The second voice's notes, so the microphone hearing them through the speaker doesn't count. */
+	let voiceNotes = new Set<number>();
 	let change = $state<-1 | 0 | 1>(0);
 	let scores = $state<number[]>([]);
 	let shownAt = 0;
@@ -98,7 +115,8 @@
 		}
 		const usable = clefs.filter((clef) => profile(instrument).range[clef]);
 		const clef = usable[Math.floor(Math.random() * usable.length)] ?? profile(instrument).clefs[0];
-		melody = makeMelody(instrument, clef, level.level) ?? makeMelody(instrument, profile(instrument).clefs[0], level.level);
+		const make = (each: Clef) => (mode === 'entry' ? makeEntry(instrument, each, level.level) : makeMelody(instrument, each, level.level));
+		melody = make(clef) ?? make(profile(instrument).clefs[0]);
 		if (!melody) {
 			finishRound();
 			return;
@@ -132,8 +150,19 @@
 		readings = [];
 		phase = 'count';
 		const beat = beatMs(m.bpm);
-		bar = await playBar({ bpm: m.bpm, countIn: m.meter, beats: m.bars * m.meter, meter: m.meter });
+		const sixteenthMs = beat / 4;
+		const voices = mode === 'entry' || duet ? secondVoice(m, transposition) : [];
+		voiceNotes = new Set(voices.map((voice) => voice.midi));
+		bar = await playBar({
+			bpm: m.bpm,
+			countIn: m.meter,
+			beats: m.bars * m.meter,
+			meter: m.meter,
+			voices: voices.map((voice) => ({ frequency: frequencyOf(voice.midi), at: voice.at * sixteenthMs, seconds: (voice.len * sixteenthMs) / 1000 }))
+		});
 		start = bar?.start ?? performance.now() + m.meter * beat;
+		// The conductor beats the count-in too: from a bar before the first.
+		conductorStart = start - m.meter * beat;
 		const end = (m.bars * m.meter + 0.8) * beat;
 		const barLength = m.meter * 4;
 		ticker = setInterval(() => {
@@ -156,6 +185,7 @@
 		clearInterval(ticker);
 		bar?.stop();
 		bar = null;
+		conductorStart = null;
 	}
 
 	function finishTake(m: Melody) {
@@ -169,13 +199,15 @@
 			readings.filter((reading) => reading.time >= start - beat / 2),
 			a4
 		);
-		verdict = judgeSight(expectedNotes(m, transposition), played, start, m.bpm);
+		const cheap = (midi: number) => voiceNotes.has(midi);
+		const expected = expectedNotes(m, transposition);
+		verdict = mode === 'entry' ? judgeEntry(expected, played, start, m.bpm, cheap) : judgeSight(expected, played, start, m.bpm, cheap);
 		rate(verdict.score);
 	}
 
 	/** A take's score into the level, the day's practice and the round's summary. */
 	function rate(score: number) {
-		const next = nextLevel(level, score);
+		const next = nextLevel(level, score, maxLevel);
 		change = next.change;
 		level = { level: next.level, good: next.good, poor: next.poor };
 		onlevel(level);
@@ -201,15 +233,25 @@
 		if (!melody) return;
 		stopPlayback?.();
 		const sixteenth = beatMs(melody.bpm) / 4 / 1000;
+		// From the first note: the rests before an entry aren't worth waiting through to hear it.
+		const from = melody.notes.find((note) => note.pitch)?.at ?? 0;
 		stopPlayback = playMelody(
 			melody.notes
 				.filter((note) => note.pitch)
-				.map((note) => {
-					const midi = midiOf(note.pitch!) + transposition;
-					return { frequency: noteFrequency(((midi % 12) + 12) % 12, Math.floor(midi / 12) - 1, a4), at: note.at * sixteenth, seconds: note.len * sixteenth };
-				})
+				.map((note) => ({ frequency: frequencyOf(midiOf(note.pitch!) + transposition), at: (note.at - from) * sixteenth, seconds: note.len * sixteenth }))
 		);
 	}
+
+	const frequencyOf = (midi: number) => noteFrequency(((midi % 12) + 12) % 12, Math.floor(midi / 12) - 1, a4);
+
+	/** Where an entry comes in: after how many bars of rest, on which beat. */
+	const entryAt = $derived.by(() => {
+		if (!melody?.lead) return null;
+		const first = melody.notes.find((note) => note.pitch)!;
+		const barLength = melody.meter * 4;
+		return { bars: melody.lead, beat: (first.at % barLength) / 4 + 1 };
+	});
+	const entryVerdict = $derived(verdict && 'onTime' in verdict ? verdict : null);
 
 	const marks = $derived(
 		verdict?.marks.map((mark) => (mark.state !== 'right' ? ('wrong' as const) : mark.timing === 'ok' ? ('right' as const) : ('off' as const))) ?? []
@@ -249,7 +291,7 @@
 <section class="round ui-card" aria-labelledby="sight-title">
 	<header class="top">
 		<h2 id="sight-title">{title}</h2>
-		{#if phase !== 'done'}<span class="count">{tx.question(count, SIGHT_ROUND)} · {tx.level(level.level, MAX_LEVEL)}</span>{/if}
+		{#if phase !== 'done'}<span class="count">{tx.question(count, SIGHT_ROUND)} · {tx.level(level.level, maxLevel)}</span>{/if}
 		<button type="button" class="btn ghost small" onclick={onexit}>{phase === 'done' ? tx.back : tx.stop}</button>
 	</header>
 
@@ -259,6 +301,7 @@
 		<div class="below" aria-live="polite">
 			{#if phase === 'prep'}
 				<ul class="look">
+					{#if entryAt}<li><strong>{tx.lookEntry(entryAt.bars, entryAt.beat)}</strong></li>{/if}
 					<li>{tx.lookKey(keyLabel(melody), tx.accidentals(Math.abs(melody.fifths), melody.fifths > 0))}</li>
 					<li>{tx.lookTime(melody.meter, tempoName(melody.bpm), melody.bpm)}</li>
 					{#if range}<li>{tx.lookRange(noteLabel(range.low), noteLabel(range.high))}</li>{/if}
@@ -270,20 +313,36 @@
 				<div class="row">
 					<button type="button" class="btn" class:pulse={!prepLeft} onclick={play}>{tx.sightStart}</button>
 				</div>
-				{#if level.level >= 4}
+				{#if mode === 'sight'}
+					<label class="check">
+						<input type="checkbox" checked={duet} onchange={(event) => onduet(event.currentTarget.checked)} />
+						{tx.duet}
+					</label>
+				{/if}
+				{#if mode === 'sight' && level.level >= 4}
 					<label class="check">
 						<input type="checkbox" checked={readAhead} onchange={(event) => onreadahead(event.currentTarget.checked)} />
 						{tx.readAhead}
 					</label>
 				{/if}
 				<p class="hint">{tx.keepGoing}</p>
-			{:else if phase === 'count'}
-				<p class="status" role="status">{tx.countIn} {countBeat || ''}</p>
-			{:else if phase === 'play'}
-				<p class="status" role="status"><span class="mic live" aria-hidden="true"></span>{tx.keepGoingNow}</p>
+			{:else if phase === 'count' || phase === 'play'}
+				{#if mode === 'entry'}<Conductor meter={melody.meter} start={conductorStart} beatMs={beatMs(melody.bpm)} />{/if}
+				{#if phase === 'count'}
+					<p class="status" role="status">{tx.countIn} {countBeat || ''}</p>
+				{:else}
+					<p class="status" role="status"><span class="mic live" aria-hidden="true"></span>{mode === 'entry' ? tx.countRests : tx.keepGoingNow}</p>
+				{/if}
+			{/if}
+			{#if phase === 'play'}
 				{@const m = melody}
 				<button type="button" class="btn ghost small" onclick={() => finishTake(m)}>{tx.doneTake}</button>
 			{:else if phase === 'result'}
+				{#if entryVerdict}
+					<p class="feedback" class:ok={entryVerdict.onTime}>
+						{entryVerdict.onTime ? tx.entryOnTime : entryVerdict.entry === null ? tx.entryMissed : tx.entryOff(entryVerdict.entry)}
+					</p>
+				{/if}
 				{#if verdict}
 					<p class="feedback" class:ok={verdict.score >= GOOD}>{tx.sightResult(verdict.right, verdict.inTime, verdict.total)}</p>
 					{#if !verdict.keptGoing}<p class="hint">{tx.stoppedEarly}</p>{/if}
@@ -310,7 +369,7 @@
 			<p class="big">{tx.done}</p>
 			<ul class="facts">
 				{#if scores.length}<li><strong>{tx.sightAverage(Math.round(average * 100))}</strong></li>{/if}
-				<li>{tx.level(level.level, MAX_LEVEL)}</li>
+				<li>{tx.level(level.level, maxLevel)}</li>
 			</ul>
 			<div class="row">
 				<button type="button" class="btn ghost" onclick={onexit}>{tx.back}</button>

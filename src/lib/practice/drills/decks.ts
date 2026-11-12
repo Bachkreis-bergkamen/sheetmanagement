@@ -1,6 +1,7 @@
 import { profile, type PartKey, type ProfileId } from './instruments.ts';
 import { parsePattern, patternOf, type RhythmEvent } from './rhythm.ts';
 import { scaleItem, type ScaleItem } from './scales.ts';
+import { tuneQuestion, type TuneQuestion } from './together.ts';
 import { diatonic, fromDiatonic, LANDMARK, midiOf, pitchAt, type Clef, type Pitch } from './theory.ts';
 
 /**
@@ -13,21 +14,22 @@ import { diatonic, fromDiatonic, LANDMARK, midiOf, pitchAt, type Clef, type Pitc
  * - "trans:trumpet:2:4": a note in a trumpet part "in D" (+2), on the treble staff's middle line:
  *   which note does a B♭ trumpet play? "trans:trumpet:concert:4": which note sounds?
  * - "rhythm:4-4-r4-4": tap a bar of rhythm back (see rhythm.ts);
- * - "scale:violin:1:major": play G major up and down on the violin (see scales.ts).
+ * - "scale:violin:1:major": play G major up and down on the violin (see scales.ts);
+ * - "tune:violin:majorThird": play a major third pure into a held chord (see together.ts).
  * Note reading is per clef (reading treble clef is the same skill on any instrument), playing
  * and transposing per instrument.
  */
 
-export type DrillKind = 'notes' | 'keys' | 'play' | 'ear' | 'trans' | 'rhythm' | 'scale';
-export const DRILL_KINDS: readonly DrillKind[] = ['notes', 'keys', 'play', 'ear', 'trans', 'rhythm', 'scale'];
+export type DrillKind = 'notes' | 'keys' | 'play' | 'ear' | 'trans' | 'rhythm' | 'scale' | 'tune';
+export const DRILL_KINDS: readonly DrillKind[] = ['notes', 'keys', 'play', 'ear', 'trans', 'rhythm', 'scale', 'tune'];
 
 /**
  * Answers up to this fast count as fluent: the item moves up and can be mastered. For rhythm
  * it's not the time to answer but how far the taps were off on average: a bar takes as long as
  * it takes, and what makes it fluent is being even. For a scale it's the cents off on average:
- * secure means in tune.
+ * secure means in tune. Tuning into a chord: the cents from pure.
  */
-export const FLUENT_MS: Record<DrillKind, number> = { notes: 2500, keys: 5000, play: 4000, ear: 5000, trans: 5000, rhythm: 60, scale: 15 };
+export const FLUENT_MS: Record<DrillKind, number> = { notes: 2500, keys: 5000, play: 4000, ear: 5000, trans: 5000, rhythm: 60, scale: 15, tune: 8 };
 
 /** Questions per round: a few minutes, short enough to fit anywhere. */
 export const ROUND = 20;
@@ -151,7 +153,8 @@ export type Question =
 			shift: number;
 	  }
 	| { kind: 'rhythm'; id: string; clef: Clef; pattern: string; events: RhythmEvent[] }
-	| { kind: 'scale'; id: string; clef: Clef; item: ScaleItem };
+	| { kind: 'scale'; id: string; clef: Clef; item: ScaleItem }
+	| { kind: 'tune'; id: string; clef: Clef; tune: TuneQuestion };
 
 const shuffle = <T>(values: T[], random: () => number) => {
 	const copy = [...values];
@@ -205,6 +208,10 @@ export function questionFor(id: string, clef: Clef, random: () => number = Math.
 		// Said as players learn it: a horn sounds a fifth lower (not a fourth higher); a part is read the nearest way.
 		const shift = part ? ((((raw + 6) % 12) + 12) % 12) - 6 : raw % 12;
 		return { kind: 'trans', id, clef: 'treble', pitch, instrument, part, answer: (((midiOf(pitch) + raw) % 12) + 12) % 12, shift };
+	}
+	if (parts[0] === 'tune' && parts.length === 3) {
+		const tune = tuneQuestion(id, random);
+		return tune ? { kind: 'tune', id, clef: tune.clef, tune } : null;
 	}
 	if (parts[0] === 'scale' && parts.length === 4) {
 		const item = scaleItem(id);

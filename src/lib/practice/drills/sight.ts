@@ -34,6 +34,8 @@ export interface Melody {
 	bpm: number;
 	clef: Clef;
 	notes: SightNote[];
+	/** Bars of rest before the melody comes in (entries, #315 phase 4). */
+	lead?: number;
 }
 
 export const MAX_LEVEL = 8;
@@ -331,10 +333,18 @@ export interface SightVerdict {
  * the median of all the right notes' deviations; a note is in time within a third of a beat of
  * that, at least 120 ms.
  */
-export function judgeSight(expected: { midi: number; onset: number }[], played: PlayedNote[], start: number, bpm: number): SightVerdict {
+export function judgeSight(
+	expected: { midi: number; onset: number }[],
+	played: PlayedNote[],
+	start: number,
+	bpm: number,
+	/** Notes probably not the player's: the second voice, heard through the speaker. */
+	cheap: (midi: number) => boolean = () => false
+): SightVerdict {
 	const { marks } = align(
 		expected.map((note) => note.midi),
-		played
+		played,
+		cheap
 	);
 	const deviations: number[] = [];
 	marks.forEach((mark, i) => {
@@ -376,10 +386,10 @@ export const POOR = 0.6;
  * The level after a take: two good takes in a row move it up, two poor ones down, so it stays
  * where most of a melody comes out right (around 85 %), and one bad day doesn't undo a level.
  */
-export function nextLevel(state: SightLevel, score: number): SightLevel & { change: -1 | 0 | 1 } {
+export function nextLevel(state: SightLevel, score: number, max = MAX_LEVEL): SightLevel & { change: -1 | 0 | 1 } {
 	const good = score >= GOOD ? state.good + 1 : 0;
 	const poor = score < POOR ? state.poor + 1 : 0;
-	if (good >= 2 && state.level < MAX_LEVEL) return { level: state.level + 1, good: 0, poor: 0, change: 1 };
+	if (good >= 2 && state.level < max) return { level: state.level + 1, good: 0, poor: 0, change: 1 };
 	if (poor >= 2 && state.level > 1) return { level: state.level - 1, good: 0, poor: 0, change: -1 };
 	return { level: state.level, good, poor, change: 0 };
 }

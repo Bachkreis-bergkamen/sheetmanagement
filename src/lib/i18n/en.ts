@@ -697,7 +697,7 @@ export const en: Texts = {
 			seasons: 'Small drawings for the season: a snowflake, a blossom, a pumpkin.',
 			tickets: 'Reserve concert tickets on the website, paid at the door, with check-in by phone.',
 			offline: 'Save parts in “My parts” for rehearsals without a connection.',
-			drills: 'Short exercises in note reading, keys, intervals, rhythm, pitch, scales, sight-reading and transposing. They run on the device; only the time counts toward practice time.'
+			drills: 'Short exercises in note reading, keys, intervals, rhythm, pitch, scales, sight-reading, playing together and transposing. They run on the device; only the time counts toward practice time.'
 		} as Record<string, string>,
 		instruments: 'Instruments',
 		instrumentsLead:
@@ -1937,7 +1937,7 @@ export const en: Texts = {
 	},
 	drills: {
 		title: 'Practice room',
-		lead: 'A few minutes a day: read notes, recognise keys, hear intervals, tap rhythms, play in tune, play scales, sight-read, transpose. The exercises adapt to you.',
+		lead: 'A few minutes a day: read notes, recognise keys, hear intervals, tap rhythms, play in tune, play scales, sight-read, come in on time and tune in a chord, transpose. The exercises adapt to you.',
 		private: 'Your progress and the microphone stay on this device. At most your practice time is sent, if you record practice time.',
 		unsaved: 'This browser can’t save your progress (a private window?). You can still practise.',
 		instrument: 'Instrument',
@@ -1979,6 +1979,8 @@ export const en: Texts = {
 			play: { title: 'Play the note', lead: 'Play the note; the microphone hears if it’s right.' },
 			ear: { title: 'Hear intervals', lead: 'Two notes: how far apart are they?' },
 			rhythm: { title: 'Rhythm', lead: 'Read, listen, tap it back: one bar after a count-in.' },
+			entry: { title: 'Entries', lead: 'Count the rests, follow the conductor, come in on time, with accompaniment.' },
+			tune: { title: 'Tuning in a chord', lead: 'A chord sounds: play the third, fourth or fifth so it sounds pure.' },
 			sight: { title: 'Sight-reading', lead: 'A new short melody every time: a quick look, count in, play it through.' },
 			scale: { title: 'Scales', lead: 'Scales and arpeggios up and down, over a drone. Each note shows whether it was in place.' },
 			trans: { title: 'Transposing', lead: 'Which note sounds, and how do you read parts in other keys?' }
@@ -2105,6 +2107,31 @@ export const en: Texts = {
 		selfHard: 'Hard',
 		noMicSight: 'Without a microphone the melody still runs along; afterwards you say how it went.',
 		sightAverage: (percent: number) => `${percent} % on average`,
+		duet: 'With a second voice (accompaniment)',
+		lookEntry: (bars: number, beat: number) => `${bars} ${bars === 1 ? 'bar' : 'bars'} rest, come in on ${beat}`,
+		countRests: 'Count the rests, then come in …',
+		entryOnTime: 'Came in on time!',
+		entryMissed: 'I didn’t hear the entry.',
+		entryOff: (beats: number) => {
+			const amount = Math.max(0.5, Math.round(Math.abs(beats) * 2) / 2);
+			const said = amount === 0.5 ? 'half a beat' : `${amount} ${amount === 1 ? 'beat' : 'beats'}`;
+			return `Came in ${said} ${beats > 0 ? 'late' : 'early'}.`;
+		},
+		tuneRoles: { fifth: 'fifth', fourth: 'fourth', majorThird: 'major third', minorThird: 'minor third' },
+		tuneAsk: (role: string) => `Play the ${role} pure into it`,
+		tuneStart: 'Chord and microphone on',
+		tuneHeadphones: 'Best with headphones: the microphone then hears only you, not the chord.',
+		tunePure: 'pure',
+		tunePiano: 'piano',
+		tunedPure: (cents: number) => (Math.abs(cents) <= 2 ? 'Pure!' : `Pure, ${Math.abs(cents)} cents ${cents > 0 ? 'above' : 'below'}.`),
+		tunedOff: (cents: number) => `${Math.abs(cents)} cents too ${cents > 0 ? 'high' : 'low'} for pure.`,
+		tuneShown: 'This is how it sounds pure; have a listen.',
+		pureTips: {
+			majorThird: 'A pure major third is 14 cents lower than on the piano. Lower, until the sound stands still.',
+			minorThird: 'A pure minor third is 16 cents higher than on the piano. Higher, until the sound stands still.',
+			fifth: 'A pure fifth is just 2 cents wider than on the piano. Listen until nothing beats.',
+			fourth: 'A pure fourth is just 2 cents narrower than on the piano. Listen until nothing beats.'
+		},
 		done: 'Round done',
 		doneRight: (right: number, total: number) => `${right} of ${total} right`,
 		doneTime: (seconds: string) => `usually ${seconds} s per answer`,
@@ -2118,6 +2145,7 @@ export const en: Texts = {
 			'New items come in when most answers are right. When it’s hard going, familiar ones are mixed in.',
 			'Secure means right and fast: when sight-reading there’s no time to count lines.',
 			'If you know an item quickly the first time, it’s skipped ahead, so you reach what’s new to you soon.',
+			'Playing together: for entries you count rests while the accompaniment plays; coming in on time counts as much as the notes. In a chord you tune pure, not as on the piano: a major third a little lower, a minor one a little higher.',
 			'Sight-reading: every melody is new, because sight-reading is learnt from a lot of the unknown. Two good takes in a row raise the level, two weak ones lower it: more keys, leaps, shorter notes, minor, longer melodies.',
 			'Scales go round the circle of fifths, major before minor, with arpeggios. Secure means every note in place, 15 cents off at most on average. With “Show cents only afterwards” you play by ear against the drone.',
 			'Rhythms get faster once you tap them securely, and the tolerance tighter. Secure here means even: 60 ms off at most on average.',

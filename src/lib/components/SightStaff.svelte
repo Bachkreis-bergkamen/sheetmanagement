@@ -19,8 +19,18 @@
 		captions = [],
 		now = null,
 		hidden = [],
+		preview = false,
 		label
-	}: { melody: Melody; marks?: Mark[]; captions?: string[]; now?: number | null; hidden?: number[]; label: string } = $props();
+	}: {
+		melody: Melody;
+		marks?: Mark[];
+		captions?: string[];
+		now?: number | null;
+		hidden?: number[];
+		/** A small picture: the first line only, no tempo. */
+		preview?: boolean;
+		label: string;
+	} = $props();
 
 	const BASE = 90;
 	const y = (position: number) => BASE - position * 5;
@@ -47,9 +57,11 @@
 
 	const layout = $derived.by(() => {
 		const barLength = melody.meter * 4;
-		const bars: { notes: Placed[]; width: number }[] = [];
+		const lead = melody.lead ?? 0;
+		// Bars of rest before an entry: one bar with their count, as parts print them.
+		const bars: { notes: Placed[]; width: number; index: number; rests?: number }[] = lead ? [{ notes: [], width: 110, index: 0, rests: lead }] : [];
 		let sounding = 0;
-		for (let bar = 0; bar < melody.bars; bar++) {
+		for (let bar = lead; bar < melody.bars; bar++) {
 			// Accidentals hold to the end of the bar; the key signature otherwise.
 			const shown = new Map<number, number>();
 			const notes: Placed[] = [];
@@ -71,7 +83,7 @@
 				notes.push({ index, sounding: note.pitch ? sounding++ : -1, at: note.at, len: note.len, rest: note.rest, x, position, accidental, bar });
 				x += room(note.len);
 			});
-			bars.push({ notes, width: x });
+			bars.push({ notes, width: x, index: bar });
 		}
 		const lines: { bars: typeof bars; start: number; content: number }[] = [];
 		for (let i = 0; i < bars.length; i += PER_LINE) {
@@ -86,7 +98,7 @@
 			const placedBars = line.bars.map((bar) => {
 				const from = left;
 				left += bar.width * stretch;
-				return { from, to: left, notes: bar.notes.map((note) => ({ ...note, x: from + note.x * stretch })) };
+				return { from, to: left, index: bar.index, rests: bar.rests, notes: bar.notes.map((note) => ({ ...note, x: from + note.x * stretch })) };
 			});
 			return { number, width, bars: placedBars };
 		});
@@ -153,8 +165,8 @@
 
 <div class="sight" role="img" aria-label={label}>
 	<!-- Over the empty room above the first staff: a percentage margin scales with the line's width, as the staff does. -->
-	<p class="tempo" style:margin-bottom="-{(42 / (layout[0]?.width ?? 600)) * 100}%"><TempoMark bpm={melody.bpm} /></p>
-	{#each layout as line (line.number)}
+	{#if !preview}<p class="tempo" style:margin-bottom="-{(42 / (layout[0]?.width ?? 600)) * 100}%"><TempoMark bpm={melody.bpm} /></p>{/if}
+	{#each preview ? layout.slice(0, 1) : layout as line (line.number)}
 		<svg viewBox="0 0 {line.width} 145" class="line">
 			{#each [0, 2, 4, 6, 8] as each (each)}
 				<line x1="2" x2={line.width - 2} y1={y(each)} y2={y(each)} class="staffline" />
@@ -171,8 +183,17 @@
 
 			{#each line.bars as bar (bar.from)}
 				{@const parts = stemsOf(bar.notes)}
-				{@const isLast = bar.notes[0]?.bar === melody.bars - 1}
-				<g class="bar" class:hidden={hidden.includes(bar.notes[0]?.bar ?? -1)}>
+				{@const isLast = bar.index === melody.bars - 1}
+				<g class="bar" class:hidden={hidden.includes(bar.index)}>
+					{#if bar.rests === 1}
+						<rect x={(bar.from + bar.to) / 2 - 6} y={y(6)} width="12" height="5" />
+					{:else if bar.rests}
+						{@const middle = (bar.from + bar.to) / 2}
+						<rect x={bar.from + 18} y={y(4) - 4} width={bar.to - bar.from - 36} height="8" />
+						<line x1={bar.from + 18} x2={bar.from + 18} y1={y(5)} y2={y(3)} class="staffline" />
+						<line x1={bar.to - 18} x2={bar.to - 18} y1={y(5)} y2={y(3)} class="staffline" />
+						<text x={middle} y={y(8) - 9} text-anchor="middle" class="time">{bar.rests}</text>
+					{/if}
 					{#each bar.notes as note (note.index)}
 						{@const mark = markOf(note)}
 						<g class="note" class:right={mark === 'right'} class:wrong={mark === 'wrong'} class:off={mark === 'off'} class:now={now === note.index}>

@@ -10,7 +10,7 @@
 	 * account for gets its accidental. `state` colours the notes after an answer, `marks` each
 	 * note on its own (a scale: right, wrong, or right but out of tune), with `captions` under them.
 	 */
-	type Mark = 'right' | 'wrong' | 'off' | null;
+	type Mark = 'right' | 'wrong' | 'off' | 'now' | null;
 	let {
 		clef,
 		fifths = 0,
@@ -67,7 +67,7 @@
 
 	{#each placed as note, i (i)}
 		{@const mark = marks[i] ?? state}
-		<g class="note" class:right={mark === 'right'} class:wrong={mark === 'wrong'} class:off={mark === 'off'}>
+		<g class="note" class:right={mark === 'right'} class:wrong={mark === 'wrong'} class:off={mark === 'off'} class:now={mark === 'now'}>
 			{#each ledgerLines(note.position) as line (line)}
 				<line x1={note.x - 11} x2={note.x + 11} y1={y(line)} y2={y(line)} class="line ledger" />
 			{/each}
@@ -120,6 +120,10 @@
 
 	.note.off {
 		color: var(--warn);
+	}
+
+	.note.now {
+		color: var(--accent);
 	}
 
 	.staff.long {
