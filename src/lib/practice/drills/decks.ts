@@ -1,5 +1,6 @@
 import { profile, type PartKey, type ProfileId } from './instruments.ts';
-import { parsePattern, patternOf, pulseOf, type RhythmEvent } from './rhythm.ts';
+import type { DrillMeter } from './meters.ts';
+import { meterOf, parsePattern, patternOf, pulseOf, type RhythmEvent } from './rhythm.ts';
 import { scaleItem, type ScaleItem } from './scales.ts';
 import { tuneQuestion, type TuneQuestion } from './together.ts';
 import { diatonic, fromDiatonic, LANDMARK, midiOf, pitchAt, type Clef, type Pitch } from './theory.ts';
@@ -154,7 +155,7 @@ export type Question =
 			/** Semitones from the written note to the answer, within an octave, for the hint. */
 			shift: number;
 	  }
-	| { kind: 'rhythm'; id: string; clef: Clef; pattern: string; events: RhythmEvent[] }
+	| { kind: 'rhythm'; id: string; clef: Clef; pattern: string; meter: DrillMeter; events: RhythmEvent[] }
 	| { kind: 'pulse'; id: string; clef: Clef; bpm: number; silent: number }
 	| { kind: 'scale'; id: string; clef: Clef; item: ScaleItem }
 	| { kind: 'tune'; id: string; clef: Clef; tune: TuneQuestion };
@@ -224,10 +225,11 @@ export function questionFor(id: string, clef: Clef, random: () => number = Math.
 		const pulse = pulseOf(id);
 		return pulse ? { kind: 'pulse', id, clef, ...pulse } : null;
 	}
-	if (parts[0] === 'rhythm' && parts.length === 2) {
+	if (parts[0] === 'rhythm' && (parts.length === 2 || parts.length === 3)) {
 		const pattern = patternOf(id);
-		const events = parsePattern(pattern);
-		return events ? { kind: 'rhythm', id, clef, pattern, events } : null;
+		const meter = meterOf(id);
+		const events = parsePattern(pattern, meter);
+		return events ? { kind: 'rhythm', id, clef, pattern, meter, events } : null;
 	}
 	if (parts[0] === 'play' && parts.length === 4) {
 		const instrument = parts[1] as ProfileId;

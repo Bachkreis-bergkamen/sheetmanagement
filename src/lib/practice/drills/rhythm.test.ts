@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { BAR, calibrate, DRIFTED, firstSilent, judgePulse, judgeTaps, PULSE_ORDER, pulseLoudness, pulseOf, onsets, parsePattern, patternOf, PATTERNS, RHYTHM_ORDER, rhythmId, tempoFor, toleranceFor } from './rhythm.ts';
+import { barLength, markedTempo } from './meters.ts';
+import { BAR, calibrate, DRIFTED, firstSilent, judgePulse, judgeTaps, PULSE_ORDER, pulseLoudness, pulseOf, onsets, parsePattern, patternOf, PATTERNS, PATTERNS_2_4, PATTERNS_6_8, meterOf, RHYTHM_ORDER, rhythmId, tempoFor, toleranceFor } from './rhythm.ts';
 
 describe('patterns', () => {
 	it('are each one bar of 4/4, none twice', () => {
@@ -21,7 +22,30 @@ describe('patterns', () => {
 
 	it('round-trip through their ids', () => {
 		expect(rhythmId('4 4 r4 4')).toBe('rhythm:4-4-r4-4');
-		for (const id of RHYTHM_ORDER) expect(parsePattern(patternOf(id))?.reduce((sum, event) => sum + event.len, 0)).toBe(BAR);
+		for (const id of RHYTHM_ORDER) expect(parsePattern(patternOf(id), meterOf(id))?.reduce((sum, event) => sum + event.len, 0), id).toBe(barLength(meterOf(id)));
+		expect(new Set(RHYTHM_ORDER).size).toBe(RHYTHM_ORDER.length);
+	});
+
+	it('come in 2/4 and 6/8 too, each meter starting from its plainest bar', () => {
+		expect(rhythmId('4 2 6', 6)).toBe('rhythm:6/8:4-2-6');
+		expect(meterOf('rhythm:6/8:4-2-6')).toBe(6);
+		expect(meterOf('rhythm:2/4:4-4')).toBe(2);
+		expect(meterOf('rhythm:4-4-4-4')).toBe(4);
+		expect(patternOf('rhythm:6/8:4-2-6')).toBe('4 2 6');
+		for (const pattern of PATTERNS_2_4) expect(parsePattern(pattern, 2), pattern).not.toBeNull();
+		for (const pattern of PATTERNS_6_8) expect(parsePattern(pattern, 6), pattern).not.toBeNull();
+		const first = (meter: number) => RHYTHM_ORDER.find((id) => meterOf(id) === meter);
+		expect(first(2)).toBe('rhythm:2/4:4-4');
+		expect(first(6)).toBe('rhythm:6/8:2-2-2-2-2-2');
+		// The first 4/4 bars still come first, so progress made before keeps its place.
+		expect(RHYTHM_ORDER.slice(0, 4)).toEqual(PATTERNS.slice(0, 4).map((pattern) => rhythmId(pattern)));
+	});
+
+	it('time 6/8 by its eighths', () => {
+		expect(onsets(parsePattern('4 2 6', 6)!, 300, 6)).toEqual([0, 600, 900]);
+		// Felt in dotted quarters at two-thirds of the quarter tempo: 72 → 48, eighths 144.
+		expect(tempoFor(undefined, 6)).toBe(144);
+		expect(markedTempo(tempoFor(5, 6), 6)).toBe(64);
 	});
 
 	it('give the onsets of notes, not rests', () => {

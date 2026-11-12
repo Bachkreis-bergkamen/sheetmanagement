@@ -2115,7 +2115,7 @@ export const de = {
 		scaleShown: 'So klingt sie; hör sie dir an.',
 		level: (level: number, of: number) => `Stufe ${level} von ${of}`,
 		lookKey: (key: string, accidentals: string) => `Tonart: ${key} (${accidentals})`,
-		lookTime: (meter: number, tempo: string, bpm: number) => `${meter}/4-Takt, ${tempo} (Viertel = ${bpm})`,
+		lookTime: (meter: string, tempo: string, bpm: number, dotted: boolean) => `${meter}-Takt, ${tempo} (${dotted ? 'punktierte Viertel' : 'Viertel'} = ${bpm})`,
 		lookRange: (low: string, high: string) => `Tiefster Ton ${low}, höchster ${high}`,
 		lookShort: (len: number, bar: number) => `${len === 1 ? 'Sechzehntel' : 'Achtel'} in Takt ${bar}: vorher mitzählen`,
 		lookAccidental: (bar: number) => `Vorzeichen außerhalb der Tonart in Takt ${bar}`,
@@ -2222,6 +2222,8 @@ export const de = {
 		treeLink: 'Dein Übebaum im Profil',
 		stages: ['Grundlagen', 'Hören und Halten', 'Lesen und Spielen', 'Zusammenspiel'] as string[],
 		stageOpen: (open: number, of: number) => (open === of ? 'alles offen' : `${open} von ${of} offen`),
+		stagesLabel: 'Deine Stufen',
+		progress: 'Dein Stand',
 		lockedUntil: 'Kommt, wenn du so weit bist:',
 		locked: 'Noch gesperrt',
 		need: (of: string, count: number, have: number) =>

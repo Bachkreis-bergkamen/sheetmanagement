@@ -1,4 +1,5 @@
 import { profile, type ProfileId } from './instruments.ts';
+import { barLength as lengthOfBar, beatLength } from './meters.ts';
 import type { PlayedNote } from './scales.ts';
 import { beatMs, judgeSight, makeMelody, type Melody, type SightNote, type SightVerdict } from './sight.ts';
 import { alterInKey, diatonic, fromDiatonic, midiOf, pitchOf, tonic, type Clef, type Pitch } from './theory.ts';
@@ -19,7 +20,7 @@ const CHORD_TONES: Record<ChordDegree, number[]> = { 0: [0, 2, 4], 3: [3, 5, 0],
  * uses most, its first note counting double; I at the end and V before it where it fits.
  */
 export function harmonize(melody: Melody): ChordDegree[] {
-	const barLength = melody.meter * 4;
+	const barLength = lengthOfBar(melody.meter);
 	const home = tonic(melody.fifths, melody.mode).step;
 	const lead = melody.lead ?? 0;
 	const chords: ChordDegree[] = [];
@@ -45,12 +46,12 @@ export interface Voice {
 
 /**
  * A second voice to play along with: the chord's root (and its fifth on the bar's middle in
- * 4/4) low down, a bass under the melody; for a low instrument the chord's third and root above
+ * 4/4 and 6/8) low down, a bass under the melody; for a low instrument the chord's third and root above
  * it instead, so the two voices don't sit on top of each other. Rest bars before the melody get
  * I and IV in turn and V just before it comes in, so there's something to count to.
  */
 export function secondVoice(melody: Melody, transposition: number): Voice[] {
-	const barLength = melody.meter * 4;
+	const barLength = lengthOfBar(melody.meter);
 	const lead = melody.lead ?? 0;
 	const chords: ChordDegree[] = [...Array.from({ length: lead }, (_, i): ChordDegree => (i === lead - 1 ? 4 : i % 2 ? 3 : 0)), ...harmonize(melody)];
 	const home = tonic(melody.fifths, melody.mode).step;
@@ -72,9 +73,10 @@ export function secondVoice(melody: Melody, transposition: number): Voice[] {
 	chords.forEach((chord, bar) => {
 		const at = bar * barLength;
 		const [first, second] = low ? [chord, chord + 4] : [chord + 2, chord];
-		if (melody.meter === 4) {
-			voices.push({ midi: tone(first), at, len: 8 }, { midi: tone(second), at: at + 8, len: 8 });
-		} else voices.push({ midi: tone(first), at, len: 12 });
+		if (melody.meter === 4 || melody.meter === 6) {
+			const half = barLength / 2;
+			voices.push({ midi: tone(first), at, len: half }, { midi: tone(second), at: at + half, len: half });
+		} else voices.push({ midi: tone(first), at, len: barLength });
 	});
 	return voices;
 }
@@ -99,9 +101,11 @@ export function makeEntry(instrument: ProfileId, clef: Clef, level: number, rand
 	const phrase = makeMelody(instrument, clef, rules.sight, random);
 	if (!phrase) return null;
 	const lead = rules.rests[Math.floor(random() * rules.rests.length)];
-	const barLength = phrase.meter * 4;
-	// Coming in after the first beat: the phrase's first bar starts with rests to that beat.
-	const offset = rules.offbeat && random() < 0.6 ? (1 + Math.floor(random() * (phrase.meter - 1))) * 4 : 0;
+	const barLength = lengthOfBar(phrase.meter);
+	// Coming in after the first beat: the phrase's first bar starts with rests to that beat; in
+	// 6/8 on the second dotted quarter, where an entry falls there.
+	const offset =
+		rules.offbeat && random() < 0.6 ? (phrase.meter === 6 ? 6 : (1 + Math.floor(random() * (phrase.meter - 1))) * beatLength(phrase.meter)) : 0;
 	const notes: SightNote[] = [];
 	if (offset) notes.push({ at: lead * barLength, len: offset, rest: true });
 	for (const note of phrase.notes) {

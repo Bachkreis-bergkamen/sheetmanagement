@@ -1,11 +1,14 @@
+import { barLength, beatLength, beatsPerMinute, isDrillMeter, type DrillMeter } from './meters.ts';
+
 /**
  * Rhythm by tapping (#300): a bar is heard, read, and tapped back after a count-in. Each tap is
  * measured against where its note should be, so the feedback can say which note was missed and
  * whether the player rushes or drags. Taps are timed in the browser; nothing is recorded.
  *
- * A pattern is one bar of 4/4 written as durations in sixteenths, a rest prefixed with "r":
- * "4 4 r4 4" is quarter, quarter, quarter rest, quarter. The item id is "rhythm:" and the pattern
- * with dashes for spaces ("rhythm:4-4-r4-4"), so its progress is kept like any other item's.
+ * A pattern is one bar written as durations in sixteenths, a rest prefixed with "r": "4 4 r4 4"
+ * is quarter, quarter, quarter rest, quarter. The item id is "rhythm:" and the pattern with
+ * dashes for spaces ("rhythm:4-4-r4-4"), so its progress is kept like any other item's. A bar of
+ * 4/4 has no meter in its id; 2/4, 3/4 and 6/8 put theirs first ("rhythm:6/8:4-2-6").
  */
 
 export interface RhythmEvent {
@@ -16,7 +19,7 @@ export interface RhythmEvent {
 	at: number;
 }
 
-/** Sixteenths in the bar: 4/4. */
+/** Sixteenths in a bar of 4/4, the meter of a pattern without one. */
 export const BAR = 16;
 
 /**
@@ -54,33 +57,68 @@ export const PATTERNS = [
 	'6 2 2 2 4'
 ] as const;
 
-export const rhythmId = (pattern: string) => `rhythm:${pattern.replaceAll(' ', '-')}`;
-export const RHYTHM_ORDER: string[] = PATTERNS.map(rhythmId);
+/** Bars of 2/4: the same steps in a shorter bar. */
+export const PATTERNS_2_4 = ['4 4', '8', '2 2 4', '4 2 2', '2 2 2 2', 'r4 4', '6 2', '4 r2 2', '1 1 2 4', '2 1 1 2 2', '3 1 4'] as const;
 
-/** The bar's notes and rests; null when the pattern isn't one bar of 4/4. */
-export function parsePattern(pattern: string): RhythmEvent[] | null {
+/**
+ * Bars of 6/8, felt in two dotted quarters: even eighths and the dotted quarter, then the long
+ * short of quarter and eighth, rests, the dotted half, and the siciliano's dotted eighth.
+ */
+export const PATTERNS_6_8 = ['2 2 2 2 2 2', '6 6', '4 2 4 2', '6 2 2 2', '2 2 2 6', '4 2 6', '12', 'r2 2 2 6', '4 2 2 2 2', '3 1 2 6', '3 1 2 3 1 2'] as const;
+
+export const rhythmId = (pattern: string, meter: DrillMeter = 4) =>
+	`rhythm:${meter === 4 ? '' : `${meter}/${meter === 6 ? 8 : 4}:`}${pattern.replaceAll(' ', '-')}`;
+
+/**
+ * The order the rhythms are learnt in: a few bars of 4/4 first, 2/4 once eighths are known, 6/8
+ * once dotted notes are, each new meter starting from its plainest bar.
+ */
+const RHYTHMS: [string, DrillMeter][] = [
+	...PATTERNS.slice(0, 4).map((pattern): [string, DrillMeter] => [pattern, 4]),
+	...PATTERNS_2_4.slice(0, 3).map((pattern): [string, DrillMeter] => [pattern, 2]),
+	...PATTERNS.slice(4, 14).map((pattern): [string, DrillMeter] => [pattern, 4]),
+	...PATTERNS_2_4.slice(3, 7).map((pattern): [string, DrillMeter] => [pattern, 2]),
+	...PATTERNS_6_8.slice(0, 5).map((pattern): [string, DrillMeter] => [pattern, 6]),
+	...PATTERNS.slice(14, 21).map((pattern): [string, DrillMeter] => [pattern, 4]),
+	...PATTERNS_2_4.slice(7).map((pattern): [string, DrillMeter] => [pattern, 2]),
+	...PATTERNS_6_8.slice(5).map((pattern): [string, DrillMeter] => [pattern, 6]),
+	...PATTERNS.slice(21).map((pattern): [string, DrillMeter] => [pattern, 4])
+];
+export const RHYTHM_ORDER: string[] = RHYTHMS.map(([pattern, meter]) => rhythmId(pattern, meter));
+
+/** The meter of a rhythm item: 4 when its id names none. */
+export function meterOf(id: string): DrillMeter {
+	const match = /^rhythm:(\d)\/\d:/.exec(id);
+	const meter = match ? Number(match[1]) : 4;
+	return isDrillMeter(meter) ? meter : 4;
+}
+
+/** The bar's notes and rests; null when the pattern isn't one bar of the meter. */
+export function parsePattern(pattern: string, meter: DrillMeter = 4): RhythmEvent[] | null {
+	const bar = barLength(meter);
 	const events: RhythmEvent[] = [];
 	let at = 0;
 	for (const token of pattern.trim().split(/[\s-]+/)) {
 		const match = /^(r?)(\d+)$/.exec(token);
 		const len = match ? Number(match[2]) : 0;
-		if (!match || len < 1 || len > BAR) return null;
+		if (!match || len < 1 || len > bar) return null;
 		events.push({ len, rest: match[1] === 'r', at });
 		at += len;
 	}
-	return at === BAR ? events : null;
+	return at === bar ? events : null;
 }
 
-export const patternOf = (id: string) => (id.startsWith('rhythm:') ? id.slice('rhythm:'.length).replaceAll('-', ' ') : '');
+export const patternOf = (id: string) => (id.startsWith('rhythm:') ? id.replace(/^rhythm:(\d\/\d:)?/, '').replaceAll('-', ' ') : '');
 
-/** When each note starts, in milliseconds from the bar's first beat. */
-export const onsets = (events: RhythmEvent[], beatMs: number) => events.filter((event) => !event.rest).map((event) => (event.at / 4) * beatMs);
+/** When each note starts, in milliseconds from the bar's first beat; `meter` says how long a beat is. */
+export const onsets = (events: RhythmEvent[], beatMs: number, meter: DrillMeter = 4) =>
+	events.filter((event) => !event.rest).map((event) => (event.at / beatLength(meter)) * beatMs);
 
 /**
  * The tempo an item is asked at: slow while it's being learnt, faster once it's known, so a
  * known rhythm stays just beyond comfortable (deliberate practice).
  */
-export const tempoFor = (box: number | undefined) => (box === undefined || box < 3 ? 72 : box < 5 ? 84 : 96);
+export const tempoFor = (box: number | undefined, meter: DrillMeter = 4) => beatsPerMinute(box === undefined || box < 3 ? 72 : box < 5 ? 84 : 96, meter);
 
 /** Beat in milliseconds. */
 export const beatMs = (bpm: number) => 60_000 / bpm;

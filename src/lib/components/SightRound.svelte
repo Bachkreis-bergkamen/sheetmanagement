@@ -22,6 +22,7 @@
 	import { listenToPitch, playBar, playMelody, rememberedA4, type MicProblem, type PlayedBar } from '#lib/practice/drills/sound.ts';
 	import { judgeEntry, makeEntry, MAX_ENTRY_LEVEL, secondVoice, type EntryVerdict } from '#lib/practice/drills/together.ts';
 	import { midiOf, tonic, type Clef, type Pitch } from '#lib/practice/drills/theory.ts';
+	import { barLength as lengthOfBar, beatLength, countInBeats, markedTempo, meterName } from '#lib/practice/drills/meters.ts';
 	import Conductor from './Conductor.svelte';
 	import SightStaff from './SightStaff.svelte';
 
@@ -150,29 +151,31 @@
 		readings = [];
 		phase = 'count';
 		const beat = beatMs(m.bpm);
-		const sixteenthMs = beat / 4;
+		const sixteenthMs = beat / beatLength(m.meter);
+		const countIn = countInBeats(m.meter);
 		const voices = mode === 'entry' || duet ? secondVoice(m, transposition) : [];
 		voiceNotes = new Set(voices.map((voice) => voice.midi));
 		bar = await playBar({
 			bpm: m.bpm,
-			countIn: m.meter,
+			countIn,
 			beats: m.bars * m.meter,
 			meter: m.meter,
 			voices: voices.map((voice) => ({ frequency: frequencyOf(voice.midi), at: voice.at * sixteenthMs, seconds: (voice.len * sixteenthMs) / 1000 }))
 		});
-		start = bar?.start ?? performance.now() + m.meter * beat;
+		start = bar?.start ?? performance.now() + countIn * beat;
 		// The conductor beats the count-in too: from a bar before the first.
-		conductorStart = start - m.meter * beat;
+		conductorStart = start - countIn * beat;
 		const end = (m.bars * m.meter + 0.8) * beat;
-		const barLength = m.meter * 4;
+		const barLength = lengthOfBar(m.meter);
 		ticker = setInterval(() => {
 			const elapsed = performance.now() - start;
 			if (elapsed < 0) {
-				countBeat = m.meter - Math.floor(-elapsed / beat);
+				// Counted within the bar: 1 2 1 2 for two bars of 2/4.
+				countBeat = ((countIn - Math.floor(-elapsed / beat) - 1) % m.meter) + 1;
 				return;
 			}
 			phase = 'play';
-			const sixteenth = elapsed / (beat / 4);
+			const sixteenth = elapsed / sixteenthMs;
 			const playing = m.notes.findIndex((note) => sixteenth >= note.at && sixteenth < note.at + note.len);
 			now = playing >= 0 ? playing : null;
 			// Reading ahead: each bar goes a beat before it's played, so it must have been read already.
@@ -232,7 +235,7 @@
 	function listen() {
 		if (!melody) return;
 		stopPlayback?.();
-		const sixteenth = beatMs(melody.bpm) / 4 / 1000;
+		const sixteenth = beatMs(melody.bpm) / beatLength(melody.meter) / 1000;
 		// From the first note: the rests before an entry aren't worth waiting through to hear it.
 		const from = melody.notes.find((note) => note.pitch)?.at ?? 0;
 		stopPlayback = playMelody(
@@ -248,8 +251,8 @@
 	const entryAt = $derived.by(() => {
 		if (!melody?.lead) return null;
 		const first = melody.notes.find((note) => note.pitch)!;
-		const barLength = melody.meter * 4;
-		return { bars: melody.lead, beat: (first.at % barLength) / 4 + 1 };
+		const barLength = lengthOfBar(melody.meter);
+		return { bars: melody.lead, beat: (first.at % barLength) / beatLength(melody.meter) + 1 };
 	});
 	const entryVerdict = $derived(verdict && 'onTime' in verdict ? verdict : null);
 
@@ -303,7 +306,7 @@
 				<ul class="look">
 					{#if entryAt}<li><strong>{tx.lookEntry(entryAt.bars, entryAt.beat)}</strong></li>{/if}
 					<li>{tx.lookKey(keyLabel(melody), tx.accidentals(Math.abs(melody.fifths), melody.fifths > 0))}</li>
-					<li>{tx.lookTime(melody.meter, tempoName(melody.bpm), melody.bpm)}</li>
+					<li>{tx.lookTime(meterName(melody.meter), tempoName(markedTempo(melody.bpm, melody.meter)), markedTempo(melody.bpm, melody.meter), melody.meter === 6)}</li>
 					{#if range}<li>{tx.lookRange(noteLabel(range.low), noteLabel(range.high))}</li>{/if}
 					{#if look.shortest}<li>{tx.lookShort(look.shortest.len, look.shortest.bar)}</li>{/if}
 					{#if look.accidental}<li>{tx.lookAccidental(look.accidental)}</li>{/if}
@@ -327,7 +330,10 @@
 				{/if}
 				<p class="hint">{tx.keepGoing}</p>
 			{:else if phase === 'count' || phase === 'play'}
-				{#if mode === 'entry'}<Conductor meter={melody.meter} start={conductorStart} beatMs={beatMs(melody.bpm)} />{/if}
+				<!-- Entries follow the conductor throughout; sight-reading only through the count-in, then the eyes stay on the notes. -->
+				{#if mode === 'entry' || phase === 'count'}
+					<Conductor meter={melody.meter} start={conductorStart} beatMs={beatMs(melody.bpm)} counting={phase === 'count'} />
+				{/if}
 				{#if phase === 'count'}
 					<p class="status" role="status">{tx.countIn} {countBeat || ''}</p>
 				{:else}

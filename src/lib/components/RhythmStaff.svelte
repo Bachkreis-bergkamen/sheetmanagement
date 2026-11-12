@@ -1,9 +1,11 @@
 <script lang="ts">
-	import { BAR, parsePattern } from '#lib/practice/drills/rhythm.ts';
+	import { barLength, beamLength, meterUnit, type DrillMeter } from '#lib/practice/drills/meters.ts';
+	import { parsePattern } from '#lib/practice/drills/rhythm.ts';
 
 	/**
 	 * One bar of rhythm for the tapping drill (#300) on a single line, as percussion is written:
-	 * 4/4, note heads with stems, eighths and sixteenths beamed by the beat, rests. Drawn in SVG in
+	 * the bar's time signature (4/4 unless `meter` says otherwise), note heads with stems, eighths
+	 * and sixteenths beamed by the beat (in 6/8 by the dotted quarter), rests. Drawn in SVG in
 	 * the text colour like DrillStaff. After an answer, `marks` colours each note (right, or wrong
 	 * when it wasn't tapped in time) and `taps` shows where the taps fell, in sixteenths.
 	 */
@@ -11,17 +13,20 @@
 		pattern,
 		marks = [],
 		taps = [],
+		meter = 4,
 		label
-	}: { pattern: string; marks?: ('right' | 'wrong' | null)[]; taps?: number[]; label: string } = $props();
+	}: { pattern: string; meter?: DrillMeter; marks?: ('right' | 'wrong' | null)[]; taps?: number[]; label: string } = $props();
 
 	const LINE = 60;
 	const STEM = 34;
 	const X0 = 52;
 	const UNIT = 18;
-	const width = X0 + BAR * UNIT + 16;
+	const bar = $derived(barLength(meter));
+	const beam = $derived(beamLength(meter));
+	const width = $derived(X0 + bar * UNIT + 16);
 	const xAt = (at: number) => X0 + at * UNIT + 8;
 
-	const events = $derived(parsePattern(pattern) ?? []);
+	const events = $derived(parsePattern(pattern, meter) ?? []);
 	/** The notes (not rests), each with its mark and where its stem is. */
 	const notes = $derived(
 		events
@@ -33,8 +38,8 @@
 	const groups = $derived.by(() => {
 		const byBeat = new Map<number, Placed[]>();
 		for (const note of notes) {
-			const beat = Math.floor(note.at / 4);
-			if (note.len >= 4 || note.at + note.len > (beat + 1) * 4) continue;
+			const beat = Math.floor(note.at / beam);
+			if (note.len >= 4 || note.at + note.len > (beat + 1) * beam) continue;
 			byBeat.set(beat, [...(byBeat.get(beat) ?? []), note]);
 		}
 		return [...byBeat.values()];
@@ -48,7 +53,9 @@
 		group.forEach((note, i) => {
 			if (!sixteenth(note)) return;
 			if (sixteenth(group[i + 1])) beams.push([note.stemX, group[i + 1].stemX]);
-			else if (!sixteenth(group[i - 1])) beams.push(i === group.length - 1 ? [note.stemX - 8, note.stemX] : [note.stemX, note.stemX + 8]);
+			// A lone sixteenth's stub points to the note it belongs with: back to a dotted eighth, else into the group.
+			else if (!sixteenth(group[i - 1]))
+				beams.push(i === group.length - 1 || group[i - 1]?.len === 3 ? [note.stemX - 8, note.stemX] : [note.stemX, note.stemX + 8]);
 		});
 		return beams;
 	};
@@ -56,15 +63,17 @@
 	const dotted = (len: number) => len === 3 || len === 6 || len === 12;
 </script>
 
-<svg class="rhythm" viewBox="0 0 {width} 100" role="img" aria-label={label}>
+<!-- Notes the same size in any meter: a shorter bar is a narrower staff. -->
+<svg class="rhythm" viewBox="0 0 {width} 100" style:max-width="{(width / (X0 + 16 * UNIT + 16)) * 480}px" role="img" aria-label={label}>
 	<line x1="2" x2={width - 2} y1={LINE} y2={LINE} class="line" />
 	<line x1={width - 3} x2={width - 3} y1={LINE - 12} y2={LINE + 12} class="line bar" />
 	<g class="time">
-		<text x="22" y={LINE - 3} text-anchor="middle">4</text>
-		<text x="22" y={LINE + 19} text-anchor="middle">4</text>
+		<text x="22" y={LINE - 3} text-anchor="middle">{meter}</text>
+		<text x="22" y={LINE + 19} text-anchor="middle">{meterUnit(meter)}</text>
 	</g>
-	{#each [1, 2, 3] as beat (beat)}
-		<line x1={X0 + beat * 4 * UNIT} x2={X0 + beat * 4 * UNIT} y1={LINE + 16} y2={LINE + 20} class="line tick" />
+	<!-- A tick under each beat, in 6/8 under each dotted quarter, as the bar is felt. -->
+	{#each Array.from({ length: bar / beam - 1 }, (_, i) => i + 1) as beat (beat)}
+		<line x1={X0 + beat * beam * UNIT} x2={X0 + beat * beam * UNIT} y1={LINE + 16} y2={LINE + 20} class="line tick" />
 	{/each}
 
 	{#each events.filter((event) => event.rest) as rest (rest.at)}

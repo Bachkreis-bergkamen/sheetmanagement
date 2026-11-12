@@ -1,3 +1,4 @@
+import { barLength } from './meters.ts';
 import { describe, expect, it } from 'vitest';
 import { PROFILE_IDS, profile } from './instruments.ts';
 import type { PlayedNote } from './scales.ts';
@@ -21,12 +22,22 @@ function* melodies() {
 describe('makeMelody', () => {
 	it('fills every bar exactly', () => {
 		for (const { melody } of melodies()) {
-			const bar = melody.meter * 4;
+			const bar = barLength(melody.meter);
 			for (let index = 0; index < melody.bars; index++) {
 				const inBar = melody.notes.filter((note) => note.at >= index * bar && note.at < (index + 1) * bar);
 				expect(inBar.reduce((sum, note) => sum + note.len, 0)).toBe(bar);
 			}
 		}
+	});
+
+	it('comes in 2/4 from level 3 and 6/8 from level 5, with 2/4 twice as many bars', () => {
+		const meters = new Map<number, Set<number>>();
+		for (const { level, melody } of melodies()) meters.set(level, new Set([...(meters.get(level) ?? []), melody.meter]));
+		expect([...(meters.get(2) ?? [])]).toEqual([4]);
+		expect(meters.get(3)?.has(2)).toBe(true);
+		expect(meters.get(4)?.has(6)).toBe(false);
+		expect(meters.get(5)?.has(6)).toBe(true);
+		for (const { level, melody } of melodies()) if (melody.meter === 2) expect(rulesFor(level).bars.map((bars) => bars * 2)).toContain(melody.bars);
 	});
 
 	it('stays in the instrument’s range and the level’s key and leaps', () => {

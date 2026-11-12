@@ -1,4 +1,6 @@
 <script lang="ts">
+	import Conductor from './Conductor.svelte';
+	import { barLength, beatLength, countInBeats, markedTempo } from '#lib/practice/drills/meters.ts';
 	import { t } from '#lib/i18n/index.ts';
 	import { noteFrequency } from '#lib/practice/audio.ts';
 	import { FLUENT_MS, kindOf, questionFor, ROUND, type Question } from '#lib/practice/drills/decks.ts';
@@ -110,6 +112,8 @@
 	let phase = $state<Phase>('idle');
 	/** The beat lit while a bar plays: -4 to -1 counting in, 0 to 3 in the bar. */
 	let beat = $state<number | null>(null);
+	/** The conductor's clock for the bar under way: when its count-in began, and a beat's length. */
+	let conduct = $state<{ start: number; ms: number } | null>(null);
 	let bar: PlayedBar | null = null;
 	let barTimers: ReturnType<typeof setTimeout>[] = [];
 	let taps: number[] = [];
@@ -219,7 +223,7 @@
 		}
 		if (asked.kind === 'rhythm') {
 			const box = states[asked.id]?.box;
-			bpm = tempoFor(box);
+			bpm = tempoFor(box, asked.meter);
 			tolerance = toleranceFor(box, beatMs(bpm));
 			calibrating = tapOffset === undefined;
 			// A rhythm being learnt is heard before it's tapped; a known one is read.
@@ -291,6 +295,7 @@
 	/** Light the beats as they're heard, `countIn` before the bar and `beats` in it; then `done`. */
 	function followBar(played: PlayedBar, countIn: number, beats: number, done: () => void, tail = 0) {
 		const length = beatMs(bpm);
+		conduct = { start: played.start - countIn * length, ms: length };
 		const at = (time: number) => Math.max(0, played.start + time - performance.now());
 		for (let i = -countIn; i < beats; i++) barTimers.push(setTimeout(() => (beat = i), at(i * length)));
 		barTimers.push(setTimeout(done, at(beats * length + tail)));
@@ -300,14 +305,14 @@
 	async function hearRhythm(q: Extract<Question, { kind: 'rhythm' }>) {
 		stopBar();
 		phase = 'example';
-		const played = await playBar({ bpm, countIn: 4, beats: 4, notes: onsets(q.events, beatMs(bpm)) });
+		const played = await playBar({ bpm, countIn: countInBeats(q.meter), beats: q.meter, meter: q.meter, notes: onsets(q.events, beatMs(bpm), q.meter) });
 		if (!played || phase !== 'example') {
 			played?.stop();
 			if (!played) phase = 'idle';
 			return;
 		}
 		bar = played;
-		followBar(played, 4, 4, () => {
+		followBar(played, countInBeats(q.meter), q.meter, () => {
 			beat = null;
 			phase = 'idle';
 		});
@@ -322,7 +327,7 @@
 		tapped = 0;
 		phase = 'count';
 		const length = beatMs(bpm);
-		const played = await playBar({ bpm, countIn: 4, beats: 4 });
+		const played = await playBar({ bpm, countIn: countInBeats(q.meter), beats: q.meter, meter: q.meter });
 		if (!played) {
 			phase = 'idle';
 			return;
@@ -335,17 +340,17 @@
 			}, Math.max(0, played.start - length / 2 - performance.now()))
 		);
 		// Judged once the last note's window has passed.
-		followBar(played, 4, 4, () => judgeRhythm(q, played.start), Math.min(tolerance, length / 2) + 40);
+		followBar(played, countInBeats(q.meter), q.meter, () => judgeRhythm(q, played.start), Math.min(tolerance, length / 2) + 40);
 	}
 
 	function judgeRhythm(q: Extract<Question, { kind: 'rhythm' }>, start: number) {
 		const length = beatMs(bpm);
 		// Taps along with the count-in don't count against the bar.
 		const relative = taps.map((time) => time - start - (tapOffset ?? 0)).filter((time) => time > -length / 2);
-		const verdict = judgeTaps(onsets(q.events, length), relative, tolerance);
+		const verdict = judgeTaps(onsets(q.events, length, q.meter), relative, tolerance);
 		stopBar();
 		rhythmMarks = verdict.deviations.map((deviation) => (deviation === null ? 'wrong' : 'right'));
-		tapMarks = relative.map((time) => (time / length) * 4).filter((at) => at >= -1 && at <= 16.5);
+		tapMarks = relative.map((time) => (time / length) * beatLength(q.meter)).filter((at) => at >= -1 && at <= barLength(q.meter) + 0.5);
 		const missed = verdict.deviations.filter((deviation) => deviation === null).length;
 		const leaning = Math.abs(verdict.tendency) >= LEANING ? (verdict.tendency > 0 ? tx.dragging : tx.rushing) : undefined;
 		const off = Number.isFinite(verdict.meanOff) ? Math.round(verdict.meanOff) : 999;
@@ -374,6 +379,7 @@
 		}
 		if (phase !== 'count') return played.stop();
 		bar = played;
+		conduct = { start: played.start - 4 * length, ms: length };
 		const at = (time: number) => Math.max(0, played.start + time - performance.now());
 		for (let i = -4; i < beats; i++) {
 			if (pulseLoudness(i + 4, q.silent) >= 0.25) barTimers.push(setTimeout(() => (beat = i), at(i * length)));
@@ -777,8 +783,8 @@
 				{#if calibrating}
 					<p class="hint calibrate">{tx.calibrateLead}</p>
 				{:else}
-					<RhythmStaff pattern={question.pattern} marks={rhythmMarks} taps={tapMarks} label={tx.tapThis} />
-					<p class="hint"><TempoMark {bpm} /></p>
+					<RhythmStaff pattern={question.pattern} meter={question.meter} marks={rhythmMarks} taps={tapMarks} label={tx.tapThis} />
+					<p class="hint"><TempoMark bpm={markedTempo(bpm, question.meter)} unit={question.meter === 6 ? 'dotted' : 'quarter'} /></p>
 				{/if}
 			{:else if question.kind === 'keys'}
 				<DrillStaff clef={question.clef} fifths={question.fifths} label={tx.whichKey(question.mode)} />
@@ -910,9 +916,7 @@
 				{:else if take !== 'idle'}
 					{@const q = question}
 					{#if take === 'count'}
-						<ol class="beats" aria-hidden="true">
-							{#each [0, 1, 2, 3] as each (each)}<li class:lit={beat !== null && (beat + 4) % 4 === each} class:counting={true}>{each + 1}</li>{/each}
-						</ol>
+						<Conductor meter={4} start={beat !== null && conduct ? conduct.start : null} beatMs={conduct?.ms ?? 600} counting />
 						<p class="listening" role="status">{tx.countIn}</p>
 					{:else}
 						<p class="listening" role="status">
@@ -929,11 +933,13 @@
 		{:else if question.kind === 'rhythm' || question.kind === 'pulse'}
 			{@const pulse = question.kind === 'pulse'}
 			<div class="tapping">
-				<ol class="beats" aria-hidden="true">
-					{#each [0, 1, 2, 3] as each (each)}
-						<li class:lit={beat !== null && (beat + 4) % 4 === each} class:counting={beat !== null && beat < 0}>{each + 1}</li>
-					{/each}
-				</ol>
+				<!-- The bar's beat as a conductor gives it; it rests while the metronome is quiet. -->
+				<Conductor
+					meter={question.kind === 'rhythm' && phase !== 'calibrate' ? question.meter : 4}
+					start={beat !== null && conduct ? conduct.start : null}
+					beatMs={conduct?.ms ?? 600}
+					counting={beat !== null && beat < 0}
+				/>
 				<p class="status" role="status">
 					{#if phase === 'example'}{tx.example}
 					{:else if phase === 'count'}{tx.countIn}
@@ -1311,38 +1317,6 @@
 		display: grid;
 		justify-items: center;
 		gap: var(--space-3);
-	}
-
-	.beats {
-		display: flex;
-		gap: var(--space-3);
-		padding: 0;
-		list-style: none;
-	}
-
-	.beats li {
-		display: grid;
-		place-items: center;
-		width: 34px;
-		height: 34px;
-		border: 1px solid var(--hairline);
-		border-radius: 50%;
-		color: var(--text-muted);
-		font-size: var(--text-sm);
-		font-variant-numeric: tabular-nums;
-		transition: background 0.06s;
-	}
-
-	.beats li.lit {
-		border-color: var(--accent);
-		background: var(--accent);
-		color: var(--on-accent, #fff);
-	}
-
-	.beats li.lit.counting {
-		border-color: var(--text-muted);
-		background: var(--surface-2);
-		color: var(--text);
 	}
 
 	.status {

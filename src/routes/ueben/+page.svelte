@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { t } from '#lib/i18n/index.ts';
+	import Conductor from '#lib/components/Conductor.svelte';
 	import DrillRound from '#lib/components/DrillRound.svelte';
 	import DrillStaff from '#lib/components/DrillStaff.svelte';
 	import Icon, { type IconName } from '#lib/components/Icon.svelte';
@@ -309,6 +310,16 @@
 	/** A small melody of the member's level for the card, the same one each visit. */
 	const sightPreview = $derived(instrument === 'timpani' ? null : makeMelody(instrument, prof.clefs[0], 1, seeded(3)))
 	const steps = $derived(prof.clefs.length > 1 && !prof.together ? ladder : []);
+
+	/** Each stage with its drills for this instrument and how many are open, for the strip and the headings. */
+	const stageList = $derived(
+		STAGES.map((stage, number) => {
+			const shown = kinds.filter(({ kind }) => (stage as string[]).includes(kind));
+			return { number, shown, open: shown.filter(({ kind }) => cards[kind as DrillCard].open).length };
+		}).filter((stage) => stage.shown.length)
+	);
+	/** The stage the member is working in: the last one with a drill open. */
+	const current = $derived(stageList.reduce((at, stage) => (stage.open ? stage.number : at), 0));
 </script>
 
 <Title title={tx.title} />
@@ -429,8 +440,53 @@
 			</section>
 		{/if}
 
-		<section class="ui-card setup" aria-label={tx.instrument}>
-			<div class="top">
+		<section class="ui-card status" aria-label={tx.progress}>
+			<div class="standing">
+				{#if data.practising !== null}
+					<!-- The practice tree, to the tree on the profile. -->
+					<a class="tree-link" href="/profil#probenzeit" aria-label={tx.treeLink}>
+						<span class="tree-picture"><PracticeTree stage={tree} /></span>
+					</a>
+				{/if}
+				<div class="standing-text">
+					{#if data.practising !== null}
+						<span class="ui-label">{tx.treeTitle}</span>
+						{#if data.practising}
+							<strong class="tree-name">{treeName(tree)}</strong>
+							<span class="tree-bar" role="progressbar" aria-label={tx.treeTitle} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(tree.progress * 100)}>
+								<span style:width="{tree.progress * 100}%"></span>
+							</span>
+							<small>{tx.treeNext(t.practice.duration(treeLeft), treeName(nextTree))}</small>
+						{:else}
+							<strong class="tree-name">{tx.treeStart}</strong>
+							{#if data.practising === false}<a class="tree-on" href="/profil">{tx.treeOff}</a>{/if}
+						{/if}
+					{/if}
+					<p class="today">
+						<span class="goal">
+							<span class="ring" style:--done="{Math.min(1, todayMinutes / DAILY_GOAL_MINUTES) * 100}%" aria-hidden="true"></span>
+							{tx.today(todayMinutes, DAILY_GOAL_MINUTES)}
+						</span>
+						<span class="streak" title={tx.streakHint}>{tx.streak(days)}</span>
+					</p>
+				</div>
+			</div>
+
+			<ol class="strip" aria-label={tx.stagesLabel}>
+				{#each stageList as stage (stage.number)}
+					<li class:done={stage.open === stage.shown.length} class:here={stage.number === current}>
+						<a href="#stage-{stage.number}" aria-current={stage.number === current ? 'step' : undefined}>
+							<span class="pips" aria-hidden="true">
+								{#each stage.shown as { kind } (kind)}<span class:open={cards[kind as DrillCard].open}></span>{/each}
+							</span>
+							<span class="strip-name"><span class="strip-number">{stage.number + 1}</span> {tx.stages[stage.number]}</span>
+							<span class="sr-only">{tx.stageOpen(stage.open, stage.shown.length)}</span>
+						</a>
+					</li>
+				{/each}
+			</ol>
+
+			<div class="setup">
 				<div class="current">
 					<p class="playing">
 						<Icon name="music" size={18} />
@@ -464,24 +520,6 @@
 						<p class="hint">{tx.changeHint}</p>
 					{/if}
 				</div>
-				{#if data.practising !== null}
-					<!-- The practice tree, to the tree on the profile. -->
-					<a class="tree-link" href="/profil#probenzeit" aria-label={tx.treeLink}>
-						<span class="tree-picture"><PracticeTree stage={tree} /></span>
-						<span class="tree-text">
-							<span class="ui-label">{tx.treeTitle}</span>
-							{#if data.practising}
-								<strong>{treeName(tree)}</strong>
-								<span class="tree-bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(tree.progress * 100)}>
-									<span style:width="{tree.progress * 100}%"></span>
-								</span>
-								<small>{tx.treeNext(t.practice.duration(treeLeft), treeName(nextTree))}</small>
-							{:else}
-								<strong>{tx.treeStart}</strong>
-							{/if}
-						</span>
-					</a>
-				{/if}
 			</div>
 			{#if steps.length && !chosenClef}
 				<ol class="ladder" aria-label={tx.ladder}>
@@ -499,25 +537,7 @@
 			{/if}
 		</section>
 
-		<section class="ui-card today" aria-label={tx.today(todayMinutes, DAILY_GOAL_MINUTES)}>
-			<div class="goal">
-				<span class="ring" style:--done="{Math.min(1, todayMinutes / DAILY_GOAL_MINUTES) * 100}%" aria-hidden="true"></span>
-				<span>{tx.today(todayMinutes, DAILY_GOAL_MINUTES)}</span>
-			</div>
-			<div class="streak" title={tx.streakHint}>
-				<Icon name="activity" size={18} />
-				<span>{tx.streak(days)}</span>
-			</div>
-			{#if data.practising === true}
-				<p class="hint tree">{tx.treeOn}</p>
-			{:else if data.practising === false}
-				<p class="hint tree"><a href="/profil">{tx.treeOff}</a></p>
-			{/if}
-		</section>
-
-		{#each STAGES as stage, number (number)}
-			{@const shown = kinds.filter(({ kind }) => (stage as string[]).includes(kind))}
-			{@const openCount = shown.filter(({ kind }) => cards[kind as DrillCard].open).length}
+		{#each stageList as { number, shown, open: openCount } (number)}
 			{#if shown.length}
 				<section class="stage" class:closed={!openCount} aria-labelledby="stage-{number}">
 					<h2 class="stage-title" id="stage-{number}">
@@ -530,15 +550,12 @@
 							{@const stand = standing(order)}
 							{@const card = cards[kind as DrillCard]}
 							<li class="ui-card kind" class:locked={!card.open}>
-								{#if !card.open}
-									<!-- A big padlock in the top half of the card, where the picture would be: still locked. -->
-									<span class="padlock" role="img" aria-label={tx.locked}><Icon name="lock" size={120} /></span>
-								{:else}
+								<!-- The drill's music on its own sheet; still locked, it shows dimmed with a small lock. -->
 								<div class="preview" aria-hidden="true">
 									{#if kind === 'rhythm'}
 										<RhythmStaff pattern="4 2 2 6 2" label="" />
 									{:else if kind === 'pulse'}
-										<RhythmStaff pattern="4 4 4 4" label="" />
+										<Conductor meter={4} start={null} beatMs={600} />
 									{:else if kind === 'sight' && sightPreview}
 										<SightStaff melody={sightPreview} preview label="" />
 									{:else if kind === 'entry' && entryPreview}
@@ -553,37 +570,39 @@
 											label=""
 										/>
 									{/if}
+									{#if !card.open}<span class="lock-badge"><Icon name="lock" size={16} /></span>{/if}
 								</div>
-								{/if}
-								<h3>
-									<Icon name={icon} size={18} />{tx.kinds[kind].title}
-									{#if card.open && number > 0 && !stand.seen && !(kind === 'sight' && drills.settings.sight?.[instrument]) && !(kind === 'entry' && drills.settings.entry?.[instrument])}<span class="new">{tx.new}</span>{/if}
-								</h3>
-								<p class="lead">{tx.kinds[kind].lead}</p>
-								{#if !card.open}
-									<p class="hint">{tx.lockedUntil}</p>
-									<ul class="needs">
-										{#each card.needs as need (need.of)}
-											<li>
-												<span>{tx.need(need.of, need.count, need.have)}</span>
-												<span class="meter" aria-hidden="true"><span style:width="{(need.have / need.count) * 100}%"></span></span>
-											</li>
-										{/each}
-									</ul>
-								{:else if kind === 'sight' || kind === 'entry'}
-									{@const [at, of] = kind === 'sight' ? [sightLevel.level, MAX_LEVEL] : [entryLevel.level, MAX_ENTRY_LEVEL]}
-									<p class="hint">{tx.level(at, of)}</p>
-									<div class="meter" aria-hidden="true"><span style:width="{(at / of) * 100}%"></span></div>
-									<button type="button" class="btn" disabled={!ready} onclick={() => start(kind)}>{tx.start}</button>
-								{:else if !order.length}
-									<p class="hint">{tx.noPlay}</p>
-								{:else}
-									<p class="hint">
-										{#if !ready}…{:else if stand.seen}{tx.mastered(stand.mastered, stand.total)}{#if stand.due}{' '}· {tx.due(stand.due)}{/if}{#if stand.known}{' '}· {tx.known(stand.known)}{/if}{:else}{tx.fresh}{/if}
-									</p>
-									<div class="meter" aria-hidden="true"><span style:width="{(stand.mastered / stand.total) * 100}%"></span></div>
-									<button type="button" class="btn" disabled={!ready} onclick={() => start(kind)}>{tx.start}</button>
-								{/if}
+								<div class="body">
+									<h3>
+										<Icon name={icon} size={18} />{tx.kinds[kind].title}{#if !card.open}<span class="sr-only">, {tx.locked}</span>{/if}
+										{#if card.open && number > 0 && !stand.seen && !(kind === 'sight' && drills.settings.sight?.[instrument]) && !(kind === 'entry' && drills.settings.entry?.[instrument])}<span class="new">{tx.new}</span>{/if}
+									</h3>
+									<p class="lead">{tx.kinds[kind].lead}</p>
+									{#if !card.open}
+										<p class="hint">{tx.lockedUntil}</p>
+										<ul class="needs">
+											{#each card.needs as need (need.of)}
+												<li>
+													<span>{tx.need(need.of, need.count, need.have)}</span>
+													<span class="meter" aria-hidden="true"><span style:width="{(need.have / need.count) * 100}%"></span></span>
+												</li>
+											{/each}
+										</ul>
+									{:else if kind === 'sight' || kind === 'entry'}
+										{@const [at, of] = kind === 'sight' ? [sightLevel.level, MAX_LEVEL] : [entryLevel.level, MAX_ENTRY_LEVEL]}
+										<p class="hint">{tx.level(at, of)}</p>
+										<div class="meter" aria-hidden="true"><span style:width="{(at / of) * 100}%"></span></div>
+										<button type="button" class="btn" disabled={!ready} onclick={() => start(kind)}>{tx.start}</button>
+									{:else if !order.length}
+										<p class="hint">{tx.noPlay}</p>
+									{:else}
+										<p class="hint">
+											{#if !ready}…{:else if stand.seen}{tx.mastered(stand.mastered, stand.total)}{#if stand.due}{' '}· {tx.due(stand.due)}{/if}{#if stand.known}{' '}· {tx.known(stand.known)}{/if}{:else}{tx.fresh}{/if}
+										</p>
+										<div class="meter" aria-hidden="true"><span style:width="{(stand.mastered / stand.total) * 100}%"></span></div>
+										<button type="button" class="btn" disabled={!ready} onclick={() => start(kind)}>{tx.start}</button>
+									{/if}
+								</div>
 							</li>
 						{/each}
 					</ul>
@@ -614,54 +633,63 @@
 <style>
 	.hub {
 		display: grid;
-		gap: var(--space-4);
+		gap: var(--space-5);
 	}
 
-	.setup {
+	/* One card for where the member stands: the tree and today, the stages, the instrument. */
+	.status {
 		display: grid;
-		gap: var(--space-3);
-		padding: var(--space-4);
+		gap: var(--space-4);
+		padding: var(--space-4) var(--space-5);
 	}
 
-	.top {
+	.standing {
 		display: flex;
-		flex-wrap: wrap;
-		align-items: flex-start;
-		justify-content: space-between;
-		gap: var(--space-3) var(--space-4);
+		align-items: center;
+		gap: var(--space-4);
 	}
 
 	.tree-link {
 		flex: none;
-		display: flex;
-		align-items: center;
-		gap: var(--space-3);
-		padding: var(--space-2) var(--space-3);
-		border: 1px solid var(--hairline);
-		border-radius: var(--radius-control);
-		color: inherit;
-		text-decoration: none;
-		transition: border-color 0.15s;
+		display: block;
+		width: 96px;
+		padding: var(--space-1);
+		border-radius: var(--radius-m);
+		background: var(--surface-2);
+		transition: background-color 0.15s var(--ease);
 	}
 
 	.tree-link:hover {
-		border-color: var(--accent);
+		background: var(--accent-soft);
 	}
 
 	.tree-picture {
 		display: block;
-		width: 80px;
 	}
 
-	.tree-text {
+	.standing-text {
 		display: grid;
-		gap: 2px;
-		min-width: 9rem;
+		flex: 1;
+		gap: var(--space-1);
+		min-width: 0;
 	}
 
-	.tree-text small {
+	.standing-text :global(.ui-label) {
+		margin: 0;
+	}
+
+	.tree-name {
+		font-size: var(--text-xl);
+		line-height: 1.2;
+	}
+
+	.standing-text small {
 		color: var(--text-muted);
-		font-size: var(--text-2xs);
+		font-size: var(--text-xs);
+	}
+
+	.tree-on {
+		font-size: var(--text-xs);
 	}
 
 	.tree-bar {
@@ -675,8 +703,140 @@
 	.tree-bar span {
 		display: block;
 		height: 100%;
+		border-radius: inherit;
 		background: var(--ok);
-		transition: width 0.3s;
+		transition: width 0.3s var(--ease);
+	}
+
+	.today {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-1) var(--space-4);
+		margin-top: var(--space-1);
+		font-size: var(--text-sm);
+	}
+
+	.goal {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
+		font-weight: 600;
+	}
+
+	.streak {
+		color: var(--text-muted);
+	}
+
+	.ring {
+		flex: none;
+		width: 18px;
+		height: 18px;
+		border-radius: 50%;
+		background: conic-gradient(var(--accent) var(--done), var(--surface-2) 0);
+		mask: radial-gradient(circle, transparent 5px, #000 6px);
+	}
+
+	/* The stages as a strip: a pip per drill, filled once it's open. */
+	.strip {
+		display: grid;
+		grid-auto-columns: 1fr;
+		grid-auto-flow: column;
+		gap: var(--space-2);
+		padding: var(--space-4) 0 0;
+		border-top: 1px solid var(--hairline);
+		list-style: none;
+	}
+
+	.strip a {
+		display: grid;
+		align-content: start;
+		gap: var(--space-2);
+		height: 100%;
+		min-height: var(--tap, 44px);
+		padding: var(--space-2);
+		border-radius: var(--radius-control);
+		color: var(--text-muted);
+		text-decoration: none;
+		transition: background-color 0.15s var(--ease);
+	}
+
+	.strip a:hover {
+		background: var(--surface-2);
+	}
+
+	.strip .here a {
+		background: var(--accent-soft);
+		color: var(--text);
+	}
+
+	.pips {
+		display: flex;
+		gap: 3px;
+	}
+
+	.pips span {
+		flex: 1;
+		height: 6px;
+		border-radius: var(--radius-pill);
+		background: var(--surface-2);
+		box-shadow: inset 0 0 0 1px var(--hairline);
+	}
+
+	.pips span.open {
+		background: var(--accent);
+		box-shadow: none;
+	}
+
+	.strip .done .pips span.open {
+		background: var(--ok);
+	}
+
+	.strip-name {
+		font-size: var(--text-xs);
+		font-weight: 600;
+		line-height: 1.25;
+	}
+
+	.strip-number {
+		font-variant-numeric: tabular-nums;
+	}
+
+	.setup {
+		display: grid;
+		gap: var(--space-3);
+		padding-top: var(--space-3);
+		border-top: 1px solid var(--hairline);
+	}
+
+	.current {
+		display: grid;
+		gap: var(--space-3);
+	}
+
+	.playing {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-2);
+		font-size: var(--text-md);
+	}
+
+	.muted {
+		color: var(--text-muted);
+	}
+
+	.link {
+		min-height: 32px;
+		padding: 0;
+		border: 0;
+		background: none;
+		color: var(--accent);
+		font: inherit;
+		font-size: var(--text-sm);
+		text-decoration: underline;
+		text-underline-offset: 0.2em;
+		cursor: pointer;
 	}
 
 	.fields {
@@ -686,11 +846,21 @@
 		gap: var(--space-3) var(--space-4);
 	}
 
+	.setup select {
+		min-width: 12rem;
+	}
+
+	.check {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
+		min-height: 40px;
+		font-size: var(--text-sm);
+	}
+
 	.ladder {
 		display: grid;
 		gap: var(--space-1);
-		padding: var(--space-3) 0 0;
-		border-top: 1px solid var(--hairline);
 		list-style: none;
 		color: var(--text-muted);
 		font-size: var(--text-sm);
@@ -707,128 +877,45 @@
 		font-weight: 600;
 	}
 
-	.tree {
-		flex-basis: 100%;
-	}
-
 	.unlocked {
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
 	}
 
-	.setup select {
-		min-width: 12rem;
-	}
-
-	.check {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-2);
-		min-height: 40px;
-		font-size: var(--text-sm);
-	}
-
-	.today {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--space-3);
-		padding: var(--space-3) var(--space-4);
-	}
-
-	.goal,
-	.streak {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		font-weight: 600;
-	}
-
-	.streak {
-		color: var(--text-muted);
-		font-weight: 500;
-	}
-
-	.ring {
-		width: 22px;
-		height: 22px;
-		border-radius: 50%;
-		background: conic-gradient(var(--accent) var(--done), var(--surface-2) 0);
-		mask: radial-gradient(circle, transparent 6px, #000 7px);
-	}
-
-	.kinds {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
-		gap: var(--space-3);
-		padding: 0;
-		list-style: none;
-	}
-
-	.kind {
-		display: grid;
-		grid-template-rows: auto auto 1fr auto auto auto;
-		gap: var(--space-2);
-		padding: var(--space-4);
-	}
-
-	.preview {
-		display: grid;
-		align-items: center;
-		min-height: 90px;
-		max-width: 180px;
-		color: var(--text-muted);
-		opacity: 0.7;
-	}
-
-	.chosen {
+	/* Offers above the progress: a soft tint, not a stripe. */
+	.chosen,
+	.placement {
 		display: grid;
 		gap: var(--space-3);
-		padding: var(--space-4);
-		border-left: 3px solid var(--accent);
+		padding: var(--space-4) var(--space-5);
+		background: color-mix(in oklab, var(--accent-soft) 60%, var(--surface));
 	}
 
-	.chosen h2 {
+	.chosen h2,
+	.placement h2 {
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
 		font-size: var(--text-lg);
 	}
 
-	.current {
+	.placement .btn.small {
+		justify-self: start;
+	}
+
+	.found {
 		display: grid;
-		flex: 1 1 22rem;
-		gap: var(--space-3);
-		align-content: start;
-	}
-
-	.playing {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: var(--space-2);
-	}
-
-	.muted {
-		color: var(--text-muted);
-	}
-
-	.link {
+		gap: var(--space-1);
 		padding: 0;
-		border: 0;
-		background: none;
-		color: var(--accent);
-		font: inherit;
+		list-style: none;
 		font-size: var(--text-sm);
-		text-decoration: underline;
-		cursor: pointer;
 	}
 
 	.stage {
 		display: grid;
 		gap: var(--space-3);
+		scroll-margin-top: calc(60px + var(--space-4));
 	}
 
 	.stage-title {
@@ -852,7 +939,7 @@
 		height: 26px;
 		border-radius: 50%;
 		background: var(--accent);
-		color: var(--on-accent, #fff);
+		color: var(--accent-contrast);
 		font-size: var(--text-sm);
 	}
 
@@ -861,51 +948,95 @@
 		color: var(--text-muted);
 	}
 
-	.kind.locked {
-		background: var(--surface-2);
+	.kinds {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+		gap: var(--space-3);
+		padding: 0;
+		list-style: none;
 	}
 
-	.kind.locked .preview,
-	.kind.locked .lead {
-		opacity: 0.55;
+	/* A drill: its music on a sheet of its own, then what it is and where you stand. */
+	.kind {
+		display: grid;
+		grid-template-rows: auto 1fr;
+		gap: var(--space-3);
+		padding: var(--space-3);
+	}
+
+	.preview {
+		position: relative;
+		display: grid;
+		align-items: center;
+		height: 112px;
+		padding: 0 var(--space-3);
+		border-radius: var(--radius-m);
+		background: var(--bg);
+		color: var(--text);
+		overflow: hidden;
+	}
+
+	.preview :global(svg) {
+		max-height: 104px;
+	}
+
+	.preview :global(.conductor) {
+		width: 100%;
+		max-width: 130px;
+		margin-inline: auto;
+	}
+
+	.body {
+		display: grid;
+		grid-template-rows: auto auto 1fr auto auto auto;
+		gap: var(--space-2);
+		padding: 0 var(--space-1) var(--space-1);
+	}
+
+	.kind h3 {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-2);
+		font-size: var(--text-lg);
+	}
+
+	.kind .btn {
+		justify-self: start;
+		min-width: 6rem;
+		margin-top: var(--space-1);
+	}
+
+	/* Still locked: the music shows, faint, with a small lock on its sheet. */
+	.kind.locked {
+		background: var(--surface-2);
+		box-shadow: none;
+	}
+
+	.kind.locked .preview {
+		background: color-mix(in oklab, var(--surface) 55%, var(--surface-2));
+	}
+
+	.kind.locked .preview :global(svg) {
+		opacity: 0.32;
+	}
+
+	.lock-badge {
+		position: absolute;
+		top: var(--space-2);
+		right: var(--space-2);
+		display: grid;
+		place-items: center;
+		width: 30px;
+		height: 30px;
+		border-radius: 50%;
+		background: var(--surface);
+		color: var(--text-muted);
+		box-shadow: inset 0 0 0 1px var(--hairline);
 	}
 
 	.kind.locked h3 {
 		color: var(--text-muted);
-	}
-
-	.padlock {
-		display: grid;
-		place-items: center;
-		min-height: 170px;
-		margin: calc(-1 * var(--space-4)) calc(-1 * var(--space-4)) 0;
-		border-radius: inherit;
-		border-bottom-left-radius: 0;
-		border-bottom-right-radius: 0;
-		background: color-mix(in oklab, var(--hairline) 45%, var(--surface-2));
-		color: var(--text-muted);
-	}
-
-	.padlock :global(svg) {
-		width: min(55%, 140px);
-		height: auto;
-	}
-
-	.needs {
-		display: grid;
-		gap: var(--space-2);
-		padding: 0;
-		list-style: none;
-		font-size: var(--text-sm);
-	}
-
-	.needs li {
-		display: grid;
-		gap: 4px;
-	}
-
-	.needs .meter {
-		background: var(--hairline);
 	}
 
 	.new {
@@ -919,25 +1050,14 @@
 		letter-spacing: 0.04em;
 	}
 
-	.kind h3 {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		font-size: var(--text-lg);
-	}
-
-	.lead {
-		color: var(--text-muted);
-		font-size: var(--text-sm);
-	}
-
+	.lead,
 	.hint {
 		color: var(--text-muted);
 		font-size: var(--text-sm);
 	}
 
 	.meter {
-		height: 4px;
+		height: 6px;
 		border-radius: var(--radius-pill);
 		background: var(--surface-2);
 		overflow: hidden;
@@ -946,11 +1066,75 @@
 	.meter span {
 		display: block;
 		height: 100%;
+		border-radius: inherit;
 		background: var(--ok);
 	}
 
-	.kind .btn {
-		justify-self: start;
+	.needs {
+		display: grid;
+		gap: var(--space-2);
+		padding: 0;
+		list-style: none;
+		font-size: var(--text-sm);
+	}
+
+	.needs li {
+		display: grid;
+		gap: var(--space-1);
+	}
+
+	.needs .meter {
+		background: var(--hairline);
+	}
+
+	/* Phones: the sheet beside the words, so twelve drills don't run to six screens. */
+	@media (max-width: 560px) {
+		.status {
+			padding: var(--space-4);
+		}
+
+		.tree-link {
+			width: 84px;
+		}
+
+		.strip {
+			gap: var(--space-1);
+		}
+
+		.strip a {
+			padding: var(--space-2) var(--space-1);
+		}
+
+		.kind {
+			grid-template-columns: 118px 1fr;
+			grid-template-rows: auto;
+			align-items: start;
+		}
+
+		.preview {
+			height: 104px;
+			padding: 0 var(--space-1);
+		}
+
+		.preview :global(svg) {
+			max-height: 100px;
+		}
+
+		.lock-badge {
+			top: var(--space-1);
+			right: var(--space-1);
+			width: 26px;
+			height: 26px;
+		}
+
+		.body {
+			grid-template-rows: none;
+			padding: 0;
+		}
+
+		.kind h3 {
+			font-size: var(--text-base);
+		}
 	}
 
 	.how {
@@ -958,6 +1142,7 @@
 	}
 
 	.how summary {
+		min-height: 32px;
 		font-weight: 600;
 		cursor: pointer;
 	}
@@ -980,31 +1165,5 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: var(--space-2);
-	}
-
-	.placement {
-		display: grid;
-		gap: var(--space-3);
-		padding: var(--space-4);
-		border-left: 3px solid var(--accent);
-	}
-
-	.placement h2 {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		font-size: var(--text-lg);
-	}
-
-	.placement .btn.small {
-		justify-self: start;
-	}
-
-	.found {
-		display: grid;
-		gap: var(--space-1);
-		padding: 0;
-		list-style: none;
-		font-size: var(--text-sm);
 	}
 </style>

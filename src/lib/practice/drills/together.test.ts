@@ -1,3 +1,4 @@
+import { barLength as lengthOfBar, type DrillMeter } from './meters.ts';
 import { describe, expect, it } from 'vitest';
 import type { PlayedNote } from './scales.ts';
 import { expectedNotes, seeded, type Melody } from './sight.ts';
@@ -5,13 +6,13 @@ import { harmonize, judgeEntry, makeEntry, pureCents, secondVoice, tuneOrder, tu
 import { midiOf, pitchOf, type Pitch } from './theory.ts';
 
 const p = (name: string): Pitch => pitchOf(name);
-const melody = (notes: [string, number][], meter: 3 | 4 = 4): Melody => {
+const melody = (notes: [string, number][], meter: DrillMeter = 4): Melody => {
 	let at = 0;
 	return {
 		fifths: 0,
 		mode: 'major',
 		meter,
-		bars: notes.reduce((sum, [, len]) => sum + len, 0) / (meter * 4),
+		bars: notes.reduce((sum, [, len]) => sum + len, 0) / lengthOfBar(meter),
 		bpm: 60,
 		clef: 'treble',
 		notes: notes.map(([name, len]) => {
@@ -54,7 +55,7 @@ describe('secondVoice', () => {
 	it('plays through the rests before an entry, ending on V', () => {
 		const entry = makeEntry('violin', 'treble', 4, seeded(5))!;
 		const voices = secondVoice(entry, 0);
-		const barLength = entry.meter * 4;
+		const barLength = lengthOfBar(entry.meter);
 		const lastRest = voices.filter((voice) => voice.at >= (entry.lead! - 1) * barLength && voice.at < entry.lead! * barLength);
 		expect(lastRest.length).toBeGreaterThan(0);
 		expect(voices[voices.length - 1].at + voices[voices.length - 1].len).toBe(entry.bars * barLength);
@@ -66,7 +67,7 @@ describe('makeEntry', () => {
 		for (let level = 1; level <= 6; level++) {
 			for (let seed = 1; seed <= 30; seed++) {
 				const entry = makeEntry('cello', 'bass', level, seeded(seed))!;
-				const barLength = entry.meter * 4;
+				const barLength = lengthOfBar(entry.meter);
 				expect(entry.lead).toBeGreaterThanOrEqual(1);
 				expect(entry.notes[0].at).toBe(entry.lead! * barLength);
 				for (let bar = entry.lead!; bar < entry.bars; bar++) {

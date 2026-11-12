@@ -3,6 +3,7 @@
 	import { alterInKey, diatonic, keySignature, ledgerLines, SIGNATURE_POSITIONS, staffPosition } from '#lib/practice/drills/theory.ts';
 	import StaffAccidental from './staff/StaffAccidental.svelte';
 	import StaffClef from './staff/StaffClef.svelte';
+	import { barLength as lengthOfBar, beamLength, markedTempo, meterUnit } from '#lib/practice/drills/meters.ts';
 	import TempoMark from './staff/TempoMark.svelte';
 
 	/**
@@ -56,7 +57,7 @@
 	}
 
 	const layout = $derived.by(() => {
-		const barLength = melody.meter * 4;
+		const barLength = lengthOfBar(melody.meter);
 		const lead = melody.lead ?? 0;
 		// Bars of rest before an entry: one bar with their count, as parts print them.
 		const bars: { notes: Placed[]; width: number; index: number; rests?: number }[] = lead ? [{ notes: [], width: 110, index: 0, rests: lead }] : [];
@@ -110,8 +111,10 @@
 		const byBeat = new Map<number, Note[]>();
 		for (const note of notes) {
 			if (note.rest || note.len >= 4) continue;
-			const beat = Math.floor(note.at / 4);
-			if (note.at + note.len > (beat + 1) * 4) continue;
+			// Beamed by the beat, in 6/8 by the dotted quarter.
+			const beam = beamLength(melody.meter);
+			const beat = Math.floor(note.at / beam);
+			if (note.at + note.len > (beat + 1) * beam) continue;
 			byBeat.set(beat, [...(byBeat.get(beat) ?? []), note]);
 		}
 		return [...byBeat.values()];
@@ -141,7 +144,8 @@
 				const before = group[i - 1];
 				if (next?.len === 1) beams.push({ x1: stemX(note) - 0.6, x2: stemX(next) + 0.6, y: second });
 				else if (before?.len !== 1) {
-					const stub = i === group.length - 1 ? [stemX(note) - 8, stemX(note)] : [stemX(note), stemX(note) + 8];
+					// Back to a dotted eighth it belongs with, else into the group.
+					const stub = i === group.length - 1 || before?.len === 3 ? [stemX(note) - 8, stemX(note)] : [stemX(note), stemX(note) + 8];
 					beams.push({ x1: stub[0] - 0.6, x2: stub[1] + 0.6, y: second });
 				}
 			});
@@ -165,7 +169,7 @@
 
 <div class="sight" role="img" aria-label={label}>
 	<!-- Over the empty room above the first staff: a percentage margin scales with the line's width, as the staff does. -->
-	{#if !preview}<p class="tempo" style:margin-bottom="-{(42 / (layout[0]?.width ?? 600)) * 100}%"><TempoMark bpm={melody.bpm} /></p>{/if}
+	{#if !preview}<p class="tempo" style:margin-bottom="-{(42 / (layout[0]?.width ?? 600)) * 100}%"><TempoMark bpm={markedTempo(melody.bpm, melody.meter)} unit={melody.meter === 6 ? 'dotted' : 'quarter'} /></p>{/if}
 	{#each preview ? layout.slice(0, 1) : layout as line (line.number)}
 		<svg viewBox="0 0 {line.width} 145" class="line">
 			{#each [0, 2, 4, 6, 8] as each (each)}
@@ -178,7 +182,7 @@
 			{#if line.number === 0}
 				{@const timeX = 44 + signature.length * 10 + 14}
 				<text x={timeX} y={y(6) + 7.5} text-anchor="middle" class="time">{melody.meter}</text>
-				<text x={timeX} y={y(2) + 7.5} text-anchor="middle" class="time">4</text>
+				<text x={timeX} y={y(2) + 7.5} text-anchor="middle" class="time">{meterUnit(melody.meter)}</text>
 			{/if}
 
 			{#each line.bars as bar (bar.from)}
@@ -201,6 +205,10 @@
 								<g transform="translate({note.x} {y(4)})">
 									{#if note.len === 4}
 										<path d="M-2 -15 L4 -8 L-1 -2 L4 5 C-2 2 -4 8 1 12" class="pen" />
+									{:else if note.len === 6}
+										<!-- A dotted quarter rest: in 6/8, coming in on the second half of the bar. -->
+										<path d="M-2 -15 L4 -8 L-1 -2 L4 5 C-2 2 -4 8 1 12" class="pen" />
+										<circle cx="9" cy="-3" r="2" />
 									{:else if note.len === 2}
 										<circle cx="-2" cy="-7" r="2.6" />
 										<path d="M-2 -5 C1 -4 3 -6 4.5 -8 L-1 9" class="pen thin" />

@@ -2098,7 +2098,7 @@ export const en: Texts = {
 		scaleShown: 'This is how it sounds; have a listen.',
 		level: (level: number, of: number) => `Level ${level} of ${of}`,
 		lookKey: (key: string, accidentals: string) => `Key: ${key} (${accidentals})`,
-		lookTime: (meter: number, tempo: string, bpm: number) => `${meter}/4 time, ${tempo} (quarter = ${bpm})`,
+		lookTime: (meter: string, tempo: string, bpm: number, dotted: boolean) => `${meter} time, ${tempo} (${dotted ? 'dotted quarter' : 'quarter'} = ${bpm})`,
 		lookRange: (low: string, high: string) => `Lowest note ${low}, highest ${high}`,
 		lookShort: (len: number, bar: number) => `${len === 1 ? 'Sixteenths' : 'Eighths'} in bar ${bar}: count them in your head first`,
 		lookAccidental: (bar: number) => `An accidental outside the key in bar ${bar}`,
@@ -2202,6 +2202,8 @@ export const en: Texts = {
 		treeLink: 'Your practice tree in your profile',
 		stages: ['Basics', 'Hearing and holding', 'Reading and playing', 'Playing together'],
 		stageOpen: (open: number, of: number) => (open === of ? 'all open' : `${open} of ${of} open`),
+		stagesLabel: 'Your stages',
+		progress: 'Your progress',
 		lockedUntil: 'Opens when you’re ready:',
 		locked: 'Still locked',
 		need: (of: string, count: number, have: number) =>

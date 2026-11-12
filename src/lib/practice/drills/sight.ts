@@ -1,3 +1,4 @@
+import { barLength, beatLength, beatsPerMinute, type DrillMeter } from './meters.ts';
 import { profile, type ProfileId } from './instruments.ts';
 import { align, type PlayedNote } from './scales.ts';
 import { alterInKey, diatonic, fromDiatonic, midiOf, tonic, type Clef, type Pitch } from './theory.ts';
@@ -28,8 +29,8 @@ export interface SightNote {
 export interface Melody {
 	fifths: number;
 	mode: 'major' | 'minor';
-	/** Quarter beats per bar: 3 or 4. */
-	meter: 3 | 4;
+	/** Beats per bar: 2, 3 or 4 quarters, or 6 eighths (6/8). */
+	meter: DrillMeter;
 	bars: number;
 	bpm: number;
 	clef: Clef;
@@ -45,11 +46,12 @@ interface LevelRules {
 	/** Most sharps or flats in the key. */
 	fifths: number;
 	minor: boolean;
-	meters: (3 | 4)[];
+	meters: DrillMeter[];
 	/** Largest step between two notes, in scale steps (1 a second, 4 a fifth, 7 an octave). */
 	leap: number;
 	/** Scale steps around the tonic the melody may use. */
 	span: [number, number];
+	/** Quarters per minute; 6/8 counts its eighths a little quicker (see `beatsPerMinute`). */
 	bpm: number;
 	/** A note now and then raised by a semitone on its way up to the next. */
 	chromatic: boolean;
@@ -58,12 +60,12 @@ interface LevelRules {
 const LEVELS: LevelRules[] = [
 	{ bars: [2], fifths: 0, minor: false, meters: [4], leap: 1, span: [0, 4], bpm: 60, chromatic: false },
 	{ bars: [4], fifths: 1, minor: false, meters: [4], leap: 2, span: [0, 7], bpm: 66, chromatic: false },
-	{ bars: [4], fifths: 1, minor: false, meters: [4, 4, 3], leap: 2, span: [0, 7], bpm: 66, chromatic: false },
-	{ bars: [4], fifths: 2, minor: false, meters: [4, 4, 3], leap: 4, span: [-3, 7], bpm: 72, chromatic: false },
-	{ bars: [4], fifths: 3, minor: false, meters: [4, 3], leap: 7, span: [-3, 9], bpm: 72, chromatic: false },
-	{ bars: [4], fifths: 3, minor: true, meters: [4, 3], leap: 7, span: [-4, 11], bpm: 76, chromatic: false },
-	{ bars: [4, 8], fifths: 4, minor: true, meters: [4, 3], leap: 7, span: [-4, 11], bpm: 80, chromatic: true },
-	{ bars: [8], fifths: 5, minor: true, meters: [4, 3], leap: 7, span: [-4, 11], bpm: 84, chromatic: true }
+	{ bars: [4], fifths: 1, minor: false, meters: [4, 4, 3, 2], leap: 2, span: [0, 7], bpm: 66, chromatic: false },
+	{ bars: [4], fifths: 2, minor: false, meters: [4, 4, 3, 2], leap: 4, span: [-3, 7], bpm: 72, chromatic: false },
+	{ bars: [4], fifths: 3, minor: false, meters: [4, 3, 2, 6], leap: 7, span: [-3, 9], bpm: 72, chromatic: false },
+	{ bars: [4], fifths: 3, minor: true, meters: [4, 3, 2, 6], leap: 7, span: [-4, 11], bpm: 76, chromatic: false },
+	{ bars: [4, 8], fifths: 4, minor: true, meters: [4, 3, 2, 6], leap: 7, span: [-4, 11], bpm: 80, chromatic: true },
+	{ bars: [8], fifths: 5, minor: true, meters: [4, 3, 2, 6], leap: 7, span: [-4, 11], bpm: 84, chromatic: true }
 ];
 
 export const rulesFor = (level: number) => LEVELS[Math.min(MAX_LEVEL, Math.max(1, Math.round(level))) - 1];
@@ -73,7 +75,7 @@ export const rulesFor = (level: number) => LEVELS[Math.min(MAX_LEVEL, Math.max(1
  * adds one thing: halves and quarters, whole notes, eighths, rests and dotted halves, dotted
  * quarters, sixteenths.
  */
-const CELLS: Record<3 | 4, [number, string][]> = {
+const CELLS: Record<DrillMeter, [number, string][]> = {
 	4: [
 		[1, '4 4 4 4'],
 		[1, '8 4 4'],
@@ -103,10 +105,31 @@ const CELLS: Record<3 | 4, [number, string][]> = {
 		[4, '4 r4 4'],
 		[5, '6 2 4'],
 		[6, '1 1 2 4 4']
+	],
+	2: [
+		[3, '4 4'],
+		[3, '8'],
+		[3, '2 2 4'],
+		[3, '4 2 2'],
+		[3, '2 2 2 2'],
+		[4, 'r4 4'],
+		[5, '6 2'],
+		[6, '1 1 2 4']
+	],
+	// 6/8 comes in at level 5, with the dotted quarter: even eighths, long and short, then the siciliano.
+	6: [
+		[5, '2 2 2 2 2 2'],
+		[5, '6 6'],
+		[5, '4 2 4 2'],
+		[5, '6 2 2 2'],
+		[5, '2 2 2 6'],
+		[5, '4 2 6'],
+		[6, 'r2 2 2 6'],
+		[6, '3 1 2 6']
 	]
 };
 /** The last bar: a long note on the tonic. */
-const ENDINGS: Record<3 | 4, [number, string][]> = {
+const ENDINGS: Record<DrillMeter, [number, string][]> = {
 	4: [
 		[1, '4 4 8'],
 		[2, '16'],
@@ -117,6 +140,14 @@ const ENDINGS: Record<3 | 4, [number, string][]> = {
 		[1, '4 8'],
 		[4, '12'],
 		[4, '4 8']
+	],
+	2: [
+		[3, '8'],
+		[3, '4 4']
+	],
+	6: [
+		[5, '12'],
+		[5, '4 2 6']
 	]
 };
 
@@ -178,14 +209,15 @@ export function makeMelody(instrument: ProfileId, clef: Clef, level: number, ran
 	const { base } = placed;
 	const [low, high] = placed.span;
 	const meter = pick(rules.meters, random);
-	const bars = pick(rules.bars, random);
+	// Bars of 2/4 are half as long: twice as many make a phrase of the same length.
+	const bars = pick(rules.bars, random) * (meter === 2 ? 2 : 1);
 	const cells = CELLS[meter].filter(([at]) => at <= Math.round(level)).map(([, text]) => text);
 	const endings = ENDINGS[meter].filter(([at]) => at <= Math.round(level)).map(([, text]) => text);
 
 	// The rhythm, bar by bar; the last bar a long note to end on.
 	const rhythm: { len: number; rest: boolean; at: number; bar: number }[] = [];
 	for (let bar = 0; bar < bars; bar++) {
-		let at = bar * meter * 4;
+		let at = bar * barLength(meter);
 		for (const each of cell(pick(bar === bars - 1 ? endings : cells, random))) {
 			rhythm.push({ ...each, at, bar });
 			at += each.len;
@@ -270,14 +302,14 @@ export function makeMelody(instrument: ProfileId, clef: Clef, level: number, ran
 		notes.push({ at, len, rest, pitch: fromDiatonic(index, alter) });
 		n++;
 	}
-	return { fifths, mode, meter, bars, bpm: rules.bpm, clef, notes };
+	return { fifths, mode, meter, bars, bpm: beatsPerMinute(rules.bpm, meter), clef, notes };
 }
 
 export const beatMs = (bpm: number) => 60_000 / bpm;
 
 /** The notes to play, as sounding MIDI notes and when they start (ms after the first beat). */
 export function expectedNotes(melody: Melody, transposition: number): { midi: number; onset: number }[] {
-	const sixteenth = beatMs(melody.bpm) / 4;
+	const sixteenth = beatMs(melody.bpm) / beatLength(melody.meter);
 	return melody.notes.filter((note) => note.pitch).map((note) => ({ midi: midiOf(note.pitch!) + transposition, onset: note.at * sixteenth }));
 }
 
@@ -296,7 +328,7 @@ export function compass(melody: Melody): { low: Pitch; high: Pitch } {
  * notes, accidentals outside the key, the widest leap. Bars counted from 1.
  */
 export function lookOut(melody: Melody): { shortest?: { len: number; bar: number }; accidental?: number; leap?: { steps: number; bar: number } } {
-	const barOf = (at: number) => Math.floor(at / (melody.meter * 4)) + 1;
+	const barOf = (at: number) => Math.floor(at / barLength(melody.meter)) + 1;
 	const sounding = melody.notes.filter((note) => note.pitch);
 	const result: ReturnType<typeof lookOut> = {};
 	const shortest = sounding.reduce((best, note) => (note.len < best.len ? note : best));
