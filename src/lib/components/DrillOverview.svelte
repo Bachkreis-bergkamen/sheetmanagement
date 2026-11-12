@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { config } from '#lib/config/index.ts';
 	import { t } from '#lib/i18n/index.ts';
 	import type { Overview } from '#lib/practice/drills/sharing.ts';
 
@@ -10,7 +11,7 @@
 	const tx = t.drills.overview;
 	const percent = (share: number | null) => (share === null ? '–' : `${Math.round(share * 100)} %`);
 	const skillName = (skill: string) => (t.drills.kinds as Record<string, { title: string }>)[skill]?.title ?? tx.skills[skill] ?? skill;
-	const dateOf = (day: string) => new Date(`${day}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+	const dateOf = (day: string) => new Date(`${day}T12:00:00`).toLocaleDateString(config.locale, { day: 'numeric', month: 'short' });
 </script>
 
 <article class="ui-card overview">

@@ -51,10 +51,21 @@ export interface OrchestraScope {
 	partners?: string[];
 }
 
-const rowsOf = (table: ProgramTable, concert: string, scope?: OrchestraScope) =>
+/**
+ * The concert a programme belongs to: the text its rows name it with, and which texts mean it
+ * ("Weihnachtskonzert" written before a second one of that name came, see concert-ref.ts).
+ * A plain text matches itself.
+ */
+export type ProgramConcert = string | { ref: string; matches: (text: string) => boolean };
+
+const refOf = (concert: ProgramConcert) => (typeof concert === 'string' ? concert : concert.ref);
+const matches = (concert: ProgramConcert, text: string) =>
+	typeof concert === 'string' ? normalize(text) === normalize(concert) : concert.matches(text);
+
+const rowsOf = (table: ProgramTable, concert: ProgramConcert, scope?: OrchestraScope) =>
 	table.rows.filter(
 		(row) =>
-			normalize(row.values.concert) === normalize(concert) &&
+			matches(concert, row.values.concert) &&
 			(!scope || sameOrchestra(rowOrchestra(row.values.orchestra, scope.orchestras, scope.partners), scope.orchestra))
 	);
 
@@ -62,7 +73,7 @@ const rowsOf = (table: ProgramTable, concert: string, scope?: OrchestraScope) =>
  * The concert's programme rows as they are in the sheet. The editor sends this back
  * when saving; if the sheet changed in between, someone else edited the programme.
  */
-export function programVersion(table: ProgramTable, concert: string, scope?: OrchestraScope): string {
+export function programVersion(table: ProgramTable, concert: ProgramConcert, scope?: OrchestraScope): string {
 	return JSON.stringify(
 		rowsOf(table, concert, scope).map(({ values: v }) => [v.position, v.piece, v.notes, ...GUEST_FIELDS.map((field) => v[field] ?? '')])
 	);
@@ -72,11 +83,11 @@ export function programVersion(table: ProgramTable, concert: string, scope?: Orc
  * Rows to append (numbered 1, 2, 3 …) and the old rows to delete afterwards. With several
  * orchestras, only the scope's rows go, and the new ones name their orchestra.
  */
-export function planProgramSave(table: ProgramTable, concert: string, entries: EditorEntry[], scope?: OrchestraScope) {
+export function planProgramSave(table: ProgramTable, concert: ProgramConcert, entries: EditorEntry[], scope?: OrchestraScope) {
 	const orchestra = scope && scope.orchestras.length + (scope.partners?.length ?? 0) > 1 ? (scope.orchestra ?? '') : '';
 	return {
 		append: entries.map((entry, i) => ({
-			concert,
+			concert: refOf(concert),
 			position: String(i + 1),
 			piece: entry.piece,
 			notes: entry.notes,

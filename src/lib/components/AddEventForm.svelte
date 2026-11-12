@@ -5,6 +5,7 @@
 	import { splitList } from '#lib/repertoire/lists.ts';
 	import { FormState } from '#lib/forms.svelte.ts';
 	import { t } from '#lib/i18n/index.ts';
+	import DateField from './DateField.svelte';
 	import Icon from './Icon.svelte';
 	import PlaceInput from './PlaceInput.svelte';
 	import Segmented from './Segmented.svelte';
@@ -60,8 +61,8 @@
 	$effect(() => {
 		date = values.date ?? '';
 	});
-	/** A concert that's over: into the archive, not the calendar. */
-	const past = $derived(!editing && archive && type === 'konzert' && !!date && date < today);
+	/** A concert that's over: into the archive, not the calendar. "1957" or "1957-12" is over too. */
+	const past = $derived(!editing && archive && type === 'konzert' && !!date && date < today.slice(0, date.length));
 	const word = (type: NewEventType) => {
 		const first = config.events[type][0] ?? type;
 		return first.charAt(0).toUpperCase() + first.slice(1);
@@ -107,7 +108,8 @@
 			/>
 		</label>
 		<div class="when" class:only-date={past}>
-			<label class="field date">{t.calendar.add.date}<input type="date" name="date" required bind:value={date} max={calendar || editing ? last : today} /></label>
+			<!-- Old concerts are often known only by month or year: those go into the archive as they are. -->
+			<div class="date"><DateField name="date" label={t.calendar.add.date} required bind:value={date} fuzzy={!editing && archive && type === 'konzert'} max={calendar || editing ? last : today} /></div>
 			{#if !past}
 				<label class="field">{t.calendar.add.start}<input type="time" name="start" step="900" value={values.start ?? ''} /></label>
 				<label class="field">{t.calendar.add.end}<input type="time" name="end" step="900" value={values.end ?? ''} /></label>

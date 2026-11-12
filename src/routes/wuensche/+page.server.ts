@@ -66,7 +66,7 @@ function upcomingConcerts(library: Awaited<ReturnType<typeof getLibrary>>) {
 	return library.concerts
 		.filter((concert) => concert.sheet && !isPastConcert(concert, library.today))
 		.reverse()
-		.map((concert) => ({ title: concert.sheet!.title, label: concert.label?.long }));
+		.map((concert) => ({ title: concert.sheet!.ref, label: concert.label?.long }));
 }
 
 /** Runs one change; a missing tab or a failed write becomes a message. */

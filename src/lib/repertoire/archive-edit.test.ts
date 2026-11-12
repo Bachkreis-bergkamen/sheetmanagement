@@ -20,9 +20,14 @@ describe('checkNewConcert', () => {
 	it.each([
 		[{ title: '  ' }, 'title-missing'],
 		[{ date: 'im Sommer' }, 'bad-date'],
-		[{ title: 'weihnachtskonzert 1957 ' }, 'title-taken']
+		[{ title: 'weihnachtskonzert 1957 ', date: '12.1957' }, 'day-taken'],
+		[{ title: 'Weihnachtskonzert 1957', date: '1957-12' }, 'day-taken']
 	] as const)('%j → %s', (change, problem) => {
 		expect(checkNewConcert({ ...concert, ...change }, concerts)).toEqual({ problem });
+	});
+
+	it('takes a name again for another day: the day decides', () => {
+		expect(checkNewConcert({ ...concert, title: 'Weihnachtskonzert 1957', date: '21.12.1957' }, concerts)).toMatchObject({ values: { date: '21.12.1957' } });
 	});
 
 	it('trims what was typed', () => {

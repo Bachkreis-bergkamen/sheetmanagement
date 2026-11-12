@@ -15,7 +15,6 @@ import { addAssignment, assignmentEditor, comingConcerts, deleteAssignment } fro
 import { choicesAt } from '#lib/music/part-assignments.ts';
 import { checkNote, notesOf, sectionOptions } from '#lib/notes/piece-notes.ts';
 import { today } from '#lib/server/members.ts';
-import { normalize } from '#lib/repertoire/sheet.ts';
 import { daysUntilDue, loanState, loansOf } from '#lib/loans/loans.ts';
 import { formatDay } from '#lib/events/format.ts';
 import { pieceArt } from '#lib/music/piece-art.ts';
@@ -269,9 +268,8 @@ function upcoming(library: Library, piece: LibraryPiece, planned: Map<string, { 
  * gets the choices for "Für" and "Konzert".
  */
 function notesFor(library: Library, piece: LibraryPiece, notes: Awaited<ReturnType<typeof getPieceNotes>>['notes'], locals: App.Locals) {
-	const concerts = new Map(library.concerts.flatMap((concert) => (concert.sheet ? [[normalize(concert.sheet.title), concert] as const] : [])));
 	const shown = notesOf(notes, piece.sheet?.title ?? piece.title).map((note) => {
-		const concert = note.concert ? concerts.get(normalize(note.concert)) : undefined;
+		const concert = note.concert ? library.concertByName(note.concert) : undefined;
 		return {
 			id: note.id,
 			text: note.text,
@@ -296,7 +294,7 @@ function noteConcerts(library: Library, piece: LibraryPiece) {
 		.filter((concert) => concert.sheet && !isPastConcert(concert, library.today))
 		.reverse()
 		.sort((a, b) => Number(piece.playedAt.includes(b.id)) - Number(piece.playedAt.includes(a.id)))
-		.map((concert) => ({ value: concert.sheet!.title, label: concert.label ? `${concert.title} · ${concert.label.long}` : concert.title }));
+		.map((concert) => ({ value: concert.sheet!.ref, label: concert.label ? `${concert.title} · ${concert.label.long}` : concert.title }));
 }
 
 /** Shares a composer: "Mozart, Haydn" and "Haydn" do. */

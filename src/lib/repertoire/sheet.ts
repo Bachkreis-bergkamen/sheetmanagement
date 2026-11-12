@@ -1,6 +1,7 @@
 import { cleanLink } from '#lib/links.ts';
 import { t } from '#lib/i18n/index.ts';
 import { searchText } from '#lib/music/text.ts';
+import { ConcertNames, concertKey } from './concert-ref.ts';
 import { fuzzyDateKey, parseFuzzyDate, type FuzzyDate } from './dates.ts';
 import { parseDuration } from './duration.ts';
 import { concertPartners, readEnsembles, withGuests, type Ensemble } from './ensembles.ts';
@@ -121,6 +122,8 @@ export interface SheetConcert {
 	/** Stable key: the calendar event id, or "s-<Anlass>" for concerts only in the sheet. */
 	key: string;
 	title: string;
+	/** How other rows name it: "Anlass", with the date when another concert has the same name. */
+	ref: string;
 	date: FuzzyDate | null;
 	/** As entered, shown when it can't be read as a date. */
 	dateText: string;
@@ -148,6 +151,7 @@ export type ProblemKind =
 	| 'duplicate-concert'
 	| 'unknown-piece'
 	| 'unknown-concert'
+	| 'ambiguous-concert'
 	| 'bad-date'
 	| 'duplicate-member'
 	| 'unknown-right';
@@ -171,7 +175,8 @@ export interface Repertoire {
 	piecesByTitle: Map<string, SheetPiece>;
 	concertsByKey: Map<string, SheetConcert>;
 	concertsByEvent: Map<string, SheetConcert>;
-	concertsByTitle: Map<string, SheetConcert>;
+	/** Finds a concert by the text other rows name it with (see concert-ref.ts). */
+	concertNames: ConcertNames<SheetConcert>;
 	/** Concert keys per piece key, in date order. */
 	playedAt: Map<string, string[]>;
 	tables: { [K in RepertoireTab]: Table<ColumnKey<K> & string> };
@@ -251,25 +256,29 @@ export function buildRepertoire(values: SheetValues): Repertoire {
 
 	const ensembles = readEnsembles(readTable(values.ensembles ?? [], LAYOUT.ensembles.columns).rows.map((row) => row.values));
 
-	// Concerts. Programme rows refer to them by "Anlass", so that has to be unique.
+	// Concerts: a name and a day. Two concerts may share a name ("Weihnachtskonzert") on other days;
+	// other rows then name them with the date (concert-ref.ts).
 	const concerts: SheetConcert[] = [];
 	const concertsByKey = new Map<string, SheetConcert>();
 	const concertsByEvent = new Map<string, SheetConcert>();
-	const concertsByTitle = new Map<string, SheetConcert>();
+	const named = new Set<string>();
 	for (const { row, values: v } of tables.concerts.rows) {
 		if (!v.title && !v.eventId) continue;
 		const event = v.eventId;
-		const title = normalize(v.title);
-		if ((event && concertsByEvent.has(event)) || (title && concertsByTitle.has(title))) {
+		const date = v.date ? parseFuzzyDate(v.date) : null;
+		const nameAndDay = v.title.trim() ? concertKey(v.title, date ?? v.date) : '';
+		if ((event && concertsByEvent.has(event)) || (nameAndDay && named.has(nameAndDay))) {
 			problems.push({ kind: 'duplicate-concert', tab: LAYOUT.concerts.tab, row, value: v.title || event });
 			continue;
 		}
-		const date = v.date ? parseFuzzyDate(v.date) : null;
 		if (v.date && !date) problems.push({ kind: 'bad-date', tab: LAYOUT.concerts.tab, row, value: v.date });
+		const base = `s-${slug(v.title)}`;
 		const concert: SheetConcert = {
 			row,
-			key: event || uniqueKey(`s-${slug(v.title)}`, concertsByKey),
+			// The first with a name keeps the key it always had; another on another day gets its date.
+			key: event || uniqueKey(concertsByKey.has(base) && date ? `${base}-${fuzzyDateKey(date)}` : base, concertsByKey),
 			title: v.title,
+			ref: v.title,
 			date,
 			dateText: v.date,
 			location: optional(v.location),
@@ -284,15 +293,17 @@ export function buildRepertoire(values: SheetValues): Repertoire {
 		concerts.push(concert);
 		concertsByKey.set(concert.key, concert);
 		if (event) concertsByEvent.set(event, concert);
-		if (title) concertsByTitle.set(title, concert);
+		if (nameAndDay) named.add(nameAndDay);
 	}
+	const concertNames = new ConcertNames(concerts);
+	for (const concert of concerts) concert.ref = concertNames.ref(concert);
 
 	// Programme rows.
 	for (const { row, values: v } of tables.program.rows) {
 		if (!v.concert && !v.piece) continue;
-		const concert = concertsByTitle.get(normalize(v.concert));
-		if (!concert) {
-			problems.push({ kind: 'unknown-concert', tab: LAYOUT.program.tab, row, value: v.concert });
+		const concert = concertNames.find(v.concert);
+		if (!concert || concert === 'ambiguous') {
+			problems.push({ kind: concert ? 'ambiguous-concert' : 'unknown-concert', tab: LAYOUT.program.tab, row, value: v.concert });
 			continue;
 		}
 		const piece = v.piece ? piecesByTitle.get(normalize(v.piece)) : undefined;
@@ -321,11 +332,11 @@ export function buildRepertoire(values: SheetValues): Repertoire {
 	const owners = new Set(concerts.filter((concert) => concert.program.length).map((concert) => concert.key));
 	for (const concert of concerts) {
 		if (!concert.sameProgramAs || owners.has(concert.key)) continue;
-		let source = concertsByTitle.get(normalize(concert.sameProgramAs));
+		let source = concertNames.get(concert.sameProgramAs);
 		// A chain ("3. → 2. → 1.") is followed to the concert with the rows.
 		for (const seen = new Set([concert.key]); source && !owners.has(source.key) && !seen.has(source.key); ) {
 			seen.add(source.key);
-			source = source.sameProgramAs ? concertsByTitle.get(normalize(source.sameProgramAs)) : undefined;
+			source = source.sameProgramAs ? concertNames.get(source.sameProgramAs) : undefined;
 		}
 		if (!source || source.key === concert.key) {
 			problems.push({ kind: 'unknown-concert', tab: LAYOUT.concerts.tab, row: concert.row, value: concert.sameProgramAs });
@@ -369,9 +380,25 @@ export function buildRepertoire(values: SheetValues): Repertoire {
 		piecesByTitle,
 		concertsByKey,
 		concertsByEvent,
-		concertsByTitle,
+		concertNames,
 		playedAt,
 		tables,
 		problems
 	};
+}
+
+/** A concert as the programme editor names and finds its rows (program-edit.ts). */
+export function programConcert(repertoire: Pick<Repertoire, 'concertNames'>, concert: SheetConcert) {
+	return { ref: concert.ref, matches: (text: string) => repertoire.concertNames.get(text)?.key === concert.key };
+}
+
+/** The concert's own row in "Konzerte": by its calendar event, else by its name and day. */
+export function findConcertRow<K extends string>(
+	table: Table<K>,
+	concert: Pick<SheetConcert, 'title' | 'date' | 'dateText' | 'eventId'>
+): TableRow<K> | undefined {
+	const cells = (row: TableRow<K>) => row.values as Record<string, string>;
+	if (concert.eventId) return table.rows.find((row) => cells(row).eventId === concert.eventId);
+	const wanted = concertKey(concert.title, concert.date ?? concert.dateText);
+	return table.rows.find((row) => !cells(row).eventId && concertKey(cells(row).title ?? '', cells(row).date ?? '') === wanted);
 }

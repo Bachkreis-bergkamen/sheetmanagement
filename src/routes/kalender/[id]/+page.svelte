@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import AddEventForm from '#lib/components/AddEventForm.svelte';
+	import ArchiveConcertForm from '#lib/components/ArchiveConcertForm.svelte';
 	import { enhance } from '$app/forms';
 	import { replaceState } from '$app/navigation';
 	import { t } from '#lib/i18n/index.ts';
@@ -21,6 +22,8 @@
 	/** The form that changes this date in the calendar, for those who plan dates. */
 	let editing = $state(false);
 	let editSaved = $state(false);
+	/** The archive concert's form, for those who keep the archive. */
+	let archiveEditing = $state(false);
 	const orchestraSave = new FormState();
 	const publishSave = new FormState();
 	const detailsSave = new FormState();
@@ -129,6 +132,9 @@
 			<a class="btn" href={partsUrl}><Icon name="parts" size={18} />{t.nav.myParts}</a>
 		{/if}
 		<div class="ui-actions">
+			{#if data.kind === 'archive' && data.archiveEdit}
+				<button type="button" aria-expanded={archiveEditing} onclick={() => (archiveEditing = !archiveEditing)}><Icon name="edit" size={16} />{t.calendar.edit.open}</button>
+			{/if}
 			{#if data.kind === 'event' && data.editing}
 				<button type="button" aria-expanded={editing} onclick={() => ((editing = !editing), (editSaved = false))}><Icon name="edit" size={16} />{t.calendar.edit.open}</button>
 			{/if}
@@ -140,6 +146,13 @@
 		</div>
 	</div>
 </header>
+
+{#if data.kind === 'archive' && data.archiveEdit}
+	<div class="edit">
+		<ArchiveConcertForm edit={data.archiveEdit} result={form} bind:open={archiveEditing} />
+	</div>
+	{#if page.url.searchParams.has('bearbeitet') && !archiveEditing}<p class="saved edit-saved" role="status"><Icon name="check" size={16} />{t.archive.saved}</p>{/if}
+{/if}
 
 {#if data.kind === 'event' && data.editing}
 	<div class="edit">

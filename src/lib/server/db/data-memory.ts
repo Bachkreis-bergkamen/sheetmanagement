@@ -1,5 +1,5 @@
 import type { TabKey } from '#lib/repertoire/sheet.ts';
-import { DataCheckError, DataConflictError, decode, encode, LinkIndex, SCHEMA, snake, uniqueValues, type SqlRow } from './schema.ts';
+import { DataCheckError, DataConflictError, decode, encode, LinkIndex, namedRowsOf, SCHEMA, snake, uniqueValues, type SqlRow } from './schema.ts';
 import type { DataRow, DataState, Store } from './types.ts';
 
 /**
@@ -63,10 +63,11 @@ export function memoryData(): DataMethods {
 		async readData(tabs) {
 			const byId = new Map([...tables].map(([tab, rows]) => [tab, new Map(rows.map((stored) => [stored.id, stored.row]))]));
 			const target = (tab: TabKey, id: number) => byId.get(tab)?.get(id);
+			const named = namedRowsOf(byId);
 			return Object.fromEntries(
 				[...present]
 					.filter((tab) => !tabs || tabs.includes(tab))
-					.map((tab) => [tab, rowsOf(tab).map(({ id, rev, row }): DataRow => ({ id, rev, cells: decode(tab, row, target) }))])
+					.map((tab) => [tab, rowsOf(tab).map(({ id, rev, row }): DataRow => ({ id, rev, cells: decode(tab, row, target, named) }))])
 			);
 		},
 		async addDataTab(tab) {

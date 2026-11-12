@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { config } from '#lib/config/index.ts';
 	import { t } from '#lib/i18n/index.ts';
 	import BadgeMedal from '#lib/components/BadgeMedal.svelte';
 	import Conductor from '#lib/components/Conductor.svelte';
@@ -382,7 +383,7 @@
 	}
 	const BADGE_GROUPS: BadgeGroup[] = ['read', 'hear', 'play', 'steady'];
 	const earnedCount = $derived(badges.filter((badge) => drills.badges?.[badge.id]).length);
-	const dateOf = (day: string) => new Date(`${day}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+	const dateOf = (day: string) => new Date(`${day}T12:00:00`).toLocaleDateString(config.locale, { day: 'numeric', month: 'short' });
 
 	async function reset() {
 		if (!confirm(tx.confirmReset)) return;

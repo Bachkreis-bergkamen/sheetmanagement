@@ -2875,6 +2875,14 @@ export const de = {
 			kummer: 'Kummerkasten (eigene Nachrichten gelöscht, Antworten ohne Namen)'
 		}
 	},
+	dateField: {
+		placeholder: 'TT.MM.JJJJ',
+		placeholderFuzzy: 'TT.MM.JJJJ, MM.JJJJ oder JJJJ',
+		pick: 'Im Kalender wählen',
+		unreadable: 'Bitte als Tag.Monat.Jahr, z. B. 21.12.2026.',
+		unreadableFuzzy: 'Bitte als 21.12.1957, 12.1957 oder 1957.',
+		tooLate: (last: string) => `Geht bis ${last}.`
+	},
 	archive: {
 		addPiece: 'Stück ohne Noten eintragen',
 		addPieceLead: 'Für gespielte Stücke ohne Noten im Archiv.',
@@ -2886,9 +2894,18 @@ export const de = {
 		failed: 'Die Tabelle konnte gerade nicht geändert werden. Bitte versuch es noch einmal.',
 		problems: {
 			'title-missing': 'Bitte einen Namen angeben.',
-			'title-taken': 'Diesen Namen gibt es schon. Programme verweisen über den Namen, er muss eindeutig sein, z. B. mit Jahreszahl.',
-			'bad-date': 'Das Datum ist nicht lesbar. Möglich sind 1957, 1957-12, 21.12.1957 oder 12.1957.'
-		}
+			'title-taken': 'Diesen Titel gibt es schon. Programme finden Stücke über den Titel, er muss eindeutig sein.',
+			'day-taken': 'An diesem Tag gibt es schon ein Konzert mit diesem Namen. Derselbe Name an einem anderen Tag geht.',
+			'bad-date': 'Das Datum ist nicht lesbar. Möglich sind 21.12.1957, 12.1957 oder 1957.'
+		},
+		editConcert: 'Archiveintrag bearbeiten',
+		editConcertLead: 'Name, Tag, Ort und Orchester. Programm, Hinweise und Wünsche bleiben bei diesem Konzert.',
+		concertTitle: 'Anlass',
+		date: 'Datum',
+		dateHint: 'TT.MM.JJJJ, nur Monat (12.1957) oder Jahr (1957)',
+		location: 'Ort',
+		save: 'Speichern',
+		saved: 'Gespeichert.'
 	},
 	pieceEditor: {
 		title: (piece: string) => `Bearbeiten: ${piece}`,
@@ -3243,6 +3260,7 @@ export const de = {
 			'duplicate-concert': 'Konzert doppelt',
 			'unknown-piece': 'Stück nicht in „Stücke“',
 			'unknown-concert': 'Konzert nicht in „Konzerte“',
+			'ambiguous-concert': 'Mehrere Konzerte heißen so: bitte mit Datum, z. B. „Weihnachtskonzert (21.12.1957)“',
 			'bad-date': 'Datum nicht lesbar',
 			'duplicate-member': 'Mitglied doppelt',
 			'unknown-right': 'Unbekanntes Recht'

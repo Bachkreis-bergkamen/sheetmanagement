@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { config } from '#lib/config/index.ts';
 	import { t } from '#lib/i18n/index.ts';
 	import Icon from '#lib/components/Icon.svelte';
 	import { CHALLENGE_DAYS, type BoardEntry, type Sharing } from '#lib/practice/drills/sharing.ts';
@@ -35,7 +36,7 @@
 	/** Choices a young player made that wait for a parent. */
 	const waiting = $derived(sharing.child && !sharing.consented && (chosen.board || chosen.leaders));
 	const me = $derived(board?.entries.find((entry) => entry.me));
-	const dayOf = (day: string) => new Date(`${day}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+	const dayOf = (day: string) => new Date(`${day}T12:00:00`).toLocaleDateString(config.locale, { day: 'numeric', month: 'short' });
 </script>
 
 <section class="ui-card sharing" aria-labelledby="sharing-title">
