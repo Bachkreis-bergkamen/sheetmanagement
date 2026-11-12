@@ -256,7 +256,7 @@ The binding `DB` in `wrangler.toml`: where notifications, the reminder log, date
 
 ### Email
 
-Sign-in links for members without a Google account, and reminders by email for members without notifications ([#123](https://github.com/lgreil/sheetmanagement/issues/123)). The mails go out through Gmail from the orchestra's own Google account: free, and they don't land in spam. Needs sign-in (step 9) and the database (above).
+Sign-in links for members without a Google account, and reminders by email for members without notifications ([#123](https://github.com/Bachkreis-bergkamen/sheetmanagement/issues/123)). The mails go out through Gmail from the orchestra's own Google account: free, and they don't land in spam. Needs sign-in (step 9) and the database (above).
 
 1. In the Cloud project of step 1, turn on the **Gmail API** (APIs & Services → Library).
 2. On the **OAuth consent screen**, add the scope `https://www.googleapis.com/auth/gmail.send` and set the publishing status to **In production**. Google then shows a warning that the app isn't verified; that's fine for an orchestra (fewer than 100 accounts ever connect it). In "Testing", the permission ends after 7 days.

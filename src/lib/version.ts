@@ -5,7 +5,7 @@
  */
 
 /** Where the app's source lives. */
-export const REPOSITORY = 'https://github.com/lgreil/sheetmanagement';
+export const REPOSITORY = 'https://github.com/Bachkreis-bergkamen/sheetmanagement';
 
 export const APP_VERSION = __APP_VERSION__;
 /** The full commit hash; empty when the build had no git (e.g. from a zip). */

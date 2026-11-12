@@ -1,8 +1,8 @@
 blank_issues_enabled: true
 contact_links:
   - name: Security problem
-    url: https://github.com/lgreil/sheetmanagement/security/advisories/new
+    url: https://github.com/Bachkreis-bergkamen/sheetmanagement/security/advisories/new
     about: Please report security problems privately, not as an issue.
   - name: Wiki
-    url: https://github.com/lgreil/sheetmanagement/wiki
+    url: https://github.com/Bachkreis-bergkamen/sheetmanagement/wiki
     about: Setting it up, configuration and frequent questions.

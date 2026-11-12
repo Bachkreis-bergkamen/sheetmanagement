@@ -4,7 +4,7 @@ Sheetmanagement handles member names, email addresses and an orchestra's Google 
 
 ## Reporting a vulnerability
 
-Please **don't open a public issue**. Report it privately through [GitHub's security advisories](https://github.com/lgreil/sheetmanagement/security/advisories/new). You'll get an answer within a week.
+Please **don't open a public issue**. Report it privately through [GitHub's security advisories](https://github.com/Bachkreis-bergkamen/sheetmanagement/security/advisories/new). You'll get an answer within a week.
 
 Helpful to include: what's affected, how to reproduce it (the demo at https://noten-demo.bachkreis.workers.dev or `pnpm dev:demo` is fine for that), and what an attacker could do with it.
 

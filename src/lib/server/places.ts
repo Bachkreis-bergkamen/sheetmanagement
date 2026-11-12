@@ -10,7 +10,7 @@ import { getLibrary } from './library.ts';
  */
 
 const PHOTON = 'https://photon.komoot.io/api/';
-const HEADERS = { 'user-agent': 'Notenarchiv/1.0 (https://github.com/lgreil/sheetmanagement)' };
+const HEADERS = { 'user-agent': 'Notenarchiv/1.0 (https://github.com/Bachkreis-bergkamen/sheetmanagement)' };
 /** The form shows what it has after this; known places don't wait for OpenStreetMap. */
 const LOOKUP_TIMEOUT_MS = 2500;
 /** Typed queries repeat while someone types and corrects; kept in memory only, never in KV (writes are limited). */

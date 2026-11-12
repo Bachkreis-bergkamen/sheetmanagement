@@ -6,7 +6,7 @@ Name, logo, accent colour, the look (*bold*: condensed headings and the logo beh
 
 ## Variables
 
-Set with `pnpm wrangler secret put <NAME>`, or in `.dev.vars` locally. The full list is in [`.dev.vars.example`](https://github.com/lgreil/sheetmanagement/blob/main/.dev.vars.example).
+Set with `pnpm wrangler secret put <NAME>`, or in `.dev.vars` locally. The full list is in [`.dev.vars.example`](https://github.com/Bachkreis-bergkamen/sheetmanagement/blob/main/.dev.vars.example).
 
 | Variable | What |
 |---|---|
@@ -22,7 +22,7 @@ Rented music, the GEMA list, attendance, sign-ups, wishes, the calendar feed, sa
 
 ## Presets: instruments, file names, calendar keywords
 
-Everything else orchestra-specific lives in [`src/lib/config/`](https://github.com/lgreil/sheetmanagement/tree/main/src/lib/config):
+Everything else orchestra-specific lives in [`src/lib/config/`](https://github.com/Bachkreis-bergkamen/sheetmanagement/tree/main/src/lib/config):
 
 - **Instruments:** names, display order, alternative spellings
 - **Naming rules:** how part files are named (separator, status words like `FEHLT`, the `@` prefix for scores)

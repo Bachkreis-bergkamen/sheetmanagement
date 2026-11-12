@@ -13,7 +13,7 @@ import { appEnv, runInBackground } from './env.ts';
 const API = 'https://www.wikidata.org/w/api.php';
 const SPARQL = 'https://query.wikidata.org/sparql';
 /** Wikimedia asks servers to say who they are. */
-const HEADERS = { 'user-agent': 'Notenarchiv/1.0 (https://github.com/lgreil/sheetmanagement)' };
+const HEADERS = { 'user-agent': 'Notenarchiv/1.0 (https://github.com/Bachkreis-bergkamen/sheetmanagement)' };
 /** Portraits and lifetimes don't change; misses are looked up again after the same time. */
 const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 /** A page doesn't wait longer than this for a first lookup; it shows the genre's picture meanwhile. */
