@@ -63,7 +63,7 @@ jobs:
           if [ "$EVENT" = pull_request ]; then
             # If the diff fails, the whole suite runs.
             if changed=$(git diff --name-only --no-renames "origin/$BASE...HEAD"); then
-              specs=$(printf '%s\n' "$changed" | node .github/scripts/e2e-specs.mjs)
+              specs=$(printf '%s\n' "$changed" | E2E_BASE="origin/$BASE" node .github/scripts/e2e-specs.mjs)
             fi
           fi
           echo "specs=$specs" >> "$GITHUB_OUTPUT"
