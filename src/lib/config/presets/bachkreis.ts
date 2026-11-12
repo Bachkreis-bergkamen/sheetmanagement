@@ -275,7 +275,7 @@ export const bachkreis: OrchestraConfig = {
 		{
 			name: 'Dirigat',
 			description: 'Plant Programme, sieht, wer kommt, und erfasst, wer da war.',
-			rights: ['programme.bearbeiten', 'anmeldungen.sehen', 'anwesenheit.erfassen', 'kummerkasten.lesen']
+			rights: ['programme.bearbeiten', 'anmeldungen.sehen', 'anwesenheit.erfassen', 'kummerkasten.lesen', 'ueben.begleiten']
 		},
 		{ name: 'Notenwart', description: 'Pflegt Noten, Stücke und das Archiv.', rights: ['stuecke.bearbeiten', 'archiv.bearbeiten'] },
 		{

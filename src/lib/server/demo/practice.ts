@@ -26,4 +26,33 @@ export async function seedDemoPractice(store: Store, today: string): Promise<voi
 		const minutes = week[weekday] + ((back * 7) % 23) - 6;
 		if (minutes > 5) await store.addPractice(DEMO_MEMBER.email, day, minutes * 60, DAY_CAP_SECONDS);
 	}
+	await seedDemoDrills(store, today);
+}
+
+/**
+ * Others in the orchestra who share their Übebereich summary (#300), so the weekly board and
+ * the conductor's overview have something to show. The demo member shares nothing yet: as a
+ * young player, she can turn it on and her parent can agree in the parents' area.
+ */
+async function seedDemoDrills(store: Store, today: string): Promise<void> {
+	const others: [email: string, everyNth: number, skills: string[]][] = [
+		['greta@example.org', 1, ['notes', 'scale', 'sight']],
+		['jonas@example.org', 2, ['keys', 'ear', 'rhythm']],
+		['lea@example.org', 1, ['notes', 'ear', 'tune']],
+		['paul@example.org', 3, ['scale', 'play']],
+		['ida@example.org', 2, ['notes', 'trans']]
+	];
+	for (const [email, everyNth, skills] of others) {
+		await store.setDrillSharing(email, { board: true, leaders: true, parents: false });
+		const rows = [];
+		for (let back = 27; back >= 0; back--) {
+			if ((back + email.length) % everyNth) continue;
+			const day = addDays(today, -back);
+			for (const [i, skill] of skills.entries()) {
+				const answers = 8 + ((back * 5 + i * 7) % 15);
+				rows.push({ day, skill, answers, right: answers - ((back + i) % 4), seconds: answers * 9 });
+			}
+		}
+		await store.saveDrillDays(email, rows);
+	}
 }

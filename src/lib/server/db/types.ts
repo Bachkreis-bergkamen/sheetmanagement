@@ -5,6 +5,7 @@ import type { TabKey } from '#lib/repertoire/sheet.ts';
 import type { PreparedImport } from './schema.ts';
 import type { Stroke } from '#lib/practice/marks.ts';
 import type { PracticeDay } from '#lib/practice/practice.ts';
+import type { Sharing, SummaryRow } from '#lib/practice/drills/sharing.ts';
 import type { TourOutcome } from '#lib/tour/tour.ts';
 import type { Ticket, TicketOrder, TicketSale } from '#lib/tickets/tickets.ts';
 
@@ -144,6 +145,21 @@ export interface Store {
 	practiceOf(email: string): Promise<PracticeDay[]>;
 	/** Forgets all of a member's practice time. */
 	deletePractice(email: string): Promise<void>;
+
+	/** What a member shares from the Übebereich (#300); null while they share nothing. */
+	drillSharing(email: string): Promise<Sharing | null>;
+	/** Everyone who shares anything, with what. For the board and the leaders' view. */
+	drillSharingAll(): Promise<Map<string, Sharing>>;
+	/** Sets what a member shares; sharing nothing deletes the choice and every summary sent. */
+	setDrillSharing(email: string, sharing: Sharing): Promise<void>;
+	/** Replaces a member's summaries of these days and skills with what the device sent. */
+	saveDrillDays(email: string, rows: SummaryRow[]): Promise<void>;
+	/** The summaries of some members since a day, oldest first. */
+	drillDaysOf(emails: string[], since: string): Promise<(SummaryRow & { email: string })[]>;
+	/** The parent who allowed a young player on the board and to the leaders; null if none did. */
+	drillConsentOf(child: string): Promise<string | null>;
+	/** A parent allows (or, with false, takes back) their child's sharing beyond the family. */
+	setDrillConsent(child: string, parent: string, allowed: boolean): Promise<void>;
 
 	/** A member's own marks in one part, or in all parts without `file`; by page. */
 	marksOf(email: string, file?: string): Promise<PageMarks[]>;

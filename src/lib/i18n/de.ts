@@ -1,4788 +1,3804 @@
-import { legal } from "./legal.de.ts";
+import { legal } from './legal.de.ts';
 
 /** The install guide's steps (#279): a list, not a fixed tuple, so other languages may differ. */
 type InstallSteps = { title: string; body: string }[];
 
 /** All user-facing texts. To translate the app, copy this file and change the strings. */
 export const de = {
-  nav: {
-    /** Shown after the orchestra's short name in the header. */
-    appName: "Notenarchiv",
-    beta: "Beta",
-    betaNote:
-      "Vorschau: Die App ist noch in Arbeit. Fehler und Wünsche gern melden.",
-    home: "Übersicht",
-    pieces: "Archiv",
-    concerts: "Kalender",
-    myParts: "Meine Noten",
-    wishes: "Wünsche",
-    reports: "Meldungen",
-    loans: "Leihmaterial",
-    ensembles: "Ensembles",
-    kummer: "Kummerkasten",
-    /** The parents' area (/eltern) and what parent accounts see in the menu. */
-    parents: "Elternbereich",
-    parentMessages: "Nachrichten",
-    parentNotices: "Elternmitteilungen",
-    gaps: "Fehlende Stimmen",
-    naming: "Dateinamen",
-    admin: "Mitglieder & Rechte",
-    setup: "Tabelle einrichten",
-    settings: "Einstellungen",
-    status: "Status",
-    polls: "Terminumfragen",
-    more: "Mehr",
-    profile: "Profil",
-    details: "Angaben ergänzen",
-    chronicle: "Chronik",
-    drills: "Übebereich",
-    menu: "Alle Seiten",
-    close: "Menü schließen",
-    crumbs: "Seitenpfad",
-    groups: {
-      musik: "Proben & Noten",
-      mitmachen: "Mitmachen",
-      pflege: "Noten pflegen",
-      verwaltung: "App & Mitglieder",
-      eltern: "Eltern",
-    },
-    /** The organisers' area in the tab bar, the header and "Mehr" (#185). */
-    organise: "Verwaltung",
-    workspace: "Bereich",
-    /** After a tab's count, for screen readers: "Meldungen 1 offen". */
-    open: "offen",
-    skip: "Zum Inhalt springen",
-    main: "Hauptnavigation",
-  },
-  /** Everything waiting for you, in one list (#185). */
-  todo: {
-    title: "Zu erledigen",
-    lead: "Alles, was gerade auf dich wartet, an einem Ort. Jede Zeile führt dahin, wo du es erledigst.",
-    empty: "Nichts offen. Schön!",
-    /** Before a deadline: polls and rented music. */
-    until: (date: string) => `bis ${date}`,
-    kinds: {
-      report: "Meldungen",
-      request: "Zugangsanfragen",
-      wish: "Wünsche",
-      loan: "Leihmaterial zurückgeben",
-      attendance: "Anwesenheit eintragen",
-      poll: "Terminumfragen beantworten",
-      other: "Außerdem",
-    } as Record<string, string>,
-    /** On the organisers' hub, above the groups. */
-    hub: (n: number) => (n === 1 ? "1 Sache wartet" : `${n} Dinge warten`),
-  },
-  organise: {
-    title: "Verwaltung",
-    lead: "Alles, was ihr fürs Orchester erledigt: die Noten pflegen, Mitglieder und die App.",
-  },
-  footer: {
-    links: "Das Orchester im Netz",
-    source: "Quellcode",
-    /** The instrument drawings are CC BY: credited on the terms page, not on every page. */
-    credits: {
-      heading: "Bildnachweise",
-      text: "Die Zeichnungen der Instrumente sind von Lorc, Delapouite und weiteren Mitwirkenden von game-icons.net, unter der Lizenz CC BY 3.0.",
-      license: "Lizenztext",
-    },
-  },
-  theme: {
-    label: "Farbschema",
-    system: "System",
-    light: "Hell",
-    dark: "Dunkel",
-  },
-  textSize: {
-    label: "Schriftgröße",
-    hint: "Gilt für dieses Gerät.",
-    small: "Klein",
-    normal: "Normal",
-    large: "Groß",
-  },
-  home: {
-    title: (orchestra: string) => `Notenarchiv des ${orchestra}`,
-    hello: (name: string) => `Hallo ${name}`,
-    upNext: "Als Nächstes",
-    details: "Details",
-    allDates: "Alle Termine",
-    nextConcert: "Nächstes Konzert",
-    nextConcertEmpty:
-      "Sobald der Kalender verbunden ist, steht hier das nächste Konzert mit Programm.",
-    noNextConcert: "Gerade ist kein Konzert im Kalender eingetragen.",
-    program: "Programm",
-    pieces: (n: number) => (n === 1 ? "1 Stück" : `${n} Stücke`),
-    morePieces: (n: number) => `+ ${n} weitere`,
-    nextRehearsal: "Nächste Probe",
-    /** Over the answer buttons docked above the tab bar: "Bist du am Samstag dabei?". */
-    areYouIn: (day: string) => `Bist du am ${day} dabei?`,
-    /** The dates after the next one. */
-    later: "Danach",
-    /** After "Antwort fehlt" on a later date: opens it to answer. */
-    answerNow: "Jetzt antworten",
-    quickLinks: "Alle Bereiche",
-    work: "Aufgaben im Orchester",
-    /** In the greeting: the next concert, "Herbstkonzert in 25 Tagen" (#221). */
-    countdown: (concert: string, when: string) => `${concert} ${when}`,
-    todo: {
-      title: "Wartet auf dich",
-      /** All open work as one row after its count ("6 Dinge warten auf dich"); it opens to the list (#220). */
-      summary: (n: number) =>
-        n === 1 ? "Sache wartet auf dich" : "Dinge warten auf dich",
-      reports: (n: number) => (n === 1 ? "offene Meldung" : "offene Meldungen"),
-      wishes: (n: number) => (n === 1 ? "offener Wunsch" : "offene Wünsche"),
-      requests: (n: number) => (n === 1 ? "Zugangsanfrage" : "Zugangsanfragen"),
-      loans: (n: number) =>
-        n === 1 ? "Rückgabe steht an" : "Rückgaben stehen an",
-      attendance: (n: number) =>
-        n === 1 ? "Probe ohne Anwesenheit" : "Proben ohne Anwesenheit",
-      polls: (n: number) => (n === 1 ? "Terminumfrage" : "Terminumfragen"),
-      scans: (n: number) =>
-        n === 1 ? "Stimme zum Scannen" : "Stimmen zum Scannen",
-    },
-    /** One line under each page on the start page. */
-    describe: {
-      "/meine-noten": "Deine Stimmen fürs nächste Konzert.",
-      "/kalender": "Proben und Konzerte.",
-      "/chronik": "Alle Konzerte seit den Anfängen, in Zahlen.",
-      "/ueben": "Noten lesen, Tonarten, Töne treffen: ein paar Minuten am Tag.",
-      "/profil": "Instrument, Orchester, eigener Kalender.",
-      "/stuecke": "Alle Stücke mit allen Stimmen.",
-      "/stuecke/angaben": "Fehlende Angaben zu Stücken ergänzen.",
-      "/fehlende-stimmen": "Lücken im Archiv.",
-      "/namen": "Dateinamen in die Konvention bringen.",
-      "/wuensche": "Stücke und Ideen vorschlagen.",
-      "/meldungen": "Gemeldete Probleme bearbeiten.",
-      "/leihmaterial": "Geliehene Noten und wann sie zurückmüssen.",
-      "/admin": "Mitglieder, Rollen und Anfragen.",
-      "/einstellungen": "Orchester, Tabelle und Daten, Status.",
-      "/termine": "Termine mit dem Orga-Team abstimmen.",
-      "/ensembles": "Chöre und Orchester, mit denen wir auftreten.",
-    } as Record<string, string>,
-  },
-  pieces: {
-    title: "Notenarchiv",
-    lead: "Alle Stücke mit allen Stimmen.",
-    empty:
-      "Sobald Google Drive verbunden ist, erscheinen hier alle Stücke aus dem Notenarchiv.",
-    failed:
-      "Das Notenarchiv konnte gerade nicht geladen werden. Versuch es gleich noch einmal.",
-    loading:
-      "Das Notenarchiv wird gerade aus Drive eingelesen. Das dauert bis zu zehn Minuten; schau dann noch einmal vorbei.",
-    checkStatus: "Verbindung prüfen",
-    search: "Archiv filtern: Titel, Komponist, Stimme, Notiz …",
-    searchLabel: "Archiv filtern",
-    needsWork: "Mit Lücken",
-    /** No conductor's score in the archive, beside the other status. */
-    noScore: "Partitur fehlt",
-    noMusic: "Ohne Noten",
-    byComposer: (composer: string) => `Werke von ${composer}`,
-    clearComposer: "Komponisten-Filter entfernen",
-    categoryFiles: "Dateien zu dieser Kategorie",
-    count: (n: number) => (n === 1 ? "1 Stück" : `${n} Stücke`),
-    parts: (n: number) => (n === 1 ? "1 Stimme" : `${n} Stimmen`),
-    noResults: "Nichts gefunden.",
-    clearSearch: "Suche leeren",
-    // Found not by the title but by a part or a note on the piece.
-    foundParts: (instruments: string) => `Stimme: ${instruments}`,
-    foundNote: (excerpt: string) => `Notiz: ${excerpt}`,
-    filter: "Filter",
-    filterGroups: {
-      mine: "Für mich",
-      programs: "Orchester",
-      categories: "Genre",
-      difficulty: "Schwierigkeit",
-      length: "Dauer",
-      state: "Zustand",
-    },
-    lengths: { kurz: "Bis 5 Min.", mittel: "5–10 Min.", lang: "Über 10 Min." },
-    myPart: "Mit meiner Stimme",
-    assigned: "Mir zugeteilt",
-    coming: "In kommenden Konzerten",
-    withRecording: "Mit Hörbeispiel",
-    status: {
-      ok: "",
-      missing: "Stimmen fehlen",
-      // Pages missing inside a part's PDF (UNVOLLSTÄNDIG in the file name), not a missing part.
-      incomplete: "Seiten fehlen",
-      empty: "Keine Noten",
-      none: "Nicht im Archiv",
-    },
-  },
-  piece: {
-    details: "Details",
-    /** The member's own parts at the top of the page (#216). */
-    yourPart: (part: string) => `Deine Stimme: ${part}`,
-    alsoPart: (part: string) => `Auch: ${part}`,
-    yours: "deine",
-    reportedMissing: "Als fehlend gemeldet",
-    reportedMissingHint:
-      "Gemeldet, aber noch nicht bestätigt. Nach der Bestätigung steht ein Platzhalter im Ordner.",
-    folder: "Drive-Ordner",
-    editShort: "Bearbeiten",
-    reportShort: "Melden",
-    upcoming: "Demnächst",
-    recording: "Hörbeispiel",
-    edit: "Angaben bearbeiten",
-    saved: "Gespeichert.",
-    groups: {
-      featured: "Partitur & Solo",
-      holz: "Holzbläser",
-      blech: "Blechbläser",
-      schlagwerk: "Schlagwerk",
-      tasten: "Tasten & Harfe",
-      gesang: "Gesang",
-      streicher: "Streicher",
-      sonstige: "Stimmen für alle",
-      other: "Weitere Dateien",
-    },
-    partStatus: {
-      ok: "",
-      missing: "fehlt",
-      empty: "leer",
-      incomplete: "Seiten fehlen",
-    },
-    missingSummary: (n: number) =>
-      n === 1
-        ? "1 Stimme fehlt, ist leer oder es fehlen Seiten."
-        : `${n} Stimmen fehlen, sind leer oder es fehlen Seiten.`,
-    playedAt: "Gespielt bei",
-    sections: "Fassungen",
-    playedBadge: "gespielt",
-    sectionHint: {
-      played: "Die Stimmen, die gespielt werden.",
-      complete: "Das komplette Werk, zum Nachschlagen.",
-      movement: "",
-      other: "",
-    },
-    sectionFolder: "Diesen Ordner in Google Drive",
-    otherVersions: "Weitere Fassungen dieses Werks",
-    moreBy: (composer: string) => `Weitere Werke von ${composer}`,
-    again: "Wieder spielen",
-    againMine: "Möchte ich wieder spielen",
-    againHint:
-      "Zeigt der Programmplanung, dass du das Stück gern wieder spielen würdest. Nochmal klicken nimmt es zurück.",
-    againPlanned: "Ist für ein Programm vorgemerkt.",
-    allBy: (composer: string) => `Alle Werke von ${composer}`,
-    playedAtNone: "Noch in keinem Konzert eingetragen.",
-    playedAtNoSheet:
-      "Erscheint, sobald die Repertoire-Tabelle eingerichtet ist.",
-    noMusic: "Keine Noten im Archiv, nur in der Tabelle eingetragen.",
-    info: {
-      duration: "Dauer",
-      publisher: "Verlag",
-      arranger: "Arrangement",
-      genre: "Genre",
-      difficulty: "Schwierigkeit",
-      reviewedAt: "Geprüft am",
-      notes: "Notiz",
-    },
-    driveHint:
-      "Öffnet sich in Google Drive (Zugriff auf den Noten-Ordner nötig).",
-    portrait: (name: string) => `Porträt von ${name}`,
-    portraitCredit: "Bild: Wikimedia Commons",
-    /** A film's title logo or an icon for it (#312). */
-    filmPicture: (film: string) => `Bild zum Film ${film}`,
-    bandPicture: (band: string) => `Logo von ${band}`,
-    iconCredit: "Icon: Iconify",
-  },
-  concerts: {
-    title: "Kalender",
-    lead: "Proben, Konzerte und Terminumfragen.",
-    empty:
-      "Sobald der Probenkalender verbunden ist, erscheinen hier alle Konzerte und Proben.",
-    failed:
-      "Der Kalender konnte gerade nicht geladen werden. Versuch es gleich noch einmal.",
-    past: "Vergangene Konzerte",
-    noUpcoming: "Gerade stehen keine Termine im Kalender.",
-    subscribe: "Google Kalender abonnieren",
-    ownCalendar: "Termine in meinen Kalender",
-    filters: {
-      kind: "Art",
-      answer: "Meine Antwort",
-      concerts: "Konzerte",
-      rehearsals: "Proben",
-    },
-    view: "Ansicht",
-    list: "Liste",
-    calendar: "Monat",
-    next: "Als Nächstes",
-    today: "Heute",
-    previousMonth: "Vorheriger Monat",
-    nextMonth: "Nächster Monat",
-    noEventsThatDay: "An diesem Tag ist nichts eingetragen.",
-    types: {
-      konzert: "Konzert",
-      generalprobe: "Generalprobe",
-      probe: "Probe",
-      sonstiges: "Termin",
-    },
-    tentative: "noch unsicher",
-    allDay: "ganztägig",
-    relative: (days: number) =>
-      days === 0
-        ? "heute"
-        : days === 1
-          ? "morgen"
-          : days > 1
-            ? `in ${days} Tagen`
-            : days === -1
-              ? "gestern"
-              : `vor ${-days} Tagen`,
-    forConcert: (title: string) => `für ${title}`,
-  },
-  calendar: {
-    /** Date polls next to the dates (#95). */
-    polls: {
-      new: "Neue Terminumfrage",
-      candidate: "Zur Wahl",
-      waiting: (n: number, title: string) =>
-        n === 1
-          ? `Terminumfrage „${title}“: deine Antwort fehlt`
-          : `${n} Terminumfragen warten auf deine Antwort`,
-    },
-    edit: {
-      open: "Bearbeiten",
-      title: "Termin bearbeiten",
-      save: "Änderungen speichern",
-      lead: "Wird direkt im Google Kalender geändert, für alle sichtbar.",
-      saved: "Gespeichert: Der Termin ist im Kalender geändert.",
-    },
-    add: {
-      open: "Termin eintragen",
-      short: "Termin",
-      more: "Weitere Angaben",
-      lead: "Kommt direkt in den Google Kalender, für alle sichtbar.",
-      type: "Art",
-      title: "Titel",
-      concertHint: "z. B. Frühlingskonzert",
-      untitled: (word: string) => `leer: „${word}“`,
-      date: "Datum",
-      start: "Beginn",
-      end: "Ende",
-      timeHint:
-        "Ohne Beginn ganztägig; ohne Ende zwei Stunden beim Konzert, drei bei Proben.",
-      location: "Ort",
-      locationHint: "z. B. Aula, Musterschule",
-      concert: "Probe für",
-      noConcert: "Kein bestimmtes Konzert",
-      tentative: "Noch unsicher (erscheint mit „(?)“)",
-      description: "Notiz",
-      save: "In den Kalender eintragen",
-      yearOnly: "Genaues Datum unbekannt, nur das Jahr",
-      saveArchive: "Ins Archiv eintragen",
-      leadArchive:
-        "Liegt in der Vergangenheit: kommt ins Archiv (Repertoire-Tabelle), nicht in den Kalender.",
-      archiveOnly:
-        "Frühere Konzerte kommen ins Archiv; neue Termine trägt ein, wer Termine plant.",
-      places: "Vorschläge für den Ort",
-      added: (title: string) => `„${title}“ steht jetzt im Kalender.`,
-      show: "Ansehen",
-      /** A role limited to some orchestras (#305) plans only their dates. */
-      otherOrchestra: (orchestras: string) =>
-        `Du planst Termine nur für ${orchestras}. Bitte eins davon ankreuzen.`,
-      readOnly:
-        'Termine eintragen ist aus: Die App darf den Kalender nur lesen. Dafür CALENDAR_WRITE="true" setzen und den Kalender für das Dienstkonto mit „Änderungen an Terminen vornehmen“ freigeben.',
-      problems: {
-        type: "Bitte Konzert, Probe oder Generalprobe wählen.",
-        title: "Ein Konzert braucht einen Titel.",
-        date: "Bitte ein Datum wählen.",
-        "too-early":
-          "So weit zurück zeigt die Seite keine Termine. Ein früheres Konzert kommt ins Archiv; dafür „Konzert“ wählen.",
-        "too-late":
-          "So weit voraus zeigt die Seite noch keine Termine (bis 18 Monate). Stimmt das Jahr?",
-        time: "Bitte die Uhrzeit als SS:MM angeben; ein Ende nur mit Beginn.",
-        end: "Das Ende muss nach dem Beginn liegen.",
-        concert:
-          "Das Konzert gibt es im Kalender nicht (mehr); bitte eines aus der Liste wählen.",
-        orchestra: "Bitte die Orchester aus der Liste wählen.",
-        "too-long":
-          "Das ist zu lang: Titel bis 120, Ort bis 200, Notiz bis 2000 Zeichen.",
-      },
-      errors: {
-        "not-configured":
-          "Der Kalender ist noch nicht verbunden (CALENDAR_ID).",
-        "read-only":
-          'Termine eintragen ist aus: Die App darf den Kalender nur lesen. Dafür CALENDAR_WRITE="true" setzen und den Kalender für das Dienstkonto mit „Änderungen an Terminen vornehmen“ freigeben.',
-        refused:
-          "Google hat abgelehnt: Das Dienstkonto darf in diesem Kalender keine Termine ändern. Bitte den Kalender mit „Änderungen an Terminen vornehmen“ freigeben.",
-        failed:
-          "Der Termin konnte gerade nicht eingetragen werden. Bitte versuch es gleich noch einmal.",
-      },
-    },
-  },
-  concert: {
-    /** In the public feed for the orchestra's website (#197). */
-    publish: {
-      title: "Website",
-      on: "Auf der Website des Orchesters",
-      off: "Nicht auf der Website des Orchesters",
-      publish: "Veröffentlichen",
-      withdraw: "Zurückziehen",
-      details: "Text und Karten für die Website",
-      detailsHint:
-        "Alles freiwillig. Die Website zeigt die Sprache, in der sie gerade gelesen wird.",
-      textDe: "Text (deutsch)",
-      textEn: "Text (englisch)",
-      ticketUrl: "Link zu den Karten",
-      ticketNoteDe: "Hinweis zu Karten (deutsch)",
-      ticketNoteEn: "Hinweis zu Karten (englisch)",
-      ticketNotePlaceholder: "z. B. Eintritt frei, Spenden erbeten",
-      save: "Speichern",
-      saved: "Gespeichert",
-      badLink: "Der Link zu den Karten muss mit https:// beginnen.",
-    },
-    map: "Karte",
-    openInCalendar: "Im Google Kalender",
-    rehearsals: "Proben",
-    addRehearsal: "Probe eintragen",
-    noRehearsals: "Keine Proben im Kalender.",
-    pastRehearsals: (n: number) =>
-      n === 1 ? "1 vergangene Probe" : `${n} vergangene Proben`,
-    program: "Programm",
-    programEmpty: "Noch kein Programm eingetragen.",
-    programNoSheet:
-      "Erscheint, sobald die Repertoire-Tabelle eingerichtet ist.",
-    programHint: "Steht im Blatt „Programm“.",
-    notInArchive: "keine Noten im Archiv",
-    archive: "Aus der Chronik",
-    dateUnknown: "Datum unbekannt",
-    preparesFor: "Probe für",
-    orchestras: {
-      over: "Orchester",
-      all: "Alle Orchester",
-      change: "Ändern",
-      save: "Speichern",
-      hint: "Nur wer in einem der angekreuzten Orchester spielt, sieht die Probe und wird bei „Wer kommt?“ mitgezählt.",
-      none: "Bitte mindestens ein Orchester ankreuzen.",
-      saved: "Orchester gespeichert.",
-    },
-    sharedFrom: "Gleiches Programm wie",
-    sharedWith: "Dieses Programm gilt auch für",
-    description: "Notiz aus dem Kalender",
-    views: { label: "Ansicht", overview: "Übersicht", planning: "Planung" },
-    tools: "Werkzeuge",
-    lastAttendance: "Anwesenheit der letzten Probe",
-  },
-  /** Notes after a rehearsal (#145). */
-  rehearsalNotes: {
-    title: "Aus der Probe",
-    previous: (date: string) => `Aus der letzten Probe, ${date}`,
-    done: "Geprobt",
-    practise: "Zum Üben",
-    next: "Nächstes Mal",
-    doneHint: "z. B. „Egmont bis Takt 120“",
-    practiseHint: "z. B. „ab Buchstabe B langsam“",
-    nextHint: "z. B. „Morgenstimmung, ab B“",
-    write: "Notiz schreiben",
-    edit: "Notiz bearbeiten",
-    lead: "Für alle, die nicht da waren. Alle Felder leeren entfernt die Notiz.",
-    empty: "Noch keine Notiz zu dieser Probe.",
-    save: "Speichern",
-    cancel: "Abbrechen",
-    by: (by: string, at: string) => [by, at].filter(Boolean).join(", "),
-    saved: "Notiz gespeichert.",
-    tooLong: "Höchstens 1000 Zeichen pro Feld, bitte.",
-    failed:
-      "Die Notiz konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.",
-    notSetUp:
-      "Dem Blatt „Probennotizen“ fehlen Spalten. Auf der Seite „Tabelle einrichten“ werden sie ergänzt.",
-    gone: "Notizen gibt es nur für Proben, die schon begonnen haben.",
-    home: (date: string) => `Aus der Probe am ${date}`,
-  },
-  /** Notes on a piece from rehearsals (#125). */
-  pieceFolder: {
-    title: "Noten in Drive",
-    createLead:
-      "Für dieses Stück gibt es noch keinen Ordner im Notenarchiv. Der Name folgt der Namenskonvention; du kannst ihn vorher ändern.",
-    folderName: "Ordnername",
-    create: "Ordner in Drive anlegen",
-    created: "Ordner angelegt. Jetzt die Stimmen hochladen.",
-    uploadLead:
-      "PDFs auswählen oder hierher ziehen. Für jede Datei schlägt die App den Namen nach der Konvention vor.",
-    choose: "PDFs auswählen",
-    dropHere: "PDFs hier ablegen",
-    shortTitle: (short: string) => `Kurztitel: ${short}`,
-    newName: (old: string) => `Neuer Name für ${old}`,
-    unclear: "Stimme nicht erkannt: bitte den Namen prüfen.",
-    replaces: "ersetzt die Datei im Ordner",
-    notPdf: (names: string) => `Nur PDFs, übersprungen: ${names}`,
-    upload: (count: number) =>
-      count === 1 ? "1 Datei hochladen" : `${count} Dateien hochladen`,
-    uploading: (done: number, total: number) =>
-      `Lade hoch … ${done} von ${total}`,
-    uploaded: (count: number) =>
-      count === 1 ? "1 Datei hochgeladen." : `${count} Dateien hochgeladen.`,
-    notUploaded: (names: string) => `Nicht hochgeladen: ${names}`,
-    discard: "Verwerfen",
-    missing: "Stimme fehlt",
-    missingLead:
-      "Legt den Platzhalter „… - FEHLT“ im Ordner an, damit die Lücke überall zu sehen ist.",
-    instrument: "Instrument",
-    number: "Nummer",
-    addPlaceholder: "Platzhalter anlegen",
-    placeholderCreated: (name: string) => `Platzhalter „${name}“ angelegt.`,
-    noDriveWrite:
-      "Die App darf Drive nur lesen (DRIVE_WRITE ist nicht gesetzt).",
-    exists: "Das Stück hat schon einen Ordner in Drive.",
-    noFolder: "Das Stück hat noch keinen Ordner in Drive.",
-    notInSheet:
-      "Das Stück steht nicht (mehr) im Blatt „Stücke“. Bitte die Seite neu laden.",
-    nameMissing: "Bitte einen Namen angeben.",
-    nameTaken: (name: string) => `Im Notenarchiv gibt es schon „${name}“.`,
-    tooLarge: "Die Datei ist leer oder zu groß.",
-    placeholderExists: (name: string) => `„${name}“ liegt schon im Ordner.`,
-    noQuota:
-      "Drive hat die Datei abgelehnt: Das Dienstkonto der App hat keinen eigenen Speicher. Unter „Status“ das Drive-Konto des Notenarchivs verbinden, dann gehen neue Dateien.",
-    needsAccount:
-      "Neue Dateien brauchen ein verbundenes Drive-Konto (unter „Status“); bis dahin lassen sich nur vorhandene Dateien ersetzen.",
-    owner: (email: string) => `Neue Dateien gehören ${email}.`,
-    failed:
-      "Drive hat nicht geantwortet oder die Änderung abgelehnt. Bitte später noch einmal versuchen.",
-  },
-  driveAccount: {
-    connect: "Drive-Konto für Uploads verbinden",
-    disconnect: "Drive-Konto trennen",
-    confirmDisconnect:
-      "Drive-Konto trennen? Neue Stimmen lassen sich dann nicht mehr hochladen.",
-    connected: (email: string) =>
-      `Neue Stimmen werden als ${email} hochgeladen.`,
-    lead: "Neue Stimmen werden als das Konto hochgeladen, dem das Notenarchiv gehört, denn das Dienstkonto der App hat keinen eigenen Speicher. Google fragt dabei nach Zugriff auf Drive.",
-    connectedNow: "Drive-Konto verbunden.",
-    noScope:
-      "Google hat den Zugriff auf Drive nicht erteilt. Bitte noch einmal verbinden und den Haken bei Drive setzen.",
-    wrongUser:
-      "Nur wer Mitglieder verwalten darf, kann das Drive-Konto verbinden.",
-    connectFailed:
-      "Das Verbinden hat nicht geklappt. Bitte noch einmal versuchen.",
-    disconnectedNow: "Drive-Konto getrennt.",
-  },
-  pieceNotes: {
-    title: "Hinweise aus den Proben",
-    earlier: "Hinweise zu früheren Konzerten",
-    none: "Noch keine Hinweise, z. B. Sprünge, Wiederholungen oder Striche.",
-    add: "Hinweis hinzufügen",
-    text: "Hinweis",
-    textHint: "z. B. „Sprung von Takt 40 nach 88“ oder „ohne Wiederholung“",
-    section: "Für",
-    everyone: "Alle",
-    sections: "Register",
-    instruments: "Instrumente",
-    concert: "Gilt für",
-    always: "Jede Aufführung",
-    save: "Speichern",
-    delete: "Löschen",
-    deleteNamed: (text: string) => `Hinweis „${text}“ löschen`,
-    forSection: (section: string) => `Für ${section}`,
-    forConcert: (concert: string) => `Nur ${concert}`,
-    meta: (by: string, at: string) => [by, at].filter(Boolean).join(", "),
-    saved: "Hinweis gespeichert.",
-    deleted: "Hinweis gelöscht.",
-    failed:
-      "Der Hinweis konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.",
-    notSetUp:
-      "Dem Blatt „Hinweise“ fehlen Spalten. Auf der Seite „Tabelle einrichten“ werden sie ergänzt.",
-    gone: "Den Hinweis gibt es nicht mehr; vielleicht hat ihn jemand schon gelöscht.",
-    problems: {
-      empty: "Bitte einen Hinweis eintragen.",
-      "too-long": "Höchstens 500 Zeichen, bitte.",
-      section: "Bitte ein Register oder Instrument aus der Liste wählen.",
-      concert: "Bitte ein Konzert aus der Liste wählen.",
-    },
-    inMyParts: "Hinweise",
-  },
-  /** Who plays which part instead of their own (#262). */
-  partAssignments: {
-    title: "Stimmenzuteilung",
-    lead: "Wer statt der eigenen Stimme eine andere spielt, z. B. die Saxophone die Fagottstimme. In „Meine Noten“ und im Stimmensatz zählt dann diese.",
-    none: "Alle spielen ihre eigene Stimme.",
-    add: "Stimme zuteilen",
-    who: "Wer",
-    instruments: "Alle von einem Instrument",
-    members: "Einzelne Mitglieder",
-    part: "Spielt",
-    number: "Nr.",
-    anyNumber: "egal",
-    concert: "Gilt für",
-    always: "Immer",
-    allPieces: "Für alle Stücke, nicht nur dieses",
-    save: "Zuteilen",
-    delete: "Löschen",
-    deleteNamed: (who: string, part: string) =>
-      `Zuteilung „${who} spielt ${part}“ löschen`,
-    plays: (who: string, part: string) => `${who} spielt ${part}`,
-    onlyConcert: (concert: string) => `Nur ${concert}`,
-    everyPiece: "Alle Stücke",
-    forever: "Immer",
-    meta: (by: string, at: string) => [by, at].filter(Boolean).join(", "),
-    assigned: "zugeteilt",
-    saved: "Stimme zugeteilt.",
-    deleted: "Zuteilung gelöscht.",
-    failed:
-      "Die Zuteilung konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.",
-    notSetUp:
-      "Dem Blatt „Stimmenzuteilung“ fehlen Spalten. Auf der Seite „Tabelle einrichten“ werden sie ergänzt.",
-    gone: "Die Zuteilung gibt es nicht mehr; vielleicht hat sie jemand schon gelöscht.",
-    problems: {
-      who: "Bitte ein Instrument oder Mitglied aus der Liste wählen.",
-      part: "Bitte eine Stimme aus der Liste wählen.",
-      concert: "Bitte ein Konzert aus der Liste wählen.",
-    },
-  },
-  /** The season report for the annual meeting (#147). */
-  season: {
-    title: "Saisonbericht",
-    lead: "Was in einem Zeitraum los war, zum Ausdrucken für die Jahreshauptversammlung. Anwesenheit nur als Summe, ohne Namen.",
-    back: "Chronik",
-    from: "Von",
-    to: "Bis",
-    show: "Anzeigen",
-    print: "Drucken",
-    presets: {
-      twelve: "Letzte 12 Monate",
-      season: (label: string) => `Saison ${label}`,
-      lastYear: (year: number) => `${year}`,
-      thisYear: (year: number) => `${year}`,
-    },
-    presetsLabel: "Zeitraum",
-    heading: (orchestra: string) => `Saisonbericht ${orchestra}`,
-    figures: "Auf einen Blick",
-    concerts: (n: number) => (n === 1 ? "Konzert" : "Konzerte"),
-    pieces: (n: number) => (n === 1 ? "Stück gespielt" : "Stücke gespielt"),
-    debuts: "davon zum ersten Mal",
-    rehearsals: (n: number) => (n === 1 ? "Probe" : "Proben"),
-    concertsTitle: "Konzerte und Programme",
-    noConcerts: "In diesem Zeitraum gab es kein Konzert.",
-    noProgram: "Programm nicht eingetragen",
-    firstTime: "zum ersten Mal",
-    debutsTitle: "Zum ersten Mal gespielt",
-    noDebuts: "Kein Stück war neu im Repertoire.",
-    debutAt: (concert: string) => `bei ${concert}`,
-    rehearsalsTitle: "Proben",
-    rehearsalCount: (n: number) =>
-      n === 1 ? "1 Probe fand statt." : `${n} Proben fanden statt.`,
-    noCalendar: "Der Kalender ist nicht verbunden, Proben fehlen deshalb.",
-    attendance: (rehearsals: number, average: string, rate: number) =>
-      `Bei ${rehearsals === 1 ? "1 Probe" : `${rehearsals} Proben`} wurde die Anwesenheit erfasst: im Schnitt ${average} Personen da, ${rate} % der Erfassten.`,
-    noAttendance: "In diesem Zeitraum wurde keine Anwesenheit erfasst.",
-    archiveTitle: "Archiv und Mitmachen",
-    reports: (made: number, done: number) =>
-      `${made === 1 ? "1 Problem mit Noten wurde" : `${made} Probleme mit Noten wurden`} gemeldet, ${done} davon ${done === 1 ? "ist" : "sind"} erledigt.`,
-    wishes: (n: number) =>
-      n === 1
-        ? "1 Wunsch wurde eingereicht."
-        : `${n} Wünsche wurden eingereicht.`,
-    created: (day: string) =>
-      `Erstellt am ${day}. Proben stammen aus dem Kalender, der drei Jahre zurückreicht.`,
-  },
-  /** The orchestra's history (#61). */
-  chronicle: {
-    title: "Chronik",
-    lead: "Alle Konzerte seit den Anfängen, und was das Orchester am liebsten spielt.",
-    views: { label: "Ansicht", timeline: "Zeitleiste", numbers: "In Zahlen" },
-    concerts: (n: number) => (n === 1 ? "Konzert" : "Konzerte"),
-    pieces: (n: number) => (n === 1 ? "Stück" : "Stücke"),
-    performances: (n: number) => (n === 1 ? "Aufführung" : "Aufführungen"),
-    since: "seit",
-    decade: (decade: number) => `${decade}er`,
-    undated: "Ohne Datum",
-    yearUnknown: "Jahr unbekannt",
-    debut: "neu",
-    debutHint: "Zum ersten Mal gespielt",
-    noProgram: "Programm nicht eingetragen",
-    mostPlayed: "Am häufigsten gespielt",
-    mostPlayedNone: "Noch kein Stück stand auf mehr als einem Programm.",
-    times: (n: number) => `${n}×`,
-    lastPlayed: (year: number) => `zuletzt ${year}`,
-    playedIn: (first: number, last: number) =>
-      first === last ? `${first}` : `${first}–${last}`,
-    composers: "Meistgespielte Komponisten",
-    composerLine: (count: number, pieces: number) =>
-      `${count}× gespielt, ${pieces === 1 ? "1 Stück" : `${pieces} Stücke`}`,
-    byDecade: "Nach Jahrzehnten",
-    decadeLine: (concerts: number, pieces: number) =>
-      `${concerts === 1 ? "1 Konzert" : `${concerts} Konzerte`}, ${pieces === 1 ? "1 Stück" : `${pieces} Stücke`}`,
-    longAgo: "Lange nicht gespielt",
-    longAgoLead: (years: number) =>
-      `Seit ${years} Jahren oder länger nicht mehr auf dem Programm, vielleicht wieder einmal?`,
-    plannedAgain: "wieder geplant",
-    longAgoNone: (years: number) =>
-      `Kein Stück liegt länger als ${years} Jahre zurück.`,
-    neverPlayed: "Noch nie gespielt",
-    neverPlayedLead: (n: number) =>
-      n === 1
-        ? "1 Stück mit Noten im Archiv stand noch auf keinem Programm."
-        : `${n} Stücke mit Noten im Archiv standen noch auf keinem Programm.`,
-    andMore: (n: number) => `und ${n} weitere`,
-    empty:
-      "Noch keine vergangenen Konzerte. Alte Konzerte kommen ins Blatt „Konzerte“, ihre Programme ins Blatt „Programm“; ein Jahr als Datum reicht.",
-    noSheet:
-      "Die Chronik entsteht aus der Repertoire-Tabelle, die noch nicht verbunden ist.",
-    seasonReport: "Saisonbericht",
-  },
-  attendance: {
-    title: "Anwesenheit",
-    pageTitle: (event: string) => `Anwesenheit: ${event}`,
-    lead: "Antippen, wer da war. Zusagen sind vorausgewählt.",
-    take: "Anwesenheit erfassen",
-    edit: "Anwesenheit bearbeiten",
-    present: (n: number, of: number) => `${n} von ${of} da`,
-    notTaken: "Für diese Probe ist noch keine Anwesenheit erfasst.",
-    allYes: "Alle Zusagen",
-    none: "Niemand",
-    search: "Name suchen …",
-    save: "Speichern",
-    saved: "Anwesenheit gespeichert.",
-    cancel: "Abbrechen",
-    answered: { yes: "Zusage", maybe: "vielleicht", no: "Absage" } as Record<
-      string,
-      string
-    >,
-    notYet:
-      "Die Anwesenheit lässt sich erfassen, sobald die Probe begonnen hat.",
-    notARehearsal: "Anwesenheit gibt es nur für Proben.",
-    notSetUp:
-      "Anwesenheit: Fehlt noch in der Tabelle. Bitte einmal „Tabelle einrichten“ ausführen.",
-    nobody: "Für diese Probe gibt es keine Mitglieder und keine Zusagen.",
-    conflict:
-      "Jemand hat die Anwesenheit inzwischen geändert. Lade die Seite neu und mach deine Änderung noch einmal.",
-    failed:
-      "Die Anwesenheit konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.",
-    mine: (present: number, of: number) =>
-      `Du warst bei ${present} von ${of} ${of === 1 ? "Probe" : "Proben"}, für die Anwesenheit erfasst ist.`,
-    overview: "Anwesenheit bei den Proben",
-    overviewLead: (taken: number) =>
-      taken === 1
-        ? "Aus 1 Probe mit erfasster Anwesenheit."
-        : `Aus ${taken} Proben mit erfasster Anwesenheit.`,
-    overviewHint:
-      "Nur für die Person selbst und alle mit dem Recht „Anwesenheit erfassen“ sichtbar.",
-    person: "Name",
-    total: "Proben",
-    count: (present: number, of: number) => `${present}/${of}`,
-  },
-  /** Offline use and the installable app (#62). */
-  /** /einstellungen: name, logo, colour and features per orchestra (#75, #134). */
-  settings: {
-    title: "Einstellungen",
-    lead: "Wie die App für alle aussieht und was sie anbietet.",
-    /** The settings' sections (#185): one page for every setting. */
-    sections: {
-      label: "Bereiche der Einstellungen",
-      orchestra: "Orchester",
-      sheet: "Tabelle & Daten",
-      status: "Status",
-    },
-    identity: "Name",
-    name: "Name des Orchesters",
-    shortName: "Kurzname",
-    shortNameHint: "Für die Kopfzeile auf dem Handy, höchstens 24 Zeichen.",
-    privacy: "Datenschutz",
-    retention:
-      "Namen bei Zu- und Absagen und Anwesenheit behalten für (Saisons)",
-    retentionPlaceholder: "unbegrenzt",
-    retentionHint:
-      "Ältere Einträge bleiben ohne Namen stehen, damit Chronik und Saisonbericht weiter zählen. Eine Saison läuft von September bis August; die laufende zählt mit. Leer lässt alle Namen stehen.",
-    logo: "Logo",
-    logoField: "Link zum Logo",
-    logoHint:
-      "Ein quadratisches Bild als https-Link, z. B. von der Website des Orchesters, oder eine Datei der App wie /logo.png.",
-    logoPreview: "Vorschau",
-    links: "Website und Social Media",
-    linksField: "Links unten auf jeder Seite",
-    linksHint:
-      "Ein Link pro Zeile, davor ein Name, z. B. „Instagram https://www.instagram.com/orchester/“. Instagram, Facebook und YouTube bekommen ihr Zeichen. Leer zeigt keine.",
-    colour: "Farbe",
-    accent: "Akzentfarbe",
-    accentDefault: (colour: string) => `Standardfarbe (${colour})`,
-    presets: "Vorschläge",
-    presetNames: {
-      gold: "Gold",
-      navy: "Marineblau",
-      petrol: "Petrol",
-      forest: "Waldgrün",
-      bordeaux: "Bordeaux",
-      violet: "Violett",
-    } as Record<string, string>,
-    colourHint:
-      "Für Hell und Dunkel wird die Farbe so weit angepasst, dass Text gut lesbar bleibt (mindestens 4,5:1).",
-    light: "Hell",
-    dark: "Dunkel",
-    sample: "Knopf",
-    link: "Link",
-    ratio: (value: string) => `Kontrast ${value}:1`,
-    look: "Stil",
-    lookDefault: (look: string) => `Vorgabe der Installation (${look})`,
-    looks: {
-      bold: "Kräftig: schmale, fette Überschriften und das Logo groß hinter der Begrüßung, wie auf Plakaten",
-      plain:
-        "Schlicht: klassische Überschriften mit Serifen, kein Logo im Hintergrund",
-    } as Record<string, string>,
-    lookNames: { bold: "kräftig", plain: "schlicht" } as Record<string, string>,
-    features: "Funktionen",
-    featuresLead:
-      "Was das Orchester nicht nutzt, verschwindet aus Menüs und Seiten. Einträge in der Tabelle bleiben erhalten.",
-    featuresFromDefault:
-      "Noch nicht hier gespeichert: gezeigt ist die Vorgabe der Installation (FEATURES_OFF).",
-    describe: {
-      loans: "Geliehene Noten mit Rückgabedatum.",
-      musicReport: "Die Musikfolge für die GEMA beim Drucken eines Konzerts.",
-      attendance: "Wer bei den Proben war.",
-      signups: "Zu- und Absagen für Proben und Konzerte.",
-      wishes: "Stücke und Ideen vorschlagen, mit +1.",
-      calendarFeed: "Persönlicher Kalender zum Abonnieren im Profil.",
-      offline: "Stimmen in „Meine Noten“ für die Probe ohne Netz speichern.",
-      seasons:
-        "Kleine Zeichnungen zur Jahreszeit: Schneeflocke, Blüte, Kürbis.",
-      tickets:
-        "Karten für Konzerte über die Website reservieren, bezahlt an der Abendkasse, mit Einlass per Handy.",
-      drills:
-        "Kurze Übungen zu Notenlesen, Tonarten, Intervallen, Rhythmus, Tönen, Tonleitern, Vom-Blatt-Spiel, Zusammenspiel und Transponieren. Sie laufen auf dem Gerät; nur die Übezeit zählt für die Probenzeit.",
-    } as Record<string, string>,
-    instruments: "Instrumente",
-    instrumentsLead:
-      "Wie Instrumente in der App heißen und welche Schreibweisen in Dateinamen erkannt werden. Die Dateinamen selbst und die Namensprüfung bleiben beim Wort aus den Dateinamen.",
-    fileWord: "In Dateinamen",
-    shownAs: "In der App",
-    moreSpellings: "Weitere Schreibweisen",
-    moreSpellingsHint:
-      "Weitere Schreibweisen durch Kommas trennen, z. B. „Violine, Vl.“.",
-    known: (words: string) => `Bekannt: ${words}`,
-    saveInstruments: "Instrumente speichern",
-    instrumentsSaved: "Gespeichert. Gilt sofort für alle.",
-    invalidInstrument: (name: string) =>
-      `Bei „${name}“: höchstens 30 Zeichen für den Namen, höchstens 12 Schreibweisen mit je 40 Zeichen, nur Buchstaben, Ziffern, Leerzeichen, Punkt und Bindestrich.`,
-    emptyIsDefault:
-      "Leere Felder nehmen die Vorgabe der Installation, sie steht grau im Feld.",
-    save: "Speichern",
-    saved: "Gespeichert. Die Änderungen gelten sofort für alle.",
-    failed: "Speichern hat nicht geklappt. Gleich noch einmal versuchen.",
-    notConfigured:
-      "Es ist noch keine Repertoire-Tabelle verbunden; dort werden die Einstellungen gespeichert.",
-    readFailed: "Die Einstellungen konnten gerade nicht gelesen werden.",
-    stored: "Gespeichert im Blatt „Einstellungen“ der Repertoire-Tabelle.",
-    invalid: {
-      name: "Der Name ist zu lang (höchstens 80 Zeichen).",
-      shortName: "Der Kurzname ist zu lang (höchstens 24 Zeichen).",
-      logo: "Das Logo muss ein https-Link sein oder mit / beginnen.",
-      accent: "Die Farbe muss die Form #rrggbb haben.",
-      look: "Bitte einen der Stile wählen.",
-      featuresOff: "",
-      retention:
-        "Die Aufbewahrung ist eine Zahl von Saisons, 1 bis 20, oder leer.",
-      links:
-        "Jede Zeile braucht einen Link, der mit https:// beginnt; höchstens 8.",
-    },
-  },
-  /** Parts of the app that can be turned off (#134), by their key in src/lib/features.ts. */
-  features: {
-    loans: "Leihmaterial",
-    musicReport: "Musikfolge (GEMA)",
-    attendance: "Anwesenheit",
-    signups: "Anmeldungen",
-    wishes: "Wünsche",
-    calendarFeed: "Kalender-Abo",
-    offline: "Noten offline speichern",
-    seasons: "Jahreszeiten",
-    tickets: "Konzertkarten",
-    drills: "Übebereich",
-  },
-  /** Concert tickets (docs/tickets-plan.md): the sale's setup, the mail, the ticket page and the door. */
-  tickets: {
-    title: "Karten",
-    /** On the concert's page, for organisers. */
-    manage: "Kartenverkauf",
-    door: "Einlass",
-    doorHint: "Karten scannen und Gäste einlassen",
-    manageHint: "Plätze, Preise und Reservierungen",
-    notAConcert: "Karten gibt es nur für Konzerte.",
-    setup: {
-      lead: "Reservierungen über die Website, bezahlt wird an der Abendkasse. Gedruckte Karten aus dem Sekretariat zählen hier noch nicht mit: lass für sie Plätze frei.",
-      open: "Verkauf auf der Website geöffnet",
-      capacity: "Plätze online",
-      capacityHint:
-        "So viele Karten gibt es über die Website. Freie Platzwahl.",
-      prices: "Preise",
-      pricesHint:
-        "Eine Kartenart pro Zeile, der Preis an der Kasse zuletzt: „Erwachsene 12“, „Ermäßigt 6,50“, „Kinder bis 12 0“.",
-      fee: "Online-Zuschlag",
-      feeHint:
-        "Kommt bei Online-Karten auf den Preis, um die Gebühren zu decken. Die Website, die Mail und die Karte zeigen ihn immer getrennt vom Preis; an der Kasse gibt es ihn nicht, Freikarten bleiben frei.",
-      feePercent: "Prozent vom Preis",
-      feeCents: "Fester Betrag pro Karte (€)",
-      feeExample: (price: string, fee: string, total: string) =>
-        `Beispiel: ${price} + ${fee} Online-Zuschlag = ${total}`,
-      noFee:
-        "Kein Online-Zuschlag: Online-Karten kosten dasselbe wie an der Kasse.",
-      online: "Online",
-      onlineUntil: "Online-Verkauf endet",
-      onlineUntilHint: "Danach gibt es Karten nur noch an der Abendkasse.",
-      save: "Speichern",
-      saved: "Gespeichert.",
-      badPrices:
-        "Jede Zeile braucht eine Kartenart und einen Preis, keine Art doppelt.",
-      badCapacity: "Die Plätze müssen eine Zahl zwischen 1 und 5000 sein.",
-      badFee: "Der Zuschlag muss zwischen 0 und 20 % und 0 und 5 € liegen.",
-      badUntil:
-        "Das Ende des Online-Verkaufs fehlt oder liegt nach dem Konzertbeginn.",
-      past: "Das Konzert ist vorbei. Die Gästeliste wird einige Wochen danach gelöscht.",
-    },
-    counts: {
-      sold: "Reserviert",
-      left: "Frei",
-      checkedIn: "Eingelassen",
-      free: "Freikarten",
-      takings: "An der Kasse zu kassieren",
-      fees: (fees: string) => `davon ${fees} Online-Zuschlag für die Gebühren`,
-    },
-    orders: {
-      title: "Reservierungen",
-      empty: "Noch keine Reservierungen.",
-      tickets: (n: number) => (n === 1 ? "1 Karte" : `${n} Karten`),
-      cancelled: "storniert",
-      paid: "bezahlt",
-      cancel: "Stornieren",
-      restore: "Wiederherstellen",
-      markPaid: "Bezahlt",
-      csv: "Gästeliste als CSV",
-      csvHeader: (): string[] => [
-        "Name",
-        "E-Mail",
-        "Karten",
-        "Kartenarten",
-        "Betrag",
-        "davon Online-Zuschlag",
-        "Status",
-        "Reserviert am",
-      ],
-      conflict:
-        "Für die wiederhergestellte Reservierung sind nicht mehr genug Plätze frei.",
-      free: "Freikarte",
-      openTickets: "Karten öffnen",
-    },
-    /** Freikarten the organisers hand out to named guests. */
-    free: {
-      title: "Freikarten",
-      lead: "Für Gäste, die nichts bezahlen. Freikarten kommen zu den Plätzen online hinzu und gelten am Einlass wie jede andere Karte.",
-      name: "Name",
-      email: "E-Mail (freiwillig)",
-      emailHint:
-        "Mit E-Mail bekommt der Gast den Link zu den Karten per Mail. Ohne gibst du ihn selbst weiter.",
-      count: "Anzahl",
-      give: "Freikarten anlegen",
-      given: (n: number, name: string) =>
-        `${n === 1 ? "1 Freikarte" : `${n} Freikarten`} für ${name} angelegt.`,
-      mailed: (email: string) => `Der Link ging per Mail an ${email}.`,
-      notMailed:
-        "Die Mail konnte nicht verschickt werden. Gib den Link selbst weiter.",
-      share: "Gib diesen Link weiter oder druck die Karten aus:",
-      noSale:
-        "Freikarten gibt es, sobald der Kartenverkauf gespeichert ist, und nur vor dem Konzert.",
-      label: "Freikarte",
-      nothingToPay: "Freikarten: Es gibt nichts zu bezahlen.",
-      subject: (concert: string) => `Deine Freikarten: ${concert}`,
-      mailReserved: (concert: string, date: string, time: string) =>
-        `für ${concert} am ${date}${time ? `, ${time}` : ""} haben wir Freikarten für dich:`,
-      mailLine: (n: number) =>
-        n === 1
-          ? "1 Freikarte, es gibt nichts zu bezahlen."
-          : `${n} Freikarten, es gibt nichts zu bezahlen.`,
-    },
-    mail: {
-      subject: (concert: string) => `Deine Karten: ${concert}`,
-      hello: (name: string) => `Hallo ${name},`,
-      reserved: (concert: string, date: string, time: string) =>
-        `deine Karten für ${concert} am ${date}${time ? `, ${time}` : ""} sind reserviert:`,
-      line: (
-        n: number,
-        label: string,
-        price: string,
-        fee: string,
-        sum: string,
-      ) => `${n} × ${label} à ${price}${fee} = ${sum}`,
-      lineFee: (base: string, fee: string) =>
-        ` (${base} + ${fee} Online-Zuschlag)`,
-      total: (total: string) => `Zusammen: ${total}`,
-      feeExplained: (fees: string) =>
-        `Darin sind ${fees} Online-Zuschlag. Er deckt die Gebühren des Online-Verkaufs; an der Kasse gekaufte Karten haben ihn nicht.`,
-      payAtDoor: "Bezahlt wird an der Abendkasse, bevor du hineingehst.",
-      link: "Deine Karten mit den Codes für den Einlass, zum Vorzeigen auf dem Handy oder ausgedruckt:",
-      codes: "Die Codes deiner Karten:",
-      cancel: (orchestra: string) =>
-        `Du kannst nicht kommen? Antworte einfach auf diese Mail, dann geben wir die Plätze frei. Viel Freude beim Konzert!\n${orchestra}`,
-    },
-    ticket: {
-      lead: "Zeig die Codes am Einlass vor, auf dem Handy oder ausgedruckt. Jeder Code lässt eine Person hinein.",
-      of: (i: number, n: number) => `Karte ${i} von ${n}`,
-      freeSeating: "Freie Platzwahl",
-      priceWithFee: (total: string, base: string, fee: string) =>
-        `${total} (${base} + ${fee} Online-Zuschlag)`,
-      total: "Zusammen",
-      fee: "Der Online-Zuschlag deckt die Gebühren des Online-Verkaufs. An der Kasse gekaufte Karten haben ihn nicht.",
-      payAtDoor: "Bezahlt wird an der Abendkasse, bevor du hineingehst.",
-      cancelled:
-        "Diese Reservierung ist storniert. Die Codes gelten nicht mehr.",
-      print: "Drucken",
-      code: "Code",
-    },
-    doorPage: {
-      lead: "Codes scannen und Gäste einlassen. Lade die Liste, solange du Netz hast; danach geht es auch ohne.",
-      load: "Liste laden",
-      reload: "Liste neu laden",
-      loaded: (n: number, time: string) => `${n} Karten, geladen um ${time}.`,
-      noList:
-        "Noch keine Liste auf diesem Gerät. Lade sie, solange du Netz hast.",
-      loadFailed:
-        "Die Liste konnte nicht geladen werden. Mit der gespeicherten geht es weiter.",
-      scan: "Scannen",
-      stop: "Kamera aus",
-      noCamera:
-        "Die Kamera ist nicht verfügbar. Gib den Code ein oder such nach dem Namen.",
-      code: "Code eingeben",
-      check: "Prüfen",
-      welcome: "Willkommen!",
-      used: (time: string) => `Schon eingelassen um ${time}`,
-      unknown: "Unbekannter Code",
-      search: "Name suchen",
-      admit: "Einlassen",
-      admitted: "drin",
-      counter: (n: number, of: number) => `${n} von ${of} drin`,
-      pending: (n: number) =>
-        n === 1 ? "1 Einlass wartet auf Netz" : `${n} Einlässe warten auf Netz`,
-      synced: "Alles übertragen",
-      offline: "Ohne Netz: Einlässe werden gespeichert und später übertragen.",
-    },
-    problems: {
-      name: "Bitte gib deinen Namen an.",
-      email: "Bitte gib eine gültige E-Mail-Adresse an.",
-      empty: "Wähle mindestens eine Karte.",
-      tooMany: "Höchstens 10 Karten pro Bestellung.",
-      unknownType: "Diese Kartenart gibt es nicht.",
-      closed: "Für dieses Konzert gibt es keine Karten online.",
-      ended: "Der Online-Verkauf ist vorbei. Karten gibt es an der Abendkasse.",
-      soldout:
-        "Online ist alles vergeben. Vielleicht gibt es an der Abendkasse noch Karten.",
-      full: "So viele Plätze sind nicht mehr frei.",
-      rate: "Zu viele Bestellungen in kurzer Zeit. Versuch es später noch einmal.",
-      noConcert: "Dieses Konzert gibt es nicht.",
-      count: "Wähle zwischen 1 und 10 Karten.",
-    } as Record<string, string>,
-  },
-  pwa: {
-    description:
-      "Noten, Proben und Konzerte des Orchesters, auch offline im Probenraum.",
-    offline:
-      "Offline: Du siehst die zuletzt geladene Fassung. Offline gespeicherte Noten lassen sich öffnen.",
-    save: "Offline speichern",
-    saving: (done: number, total: number) => `Speichere ${done} von ${total} …`,
-    saved: (n: number) =>
-      n === 1
-        ? "1 Stimme offline gespeichert"
-        : `${n} Stimmen offline gespeichert`,
-    update: "Offline-Kopie erneuern",
-    newVersion: "Neue Version verfügbar",
-    reload: "Neu laden",
-    remove: "Offline-Kopie löschen",
-    failed: (n: number) =>
-      n === 1
-        ? "1 Stimme ließ sich nicht speichern."
-        : `${n} Stimmen ließen sich nicht speichern.`,
-    hint: "Deine Stimmen auf diesem Gerät, für den Probenraum ohne Netz.",
-    unsupported: "Dieser Browser kann Noten nicht offline speichern.",
-    offlineBadge: "offline da",
-    savePart: (label: string) => `${label} offline speichern`,
-    removePart: (label: string) => `${label}: Offline-Kopie löschen`,
-    shelf: {
-      title: "Offline auf diesem Gerät",
-      lead: "Diese Stimmen öffnen sich auch ohne Netz. Speichern kannst du jede Stimme auf der Seite ihres Stücks.",
-      count: (n: number) => (n === 1 ? "1 Stimme" : `${n} Stimmen`),
-      view: (label: string) => `${label} zum Üben öffnen`,
-      removeAll: "Alle löschen",
-      confirmRemoveAll:
-        "Alle offline gespeicherten Stimmen von diesem Gerät löschen?",
-    },
-  },
-  /** The personal calendar feed (#122), on /profil and in the feed itself. */
-  feed: {
-    title: "Termine im eigenen Kalender",
-    lead: "Alle Termine in deiner Kalender-App, mit deiner Antwort (✓ ? ✗) und was geprobt wird.",
-    create: "Kalender-Link erzeugen",
-    subscribe: "Im Kalender abonnieren",
-    copy: "Link kopieren",
-    copied: "Kopiert",
-    renew: "Neuen Link erzeugen",
-    revoke: "Link sperren",
-    confirmRenew:
-      "Neuen Link erzeugen? Kalender, die den alten abonniert haben, bekommen dann keine Termine mehr.",
-    confirmRevoke:
-      "Link sperren? Kalender, die ihn abonniert haben, bekommen dann keine Termine mehr.",
-    hint: "Persönlich, nicht weitergeben. Google Kalender: Weitere Kalender → Per URL.",
-    notSetUp:
-      "Noch nicht eingerichtet. Die Verwaltung muss einmal „Tabelle einrichten“ ausführen.",
-    failed:
-      "Der Link konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.",
-    program: "Programm:",
-    rehearsed: "Geprobt:",
-    answer: (answer: string) => `Deine Antwort: ${answer}`,
-    details: "Details:",
-    parts: "Deine Noten:",
-    calendarName: (orchestra: string) => `${orchestra} · Termine`,
-    /** The concerts for the orchestra's website (#197). */
-    publicCalendarName: (orchestra: string) => `${orchestra} · Konzerte`,
-    publicProgram: "Programm:",
-  },
-  /** The planners' checklist on a concert page, worked out from the data. */
-  check: {
-    title: "Konzert-Check",
-    lead: "Was für dieses Konzert schon steht und was noch fehlt.",
-    allDone: "Alles erledigt",
-    pieces: (n: number) => (n === 1 ? "1 Stück" : `${n} Stücken`),
-    open: (n: number) => (n === 1 ? "1 Punkt offen" : `${n} Punkte offen`),
-    program: (n: number) =>
-      n === 1
-        ? "Programm mit 1 Stück eingetragen"
-        : `Programm mit ${n} Stücken eingetragen`,
-    noProgram: "Noch kein Programm eingetragen",
-    partsComplete: "Alle Stimmen im Archiv",
-    partGaps: (pieces: string) => `Bei ${pieces} fehlen Stimmen oder Seiten`,
-    planComplete: "Jedes Stück ist in einer Probe eingeplant",
-    duration: (minutes: number) => `Dauer ca. ${minutes} Min.`,
-    durationGaps: (pieces: string) => `Bei ${pieces} fehlt die Dauer`,
-    loansDue: (titles: string) =>
-      `Leihmaterial muss vor dem Konzert zurück: ${titles}`,
-    returnLoans: (titles: string) => `Leihmaterial zurückgeben: ${titles}`,
-    reportReady: "Musikfolge für die GEMA ist vollständig",
-    reportGaps: (pieces: string) =>
-      `Musikfolge: Bei ${pieces} fehlen noch Angaben`,
-  },
-  duration: {
-    label: "Dauer",
-    /** "ca. 74 Min. (2 Stücke ohne Dauer)" */
-    total: (minutes: number, missing: number) =>
-      `ca. ${minutes} Min.${missing ? ` (${missing === 1 ? "1 Stück" : `${missing} Stücke`} ohne Dauer)` : ""}`,
-    /** One piece's length next to dates and times, where "17:30" would read as a clock time (#218). */
-    minutes: (minutes: number) => `${minutes} Min.`,
-    unknown: "Dauer noch unbekannt",
-    hint: "Die Dauer steht beim Stück („Angaben bearbeiten“) und wird hier zusammengezählt.",
-  },
-  rehearsalPlan: {
-    title: "Geprobt wird",
-    planned: "Geprobt:",
-    empty: "Noch nicht eingetragen.",
-    edit: "Probenplan bearbeiten",
-    pageTitle: (concert: string) => `Probenplan: ${concert}`,
-    lead: "Für jede Probe antippen, welche Stücke dran sind.",
-    all: "Alle",
-    none: "Keine",
-    past: "vorbei",
-    count: (n: number) => (n === 1 ? "1 Stück" : `${n} Stücke`),
-    overview: "Wie oft geprobt",
-    times: (n: number) => (n === 1 ? "1 Probe" : `${n} Proben`),
-    stillToCome: (n: number) => (n === 0 ? "keine mehr" : `noch ${n}`),
-    never: "nicht eingeplant",
-    unplanned: (n: number) =>
-      n === 1
-        ? "1 Stück aus dem Programm ist in keiner Probe eingeplant."
-        : `${n} Stücke aus dem Programm sind in keiner Probe eingeplant.`,
-    notInProgram: "nicht im Programm",
-    noProgram: "Erst das Programm eintragen, dann den Probenplan.",
-    noRehearsals: "Keine Proben im Kalender.",
-    notSetUp:
-      "In der Repertoire-Tabelle fehlt das Blatt „Proben“. Bitte einmal „Tabelle einrichten“ ausführen.",
-    notAConcert: "Einen Probenplan gibt es nur für Konzerte aus dem Kalender.",
-    programLink: "Programm bearbeiten",
-    save: "Speichern",
-    cancel: "Abbrechen",
-    saved: "Probenplan gespeichert.",
-    conflict:
-      "Jemand hat den Probenplan inzwischen geändert. Lade die Seite neu und mach deine Änderung noch einmal.",
-    failed: "Der Probenplan konnte nicht gelesen werden.",
-  },
-  naming: {
-    title: "Dateinamen",
-    lead: "Dateien, die nicht „<Kurztitel> - <Stimme>.pdf“ heißen, mit Vorschlag. Umbenannt wird nur, was angehakt ist.",
-    counts: (rename: number, unclear: number, folders: number) =>
-      `${rename} ${rename === 1 ? "Vorschlag" : "Vorschläge"} · ${unclear} unklar · in ${folders} ${folders === 1 ? "Ordner" : "Ordnern"}`,
-    shortTitle: "Kurztitel",
-    openFolder: "Ordner in Drive",
-    shortTitleHint:
-      "Steht vor jeder Stimme. Kurz halten, damit die Stimme auf dem Handy lesbar bleibt.",
-    long: "lang fürs Handy",
-    unclear: "unklar",
-    unclearHint: (words: string) =>
-      `Nicht erkannt: ${words}. Bitte von Hand umbenennen.`,
-    takenHint: (name: string) =>
-      `„${name}“ gibt es schon. Bitte von Hand umbenennen.`,
-    nothingHint: "Keine Stimme erkannt. Bitte von Hand umbenennen.",
-    rename: (n: number) =>
-      n === 1 ? "1 Datei umbenennen" : `${n} Dateien umbenennen`,
-    renamedIn: (n: number, folder: string) =>
-      `${n === 1 ? "1 Datei" : `${n} Dateien`} in „${folder}“ umbenannt.`,
-    all: "Alle auswählen",
-    none: "Alle Dateinamen folgen der Konvention.",
-    onlyUnclear: "Nur noch Unklares",
-    noDriveWrite:
-      "Umbenennen ist aus: Die App darf Drive nur lesen (DRIVE_WRITE ist nicht gesetzt).",
-    progress: (done: number, total: number) =>
-      `Benenne um: ${done} von ${total} …`,
-    gone: "Diesen Ordner gibt es nicht mehr. Bitte die Seite neu laden.",
-    failed: (names: string[]) => `Nicht umbenannt: ${names.join(", ")}`,
-    filter: {
-      all: "Alle Ordner",
-      rename: "Mit Vorschlägen",
-      unclear: "Mit Unklarem",
-    },
-    failedLoad: "Das Notenarchiv konnte gerade nicht geladen werden.",
-  },
-  gaps: {
-    title: "Fehlende Stimmen",
-    lead: "Alle Lücken im Archiv: aus den Dateinamen und den offenen Meldungen.",
-    all: "Alle",
-    current: "Aktuelle Programme",
-    counts: {
-      missing: "fehlen",
-      empty: "leer",
-      incomplete: "mit fehlenden Seiten",
-      reports: "davon nur gemeldet",
-      hints: "Hinweise aus der Prüfung",
-      unscored: "laut Besetzung ohne Stimme",
-    },
-    unscored: "laut Besetzung, keine Stimme",
-    scoresBad: "Die gelesenen Besetzungen ließen sich nicht verarbeiten.",
-    /** Reading every score's Besetzung in the browser (#249). */
-    scores: {
-      title: "Besetzung aus den Partituren lesen",
-      lead: (count: number) =>
-        `${count === 1 ? "1 Stück hat" : `${count} Stücke haben`} eine Partitur, aber noch keine Besetzung. Der Browser liest die Instrumentennamen am linken Rand der ersten Seite, eine Partitur nach der anderen. Gespeichert wird erst, was du übernimmst; eine eingetragene Besetzung bleibt.`,
-      ocr: "Scans ohne Text per Texterkennung lesen (langsamer; lädt beim ersten Mal einige MB von jsDelivr, die Noten bleiben im Browser)",
-      start: "Partituren lesen",
-      stop: "Anhalten",
-      progress: (done: number, total: number) => `${done} von ${total} gelesen`,
-      withText: "mit Textebene",
-      scans: "Scans ohne Text",
-      byOcr: "davon per Texterkennung gelesen",
-      found: "Besetzung erkannt",
-      failed: "nicht lesbar",
-      nothing: "nichts erkannt",
-      scan: "Scan, nicht gelesen",
-      take: (count: number) =>
-        count === 1
-          ? "1 Besetzung übernehmen"
-          : `${count} Besetzungen übernehmen`,
-      saved: (count: number) =>
-        count === 1
-          ? "1 Besetzung gespeichert."
-          : `${count} Besetzungen gespeichert.`,
-    },
-    unscoredTitle:
-      "Die Besetzung des Stücks nennt dieses Instrument, aber im Archiv gibt es keine Stimme dafür, auch keine gemeinsame.",
-    hint: {
-      empty: "vielleicht leer",
-      incomplete: (pages: number, usual: number) =>
-        `vielleicht unvollständig: ${pages} ${pages === 1 ? "Seite" : "Seiten"}, die anderen meist ${usual}`,
-    },
-    hintTitle:
-      "Von der App gefunden: die Datei ist leer oder nicht lesbar, oder sie hat viel weniger Seiten als die anderen Stimmen.",
-    hintConfirm: (word: string) => `Als ${word} markieren`,
-    hintDismiss: "Stimmt so",
-    hintGone: "Diesen Hinweis gibt es nicht mehr.",
-    hintDriveFailed:
-      "Die Datei konnte in Drive nicht umbenannt werden. Bitte versuch es noch einmal oder benenn sie von Hand um.",
-    checkProgress: (checked: number, total: number) =>
-      `Die App prüft die Seiten der Stimmen nach und nach: ${checked} von ${total} PDFs geprüft.`,
-    reported: "gemeldet",
-    reportedHint:
-      "In der App gemeldet. Der Dateiname in Drive sagt es noch nicht.",
-    none: "Keine Lücken im Archiv.",
-    noneHere: "In dieser Auswahl gibt es keine Lücken.",
-    failed: "Das Notenarchiv konnte gerade nicht geladen werden.",
-    manage: "Meldungen bearbeiten",
-    link: "Alle fehlenden Stimmen",
-    done: "erledigt",
-    doneHint:
-      "Als erledigt markiert, z. B. bestellt. Die Lücke verschwindet, sobald die Datei umbenannt ist.",
-    markDone: "Erledigt",
-    markOpen: "Wieder offen",
-    markGone:
-      "Diese Lücke ist noch nicht in der Liste; gleich noch einmal versuchen.",
-    /** Scan-Aufträge: Priorität und wer scannt, pro Lücke oder für alle Lücken eines Stücks. */
-    mine: "Mir zugeteilt",
-    priority: "Priorität",
-    priorities: {
-      high: "Priorität hoch",
-      medium: "Priorität mittel",
-      low: "Priorität niedrig",
-    },
-    noPriority: "ohne Priorität",
-    assignee: "Wer scannt",
-    nobody: "noch niemand",
-    assignedTo: (name: string) => `scannt: ${name}`,
-    assignedToMe: "scannst du",
-    plan: "Scan planen",
-    planAll: "Für alle Lücken planen",
-    planAllHint: (n: number) =>
-      `Gilt für ${n === 1 ? "die Lücke" : `alle ${n} Lücken`} dieses Stücks.`,
-    save: "Speichern",
-    cancel: "Abbrechen",
-    saved: "Gespeichert.",
-    notScanner:
-      "Diese Person darf keine Noten bearbeiten. Gib ihr in „Mitglieder & Rechte“ die Rolle Notenwart.",
-    planGone:
-      "Diese Lücken sind noch nicht in der Liste; gleich noch einmal versuchen.",
-    push: {
-      title: "Bitte scannen",
-      titleHigh: "Bitte bald scannen",
-      body: (piece: string, parts: string[]) => `${piece}: ${parts.join(", ")}`,
-    },
-    pieceTitle: "Zu scannen",
-    pieceLead: "Was in diesem Stück fehlt, wer es scannt und wie dringend.",
-  },
-  instrumentation: {
-    title: "Besetzung",
-    lead: "Welche Stimmen für dieses Programm da sind.",
-    onlyPlayed: "Nur Instrumente der Mitglieder",
-    piece: "Stück",
-    legend: {
-      own: "Stimme da",
-      shared: "Gemeinsame Stimme",
-      problem: "Fehlt, leer oder es fehlen Seiten",
-      none: "Keine Stimme",
-    },
-    noMusic: "keine Noten",
-    gaps: (n: number) =>
-      n === 1
-        ? "1 Lücke bei Instrumenten der Mitglieder"
-        : `${n} Lücken bei Instrumenten der Mitglieder`,
-  },
-  myParts: {
-    title: "Meine Noten",
-    lead: "Deine Stimmen, in Programmreihenfolge.",
-    empty:
-      "Nach der Anmeldung findest du hier deine Stimmen für jedes Konzert.",
-    wholeProgram: "Noch kein Probenplan, deshalb das ganze Programm.",
-    concert: "Konzert",
-    jumpTo: "Springen zu",
-    more: (n: number) => (n === 1 ? "Noch 1 Konzert" : `Noch ${n} Konzerte`),
-    instrument: "Instrument",
-    number: "Stimme",
-    anyNumber: "alle",
-    pickInstrument:
-      "Was spielst du? Einmal auswählen, dann sind deine Noten immer hier.",
-    unknownInstrument: (text: string) =>
-      `„${text}“ kennt die App nicht als Instrument. Bitte einmal auswählen.`,
-    save: "Merken",
-    saved: "Gemerkt.",
-    change: "Ändern",
-    show: "Anzeigen",
-    noConcert: "Gerade steht kein Konzert mit Programm an.",
-    noProgram: "Für dieses Konzert ist noch kein Programm eingetragen.",
-    shared: "Gemeinsame Stimme",
-    /** The button that opens a part: what the tap does, not just the instrument (#223). */
-    open: (part: string) => `${part} öffnen`,
-    noPart: (instrument: string) => `Keine Stimme für ${instrument}`,
-    noMusic: "Keine Noten im Archiv",
-    missing: "fehlt im Archiv",
-    summary: (found: number, total: number) =>
-      `${found} von ${total} Stücken mit Stimme`,
-    merge: "Als eine PDF",
-    /** Playing a concert from a tablet (#194). */
-    concertMode: {
-      open: "Auftrittsmodus",
-      hint: "Deine Stimmen in Programmfolge im Vollbild. Blättern mit Tippen oder Pedal geht gleich ins nächste Stück, der Bildschirm bleibt an.",
-      title: "Auftrittsmodus",
-      piece: "Stück",
-      night: "Nacht",
-    },
-    merging: (done: number, total: number) =>
-      `Lade Stimme ${done} von ${total} …`,
-    mergeFailed:
-      "Die PDF konnte nicht erstellt werden. Die einzelnen Stimmen lassen sich weiter öffnen.",
-    skipped: (n: number) =>
-      n === 1
-        ? "Eine Stimme fehlt in der PDF, sie ließ sich nicht laden:"
-        : `${n} Stimmen fehlen in der PDF, sie ließen sich nicht laden:`,
-    skipOffline: "keine Verbindung",
-    skipHttp: (status: number, text: string) =>
-      status === 403
-        ? "nicht angemeldet"
-        : `Fehler ${status}${text ? ` – ${text.slice(0, 120)}` : ""}`,
-    skipUnreadable: "die Datei ist keine lesbare PDF",
-    mergeHint:
-      "Fügt deine Stimmen in Programmreihenfolge zu einer Datei zusammen, zum Drucken oder fürs Tablet.",
-    mergeOff: "Das Zusammenfügen geht nur mit Anmeldung.",
-    pickInstruments:
-      "Was spielst du? Einmal auswählen, dann sind deine Noten immer hier.",
-    paused: (until?: string) =>
-      until
-        ? `Du bist bis ${until} pausiert. Deine Noten siehst du trotzdem.`
-        : "Du bist gerade pausiert. Deine Noten siehst du trotzdem.",
-    inactive:
-      "Du bist als inaktiv eingetragen. Deine Noten siehst du trotzdem.",
-    profileHint: "Ändern lässt sich das auch im Profil.",
-  },
-  instruments: {
-    more: "Mehr Instrumente …",
-    moreIn: (n: number) => `${n} weitere`,
-    holds: "Enthält:",
-    holdsOf: (part: string) => `Instrumente in ${part}`,
-    addHeld: "+ Instrument",
-    /** Instruments already in the Besetzung on their own that this generic part could hold. */
-    suggestHeld: "Schon gewählt:",
-    moveInto: (instrument: string, part: string) =>
-      `${instrument} in ${part} übernehmen`,
-    dragHint: "In eine Sammelstimme ziehen",
-    solo: "Solo",
-    soloHint:
-      "Solist:in vorne beim Dirigat. Ohne Stimmennummern spielt nur die Solist:in.",
-    choose: "Instrument wählen",
-    search: "Instrument suchen …",
-    common: "Häufig",
-    none: (query: string) => `Kein Instrument passt zu „${query}“.`,
-    add: "Weiteres Instrument",
-    remove: "Instrument entfernen",
-    removeNamed: (name: string) => `${name} entfernen`,
-    change: "Ändern",
-    done: "Fertig",
-    chosen: (n: number) => (n === 1 ? "1 Instrument" : `${n} Instrumente`),
-    numbers: "Stimmen",
-    numbersHint: "keine Auswahl: alle Stimmen",
-    score: (label: string) => `Erste Seite: ${label}`,
-    scoreHint:
-      "Am linken Rand der ersten Seite stehen alle Instrumente der Partitur.",
-  },
-  /** Filters for a list, several at once (archive, calendar). */
-  filters: {
-    button: "Filter",
-    active: (label: string, n: number) => `${label}, ${n} aktiv`,
-    close: "Schließen",
-    reset: "Zurücksetzen",
-    show: (n: number) => (n === 1 ? "1 Eintrag anzeigen" : `${n} anzeigen`),
-    would: (n: number) => (n === 1 ? "1 Eintrag" : `${n} Einträge`),
-  },
-  /** The Besetzung as a seating plan on the piece's page (#249). */
-  seating: {
-    title: "Besetzung",
-    noPart: "keine Stimme",
-    solo: "Solo",
-    score: "Partitur",
-    scoreShort: "Part.",
-    missing: (names: string) => `Ohne Stimme im Archiv: ${names}`,
-    /** As scores abbreviate them, by the instrument names in the config. */
-    abbr: {
-      Geige: "Vl",
-      Viola: "Va",
-      Violoncello: "Vc",
-      Kontrabass: "Kb",
-      "E-Bass": "E-B",
-      Blockflöte: "Bfl",
-      "Tenor-Blockflöte": "TBfl",
-      Piccolo: "Picc",
-      Flöte: "Fl",
-      Oboe: "Ob",
-      Englischhorn: "Eh",
-      Klarinette: "Kl",
-      Altklarinette: "AKl",
-      Bassklarinette: "BKl",
-      Fagott: "Fg",
-      "Sopran-Saxophon": "SSax",
-      "Alt-Saxophon": "ASax",
-      "Tenor-Saxophon": "TSax",
-      "Bariton-Saxophon": "BSax",
-      Saxophon: "Sax",
-      Horn: "Hr",
-      Trompete: "Trp",
-      Posaune: "Pos",
-      Bassposaune: "BPos",
-      Bariton: "Bar",
-      Tuba: "Tb",
-      Pauke: "Pk",
-      Schlagwerk: "Schl",
-      Glockenspiel: "Glsp",
-      Xylophon: "Xyl",
-      Marimba: "Mar",
-      Vibraphon: "Vib",
-      Harfe: "Hf",
-      Klavier: "Klav",
-      Cembalo: "Cemb",
-      Orgel: "Org",
-      Chor: "Chor",
-      Sopran: "S",
-      Alt: "A",
-      Tenor: "T",
-      Bassstimme: "B",
-      Frauenchor: "FrCh",
-      Männerchor: "MCh",
-    } as Record<string, string>,
-  },
-  quickSearch: {
-    label: "Schnellsuche",
-    open: "Suchen",
-    shortcut: "Strg K",
-    placeholder: "Stück, Stimme, Konzert oder Seite …",
-    inArchive: (n: number) =>
-      n === 1 ? "Im Archiv zeigen" : `Alle ${n} im Archiv zeigen`,
-    pages: "Seiten",
-    pieces: "Stücke",
-    concerts: "Konzerte",
-    upcoming: "Demnächst",
-    recent: "Zuletzt geöffnet",
-    loading: "Lädt …",
-    none: (query: string) => `Nichts gefunden für „${query}“.`,
-    keys: "↑↓ wählen · ↵ öffnen · Esc schließen",
-  },
-  currentProgram: {
-    title: "Aktuelles Programm im Drive",
-    sync: "Abgleichen",
-    noFolder: (name: string) =>
-      `Noch kein Programmordner für ${name} – Abgleichen legt die Verknüpfungen an.`,
-    complete: (count: number, folder: string) =>
-      `Alle ${count} Stücke liegen im Programmordner »${folder}«.`,
-    partly: (linked: number, total: number, folder: string) =>
-      `${linked} von ${total} Stücken liegen im Programmordner »${folder}«.`,
-    extra: (count: number) =>
-      count === 1
-        ? "1 anderes Stück liegt noch drin."
-        : `${count} andere Stücke liegen noch drin.`,
-    notNext: "Nicht das nächste Konzert dieses Orchesters.",
-    done: (added: number, removed: number) =>
-      `Abgeglichen: ${added} ergänzt, ${removed} herausgenommen.`,
-    removedHint: "Herausgenommene Verknüpfungen liegen im Papierkorb.",
-    stuck: (names: string[]) =>
-      `${names.map((name) => `»${name}«`).join(", ")} kann nur herausnehmen, wer die Verknüpfung angelegt hat: bitte von Hand im Drive löschen.`,
-    open: "Ordner öffnen",
-    failed:
-      "Abgleichen hat nicht geklappt. Hat das Dienstkonto Bearbeitungsrechte für den Ordner?",
-    ambiguous:
-      "Mehrere Programmordner und kein Orchester am Konzert: bitte in der Tabelle das Orchester eintragen.",
-    none: "Für dieses Orchester gibt es keinen Programmordner, und DRIVE_CURRENT_PROGRAM_FOLDER_ID nennt keinen Ordner, in dem einer entstehen kann.",
-    autoDone: "Auch im Drive-Ordner »Aktuelles Programm« abgeglichen.",
-    autoFailed:
-      "Im Drive-Ordner »Aktuelles Programm« konnte das Programm nicht abgeglichen werden.",
-  },
-  polls: {
-    title: "Terminumfragen",
-    lead: "Termine abstimmen, bevor sie in den Kalender kommen – nur mit den Gruppen, die es angeht.",
-    notSetUp:
-      "Terminumfragen brauchen eine Datenbank (D1). Wie sie eingerichtet wird, steht in docs/setup-google.md.",
-    empty: "Gerade läuft keine Umfrage für dich.",
-    open: "Offen",
-    closed: "Abgeschlossen",
-    yourTurn: "Deine Antwort fehlt",
-    new: "Neue Umfrage",
-    fields: {
-      title: "Worum geht es?",
-      titleHint: "z. B. Probenwochenende im Frühjahr",
-      note: "Notiz (optional)",
-      dates: "Termine zur Auswahl",
-      date: "Datum",
-      until: "letzter Tag (optional)",
-      datesHint:
-        "Für ein Wochenende einen letzten Tag angeben: dann steht Fr–Sa als eine Wahl.",
-      start: "von",
-      end: "bis",
-      addDate: "Weiterer Termin",
-      removeDate: "Termin entfernen",
-      groups: "Für wen?",
-      deadline: "Antworten bis (optional)",
-    },
-    create: "Umfrage starten",
-    errors: {
-      title: "Bitte angeben, worum es geht.",
-      options: "Bitte mindestens zwei Termine angeben (höchstens 30).",
-      groups: "Bitte mindestens eine Gruppe wählen.",
-      time: "Bitte die Uhrzeiten prüfen: „bis“ kommt nach „von“.",
-    },
-    forGroups: (groups: string) => `Für ${groups}`,
-    by: (name: string) => `von ${name}`,
-    until: (date: string) => `Antworten bis ${date}`,
-    answers: (count: number) =>
-      count === 1 ? "1 Antwort" : `${count} Antworten`,
-    answer: { yes: "Ja", maybe: "Vielleicht", no: "Nein" },
-    you: "Du",
-    comment: "Kommentar (optional)",
-    save: "Antwort speichern",
-    saved: "Antwort gespeichert.",
-    best: "Bester Termin",
-    chosen: "Gewählt",
-    choose: "Nehmen",
-    /** Closing with the ticked dates (#209): none, one, or several (a weekend). */
-    closeWith: (n: number) =>
-      n === 0
-        ? "Ohne Termin abschließen"
-        : n === 1
-          ? "Mit 1 Termin abschließen"
-          : `Mit ${n} Terminen abschließen`,
-    reopen: "Wieder öffnen",
-    remove: "Umfrage löschen",
-    removeConfirm: "Diese Umfrage mit allen Antworten löschen?",
-    toCalendar: "In Google Kalender eintragen",
-    waiting: "Noch keine Antwort von",
-    noAccess: "Diese Umfrage ist nicht für dich.",
-    failed: "Speichern hat nicht geklappt. Gleich noch einmal versuchen.",
-  },
-  auth: {
-    title: "Anmelden",
-    lead: "Melde dich an, um Noten, Konzerte und Programme zu sehen.",
-    button: "Mit Google anmelden",
-    privacy: "Die App erfährt dabei nur deinen Namen und deine E-Mail-Adresse.",
-    notReady: "Die Anmeldung ist noch nicht fertig eingerichtet:",
-    errors: {
-      abgebrochen: "Die Anmeldung wurde abgebrochen.",
-      abgelaufen: "Die Anmeldung ist abgelaufen. Bitte versuch es noch einmal.",
-      konto: "Dieses Google-Konto hat keine bestätigte E-Mail-Adresse.",
-      google:
-        "Google hat die Anmeldung gerade nicht bestätigt. Bitte versuch es noch einmal.",
-    } as Record<string, string>,
-    signedInAs: (email: string) => `Angemeldet als ${email}`,
-    logout: "Abmelden",
-    switchAccount: "Mit einem anderen Konto anmelden",
-    /** Several accounts on one device (an admin's and a member's, a shared tablet). */
-    accounts: {
-      title: "Konten auf diesem Gerät",
-      lead: "Ohne neue Anmeldung zwischen Konten wechseln, z. B. auf einem geteilten Gerät.",
-      add: "Weiteres Konto hinzufügen",
-      switchTo: "Wechseln",
-      forget: "Entfernen",
-      forgetConfirm: (name: string) => `${name} von diesem Gerät entfernen?`,
-      current: "Aktiv",
-      onDevice: "Auf diesem Gerät gespeichert",
-    },
-  },
-  signups: {
-    title: "Anmeldung",
-    question: "Bist du dabei?",
-    answers: {
-      yes: "Ich komme",
-      maybe: "Vielleicht",
-      no: "Ich kann nicht",
-    } as Record<string, string>,
-    answerValues: {
-      yes: "Zusage",
-      maybe: "Vielleicht",
-      no: "Absage",
-    } as Record<string, string>,
-    yourAnswer: "Deine Antwort",
-    /** On the start page, after the short line "Du kommst" (#214): shows the buttons again. */
-    change: "ändern",
-    /** In the calendar list: what you answered, or that the date still waits for it. */
-    status: {
-      yes: "Du kommst",
-      maybe: "Vielleicht",
-      no: "Abgesagt",
-      open: "Antwort fehlt",
-    } as Record<string, string>,
-    instrument: "Instrument bei diesem Termin",
-    ownInstrument: (instrument: string) =>
-      instrument ? `wie im Profil (${instrument})` : "wie im Profil",
-    comment: "Kommentar (optional)",
-    commentHint: "z. B. komme später",
-    details: "Instrument oder Kommentar ändern",
-    save: "Speichern",
-    saved: "Gespeichert.",
-    withdraw: "Antwort zurückziehen",
-    signInNeeded: "Für Zu- und Absagen bitte anmelden.",
-    notSetUp:
-      "Anmeldungen: Fehlt noch in der Tabelle. Bitte einmal „Tabelle einrichten“ ausführen.",
-    failed:
-      "Die Antwort konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.",
-    gone: "Diesen Termin gibt es nicht (mehr) oder er ist vorbei.",
-    coverage: "Besetzung",
-    coverageLead: "Zusagen je Stimme.",
-    byPart: "Nach Stimmen getrennt",
-    summary: (yes: number, maybe: number, no: number, open: number) =>
-      [
-        `${yes} ${yes === 1 ? "Zusage" : "Zusagen"}`,
-        maybe && `${maybe} vielleicht`,
-        no && `${no} ${no === 1 ? "Absage" : "Absagen"}`,
-        open && `${open} offen`,
-      ]
-        .filter(Boolean)
-        .join(" · "),
-    uncovered: "niemand",
-    noInstrument: "Ohne Instrument",
-    kinds: {
-      yes: "kommen",
-      maybe: "vielleicht",
-      no: "können nicht",
-      open: "offen",
-    } as Record<string, string>,
-    comments: "Kommentare",
-    noOne: "Noch keine Antworten und keine Mitglieder mit Instrument.",
-  },
-  details: {
-    title: "Angaben ergänzen",
-    lead: "Stücke mit fehlenden Angaben, der Reihe nach ergänzen. Vorschläge helfen.",
-    filterLabel: "Was fehlt",
-    filters: {
-      alle: "Etwas fehlt",
-      komponist: "Ohne Komponist",
-      genre: "Ohne Genre",
-      hoerbeispiel: "Ohne Hörbeispiel",
-      werkverzeichnis: "Ohne Werkverzeichnis",
-    } as Record<string, string>,
-    missing: {
-      composer: "Komponist",
-      genre: "Genre",
-      recording: "Hörbeispiel",
-      catalogue: "Werkverzeichnis",
-    } as Record<string, string>,
-    progress: (percent: number) => `${percent} % der Stücke vollständig`,
-    start: (n: number) =>
-      n === 1
-        ? "Das eine Stück bearbeiten"
-        : `Der Reihe nach bearbeiten (${n})`,
-    working: (filter: string, open: number) =>
-      `Angaben ergänzen · ${filter}: noch ${open} ${open === 1 ? "Stück" : "Stücke"}.`,
-    saveNext: "Speichern & weiter",
-    backToList: "Zur Liste",
-    allDone: "Geschafft: In dieser Liste ist nichts mehr offen.",
-    none: "Hier fehlt nichts.",
-    noRecording: "Gibt es keins",
-    noRecordingHint: (title: string) =>
-      `„${title}“ hat kein Hörbeispiel: nicht mehr danach fragen`,
-    noRecordingSaved: (title: string) =>
-      `„${title}“: als ohne Hörbeispiel vermerkt.`,
-  },
-  suggest: {
-    title: "Vorschläge",
-    lead: "„Übernehmen“ trägt ins Formular ein; gespeichert wird mit „Speichern“.",
-    fromScore: "Aus den Noten lesen",
-    fileLabel: "Aus welcher Datei lesen",
-    reading: "Lese die Noten …",
-    online: "Online nachschlagen",
-    searching: "Suche bei Wikidata …",
-    youtube: "Hörbeispiel auf YouTube suchen",
-    youtubeHint:
-      "Passende Aufnahme öffnen, Link kopieren, bei „Hörbeispiel“ einfügen.",
-    videoLength: "Dauer aus dem Video",
-    videoLooking: "Frage YouTube …",
-    videoNoLength: "YouTube nennt für dieses Video keine Länge.",
-    videoFailed: "YouTube ist gerade nicht erreichbar.",
-    whichWork: "Welches Werk ist es?",
-    apply: "Übernehmen",
-    /** Adds a name to a list field ("Mozart" → "Mozart, Haydn") instead of replacing it. */
-    add: "Ergänzen",
-    applied: "eingetragen",
-    openWikidata: "Bei Wikidata ansehen",
-    sources: {
-      score: "aus den Noten",
-      wikidata: "Wikidata",
-      archive: "aus dem Archiv",
-      youtube: "Video",
-    } as Record<string, string>,
-    scanOnly:
-      "Ein Scan ohne Text. Vielleicht hilft eine andere Stimme oder „Online nachschlagen“.",
-    ocr: "Besetzung per Texterkennung",
-    ocrReading: "Erkenne Text …",
-    ocrHint:
-      "Liest die Instrumentennamen am linken Rand der ersten Seite. Die Texterkennung lädt beim ersten Mal einige MB von jsDelivr; die Noten selbst bleiben im Browser.",
-    nothingInScan:
-      "Am linken Rand der ersten Seite ließen sich keine Instrumente erkennen.",
-    ocrFailed:
-      "Die Texterkennung ließ sich nicht laden oder ist fehlgeschlagen.",
-    nothingInScore:
-      "In den Noten steht kein Komponist, Arrangeur oder Werkverzeichnis, das sich sicher lesen lässt.",
-    downloadFailed: "Die Datei konnte nicht geladen werden.",
-    unreadable: "Die Datei ist keine lesbare PDF.",
-    nothingOnline:
-      "Wikidata kennt kein Werk mit diesem Titel. Vielleicht hilft der Originaltitel oder der Komponist im Formular.",
-    nothingInWork: "Zu diesem Werk hat Wikidata keine weiteren Angaben.",
-    onlineFailed: "Wikidata ist gerade nicht erreichbar.",
-    busy: "Wikidata bittet um eine kurze Pause. In einer Minute geht es wieder.",
-  },
-  demo: {
-    label: "Demo",
-    note: "Erfundene Beispieldaten. Änderungen bleiben nur bis zum Neustart.",
-    viewAs: "Ansehen als",
-    admin: "Verwaltung",
-    member: "Mitglied",
-    parent: "Eltern",
-    reset: "Zurücksetzen",
-  },
-  viewer: {
-    show: "Noten ansehen",
-    hide: "Noten ausblenden",
-    page: (page: number, pages: number) => `Seite ${page} von ${pages}`,
-    previous: "Vorige Seite",
-    next: "Nächste Seite",
-    larger: "Größer",
-    smaller: "Kleiner",
-    open: "In neuem Tab öffnen",
-    loading: "Lade die Noten …",
-    hint: "Angaben von der Seite abtippen, oder im neuen Tab markieren und kopieren.",
-  },
-  /** Email and password sign-in: the form on /anmelden, signing up and resetting by email, the profile. */
-  password: {
-    email: "E-Mail-Adresse",
-    password: "Passwort",
-    signIn: "Anmelden",
-    signInErrors: {
-      wrong: "E-Mail-Adresse oder Passwort stimmt nicht.",
-      limited: "Zu viele Versuche. Bitte in einer Viertelstunde noch einmal.",
-      failed: "Das hat gerade nicht geklappt. Bitte versuch es noch einmal.",
-    } as Record<string, string>,
-    createOrReset: "Konto anlegen oder Passwort vergessen?",
-    noMailHint:
-      "Noch kein Passwort? Lass dir von der Verwaltung einen persönlichen Link geben und leg im Profil ein Passwort fest.",
-    requestTitle: "Passwort festlegen",
-    requestLead:
-      "Für ein neues Konto oder wenn du dein Passwort vergessen hast: Wir schicken dir einen Link, mit dem du ein Passwort festlegst.",
-    send: "Link per E-Mail schicken",
-    sent: (email: string) =>
-      `Wir haben einen Link an ${email} geschickt. Er gilt eine Stunde. Schau auch im Spam-Ordner nach.`,
-    mailErrors: {
-      invalid: "Bitte eine E-Mail-Adresse eingeben.",
-      limited: "Zu viele Versuche. Bitte in einer Stunde noch einmal.",
-      failed: "Das hat gerade nicht geklappt. Bitte versuch es noch einmal.",
-    } as Record<string, string>,
-    noMail:
-      "Gerade können keine E-Mails verschickt werden. Bitte frag die Verwaltung nach einem persönlichen Link; danach kannst du im Profil ein Passwort festlegen.",
-    toSignIn: "Zur Anmeldung",
-    newSubject: (orchestra: string) => `Dein Konto: ${orchestra}`,
-    newBody: (name: string, orchestra: string, link: string) =>
-      `Hallo${name ? ` ${name}` : ""},\n\nmit diesem Link legst du dein Passwort für ${orchestra} fest. Er gilt eine Stunde:\n\n${link}\n\nDu wolltest kein Konto anlegen? Dann lösch diese E-Mail einfach.`,
-    resetSubject: (orchestra: string) => `Neues Passwort: ${orchestra}`,
-    resetBody: (name: string, link: string) =>
-      `Hallo${name ? ` ${name}` : ""},\n\nmit diesem Link legst du ein neues Passwort fest. Er gilt eine Stunde und nur einmal:\n\n${link}\n\nDu hast kein neues Passwort angefordert? Dann lösch diese E-Mail einfach; dein Passwort bleibt, wie es ist.`,
-    setTitle: "Passwort festlegen",
-    resetTitle: "Neues Passwort",
-    setLead: (email: string) => `Für ${email}.`,
-    newPassword: "Neues Passwort",
-    repeat: "Noch einmal",
-    current: "Bisheriges Passwort",
-    rule: (min: number) =>
-      `Mindestens ${min} Zeichen. Ein Satz, den du dir merken kannst, ist besser als ein kurzes kompliziertes Wort.`,
-    problems: {
-      short: "Das Passwort ist zu kurz.",
-      long: "Das Passwort ist zu lang.",
-      mismatch: "Die beiden Passwörter sind nicht gleich.",
-    } as Record<string, string>,
-    save: "Passwort speichern",
-    failed:
-      "Das Passwort konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.",
-    linkInvalid: "Dieser Link ist abgelaufen oder wurde schon benutzt.",
-    newLink: "Neuen Link anfordern",
-    profileTitle: "Passwort",
-    profileHas: (email: string) =>
-      `Du kannst dich mit ${email} und deinem Passwort anmelden. Ein neues Passwort meldet dich überall sonst ab.`,
-    profileNone: (email: string) =>
-      `Leg ein Passwort fest, dann meldest du dich auch mit ${email} und Passwort an.`,
-    set: "Passwort festlegen",
-    change: "Passwort ändern",
-    saved: "Passwort gespeichert.",
-    wrongCurrent: "Das bisherige Passwort stimmt nicht.",
-    forgot: "Passwort vergessen?",
-  },
-  /** The member's own access link on /profil. */
-  ownLink: {
-    title: "Persönlicher Zugangslink",
-    lead: "Ein Link, mit dem du dich ohne Passwort anmeldest, z. B. auf einem zweiten Gerät.",
-    create: "Zugangslink erzeugen",
-    show: "Link anzeigen",
-    keep: "Persönlich: Wer den Link hat, ist als du angemeldet. Nicht weitergeben.",
-    confirmRenew:
-      "Neuen Link erzeugen? Der alte gilt dann nicht mehr, und wer damit angemeldet ist, wird abgemeldet.",
-    confirmRenewViaLink:
-      "Neuen Link erzeugen? Der alte gilt dann nicht mehr; Geräte, die damit angemeldet sind, werden abgemeldet (dieses nicht).",
-    confirmRevoke: "Link sperren? Wer damit angemeldet ist, wird abgemeldet.",
-    confirmRevokeViaLink:
-      "Link sperren? Du bist mit diesem Link angemeldet und wirst dann auch hier abgemeldet.",
-    revoked: "Link gesperrt.",
-  },
-  accessLink: {
-    title: "Zugang per Link",
-    hello: (name: string) => (name ? `Hallo ${name}!` : "Hallo!"),
-    lead: "Mit diesem persönlichen Link meldest du dich ohne Passwort an.",
-    signIn: "Anmelden",
-    keep: "Bewahre den Link gut auf und gib ihn nicht weiter. Er gilt, bis du (im Profil) oder die Verwaltung einen neuen erzeugt.",
-    invalid:
-      "Dieser Link gilt nicht mehr. Bitte frag die Verwaltung nach einem neuen.",
-    toSignIn: "Zur Anmeldung",
-  },
-  /** Email (#123): sign-in links, reminders, the account on /status. */
-  email: {
-    or: "oder",
-    toSignIn: "Zur Anmeldung",
-    hello: (name: string) => (name ? `Hallo ${name},` : "Hallo,"),
-    answerLinks: "Antworten:",
-    openInApp: "In der App:",
-    footer: (orchestra: string, profile: string) =>
-      `${orchestra}\nKeine Erinnerungen mehr per E-Mail: ${profile}`,
-    answerTitle: "Deine Antwort",
-    answerLead: (name: string) =>
-      name ? `${name}, bist du dabei?` : "Bist du dabei?",
-    answerSaved: (answer: string) =>
-      `Gespeichert: ${answer}. Ändern kannst du es jederzeit in der App.`,
-    answerInvalid:
-      "Dieser Link gilt nicht mehr: Der Termin ist vorbei oder du bist nicht mehr eingetragen.",
-    answerChange: "Zum Termin in der App",
-    profileTitle: "Erinnerungen per E-Mail",
-    profileLead: (email: string) =>
-      `An ${email}, wenn du auf eine Probe oder ein Konzert der nächsten Tage noch nicht geantwortet hast und auf keinem Gerät Benachrichtigungen an sind.`,
-    profileOn: "An.",
-    profileOff: "Abbestellt.",
-    turnOff: "Abbestellen",
-    turnOn: "Wieder einschalten",
-    profileFailed: "Das hat nicht geklappt. Bitte versuch es noch einmal.",
-    status: "E-Mail",
-    connected: (email: string, since: string) =>
-      `Verschickt von ${email} (verbunden am ${since}).`,
-    links: (origin: string) => `Links in E-Mails führen zu ${origin}.`,
-    optOuts: (n: number) =>
-      n === 1
-        ? "1 Mitglied hat E-Mail-Erinnerungen abbestellt."
-        : `${n} Mitglieder haben E-Mail-Erinnerungen abbestellt.`,
-    notConnected:
-      "Kein E-Mail-Konto verbunden: Konto anlegen, Passwort vergessen und Erinnerungen per E-Mail sind aus.",
-    connectHint:
-      "Melde dich mit dem Google-Konto des Orchesters an, das die E-Mails verschicken soll. Google fragt nach der Erlaubnis, in seinem Namen E-Mails zu senden, mehr nicht. Im OAuth-Zustimmungsbildschirm muss die App „In Produktion“ sein, sonst endet die Erlaubnis nach 7 Tagen.",
-    needsSignIn: "Erst die Anmeldung mit Google einrichten (Schritt 9).",
-    connect: "E-Mail-Konto verbinden",
-    disconnect: "Trennen",
-    confirmDisconnect:
-      "E-Mail-Konto trennen? Links zum Festlegen eines Passworts und E-Mail-Erinnerungen gehen dann nicht mehr raus.",
-    revoked:
-      "Google hat die Erlaubnis zum Senden zurückgenommen. Bitte das Konto neu verbinden.",
-    lastError: (message: string) =>
-      `Die letzte E-Mail ging nicht raus: ${message}`,
-    connectedNow: "E-Mail-Konto verbunden.",
-    disconnectedNow: "E-Mail-Konto getrennt.",
-    connectFailed:
-      "Das Konto konnte nicht verbunden werden. Bitte erlaube auf der Google-Seite das Senden von E-Mails und versuch es noch einmal.",
-    noScope:
-      "Google hat das Senden nicht erlaubt. Bitte beim Verbinden den Haken bei „E-Mails senden“ setzen.",
-    wrongUser: "Nur wer die App verwaltet, kann ein E-Mail-Konto verbinden.",
-  },
-  access: {
-    title: "Zugang beantragen",
-    hello: (name: string) => `Hallo ${name}!`,
-    lead: "Du bist angemeldet, aber noch nicht als Mitglied freigeschaltet.",
-    request: "Zugang beantragen",
-    nameLabel: "Vor- und Nachname",
-    surnameNeeded:
-      "Bitte Vor- und Nachnamen angeben, damit die Verwaltung dich zuordnen kann.",
-    requested:
-      "Deine Anfrage ist angekommen. Sobald sie bestätigt ist, kannst du die App nutzen. Lade die Seite dann neu.",
-    unavailable:
-      "Anfragen sind gerade nicht möglich. Bitte melde dich direkt beim Vorstand.",
-  },
-  rights: {
-    ansehen: "Stücke, Konzerte und Noten ansehen (hat jedes Mitglied)",
-    "programme.bearbeiten": "Konzertprogramme bearbeiten",
-    "stuecke.bearbeiten": "Angaben zu Stücken bearbeiten",
-    "archiv.bearbeiten": "Frühere Konzerte und Stücke eintragen",
-    "anmeldungen.sehen": "Zu- und Absagen aller sehen",
-    "anwesenheit.erfassen": "Anwesenheit bei Proben erfassen und sehen",
-    "termine.planen": "Terminumfragen anlegen, abschließen und alle sehen",
-    "karten.verwalten":
-      "Kartenverkauf für Konzerte einrichten und die Gästeliste sehen",
-    "karten.einlass": "Karten am Einlass prüfen",
-    "kummerkasten.lesen":
-      "Kummerkasten lesen und beantworten (ohne zu sehen, wer schreibt)",
-    "eltern.informieren": "Mitteilungen an die Eltern schreiben",
-    "mitglieder.verwalten": "Mitglieder und Rechte verwalten",
-  },
-  /** Invitation links (/admin makes them, /auth/einladung/… uses them): someone new fills in their own details. */
-  invite: {
-    title: "Willkommen!",
-    lead: "Du bist eingeladen. Trag dich hier ein, dann kannst du gleich loslegen.",
-    aboutYou: "Über dich",
-    signIn: "So meldest du dich an",
-    signInLead:
-      "Mit dieser E-Mail-Adresse und dem Passwort meldest du dich ab jetzt an.",
-    join: "Eintragen und loslegen",
-    nameMissing: "Bitte deinen Vor- und Nachnamen eintragen.",
-    instrumentMissing: "Bitte wähl mindestens ein Instrument.",
-    exists:
-      "Mit dieser E-Mail-Adresse bist du schon eingetragen. Melde dich einfach an.",
-    joinFailed:
-      "Das Eintragen hat gerade nicht geklappt. Bitte versuch es noch einmal.",
-    invalid:
-      "Diese Einladung ist abgelaufen oder wurde schon benutzt. Bitte frag die Verwaltung nach einer neuen.",
-    failed:
-      "Die Einladung konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.",
-    adminTitle: "Per Link einladen",
-    adminLead: (days: number) =>
-      `Du schickst einen Link, und die Person trägt Name, E-Mail-Adresse, Passwort und Instrument selbst ein. Jeder Link gilt einmal und ${days} Tage.`,
-    label: "Für wen? (optional)",
-    labelHint: "Nur für dich, damit du den Link in der Liste wiedererkennst.",
-    roles: "Rollen (optional)",
-    create: "Einladungslink erzeugen",
-    created:
-      "Link erzeugt. Kopier ihn und schick ihn per Messenger oder E-Mail.",
-    open: "Offene Einladungen",
-    unnamed: "Ohne Namen",
-    until: (day: string) => `gilt bis ${day}`,
-    revoke: "Zurückziehen",
-    confirmRevoke:
-      "Einladung zurückziehen? Der Link funktioniert dann nicht mehr.",
-    revoked: "Einladung zurückgezogen.",
-    unavailable:
-      "Einladungen brauchen die Datenbank (D1), weil sich neue Mitglieder mit Passwort anmelden.",
-  },
-  admin: {
-    setupSections: "Einrichtung",
-    title: "Verwaltung",
-    lead: "Mitglieder freischalten und Rechte vergeben.",
-    openSheet: "Tabelle öffnen",
-    notSetUp:
-      "In der Repertoire-Tabelle fehlen die Blätter für Mitglieder und Rechte.",
-    runSetup: "Tabelle einrichten",
-    requests: "Zugangsanfragen",
-    noRequests: "Keine offenen Anfragen.",
-    approve: "Freischalten",
-    decline: "Ablehnen",
-    approveAll: (n: number) => `Alle ${n} freischalten`,
-    declineAll: "Alle ablehnen",
-    confirmDeclineAll: (n: number) => `Wirklich alle ${n} Anfragen ablehnen?`,
-    requestGone: "Diese Anfrage gibt es nicht mehr.",
-    members: "Mitglieder",
-    noMembers: "Noch keine Mitglieder eingetragen.",
-    addMember: "Mitglied hinzufügen",
-    email: "E-Mail",
-    name: "Vor- und Nachname",
-    instrument: "Instrument",
-    groups: "Gruppen",
-    groupsHint: "mehrere mit Komma trennen",
-    add: "Hinzufügen",
-    remove: "Entfernen",
-    confirmRemove: (name: string) => `${name} wirklich entfernen?`,
-    rightsTitle: "Rechte",
-    edit: "Bearbeiten",
-    showEmails: "E-Mail-Adressen anzeigen",
-    noSurname: "Nachname fehlt",
-    noSurnameHint:
-      "Über „Bearbeiten“ ergänzen, damit gleiche Vornamen unterscheidbar bleiben.",
-    save: "Speichern",
-    cancel: "Abbrechen",
-    searchMembers: "Mitglieder suchen …",
-    noInstrument: "kein Instrument",
-    unknownInstrument: "Dieses Instrument kennt die App nicht.",
-    memberGone:
-      "Dieses Mitglied gibt es nicht mehr. Bitte die Seite neu laden.",
-    effectiveRights: "Darf",
-    noMemberMatch: "Kein Mitglied passt zur Suche.",
-    memberCount: (n: number) => (n === 1 ? "1 Mitglied" : `${n} Mitglieder`),
-    filterMembers: "Mitglieder filtern",
-    filterStatus: "Status",
-    filterRole: "Rolle",
-    filterOrchestra: "Orchester",
-    filterAccess: "Hinweise",
-    noInstrumentGroup: "Ohne Instrument",
-    noRole: "Ohne Rolle",
-    instrumentGroups: "Instrumentgruppen",
-    instrumentGroupsLead:
-      "Wer aus welchen Stimmen spielt, für „Meine Noten“ und die Besetzung. Blatt „Instrumentgruppen“.",
-    instrumentGroupsDefaults:
-      "Es gelten die Voreinstellungen unten. Mit der ersten eigenen Gruppe landen sie im Blatt.",
-    instrumentGroupsUnknown: (names: string) =>
-      `Diese Namen kennt die App nicht als Instrument: ${names}`,
-    alsoPlayedBy: "auch gespielt von",
-    mutual: "gegenseitig mit",
-    groupPart: "Stimme",
-    groupPartExample: "Percussion",
-    groupPlayersExample: "Schlagwerk, Mallet Percussion",
-    groupPlayers: "Gespielt von (mit Komma trennen)",
-    mutualLabel: "Gegenseitig: alle spielen die Stimmen der anderen",
-    groupMissing: "Bitte eine Stimme und mindestens ein Instrument angeben.",
-    groupGone:
-      "Diese Gruppe hat sich in der Tabelle geändert. Bitte die Seite neu laden.",
-    rightsLead: "Rechte gelten für eine E-Mail-Adresse oder eine Gruppe.",
-    who: "Wer",
-    right: "Recht",
-    grant: "Vergeben",
-    revoke: "Entziehen",
-    noGrants:
-      "Noch keine Rechte vergeben. Bootstrap-Admins haben immer alle Rechte.",
-    bootstrap: (emails: string) =>
-      `Immer alle Rechte (BOOTSTRAP_ADMINS): ${emails}`,
-    saved: "Gespeichert.",
-    invalidEmail: "Bitte eine gültige E-Mail-Adresse eingeben.",
-    exists: "Diese E-Mail-Adresse ist schon eingetragen.",
-    grantExists: "Dieses Recht ist schon vergeben.",
-    orchestras: "Orchester",
-    status: "Status",
-    roles: "Rollen",
-    rolesLead:
-      "Eine Rolle ist eine Gruppe mit Rechten; vergeben über „Bearbeiten“. Blätter „Gruppen“ und „Rechte“.",
-    roleMembers: (n: number) => (n === 1 ? "1 Mitglied" : `${n} Mitglieder`),
-    roleNoRights: "keine Rechte",
-    roleNameMissing:
-      "Bitte einen Namen für die Rolle angeben (keine E-Mail-Adresse).",
-    addRole: "Rolle anlegen",
-    roleName: "Name",
-    roleDescription: "Beschreibung",
-    /** A role limited to some orchestras (#305). */
-    /** A role one person holds for some orchestras only (#305): Dirigat of A and B, not of the others. */
-    roleOnlyFor: "nur für bestimmte Orchester",
-    roleOrchestrasFor: (role: string) => `Orchester, für die ${role} gilt`,
-    roleOrchestrasHint:
-      "Eine Rolle gilt für alle Orchester, außer du schränkst sie bei dieser Person ein. Dann gelten ihre Rechte nur für Termine, Programme und Anwesenheit dieser Orchester. In der Tabelle steht das als „Dirigat (A, B)“.",
-    addPresetRoles: (names: string) => `Standardrollen anlegen: ${names}`,
-    confirmRemoveRole: (name: string) =>
-      `Rolle „${name}“ mit ihren Rechten entfernen?`,
-    singleRights: "Einzelne Rechte",
-    singleRightsLead:
-      "Rechte für eine einzelne Person. Meist ist eine Rolle besser.",
-    memberRoles: "Rollen und Gruppen",
-    /** For a parent account: its children among the members. */
-    children: "Kinder",
-    childrenHint:
-      "Für Eltern: ihre Kinder, die bei uns spielen, mit Komma getrennt (Name oder E-Mail). Mit Status „Eltern“ sieht das Konto nur den Elternbereich.",
-    childrenUnknown: (names: string) =>
-      `Nicht in der Mitgliederliste: ${names}`,
-    linkUnavailable: "Zugangslinks brauchen die Anmeldung mit SESSION_SECRET.",
-    accessLink: "Zugangslink",
-    accessLinkActive: "Zugang per Link",
-    accessLinkRevoked: "Link gesperrt",
-    linkShow: "Link anzeigen",
-    linkNew: "Neuen Link erzeugen",
-    linkCreate: "Zugangslink erzeugen",
-    linkRevoke: "Link sperren",
-    linkHint:
-      "Für Mitglieder ohne Google-Konto, z. B. per WhatsApp schicken. Ein neuer Link oder „Sperren“ beendet den alten.",
-    linkFor: (name: string) => `Persönlicher Link für ${name}:`,
-    copy: "Kopieren",
-    copied: "Kopiert",
-    confirmNewLink: (name: string) =>
-      `Neuen Link für ${name} erzeugen? Der bisherige gilt dann nicht mehr.`,
-    confirmRevokeLink: (name: string) =>
-      `Link für ${name} sperren? Wer damit angemeldet ist, wird abgemeldet.`,
-  },
-  profile: {
-    title: "Profil",
-    lead: "Deine Angaben und Einstellungen, nach Themen geordnet.",
-    settings: "Einstellungen",
-    sections: {
-      jump: "Auf dieser Seite",
-      about: "Über dich",
-      aboutLead:
-        "Was du spielst und ob du gerade dabei bist. Danach richten sich deine Noten und die Besetzung.",
-      notify: "Benachrichtigungen & Kalender",
-      notifyLead: "Wie du von Proben und Konzerten erfährst.",
-      app: "Ansicht & App",
-      appLead: "Wie die App aussieht, auf diesem Gerät.",
-      practice: "Üben & deine Daten",
-      practiceLead:
-        "Was die App nur für dich speichert, und alles zum Mitnehmen.",
-      signIn: "Anmeldung & Sicherheit",
-      signInLead: "Womit du dich anmeldest, und abmelden.",
-    },
-    notMember: "Das Profil gibt es für eingetragene Mitglieder.",
-    name: "Vor- und Nachname",
-    instruments: "Instrumente",
-    orchestras: "Orchester",
-    orchestrasHint: "Keins angekreuzt: Du siehst die Konzerte aller Orchester.",
-    status: "Status",
-    statuses: {
-      aktiv: "aktiv",
-      pausiert: "pausiert",
-      inaktiv: "inaktiv",
-      verwaltung: "nur Verwaltung",
-      eltern: "Eltern",
-    } as Record<string, string>,
-    statusHints: {
-      aktiv: "Du zählst bei der Besetzung mit.",
-      pausiert:
-        "Zum Beispiel Auslandssemester oder Elternzeit. Mit Datum wirst du danach automatisch wieder aktiv.",
-      inaktiv:
-        "Du behältst den Zugang, zählst aber bei der Besetzung nicht mit.",
-      verwaltung:
-        "Ein reines Verwaltungskonto, das nicht mitspielt: Es taucht bei Anmeldungen, Anwesenheit und Umfragen nicht auf.",
-      eltern:
-        "Ein Elternteil, das nicht mitspielt: Es sieht nur den Elternbereich mit den Terminen seiner Kinder, keine Noten.",
-    } as Record<string, string>,
-    pausedUntil: "Pausiert bis (optional)",
-    pausedUntilShort: (day: string) => `bis ${day}`,
-    save: "Speichern",
-    saved: "Gespeichert.",
-    groups: "Gruppen",
-    groupsHint: "Gruppen und Rechte vergibt die Verwaltung.",
-    gone: "Dein Eintrag in „Mitglieder“ wurde nicht gefunden. Bitte die Seite neu laden.",
-    failed:
-      "Das Profil konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.",
-    unknownStatus: "Diesen Status gibt es nicht.",
-    badDate: "Das Datum ist nicht lesbar.",
-  },
-  /** The tour for new members: the essentials, then setting the app up on their profile; retaken from /profil. */
-  tour: {
-    label: "Tour durch die App",
-    welcome: (name: string) => (name ? `Willkommen, ${name}!` : "Willkommen!"),
-    offer:
-      "In zwei Minuten siehst du, wo deine Termine und Noten sind, und richtest die App für dich ein.",
-    offerOpen: "In einer Minute siehst du, wo die Termine und Noten sind.",
-    chapters: {
-      basics: "Das Wichtigste",
-      basicsHint: (n: number) => `${n} kurze Schritte`,
-      setup: "Für dich einrichten",
-      setupHint: "Instrument, Ansicht, Erinnerungen",
-    },
-    start: "Tour starten",
-    skip: "Überspringen",
-    end: "Tour beenden",
-    back: "Zurück",
-    next: "Weiter",
-    finish: "Fertig",
-    step: (n: number, of: number) => `Schritt ${n} von ${of}`,
-    setupOffer: {
-      title: "Das Wichtigste kennst du",
-      body: "Magst du die App noch kurz für dich einrichten? Das dauert eine Minute.",
-      start: "Einrichten",
-      later: "Später",
-    },
-    steps: {
-      home: {
-        title: "Dein nächster Termin",
-        body: "Hier steht immer, was als Nächstes ansteht. Mit einem Tipp sagst du zu oder ab und öffnest deine Noten dafür.",
-      },
-      parts: {
-        title: "Meine Noten",
-        body: "Deine Stimmen für die nächsten Proben und Konzerte, passend zu deinem Instrument. Offline gespeichert gehen sie auch im Probenraum ohne Netz.",
-      },
-      calendar: {
-        title: "Kalender",
-        body: "Alle Proben und Konzerte mit Zeit, Ort und Programm. Hier antwortest du auch auf spätere Termine.",
-      },
-      pieces: {
-        title: "Archiv",
-        body: "Jedes Stück mit Noten, Hörbeispielen und Hinweisen, unter „Mehr“. Das Feld hier filtert die Liste, auch nach Stimme; die Lupe oben findet alles in der App.",
-      },
-      more: {
-        title: "Mehr",
-        body: "Alle weiteren Seiten, zum Beispiel das Archiv und die Chronik. Ganz unten stellst du hell oder dunkel und die Schriftgröße ein.",
-      },
-      instruments: {
-        title: "Dein Instrument",
-        body: "Trag ein, was du spielst; danach richtet sich „Meine Noten“. Mit „Speichern“ gilt es überall.",
-      },
-      view: {
-        title: "Ansicht und Schrift",
-        body: "Hell, dunkel oder wie dein Gerät, und die Schrift größer, wenn du magst. Probier es gleich aus.",
-      },
-      notifications: {
-        title: "Erinnerungen",
-        body: "Lass dich an Antworten, Proben und Leihmaterial erinnern: auf diesem Gerät oder per E-Mail.",
-      },
-      install: {
-        title: "Aufs Handy",
-        body: "Als App auf dem Startbildschirm öffnet sich alles mit einem Tipp, auch ohne Netz. Die Anleitung zeigt dir, wie.",
-      },
-      done: {
-        title: "Fertig!",
-        body: "Viel Spaß beim Spielen. Die Tour findest du hier jederzeit wieder.",
-      },
-      doneOpen: {
-        title: "Fertig!",
-        body: "Viel Spaß beim Spielen. Hell, dunkel und die Schriftgröße findest du unter „Mehr“.",
-      },
-    },
-    retake: "Tour noch einmal machen",
-    retakeHint: "Das Wichtigste und deine Einstellungen, Schritt für Schritt.",
-  },
-  /** The app on the home screen (#279): the start page's hint, /install and the profile's entry. */
-  install: {
-    title: (name: string) => `${name} auf deinem Handy`,
-    entryHint: "Installation und Hilfe",
-    entryInstalled: "Installiert · Anleitung und Hilfe",
-    pageTitle: "App installieren",
-    lead: (name: string) =>
-      `Leg ${name} auf deinen Startbildschirm. Dann öffnet es sich mit einem Tipp, wie jede andere App.`,
-    shareDescription:
-      "Noten, Proben und Konzerte als App auf dem Handy, in einer Minute eingerichtet.",
-    benefits: {
-      parts: {
-        title: "Deine Noten mit einem Tipp",
-        body: "Termine und Stimmen öffnen sich sofort, ohne Suchen im Browser.",
-      },
-      offline: {
-        title: "Auch ohne Netz",
-        body: "Gespeicherte Stimmen und zuletzt geöffnete Seiten gehen im Probenraum ohne Empfang.",
-      },
-      reminders: {
-        title: "Erinnerungen",
-        body: "Auf dem iPhone gibt es Benachrichtigungen nur für die App auf dem Startbildschirm.",
-      },
-    },
-    hint: {
-      title: (name: string) => `Installiere die ${name}-App`,
-      body: "Deine Noten, Termine und Konzertinformationen, jederzeit griffbereit.",
-      install: "Jetzt installieren",
-      later: "Später",
-      never: "Nicht mehr fragen",
-    },
-    device: "Dein Gerät",
-    platforms: { ios: "iPhone, iPad", android: "Android", desktop: "Computer" },
-    oneTap: {
-      title: "Mit einem Tipp installieren",
-      body: "Dein Browser kann die App direkt installieren. Er fragt einmal nach, dann liegt sie auf deinem Startbildschirm.",
-      button: "Jetzt installieren",
-      manual: "Lieber Schritt für Schritt",
-    },
-    step: (n: number, of: number) => `Schritt ${n} von ${of}`,
-    back: "Zurück",
-    next: "Weiter",
-    finish: "Erledigt",
-    restart: "Noch einmal von vorn",
-    notSafari:
-      "Auf dem iPhone klappt das am sichersten in Safari. Kopiere den Link und öffne ihn dort.",
-    fromApp:
-      "Kommst du aus WhatsApp? Tippe unten rechts auf das Kompass-Symbol oder auf „In Safari öffnen“.",
-    otherAndroid:
-      "Diese Seite ist im Browser einer anderen App offen. Tippe auf die drei Punkte und „Im Browser öffnen“, dann geht es in Chrome weiter.",
-    samsung:
-      "Samsung Internet warnt beim Installieren vor einer alten Android-Version; das liegt am Browser, nicht an der App. Am besten öffnest du die Seite in Chrome.",
-    firefox:
-      "Firefox kann Web-Apps auf dem Computer nicht installieren. Öffne die Seite in Chrome oder Edge, oder leg dir ein Lesezeichen an.",
-    copyLink: "Link kopieren",
-    copied: "Kopiert",
-    steps: {
-      ios: [
-        {
-          title: "Tippe auf „Teilen“",
-          body: "Das Quadrat mit dem Pfeil nach oben, in der Leiste von Safari. Siehst du es nicht, tippe zuerst auf die drei Punkte unten rechts.",
-        },
-        {
-          title: "„Zum Home-Bildschirm“ wählen",
-          body: "Schieb die Liste etwas nach oben, bis du „Zum Home-Bildschirm“ siehst, und tippe darauf.",
-        },
-        {
-          title: "Auf „Hinzufügen“ tippen",
-          body: "Oben rechts. Den Namen kannst du so lassen.",
-        },
-      ] as InstallSteps,
-      iosMenu: [
-        {
-          title: "Tippe auf die drei Punkte",
-          body: "Unten rechts, neben der Adresse.",
-        },
-        { title: "Tippe auf „Teilen“", body: "Ganz oben im Menü." },
-        {
-          title: "„Zum Home-Bildschirm“ wählen",
-          body: "Schieb die Liste nach oben. Steht es nicht da, tippe zuerst auf „Mehr“.",
-        },
-        {
-          title: "Auf „Hinzufügen“ tippen",
-          body: "„Als Web-App öffnen“ bleibt an. Dann oben rechts auf „Hinzufügen“.",
-        },
-      ] as InstallSteps,
-      android: [
-        {
-          title: "Öffne das Menü",
-          body: "Tippe oben rechts auf die drei Punkte.",
-        },
-        {
-          title: "„App installieren“ wählen",
-          body: "Je nach Version heißt es auch „Zum Startbildschirm hinzufügen“.",
-        },
-        {
-          title: "Auf „Installieren“ tippen",
-          body: "Kurz warten: Das Symbol erscheint auf deinem Startbildschirm.",
-        },
-      ] as InstallSteps,
-      desktop: [
-        {
-          title: "Auf das Installieren-Symbol klicken",
-          body: "Rechts in der Adressleiste: ein Bildschirm mit einem Pfeil. Oder im Menü (drei Punkte) „Seite als App installieren“.",
-        },
-        {
-          title: "Auf „Installieren“ klicken",
-          body: "Die App öffnet sich in einem eigenen Fenster und liegt danach im Startmenü oder im Dock.",
-        },
-      ] as InstallSteps,
-      mac: [
-        {
-          title: "Menü „Ablage“ öffnen",
-          body: "Oben in der Menüleiste von Safari.",
-        },
-        {
-          title: "„Zum Dock hinzufügen“ wählen",
-          body: "Dann auf „Hinzufügen“ klicken. Das geht ab macOS Sonoma.",
-        },
-      ] as InstallSteps,
-    },
-    done: {
-      title: "Geschafft!",
-      body: (name: string) =>
-        `${name} ist jetzt auf deinem Startbildschirm. Du kannst die App jederzeit direkt öffnen und deine Noten auch offline nutzen.`,
-    },
-    standalone: {
-      title: "Du nutzt schon die App",
-      body: "Du hast sie vom Startbildschirm aus geöffnet. Hier ist nichts mehr zu tun.",
-    },
-    manualDone: {
-      title: "Schau auf deinen Startbildschirm",
-      body: (name: string) =>
-        `Dort sollte jetzt das Symbol von ${name} liegen. Öffne die App künftig darüber, dann geht alles mit einem Tipp, auch ohne Netz.`,
-    },
-    open: "Zur App",
-  },
-  /** Everything the sheet keeps about a member, as one file (#158). */
-  myData: {
-    title: "Meine Daten",
-    lead: "Alles, was die App über dich speichert: dein Eintrag, Zu- und Absagen, Anwesenheit, Meldungen, Wünsche und Notizen aus der Repertoire-Tabelle, dazu deine Geräte für Benachrichtigungen, die Erinnerungen, die du bekommen hast, und deine Antworten in Terminumfragen.",
-    download: "Meine Daten herunterladen",
-    hint: "Eine JSON-Datei, die sich mit jedem Texteditor öffnen lässt. Zum Ändern oder Löschen wende dich an die Verwaltung.",
-    fileName: "meine-daten",
-    explain:
-      "Deine Zeilen aus der Repertoire-Tabelle des Orchesters, nach Blatt, mit den Spaltennamen der Tabelle; dazu, was die App selbst in ihrer Datenbank (D1) über dich speichert.",
-    /** From D1 (#161): devices with notifications on, and the reminders sent. */
-    devices: "Geräte für Benachrichtigungen",
-    pushService: "Zustelldienst",
-    since: "Angemeldet seit (UTC)",
-    keys: "Schlüssel zum Verschlüsseln",
-    keysStored: "gespeichert, hier nicht ausgegeben",
-    polls: "Terminumfragen",
-    poll: "Umfrage",
-    pollDate: "Termin",
-    pollAnswer: "Antwort",
-    pollComment: "Kommentar",
-    pollAnsweredAt: "Geantwortet (UTC)",
-    reminders: "Verschickte Erinnerungen",
-    mailReminders: "Erinnerungen per E-Mail",
-    mailState: "Stand",
-    mailOff: "abbestellt",
-    tour: "Tour durch die App",
-    tourDone: "bis zum Ende angesehen",
-    tourSkipped: "übersprungen",
-    reminderKind: "Art",
-    reminderAbout: "Wofür",
-    sentAt: "Verschickt (UTC)",
-    reminderKinds: {
-      signup: "Zu- oder Absage fehlt",
-      "loan-due": "Leihmaterial bald fällig",
-      "loan-overdue": "Leihmaterial überfällig",
-    } as Record<string, string>,
-    myVote: "Mein +1",
-    yes: "ja",
-    no: "nein",
-  },
-  /** The Übebereich (#300, #315): drills on the device, nothing sent. */
-  drills: {
-    title: "Übebereich",
-    lead: "Ein paar Minuten am Tag: Noten lesen, Tonarten erkennen, Intervalle hören, Rhythmen klopfen, Töne treffen, Tonleitern spielen, vom Blatt spielen, einsetzen und im Akkord stimmen, transponieren. Die Übungen passen sich dir an.",
-    private:
-      "Dein Fortschritt und das Mikrofon bleiben auf diesem Gerät. Gesendet wird höchstens die Übezeit, wenn du die Probenzeit aufzeichnest.",
-    unsaved:
-      "Dieser Browser kann den Fortschritt nicht speichern (ein privates Fenster?). Üben geht trotzdem.",
-    instrument: "Instrument",
-    clef: "Schlüssel",
-    clefs: {
-      treble: "Violinschlüssel",
-      bass: "Bassschlüssel",
-      alto: "Altschlüssel",
-      tenor: "Tenorschlüssel",
-    },
-    instruments: {
-      violin: "Violine",
-      viola: "Bratsche",
-      cello: "Violoncello",
-      doubleBass: "Kontrabass",
-      flute: "Flöte",
-      piccolo: "Piccolo",
-      oboe: "Oboe",
-      englishHorn: "Englischhorn",
-      clarinet: "Klarinette in B",
-      bassClarinet: "Bassklarinette",
-      bassoon: "Fagott",
-      sopranoSax: "Sopransaxophon",
-      altoSax: "Altsaxophon",
-      tenorSax: "Tenorsaxophon",
-      baritoneSax: "Baritonsaxophon",
-      horn: "Horn in F",
-      trumpet: "Trompete in B",
-      trombone: "Posaune",
-      euphonium: "Euphonium, Tenorhorn",
-      tuba: "Tuba",
-      timpani: "Pauken",
-      mallets: "Stabspiele",
-      keys: "Tasteninstrument, Harfe",
-      highVoice: "Hohe Stimme",
-      lowVoice: "Tiefe Stimme",
-      treble: "Anderes, im Violinschlüssel",
-      bass: "Anderes, im Bassschlüssel",
-    },
-    kinds: {
-      mix: {
-        title: "Tagesrunde",
-        lead: "Noten und Tonarten gemischt, was heute dran ist.",
-      },
-      notes: {
-        title: "Noten lesen",
-        lead: "Welcher Ton ist das? So schnell, wie du sicher bist.",
-      },
-      keys: {
-        title: "Tonarten",
-        lead: "Welche Tonart hat diese Vorzeichnung?",
-      },
-      play: {
-        title: "Töne spielen",
-        lead: "Spiel den Ton; das Mikrofon hört, ob er stimmt.",
-      },
-      ear: {
-        title: "Intervalle hören",
-        lead: "Zwei Töne: wie weit liegen sie auseinander? Später auch Dreiklänge: Dur, Moll, vermindert, übermäßig.",
-      },
-      rhythm: {
-        title: "Rhythmus",
-        lead: "Lesen, anhören, nachklopfen: ein Takt nach dem Einzählen.",
-      },
-      pulse: {
-        title: "Puls halten",
-        lead: "Das Metronom wird leiser und verstummt; du klopfst im Tempo weiter.",
-      },
-      entry: {
-        title: "Einsätze",
-        lead: "Pausen zählen, dem Dirigenten folgen, pünktlich einsetzen, mit Begleitung.",
-      },
-      tune: {
-        title: "Im Akkord stimmen",
-        lead: "Ein Akkord klingt: spiel Terz, Quarte oder Quinte so, dass sie rein klingt.",
-      },
-      sight: {
-        title: "Vom Blatt",
-        lead: "Jedes Mal eine neue kurze Melodie: kurz ansehen, einzählen, durchspielen.",
-      },
-      scale: {
-        title: "Tonleitern",
-        lead: "Tonleitern und Dreiklänge auf und ab, über einem Liegeton. Jeder Ton zeigt, ob er saß.",
-      },
-      trans: {
-        title: "Transponieren",
-        lead: "Welcher Ton klingt, und wie liest du Stimmen in anderen Stimmungen?",
-      },
-    },
-    start: "Los",
-    again: "Noch eine Runde",
-    back: "Zur Übersicht",
-    stop: "Runde beenden",
-    mastered: (mastered: number, total: number) =>
-      `${mastered} von ${total} sicher`,
-    due: (count: number) =>
-      count === 1 ? "1 heute dran" : `${count} heute dran`,
-    fresh: "Noch nicht angefangen",
-    known: (count: number) => `${count} schon gekonnt, wird bald geprüft`,
-    today: (minutes: number, goal: number) =>
-      `Heute ${minutes} von ${goal} Minuten`,
-    streak: (days: number) =>
-      days === 1 ? "1 Tag in Folge" : `${days} Tage in Folge`,
-    streakHint: "Ein freier Tag dazwischen unterbricht die Serie nicht.",
-    history: {
-      title: "Die letzten zwei Wochen",
-      label: "Übezeit pro Tag in den letzten zwei Wochen",
-      goal: (goal: number) => `Tagesziel ${goal} Minuten`,
-      day: "Tag",
-      minutes: "Minuten",
-      right: "richtig",
-      pace: "pro Antwort",
-      none: "nicht geübt",
-      tip: (date: string, minutes: string, right: string, pace: string) =>
-        `${date}: ${minutes} Min., ${right} richtig, ${pace} s pro Antwort`,
-      summary: (days: number, right: string | null) =>
-        right === null
-          ? `An ${days} Tagen geübt`
-          : `An ${days} Tagen geübt, ${right} richtig`,
-    },
-    reflection: {
-      ask: "Was war heute schwer?",
-      hint: "Ein Stichwort reicht. Es bleibt auf diesem Gerät und steht vor deiner nächsten Runde.",
-      save: "Merken",
-      saved: "Gemerkt.",
-      last: (date: string) => `Dein Stichwort vom ${date}`,
-    },
-    question: (n: number, of: number) => `${n} / ${of}`,
-    new: "Neu",
-    whichNote: "Welcher Ton?",
-    whichKey: (mode: "major" | "minor") =>
-      mode === "major" ? "Welche Dur-Tonart?" : "Welche Moll-Tonart?",
-    playThis: "Spiel diesen Ton",
-    right: "Richtig!",
-    rightSlow: "Richtig. Beim nächsten Mal schneller?",
-    /** Wrong note: which one it was, and where the one named would be (`steps` letters up or down). */
-    wrongNote: (right: string, given: string, steps: number) =>
-      `Das ist ${right}. ${given} läge ${Math.abs(steps)} ${Math.abs(steps) === 1 ? "Stufe" : "Stufen"} ${steps > 0 ? "höher" : "tiefer"}.`,
-    itIs: (right: string) => `Das ist ${right}.`,
-    accidentals: (count: number, sharps: boolean) =>
-      count === 0 ? "ohne Vorzeichen" : `${count} ${sharps ? "♯" : "♭"}`,
-    tips: {
-      sharps:
-        "Merkhilfe: Das letzte Kreuz liegt einen Halbton unter dem Grundton.",
-      flats:
-        "Merkhilfe: Das vorletzte ♭ nennt die Tonart (ein ♭ allein: F-Dur).",
-      minor:
-        "Merkhilfe: Moll liegt eine kleine Terz unter der Dur-Tonart mit denselben Vorzeichen.",
-    },
-    inTune: "Getroffen, sauber!",
-    cents: (cents: number) =>
-      `Getroffen, ${Math.abs(cents)} Cent zu ${cents > 0 ? "hoch" : "tief"}.`,
-    heard: (note: string) => `Gehört: ${note}.`,
-    octave: "Richtiger Ton, andere Oktave.",
-    listening: "Hört zu …",
-    micStart: "Mikrofon an und los",
-    sounding: (written: string, sounding: string) =>
-      `Geschrieben ${written}, klingt ${sounding}.`,
-    skip: "Weiß ich nicht",
-    next: "Weiter",
-    sound: "Nach der Antwort anspielen (Ton oder Dreiklang)",
-    replay: "Ton anhören",
-    replayChord: "Dreiklang anhören",
-    keyboard: "Auch mit der Tastatur: C D E F G A H, Leertaste für weiter.",
-    tapThis: "Klopf diesen Rhythmus",
-    example: "So klingt es …",
-    countIn: "Einzählen …",
-    tapNow: "Jetzt klopfen!",
-    tapPad: "Hier tippen",
-    tapStart: "Einzählen und klopfen",
-    keyboardRhythm:
-      "Auch mit der Leertaste: einmal zum Einzählen, dann im Rhythmus.",
-    inTime: "Genau im Takt!",
-    rhythmLoose: (ms: number) => `Richtig, im Schnitt ${ms} ms daneben.`,
-    rhythmWrong: (missed: number, extra: number) =>
-      [
-        missed
-          ? missed === 1
-            ? "1 Note nicht getroffen"
-            : `${missed} Noten nicht getroffen`
-          : "",
-        extra
-          ? extra === 1
-            ? "1 Schlag zu viel"
-            : `${extra} Schläge zu viel`
-          : "",
-      ]
-        .filter(Boolean)
-        .join(", ") + ". Rot: verpasst; die Dreiecke zeigen deine Schläge.",
-    noTaps:
-      "Keine Schläge gehört. Tipp auf die Fläche oder drück die Leertaste.",
-    rhythmShown: "So geht er; hör ihn dir an.",
-    dragging:
-      "Du bist etwas spät dran: denk die kurzen Werte schon mit, bevor sie kommen.",
-    rushing:
-      "Du bist etwas zu früh: lass lange Noten und Pausen ganz ausklingen.",
-    calibrateTitle: "Kurz abgleichen",
-    calibrateLead:
-      "Jedes Gerät braucht etwas Zeit, bis ein Klick zu hören ist und ein Tippen ankommt. Tippe nach dem Einzählen achtmal genau mit dem Klick, dann misst die Übung deine Schläge richtig. Das passiert nur einmal.",
-    calibrateStart: "Abgleichen",
-    calibrateNow: "Mit dem Klick tippen …",
-    calibrateFailed: "Das war noch nicht gleichmäßig genug. Noch einmal?",
-    recalibrate: "neu abgleichen",
-    pulseAsk: (silent: number) => `Halte den Puls: ${silent} Takte allein`,
-    pulseLead: (heard: number, silent: number) =>
-      `Klopf Viertel mit: ${heard} Takte mit Metronom, einen, in dem es leiser wird, dann ${silent} allein. Am Ende kommt ein Klick zurück.`,
-    tapAlong: "Mitklopfen …",
-    keepPulse: "Allein weiter …",
-    pulseHeld: "Puls gehalten, sehr gleichmäßig!",
-    pulseLoose: (ms: number) => `Puls gehalten, im Schnitt ${ms} ms daneben.`,
-    pulseLost: (missed: number, extra: number) =>
-      `Den Puls verloren: ${[missed ? (missed === 1 ? "1 Schlag verpasst" : `${missed} Schläge verpasst`) : "", extra ? (extra === 1 ? "1 Schlag zu viel" : `${extra} Schläge zu viel`) : ""].filter(Boolean).join(", ")}.`,
-    pulseSped: (ms: number) =>
-      `Du bist schneller geworden: am Ende ${ms} ms zu früh. Denk die Viertel ruhig weiter, auch durch die langen Noten.`,
-    pulseSlowed: (ms: number) =>
-      `Du bist langsamer geworden: am Ende ${ms} ms zu spät. Halte die Spannung bis zum nächsten Schlag.`,
-    pulseSkipped:
-      "Beim nächsten Mal einfach versuchen: erst mitklopfen, dann allein weiter.",
-    /** "G-Dur-Tonleiter", "a-Moll harmonisch": `key` is the key's name ("G-Dur", "a-Moll"). */
-    scaleName: (key: string, type: string, octaves = 1): string =>
-      (({
-        major: `${key}-Tonleiter`,
-        harmonic: `${key} harmonisch`,
-        melodic: `${key} melodisch`,
-        arpMajor: `${key}-Dreiklang`,
-        arpMinor: `${key}-Dreiklang`,
-      })[type] ?? key) +
-      (octaves > 1 ? `, ${octaves === 2 ? "zwei" : "drei"} Oktaven` : ""),
-    upAndDown: (octaves: number) =>
-      octaves === 1
-        ? "Eine Oktave auf und ab, ohne anzuhalten."
-        : `${octaves === 2 ? "Zwei" : "Drei"} Oktaven auf und ab, ohne anzuhalten. Die Zeilen gehen ineinander über.`,
-    drone: "Liegeton",
-    droneOff: "aus",
-    droneTonic: "Grundton",
-    droneFifth: "Grundton und Quinte",
-    click: (perMinute: number) => `Metronom (${perMinute} Töne pro Minute)`,
-    hideCents: "Cent erst danach zeigen",
-    headphones:
-      "Mit Liegeton oder Metronom helfen Kopfhörer: dann hört das Mikrofon nur dich.",
-    soundingScale: (note: string) => `Klingt ab ${note}.`,
-    playingScale: "Spiel durch …",
-    doneTake: "Fertig",
-    scaleClean: "Alle Töne getroffen, und sauber!",
-    scaleCents: (cents: number) =>
-      `Alle Töne getroffen, im Schnitt ${cents} Cent daneben.`,
-    scaleWrong: (wrong: number, missed: number, extra: number) =>
-      [
-        wrong ? (wrong === 1 ? "1 falscher Ton" : `${wrong} falsche Töne`) : "",
-        missed ? `${missed} ausgelassen` : "",
-        extra ? (extra === 1 ? "1 Ton zu viel" : `${extra} Töne zu viel`) : "",
-      ]
-        .filter(Boolean)
-        .join(", ") + ". Unter den Noten steht, was zu hören war.",
-    scaleSharp:
-      "Meist etwas zu hoch: hör auf den Liegeton und gib nach, bis es nicht mehr schwebt.",
-    scaleFlat:
-      "Meist etwas zu tief: hör auf den Liegeton und greif die Töne etwas höher.",
-    scaleUneven: "Die Töne kamen ungleichmäßig. Probier es mit dem Metronom.",
-    noNotes: "Keine Töne gehört. Ist das Mikrofon frei?",
-    scaleShown: "So klingt sie; hör sie dir an.",
-    level: (level: number, of: number) => `Stufe ${level} von ${of}`,
-    lookKey: (key: string, accidentals: string) =>
-      `Tonart: ${key} (${accidentals})`,
-    lookTime: (meter: string, tempo: string, bpm: number, dotted: boolean) =>
-      `${meter}-Takt, ${tempo} (${dotted ? "punktierte Viertel" : "Viertel"} = ${bpm})`,
-    lookRange: (low: string, high: string) =>
-      `Tiefster Ton ${low}, höchster ${high}`,
-    lookShort: (len: number, bar: number) =>
-      `${len === 1 ? "Sechzehntel" : "Achtel"} in Takt ${bar}: vorher mitzählen`,
-    lookAccidental: (bar: number) =>
-      `Vorzeichen außerhalb der Tonart in Takt ${bar}`,
-    lookLeap: (interval: string, bar: number) =>
-      `Sprung (${interval}) in Takt ${bar}`,
-    /** Scale steps to the interval's name: 4 a fifth. */
-    intervalSteps: [
-      "Prime",
-      "Sekunde",
-      "Terz",
-      "Quarte",
-      "Quinte",
-      "Sexte",
-      "Septime",
-      "Oktave",
-    ] as string[],
-    prepLeft: (seconds: number) => `Noch ${seconds} s zum Ansehen`,
-    prepDone: "Bereit? Dann los.",
-    sightStart: "Einzählen und spielen",
-    keepGoing:
-      "Nicht anhalten: ein falscher Ton ist nicht schlimm, Weiterspielen zählt.",
-    keepGoingNow: "Weiterspielen …",
-    readAhead: "Vorauslesen: jeder Takt verschwindet kurz bevor er dran ist",
-    timing: { early: "früh", late: "spät" },
-    sightResult: (right: number, inTime: number, total: number) =>
-      `${right} von ${total} Tönen getroffen, ${inTime} davon im Takt.`,
-    stoppedEarly:
-      "Vor dem Ende aufgehört? Beim nächsten Mal einfach weiterspielen, auch nach einem Fehler.",
-    levelUp: (level: number) => `Weiter zu Stufe ${level}!`,
-    levelDown: (level: number) =>
-      `Zurück zu Stufe ${level}, damit es wieder läuft.`,
-    howWasIt: "Ohne Mikrofon: wie lief es?",
-    selfGood: "Gut",
-    selfOkay: "Ging so",
-    selfHard: "Schwer",
-    noMicSight:
-      "Ohne Mikrofon läuft die Melodie trotzdem mit; danach sagst du, wie es ging.",
-    sightAverage: (percent: number) => `Im Schnitt ${percent} %`,
-    duet: "Mit zweiter Stimme (Begleitung)",
-    placement: {
-      title: "Einstufung",
-      offer: "Spielst du schon länger?",
-      offerLead:
-        "Ein kurzer Test (etwa drei Minuten) findet heraus, was du schon sicher kannst: Noten in deinen Schlüsseln, Tonarten, Intervalle. Das wird dann nicht neu geübt, nur in den nächsten Tagen kurz geprüft.",
-      start: "Test machen",
-      skip: "Von vorne anfangen",
-      done: "Einstufung fertig",
-      fromStart: "von vorne",
-      bands: {
-        notes: [
-          "die Orientierungstöne",
-          "das ganze Liniensystem",
-          "die ersten Hilfslinien",
-          "auch weite Hilfslinien",
-        ],
-        keys: [
-          "Dur bis 2 Vorzeichen",
-          "Dur und Moll bis 2 Vorzeichen",
-          "Dur bis 4 Vorzeichen",
-          "Dur und Moll bis 4 Vorzeichen",
-          "Dur bis 7 Vorzeichen",
-          "alle Tonarten",
-        ],
-        ear: [
-          "klar verschiedene Intervalle nacheinander",
-          "dieselben auch zusammen",
-          "alle nacheinander",
-          "alle, auch zusammen",
-        ],
-      } as Record<string, string[]>,
-      after:
-        "Was du schon kannst, kommt in den nächsten Tagen zur Kontrolle wieder. Sitzt es, geht es weiter; wenn nicht, übst du es wie neu.",
-      close: "Schließen",
-      again: "Einstufung machen",
-    },
-    lookEntry: (bars: number, beat: number) =>
-      `${bars} ${bars === 1 ? "Takt" : "Takte"} Pause, Einsatz auf ${beat}`,
-    countRests: "Pausen zählen, dann einsetzen …",
-    entryOnTime: "Pünktlich eingesetzt!",
-    entryMissed: "Den Einsatz habe ich nicht gehört.",
-    entryOff: (beats: number) => {
-      const amount = Math.max(0.5, Math.round(Math.abs(beats) * 2) / 2);
-      const said =
-        amount === 0.5
-          ? "einen halben Schlag"
-          : `${String(amount).replace(".", ",")} ${amount === 1 ? "Schlag" : "Schläge"}`;
-      return `Einsatz ${said} zu ${beats > 0 ? "spät" : "früh"}.`;
-    },
-    tuneRoles: {
-      fifth: "Quinte",
-      fourth: "Quarte",
-      majorThird: "große Terz",
-      minorThird: "kleine Terz",
-    },
-    tuneAsk: (role: string) => `Spiel die ${role} rein dazu`,
-    tuneStart: "Akkord und Mikrofon an",
-    tuneHeadphones:
-      "Am besten mit Kopfhörern: dann hört das Mikrofon nur dich, nicht den Akkord.",
-    tunePure: "rein",
-    tunePiano: "Klavier",
-    tunedPure: (cents: number) =>
-      Math.abs(cents) <= 2
-        ? "Rein!"
-        : `Rein, ${Math.abs(cents)} Cent ${cents > 0 ? "darüber" : "darunter"}.`,
-    tunedOff: (cents: number) =>
-      `${Math.abs(cents)} Cent zu ${cents > 0 ? "hoch" : "tief"} für rein.`,
-    tuneShown: "So klingt sie rein; hör hin.",
-    pureTips: {
-      majorThird:
-        "Eine reine große Terz liegt 14 Cent tiefer als auf dem Klavier. Tiefer, bis der Klang ruhig steht.",
-      minorThird:
-        "Eine reine kleine Terz liegt 16 Cent höher als auf dem Klavier. Höher, bis der Klang ruhig steht.",
-      fifth:
-        "Eine reine Quinte ist nur 2 Cent weiter als auf dem Klavier. Hör, bis nichts mehr schwebt.",
-      fourth:
-        "Eine reine Quarte ist nur 2 Cent enger als auf dem Klavier. Hör, bis nichts mehr schwebt.",
-    } as Record<string, string>,
-    done: "Runde geschafft",
-    doneRight: (right: number, total: number) =>
-      `${right} von ${total} richtig`,
-    doneTime: (seconds: string) => `meist ${seconds} s pro Antwort`,
-    doneNew: (count: number) =>
-      count === 1 ? "1 Neues dazugelernt" : `${count} Neue dazugelernt`,
-    doneMastered: (count: number) => `${count} sicher`,
-    noPlay: "Für dieses Instrument gibt es noch keine Spielübung.",
-    how: "So funktioniert es",
-    howItems: [
-      "Kurze Runden mit 20 Fragen. Was du falsch hattest, kommt in derselben Runde wieder.",
-      "Was du sicher weißt, kommt erst nach Tagen wieder, dann nach Wochen. So bleibt es im Gedächtnis.",
-      "Neues kommt dazu, wenn die meisten Antworten stimmen. Läuft es zäh, mischt die Übung Bekanntes ein.",
-      "Sicher heißt richtig und schnell: Beim Vom-Blatt-Spielen ist keine Zeit zum Abzählen.",
-      "Weißt du einen Ton schon beim ersten Mal schnell, wird er übersprungen; so kommst du rasch zu dem, was neu ist.",
-      "Die Einstufung am Anfang (jederzeit wiederholbar) überspringt, was du schon sicher kannst; es kommt bald zur Kontrolle wieder.",
-      "Zusammenspiel: Bei den Einsätzen zählst du Pausen, während die Begleitung spielt; pünktlich einsetzen zählt so viel wie die Töne. Im Akkord stimmst du rein, nicht wie am Klavier: eine große Terz etwas tiefer, eine kleine etwas höher.",
-      "Vom Blatt: jede Melodie ist neu, denn Blattspiel lernt man an viel Unbekanntem. Zwei gute Durchgänge nacheinander heben die Stufe, zwei schwache senken sie: mehr Tonarten, Sprünge, kürzere Noten, Moll, längere Melodien.",
-      "Tonleitern gehen den Quintenzirkel entlang, Dur vor Moll, mit Dreiklängen. Sicher heißt: alle Töne getroffen, im Schnitt höchstens 15 Cent daneben. Mit „Cent erst danach zeigen“ spielst du nach Gehör gegen den Liegeton.",
-      "Puls halten: Das Metronom verstummt, du klopfst allein weiter, erst zwei Takte, später bis zu zwölf, langsam und schnell. Die Linie im Ergebnis zeigt, ob du schneller oder langsamer wirst.",
-      "Rhythmen werden schneller, sobald du sie sicher klopfst, und die Toleranz wird enger. Sicher heißt hier: gleichmäßig, im Schnitt höchstens 60 ms daneben.",
-      "Es wird nach und nach schwerer: weitere Schlüssel deines Instruments (beim Cello Bass, dann Tenor, dann Violin), Intervalle von klar verschieden bis leicht verwechselbar, Stimmen in anderen Stimmungen.",
-    ] as string[],
-    /** Intervals by their size in semitones. */
-    intervals: [
-      "Prime",
-      "kleine Sekunde",
-      "große Sekunde",
-      "kleine Terz",
-      "große Terz",
-      "Quarte",
-      "Tritonus",
-      "Quinte",
-      "kleine Sexte",
-      "große Sexte",
-      "kleine Septime",
-      "große Septime",
-      "Oktave",
-    ] as string[],
-    whichChord: "Welcher Dreiklang?",
-    chordQualities: {
-      major: "Dur",
-      minor: "Moll",
-      diminished: "vermindert",
-      augmented: "übermäßig",
-    } as Record<string, string>,
-    chordWas: (name: string, how: string) => `Das war ${name}: ${how}.`,
-    chordHow: {
-      major: "große Terz, darüber kleine",
-      minor: "kleine Terz, darüber große",
-      diminished: "zwei kleine Terzen",
-      augmented: "zwei große Terzen",
-    } as Record<string, string>,
-    whichInterval: (harmonic: boolean) =>
-      harmonic ? "Welches Intervall, zusammen gespielt?" : "Welches Intervall?",
-    listen: "Anhören",
-    intervalWas: (name: string, semitones: number) =>
-      `Das war: ${name} (${semitones} ${semitones === 1 ? "Halbton" : "Halbtöne"}).`,
-    /** "eine große Sekunde tiefer": `semitones` up (positive) or down. */
-    shift: (name: string, semitones: number) =>
-      `${Math.abs(semitones) === 6 ? "einen" : "eine"} ${name} ${semitones > 0 ? "höher" : "tiefer"}`,
-    partIn: (key: string) => `Stimme in ${key}`,
-    transQuestion: (part: string | null) =>
-      part ? `${part}: welchen Ton spielst du?` : "Welcher Ton klingt?",
-    concertTip: (instrument: string, shift: string) =>
-      `Merkhilfe: ${instrument} klingt ${shift} als notiert.`,
-    partTip: (shift: string) => `Merkhilfe: alles ${shift} lesen.`,
-    clefAuto: (names: string) => `Automatisch: ${names}`,
-    ladder: "Schlüssel nach und nach",
-    clefLocked: (clef: string, before: string, have: number, need: number) =>
-      `${clef}: kommt, wenn ${need} Töne im ${before} sicher sitzen (jetzt ${have}).`,
-    newClef: (clef: string) => `Neu freigeschaltet: ${clef}!`,
-    treeOn: "Deine Zeit in den Runden zählt auch für deinen Übebaum.",
-    treeLink: "Dein Übebaum im Profil",
-    stages: [
-      "Grundlagen",
-      "Hören und Halten",
-      "Lesen und Spielen",
-      "Zusammenspiel",
-    ] as string[],
-    stageOpen: (open: number, of: number) =>
-      open === of ? "alles offen" : `${open} von ${of} offen`,
-    stagesLabel: "Deine Stufen",
-    progress: "Dein Stand",
-    lockedUntil: "Kommt, wenn du so weit bist:",
-    locked: "Noch gesperrt",
-    need: (of: string, count: number, have: number) =>
-      of === "sightLevel"
-        ? `Vom Blatt Stufe ${count} (jetzt ${Math.max(1, have)})`
-        : `${count} ${{ notes: "Noten sicher lesen", keys: "Tonarten sicher", rhythm: "Rhythmen sicher", play: "Töne sicher gespielt", ear: "Intervalle sicher" }[of] ?? of} (jetzt ${have})`,
-    newDrills: (names: string[]) => `Neu freigeschaltet: ${names.join(", ")}!`,
-    badges: {
-      title: "Abzeichen",
-      count: (earned: number, total: number) => `${earned} von ${total}`,
-      lead: "Jedes Abzeichen steht für etwas, das du jetzt kannst: alles darin richtig und schnell.",
-      earned: (names: string[]) =>
-        names.length === 1
-          ? `Neues Abzeichen: ${names[0]}!`
-          : `Neue Abzeichen: ${names.join(", ")}!`,
-      since: (day: string) => `seit ${day}`,
-      progress: (have: number, need: number) => `${have} von ${need}`,
-      groups: {
-        read: "Lesen",
-        hear: "Hören",
-        play: "Spielen",
-        steady: "Dranbleiben",
-      },
-      staff: (clef: string) => `${clef}: alle Linien und Zwischenräume`,
-      ledger: (clef: string) => `${clef} mit Hilfslinien`,
-      keys: {
-        sharps: "Alle Kreuz-Tonarten",
-        flats: "Alle B-Tonarten",
-        minor: "Alle Moll-Tonarten",
-      },
-      ear: (harmonic: boolean) =>
-        harmonic
-          ? "Intervalle zusammen gehört"
-          : "Intervalle nacheinander gehört",
-      rhythm: "Alle Rhythmen",
-      pulse: "Ruhiger Puls",
-      play: "Jeden Ton getroffen",
-      scales: (octaves: number) =>
-        octaves === 1
-          ? "Alle Tonleitern"
-          : `Alle Tonleitern über ${octaves === 2 ? "zwei" : "drei"} Oktaven`,
-      trans: (parts: boolean) =>
-        parts ? "Stimmen in allen Stimmungen" : "Klingend gedacht",
-      tune: "Sauber im Akkord",
-      sight: (level: number) => `Vom Blatt: Stufe ${level}`,
-      entry: "Einsätze: höchste Stufe",
-      streak: (days: number) => `${days} Tage in Folge`,
-      chords: "Dreiklänge gehört",
-    },
-    chosen: (instrument: string) => `Eingestellt: ${instrument}`,
-    chosenLead: (clefs: string) =>
-      `Das ist dein Instrument laut Mitgliederliste. Geübt wird im ${clefs}; weitere Schlüssel deines Instruments kommen dazu, sobald du so weit bist.`,
-    chosenOthers: (others: string) =>
-      `Du spielst auch ${others}: unter „ändern“ kannst du umstellen.`,
-    chosenNone: "Geübt wird im Violinschlüssel",
-    chosenNoneLead:
-      "In der Mitgliederliste steht kein Instrument, das die Übungen kennen. Unter „ändern“ wählst du deines.",
-    chosenOk: "Passt",
-    change: "ändern",
-    changeHint:
-      "Den Schlüssel wählt die Übung selbst, nach deinem Instrument und wie weit du bist. Nur selten nötig, ihn festzulegen.",
-    auto: "automatisch",
-    treeTitle: "Übebaum",
-    treeNext: (duration: string, stage: string) =>
-      `noch ${duration} bis ${stage}`,
-    treeStart: "Im Profil einschalten",
-    treeOff:
-      "Mit „Probenzeit aufzeichnen“ im Profil wächst dein Übebaum auch mit diesen Runden.",
-    reset: "Fortschritt auf diesem Gerät löschen",
-    confirmReset:
-      "Deinen ganzen Übe-Fortschritt auf diesem Gerät löschen? Das lässt sich nicht rückgängig machen.",
-    letters: ["C", "D", "E", "F", "G", "A", "H"] as string[],
-    /** The keys that answer each letter. */
-    letterKeys: ["c", "d", "e", "f", "g", "a", "h"] as string[],
-    noteName: (step: number, alter: number): string => {
-      if (step === 6 && alter === -1) return "B";
-      if (step === 6 && alter === -2) return "Heses";
-      const letter = "CDEFGAH"[step];
-      // Es and As, not Ees and Aes.
-      const vowel = step === 2 || step === 5;
-      const suffix =
-        {
-          [-2]: vowel ? "ses" : "eses",
-          [-1]: vowel ? "s" : "es",
-          0: "",
-          1: "is",
-          2: "isis",
-        }[alter] ?? "";
-      return letter + suffix;
-    },
-    keyName: (name: string, mode: "major" | "minor") =>
-      mode === "major" ? `${name}-Dur` : `${name.toLowerCase()}-Moll`,
-  },
-  /** Practice time ("Probenzeit"): opt-in on /profil, only visible to the member. */
-  practice: {
-    title: "Probenzeit",
-    lead: "Wie lange du die Noten deines Instruments geöffnet hattest, nach Woche und Monat, und ein Baum, der damit wächst.",
-    private:
-      "Nur du siehst deine Probenzeit: nicht die Verwaltung, nicht andere Mitglieder, in keiner Auswertung.",
-    how: "Gezählt wird, solange eine Stimme deines Instruments aus „Meine Noten“ in der App offen und die Seite sichtbar ist. Nach 20 Minuten ohne Tippen, Blättern oder Taste pausiert die Zählung; ein Öffnen zählt höchstens 3 Stunden, ein Tag höchstens 12. Runden im Übebereich zählen auch, mit der Zeit, in der du antwortest. Noten in Drive oder auf Papier zählen nicht.",
-    question: "Möchtest du deine Probenzeit aufzeichnen?",
-    turnOn: "Probenzeit aufzeichnen",
-    turnOff: "Aufzeichnen ausschalten",
-    on: "Wird aufgezeichnet, solange eine Stimme aus „Meine Noten“ in der Probenansicht offen ist.",
-    off: "Ausgeschaltet. Deine bisherige Zeit bleibt, bis du sie löschst.",
-    delete: "Aufgezeichnete Zeit löschen",
-    confirmDelete:
-      "Deine ganze aufgezeichnete Probenzeit löschen? Das lässt sich nicht rückgängig machen; der Baum fängt wieder als Samen an.",
-    deleted: "Gelöscht.",
-    failed: "Das hat nicht geklappt. Bitte gleich noch einmal versuchen.",
-    week: "Woche",
-    month: "Monat",
-    view: "Zeitraum",
-    earlier: "Früher",
-    later: "Später",
-    thisWeek: "Diese Woche",
-    thisMonth: "Dieser Monat",
-    total: (duration: string) => `Zusammen ${duration}`,
-    perDay: (day: string, duration: string) => `${day}: ${duration}`,
-    nothing: "In diesem Zeitraum noch keine Probenzeit.",
-    /** "1 Std. 5 Min.", "25 Min.", "0 Min." */
-    duration: (seconds: number) => {
-      const minutes = Math.floor(seconds / 60);
-      const hours = Math.floor(minutes / 60);
-      return hours
-        ? `${hours} Std.${minutes % 60 ? ` ${minutes % 60} Min.` : ""}`
-        : `${minutes} Min.`;
-    },
-    tree: {
-      title: "Dein Baum",
-      seed: "Samen",
-      seedling: "Setzling",
-      sapling: "Kleiner Baum",
-      tree: (age: number) => (age === 1 ? "Baum" : `Baum, ${age} Jahresringe`),
-      all: (duration: string) => `Insgesamt ${duration} geübt`,
-      next: (duration: string, stage: string) =>
-        `Noch ${duration} bis zur nächsten Stufe: ${stage}`,
-      hint: "Ab 10 Stunden wird aus dem Samen ein Setzling, nach 15 weiteren ein kleiner Baum, danach alle 20 Stunden ein größerer, älterer Baum.",
-    },
-    viewer: {
-      back: "Meine Noten",
-      counting: "Zählt als Probenzeit",
-      today: (duration: string) => `Heute ${duration}`,
-      idle: "Noch am Üben? Hier tippen: die Pause zählt dann mit.",
-      paused: "Pausiert: tippe auf die Noten, um weiterzuzählen.",
-      full: "Dieses Öffnen hat 3 Stunden gezählt. Öffne die Stimme neu, um weiterzuzählen.",
-      stopped: "Probenzeit ist ausgeschaltet; hier zählt nichts mehr.",
-      notCounting: "Probenzeit ist aus.",
-      turnOn: "Im Profil einschalten",
-      elsewhere: "In Drive öffnen (zählt nicht)",
-      failed: "Die Noten ließen sich nicht laden.",
-      title: (part: string, piece: string) => `${part} · ${piece}`,
-      fitPage: "Ganze Seite",
-      fitWidth: "Seitenbreite",
-      zoom: "Zoom",
-      zoomIn: "Vergrößern",
-      zoomOut: "Verkleinern",
-      zoomReset: "Zurück auf 100 %",
-      fullscreen: "Vollbild",
-      exitFullscreen: "Vollbild beenden",
-      turnHint:
-        "Blättern: an den linken oder rechten Rand tippen, mit den Pfeiltasten oder einem Blätterpedal.",
-      tools: "Werkzeuge",
-      closeTools: "Werkzeuge schließen",
-      moveTools: "Werkzeuge verschieben (Pfeiltasten, Escape: automatisch)",
-      autoPlace: "Automatisch platzieren",
-      fold: "Einklappen",
-      toolsAt: (x: number, y: number) =>
-        `Werkzeuge bei ${x} % von links, ${y} % von oben`,
-      toolsAuto: "Werkzeuge automatisch platziert",
-    },
-    recording: {
-      title: "Hörbeispiel",
-      play: "Hier abspielen",
-      open: "Aufnahme öffnen",
-      hint: "Lädt das Video von YouTube erst beim Abspielen.",
-    },
-    metronome: {
-      title: "Metronom",
-      bpm: "Schläge pro Minute",
-      slower: "Langsamer",
-      faster: "Schneller",
-      tap: "Tippen",
-      tapHint: "Im Tempo tippen, um es zu übernehmen.",
-      tempo: "Tempo",
-      meter: "Takt",
-      noMeter: "ohne Takt",
-      count: "Zählzeit",
-      eighths: "Achtel",
-      dotted: "Punktierte Viertel",
-      start: "Start",
-      stop: "Stopp",
-    },
-    tuner: {
-      title: "Stimmgerät",
-      start: "Mikrofon einschalten",
-      stop: "Beenden",
-      listening: "Spiel einen Ton …",
-      noMic:
-        "Kein Zugriff aufs Mikrofon. Erlaube es in den Einstellungen des Browsers.",
-      insecure:
-        "Das Mikrofon gibt der Browser nur über eine sichere Verbindung (https) frei.",
-      tapToListen: "Zum Zuhören tippen",
-      reference: "Kammerton a′",
-      /** From C, German names: B is B flat, H is B. */
-      notes: [
-        "C",
-        "Cis",
-        "D",
-        "Es",
-        "E",
-        "F",
-        "Fis",
-        "G",
-        "Gis",
-        "A",
-        "B",
-        "H",
-      ] as string[],
-      cents: (cents: number) =>
-        `${cents > 0 ? "+" : cents < 0 ? "−" : "±"}${Math.abs(cents)} Cent`,
-      inTune: "Stimmt",
-      low: "zu tief",
-      high: "zu hoch",
-      last: "zuletzt gehört",
-      off: "Mikrofon ist aus.",
-    },
-    drone: {
-      title: "Liegeton",
-      note: "Ton",
-      octave: "Oktave",
-      fifth: "mit Quinte",
-      volume: "Lautstärke",
-      heard: "Gehörten Ton nehmen",
-      play: (note: string) => `${note} spielen`,
-      stop: "Liegeton aus",
-    },
-    marks: {
-      title: "Notizen",
-      pen: "Stift",
-      graphite: "Bleistift",
-      red: "Rot",
-      blue: "Blau",
-      eraser: "Radierer",
-      undo: "Rückgängig",
-      clear: "Seite leeren",
-      confirmClear: "Alle Notizen auf dieser Seite löschen?",
-      done: "Fertig",
-      saving: "Speichert …",
-      saved: "Gespeichert",
-      queued:
-        "Auf dem Gerät gespeichert, wird gesendet, sobald du wieder online bist.",
-      failed: (status: string) =>
-        status
-          ? `Nicht gespeichert (Fehler ${status}).`
-          : "Nicht gespeichert. Bitte die Verbindung prüfen.",
-      private: "Nur du siehst deine Notizen.",
-      symbolsTitle: "Zeichen",
-      symbols: {
-        downbow: "Abstrich",
-        upbow: "Aufstrich",
-        breath: "Atemzeichen",
-        fermata: "Fermate",
-        pp: "pianissimo",
-        p: "piano",
-        mp: "mezzopiano",
-        mf: "mezzoforte",
-        f: "forte",
-        ff: "fortissimo",
-        cresc: "crescendo",
-        dim: "decrescendo",
-      },
-      pageFull:
-        "Die Seite ist voll. Radier etwas weg oder nimm Zeichen, die brauchen kaum Platz.",
-      nearlyFull: "Die Seite ist fast voll. Zeichen brauchen kaum Platz.",
-      sharedNote:
-        "Deiner Stimmgruppe angeboten. Sonst siehst nur du deine Notizen.",
-      /** On /profil. */
-      profileTitle: "Notizen in deinen Noten",
-      count: (parts: number) =>
-        parts === 1 ? "In einer Stimme." : `In ${parts} Stimmen.`,
-      deleteAll: "Alle Notizen löschen",
-      confirmDeleteAll:
-        "Alle deine Notizen in allen Stimmen löschen? Das lässt sich nicht rückgängig machen.",
-    },
-    /** Notes offered to and from the others who play the same part. */
-    share: {
-      share: "Mit Stimmgruppe teilen",
-      unshare: "Nicht mehr teilen",
-      confirm:
-        "Deine Notizen in dieser Stimme, so wie sie jetzt sind, deiner Stimmgruppe anbieten? Wer dieselbe Stimme spielt, sieht sie und kann sie übernehmen oder ablehnen.",
-      confirmUnshare:
-        "Das Angebot zurückziehen? Was andere schon übernommen haben, bleibt bei ihnen.",
-      nothing: "Hier gibt es noch keine Notizen zum Teilen.",
-      failed: "Das hat nicht geklappt. Bitte versuch es noch einmal.",
-      someone: "Jemand aus deiner Stimmgruppe",
-      offered: (name: string, count: number) =>
-        `${name} bietet dir ${count === 1 ? "eine Notiz" : `${count} Notizen`} in dieser Stimme an.`,
-      show: "Ansehen",
-      hide: "Ausblenden",
-      pick: "Tippe eine angebotene Notiz an, um sie zu übernehmen.",
-      onPage: (count: number) =>
-        count ? `Auf dieser Seite: ${count}.` : "Auf dieser Seite keine.",
-      take: "Notiz übernehmen",
-      takeAll: "Alle übernehmen",
-      decline: "Ablehnen",
-      done: "Fertig",
-      skipped: (count: number) =>
-        count === 1
-          ? "Eine Notiz passte nicht mehr auf die Seite."
-          : `${count} Notizen passten nicht mehr auf die Seite.`,
-    },
-    /** In "Meine Daten herunterladen". */
-    data: "Probenzeit",
-    dataOn: "Aufzeichnen",
-    dataDay: "Tag",
-    dataMinutes: "Minuten",
-    dataMarks: "Notizen in den Noten",
-    dataFile: "Datei",
-    dataPage: "Seite",
-    dataStrokes: "Striche",
-  },
-  /** A full set of parts to print for a concert (#195). */
-  partSet: {
-    link: "Stimmensatz",
-    title: "Stimmensatz",
-    lead: (players: number) =>
-      `Wie viele Ausdrucke jede Stimme braucht, aus ${players === 1 ? "1 aktiven Mitglied" : `${players} aktiven Mitgliedern`} und ihren Instrumenten: eine pro Person, bei Streichern eine pro Pult, die Partitur einmal. Zum Prüfen und Ändern, dann als eine PDF zum Drucken.`,
-    players: (n: number) =>
-      n === 1 ? "1 spielt" : n ? `${n} spielen` : "niemand",
-    copies: (part: string) => `Ausdrucke von ${part}`,
-    noMusic: "Keine Noten im Archiv.",
-    total: (copies: number, parts: number) =>
-      `${copies} ${copies === 1 ? "Ausdruck" : "Ausdrucke"} von ${parts} ${parts === 1 ? "Stimme" : "Stimmen"}`,
-    build: "Als eine PDF",
-    building: (i: number, n: number) => `Stimme ${i} von ${n} …`,
-    notPdf: "keine PDF",
-    fileName: "Stimmensatz",
-    orchestra: "Für",
-    allOrchestras: "Alle Orchester",
-    apply: "Anzeigen",
-  },
-  print: {
-    link: "Drucken",
-    title: (concert: string) => "Drucken: " + concert,
-    handout: "Programmzettel",
-    setlist: "Setlist",
-    handoutHint: "Für das Publikum: Programm mit Komponisten.",
-    setlistHint: "Für Dirigat und Pult: groß, nummeriert, nur die Titel.",
-    print: "Drucken",
-    back: "Zurück zum Konzert",
-    empty: "Für dieses Konzert ist noch kein Programm eingetragen.",
-    program: "Programm",
-    totalLength: (minutes: number) => `Dauer ca. ${minutes} Minuten`,
-  },
-  /** The music list for the collecting society (#118). Another country: other words here, or musicReport: false in the config. */
-  /** Concerts with other choirs and orchestras: who plays with us, who organises it. */
-  kummer: {
-    title: "Kummerkasten",
-    lead: "Was dich bedrückt, ärgert oder was du loswerden willst: an die Leitung, anonym. Antworten bekommst du hier, nur du siehst sie.",
-    tabs: { write: "Schreiben", mine: "Meine Nachrichten", inbox: "Eingang" },
-    privacy:
-      "Anonym heißt: Die Leitung sieht deinen Namen nicht, und er steht nirgends in der Tabelle. Die App erkennt nur dich selbst wieder, damit du Antworten bekommst. Was du schreibst, kann trotzdem verraten, wer du bist.",
-    to: "An",
-    toAll: "Die ganze Leitung",
-    toSome: "Nur an bestimmte Personen",
-    toHint:
-      "Wer die Nachricht liest. Ohne Auswahl alle, die den Kummerkasten lesen.",
-    noLeitung:
-      "Noch liest niemand den Kummerkasten. Die Verwaltung vergibt dafür das Recht „Kummerkasten lesen“.",
-    subject: "Betreff",
-    subjectHint: "Worum geht es, in ein paar Worten",
-    body: "Nachricht",
-    signed: (name: string) => `Meinen Namen mitschicken (${name})`,
-    signedHint: "Nur wenn du möchtest, dass die Leitung weiß, wer schreibt.",
-    send: "Abschicken",
-    sent: "Abgeschickt. Antworten findest du unter „Meine Nachrichten“.",
-    anonymous: "Anonym",
-    you: "Du",
-    named: (name: string) => `von ${name}`,
-    for: (names: string) => `an ${names}`,
-    forAll: "an die ganze Leitung",
-    empty: "Du hast noch nichts geschrieben.",
-    inboxEmpty: "Keine Nachrichten für dich.",
-    unread: "Neu",
-    closed: "Erledigt",
-    answered: "Beantwortet",
-    waiting: "Noch keine Antwort",
-    reply: "Antworten",
-    replyHint:
-      "Die Antwort sieht nur, wer geschrieben hat, und wer die Nachricht bekommen hat.",
-    replyAuthorHint: "Bleibt so anonym wie deine erste Nachricht.",
-    replySend: "Antwort schicken",
-    replied: "Antwort verschickt.",
-    close: "Als erledigt markieren",
-    reopen: "Wieder öffnen",
-    closedNote:
-      "Die Leitung hat das als erledigt markiert. Du kannst trotzdem noch antworten.",
-    back: "Zum Kummerkasten",
-    notSetUp:
-      "Der Kummerkasten braucht die Datenbank der App (D1) und die Anmeldung. Beides ist hier noch nicht eingerichtet.",
-    signIn: "Bitte melde dich an, um den Kummerkasten zu nutzen.",
-    gone: "Diese Nachricht gibt es nicht, oder sie ist nicht für dich.",
-    failed: "Das ging gerade nicht. Bitte versuch es gleich noch einmal.",
-    todoAnswers: (n: number) =>
-      n === 1
-        ? "neue Antwort im Kummerkasten"
-        : "neue Antworten im Kummerkasten",
-    todoInbox: (n: number) =>
-      n === 1
-        ? "neue Nachricht im Kummerkasten"
-        : "neue Nachrichten im Kummerkasten",
-    problems: {
-      subject: "Bitte einen Betreff angeben.",
-      body: "Bitte etwas schreiben.",
-      "too-long":
-        "Das ist zu lang: Betreff bis 120, Nachricht bis 5000 Zeichen.",
-      recipient:
-        "Diese Person liest den Kummerkasten nicht (mehr). Bitte die Seite neu laden.",
-    },
-  },
-  /** The parents' area (/eltern): what a parent account sees, and the notices written for it. */
-  parents: {
-    title: "Elternbereich",
-    lead: (name: string) =>
-      `Hallo ${name}! Hier siehst du die nächsten Termine deiner Kinder, kannst sie entschuldigen, Karten reservieren und der Leitung schreiben.`,
-    noChildren:
-      "Noch ist kein Kind mit deinem Konto verknüpft. Die Verwaltung trägt deine Kinder bei dir unter „Mitglieder“ ein.",
-    children: "Deine Kinder",
-    notices: {
-      title: "Elternmitteilungen",
-      shortTitle: "Mitteilungen",
-      lead: "Mitteilungen erscheinen im Elternbereich und, wo die Eltern es erlaubt haben, als Benachrichtigung auf ihren Geräten.",
-      heading: "Überschrift",
-      body: "Text",
-      for: "Für",
-      forHint:
-        "Nichts angekreuzt: an alle Eltern. Sonst nur an Eltern von Kindern in diesen Orchestern.",
-      forAll: "alle Eltern",
-      forSome: (orchestras: string) => `Eltern aus ${orchestras}`,
-      send: "Veröffentlichen",
-      added: "Veröffentlicht.",
-      remove: "Löschen",
-      confirmRemove: (title: string) =>
-        `Mitteilung „${title}“ löschen? Die Eltern sehen sie dann nicht mehr.`,
-      empty: "Noch keine Mitteilungen.",
-      by: (name: string, day: string) => (name ? `${name} · ${day}` : day),
-      reaches: (n: number) =>
-        n === 1 ? "erreicht 1 Elternteil" : `erreicht ${n} Eltern`,
-      noParents:
-        "Noch ist kein Eltern-Konto mit einem Kind verknüpft. Das geht in der Mitgliederverwaltung: Status „Eltern“ und die Kinder eintragen.",
-      notSetUp:
-        "Mitteilungen brauchen die Datenbank der App (D1). Sie ist hier noch nicht eingerichtet.",
-      failed: "Das ging gerade nicht. Bitte versuch es gleich noch einmal.",
-      problems: {
-        title: "Bitte eine Überschrift angeben.",
-        body: "Bitte etwas schreiben.",
-        "too-long":
-          "Das ist zu lang: Überschrift bis 120, Text bis 5000 Zeichen.",
-      } as Record<string, string>,
-    },
-    dates: "Nächste Termine",
-    noDates: "In den nächsten Wochen steht nichts an.",
-    inDays: (n: number) =>
-      n === 0 ? "heute" : n === 1 ? "morgen" : `in ${n} Tagen`,
-    status: {
-      yes: "kommt",
-      maybe: "vielleicht",
-      no: "entschuldigt",
-      open: "noch keine Antwort",
-    } as Record<string, string>,
-    comes: "Kommt",
-    excuse: "Entschuldigen",
-    reason: "Grund (optional)",
-    reasonHint: "z. B. krank, Klassenfahrt",
-    excuseSend: "Entschuldigen",
-    cancel: "Abbrechen",
-    saved: "Gespeichert.",
-    /** In the sheet's comment, so the Leitung sees a parent answered. */
-    answeredBy: (name: string) => `eingetragen von ${name}`,
-    answerFailed:
-      "Das ging gerade nicht. Bitte lade die Seite neu und versuch es noch einmal.",
-    /** Before the Leitung's view of the writer: "Paula Beispiel (Eltern von Mia)". */
-    parentOf: (names: string) => `Eltern von ${names}`,
-    and: "und",
-    tickets: {
-      title: "Karten reservieren",
-      left: (n: number) =>
-        n === 1 ? "Noch 1 Platz frei." : `Noch ${n} Plätze frei.`,
-      payAtDoor: "Bezahlt wird an der Abendkasse.",
-      name: "Auf welchen Namen?",
-      count: (label: string, price: string) => `${label} (${price})`,
-      reserve: "Reservieren",
-      reserved: "Reserviert!",
-      mailed: "Eine Bestätigung ist per E-Mail unterwegs.",
-      show: "Karten ansehen",
-    },
-    write: "Der Leitung schreiben",
-    messages: {
-      title: "Nachrichten",
-      lead: "Fragen, Hinweise oder eine längere Abwesenheit: an die Leitung, mit deinem Namen. Die Antworten findest du hier.",
-      signedAs: (signature: string) =>
-        `Die Leitung sieht als Absender: ${signature}`,
-      newMessage: "Neue Nachricht",
-      sent: "Abgeschickt. Die Antwort erscheint hier, sobald die Leitung geschrieben hat.",
-      yours: "Deine Nachrichten",
-      empty: "Du hast noch nichts geschrieben.",
-      noLeitung:
-        "Noch liest niemand die Nachrichten. Die Verwaltung vergibt dafür das Recht „Kummerkasten lesen“.",
-    },
-  },
-  ensembles: {
-    title: "Ensembles",
-    lead: "Chöre und Orchester, mit denen wir Konzerte geben. Ein Konzert wählt sie unter „Mitwirkende“; Logo, Leitung und Website erscheinen mit ihm auf der Website.",
-    add: "Ensemble hinzufügen",
-    addLead:
-      "Der Kurzname ist, wie Programm und Konzerte das Ensemble nennen, z. B. „KCH“. Ohne ihn gilt der volle Name.",
-    shortName: "Kurzname",
-    shortNameHint: "z. B. KCH",
-    name: "Name",
-    nameHint: "z. B. Kammerchor Unna",
-    kind: "Art",
-    conductor: "Leitung",
-    website: "Website",
-    logo: "Logo (Bildlink, https)",
-    logoHint: "https://…/logo.png",
-    save: "Speichern",
-    create: "Hinzufügen",
-    edit: "Bearbeiten",
-    remove: "Entfernen",
-    removeConfirm: (name: string) =>
-      `„${name}“ aus dem Tab „Ensembles“ entfernen?`,
-    cancel: "Abbrechen",
-    search: "Ensembles durchsuchen",
-    count: (n: number) => (n === 1 ? "1 Ensemble" : `${n} Ensembles`),
-    empty:
-      "Noch keine Ensembles. Das erste hier hinzufügen; der Tab „Ensembles“ entsteht dabei.",
-    noMatch: "Kein Ensemble passt zur Suche.",
-    concerts: (n: number) => (n === 1 ? "in 1 Konzert" : `in ${n} Konzerten`),
-    unused: "In keinem Konzert",
-    shortLocked:
-      "Konzerte nennen das Ensemble mit diesem Kurznamen; er bleibt deshalb, solange es dort steht.",
-    inUseRemove: "Steht in Konzerten; erst dort unter „Mitwirkende“ abwählen.",
-    added: (name: string) => `„${name}“ ist jetzt in der Liste.`,
-    saved: "Gespeichert.",
-    removed: (name: string) => `„${name}“ ist entfernt.`,
-    failed: "Das ging gerade nicht. Bitte gleich noch einmal versuchen.",
-    manage: "Ensembles verwalten",
-    problems: {
-      name: "Bitte einen Namen oder Kurznamen eingeben.",
-      taken: "Diesen Namen hat schon ein anderes Ensemble.",
-      ours: "So heißt eines unserer Orchester; bitte einen anderen Kurznamen wählen.",
-      website:
-        "Die Website bitte als Link angeben, z. B. https://kammerchor-unna.de.",
-      logo: "Das Logo bitte als https-Link zu einem Bild angeben.",
-      "too-long": "Das ist zu lang (höchstens 300 Zeichen je Feld).",
-      "in-use":
-        "Konzerte nennen das Ensemble mit seinem Kurznamen; der bleibt, solange es dort steht.",
-      gone: "Die Zeile hat sich in der Tabelle geändert. Bitte die Seite neu laden.",
-    },
-  },
-  partners: {
-    /** "mit Kammerchor Unna und Posaunenchor Kamen". */
-    with: (names: string[]) =>
-      `mit ${names.length > 1 ? `${names.slice(0, -1).join(", ")} und ${names.at(-1)}` : (names[0] ?? "")}`,
-    over: "Mitwirkende",
-    organizedBy: (name: string) => `Veranstalter: ${name}`,
-    conductor: (name: string) => `Leitung: ${name}`,
-    title: "Mitwirkende und Veranstalter",
-    lead: "Wer dieses Konzert spielt: unsere Orchester und die Chöre und Orchester, mit denen wir es geben. Sie stehen im Programm, in der Musikfolge und auf der Website.",
-    ours: "Unsere Orchester",
-    known: "Gäste aus dem Tab „Ensembles“",
-    others: "Weitere",
-    othersHint:
-      "Volle Namen, mit Komma getrennt. Logo, Leitung und Website kommen aus dem Tab „Ensembles“.",
-    organizer: "Veranstalter",
-    us: (name: string) => `${name} (wir)`,
-    organizerHint:
-      "Veranstaltet ein anderes Ensemble, verkauft es auch die Karten: Der Verkauf hier bleibt dann zu, und die Website verlinkt den Kartenlink unter „Für die Website“.",
-    save: "Speichern",
-    saved: "Gespeichert.",
-    needsSetup:
-      "In „Konzerte“ fehlen noch die Spalten „Mitwirkende“ und „Veranstalter“. Einmal „Tabelle einrichten“ ausführen.",
-    ticketsElsewhere: (name: string) =>
-      `${name} veranstaltet dieses Konzert und verkauft die Karten. Der Verkauf über die App ist deshalb zu.`,
-    guestPiece: "Gaststück eintragen",
-    guestPieceLead:
-      "Ein Stück, das die Gäste mitbringen und das nicht in unserem Archiv ist. Für die Musikfolge braucht es Komponist, Verlag und Dauer.",
-    guestTitle: "Titel",
-    guestComposer: "Komponist (voller Name)",
-    guestArranger: "Bearbeiter",
-    guestPublisher: "Verlag",
-    guestDuration: "Dauer, z. B. 4:30",
-    guestAdd: "Ins Programm",
-    guestTag: "Gaststück",
-    reportScope: "In der Musikfolge",
-    reportAll: "Alle Stücke",
-    reportOurs: "Nur unsere",
-    reportScopeHint:
-      "Der Veranstalter meldet das Konzert. Meldet ein Gast-Ensemble seine Stücke selbst, stehen hier nur unsere.",
-    fillInProgram: "Im Programm ergänzen",
-  },
-  musicReport: {
-    tab: "Musikfolge (GEMA)",
-    title: "Musikfolge",
-    hint: "Für die GEMA-Meldung, als CSV ins Formular übernehmen.",
-    csv: "Als CSV laden",
-    columns: {
-      position: "Nr.",
-      title: "Titel",
-      composer: "Komponist",
-      arranger: "Bearbeiter",
-      publisher: "Verlag",
-      duration: "Dauer",
-      performers: "Ausführende",
-    },
-    gaps: (n: number) =>
-      n === 1
-        ? "Bei 1 Stück fehlen noch Angaben:"
-        : `Bei ${n} Stücken fehlen noch Angaben:`,
-    missing: {
-      composer: "Komponist",
-      composerFull: "Komponist (voll)",
-      publisher: "Verlag",
-      duration: "Dauer",
-    } as Record<string, string>,
-    complete: "Alle Angaben sind da.",
-    fullNames:
-      "Die GEMA möchte Komponisten mit vollem Namen, z. B. „Ludwig van Beethoven“ statt „Beethoven“. Die Liste nimmt dafür die Spalte „Komponist (voll)“; „Online nachschlagen“ beim Bearbeiten füllt sie.",
-    fill: "Ergänzen",
-    organizer: "Veranstalter",
-    date: "Datum",
-    venue: "Ort",
-  },
-  retention: {
-    anonymous: "Ohne Namen",
-  },
-  erase: {
-    anonymous: "Ehemaliges Mitglied",
-    button: "Alle Daten löschen …",
-    title: (name: string) => `Alle Daten von ${name} löschen`,
-    lead: "Für eine Bitte um Löschung (Art. 17 DSGVO). Was nur diese Person betrifft, wird gelöscht. Wo eine Zeile auch für andere zählt (Zusagen, Anwesenheit, +1, Hinweise), bleibt sie ohne Namen stehen, damit Zählungen und Saisonbericht stimmen.",
-    nothing:
-      "Außer der Zeile in „Mitglieder“ gibt es keine Daten zu dieser Person.",
-    remove: (count: number) =>
-      count === 1
-        ? "1 Eintrag wird gelöscht"
-        : `${count} Einträge werden gelöscht`,
-    anonymise: (count: number) =>
-      count === 1
-        ? "1 Eintrag bleibt ohne Namen"
-        : `${count} Einträge bleiben ohne Namen`,
-    confirm: "Endgültig löschen",
-    confirmQuestion: (name: string) =>
-      `Alle Daten von ${name} endgültig löschen? Das lässt sich nicht rückgängig machen.`,
-    done: (name: string) => `Die Daten von ${name} sind gelöscht.`,
-    failed:
-      "Das Löschen hat nicht ganz geklappt. Was erledigt ist, bleibt erledigt; bitte noch einmal versuchen.",
-    stored: {
-      devices: "Geräte für Benachrichtigungen",
-      reminders: "Verschickte Erinnerungen",
-      settings: "Einstellungen (E-Mails, Tour, Übezeit)",
-      practice: "Übezeit (Tage)",
-      marks: "Eigene Eintragungen in Noten (Seiten)",
-      polls: "Terminumfragen",
-      kummer:
-        "Kummerkasten (eigene Nachrichten gelöscht, Antworten ohne Namen)",
-    },
-  },
-  archive: {
-    addPiece: "Stück ohne Noten eintragen",
-    addPieceLead: "Für gespielte Stücke ohne Noten im Archiv.",
-    orchestra: "Orchester",
-    pieceTitle: "Titel",
-    composer: "Komponist",
-    catalogue: "Werkverzeichnis",
-    add: "Eintragen",
-    failed:
-      "Die Tabelle konnte gerade nicht geändert werden. Bitte versuch es noch einmal.",
-    problems: {
-      "title-missing": "Bitte einen Namen angeben.",
-      "title-taken":
-        "Diesen Namen gibt es schon. Programme verweisen über den Namen, er muss eindeutig sein, z. B. mit Jahreszahl.",
-      "bad-date":
-        "Das Datum ist nicht lesbar. Möglich sind 1957, 1957-12, 21.12.1957 oder 12.1957.",
-    },
-  },
-  pieceEditor: {
-    title: (piece: string) => `Bearbeiten: ${piece}`,
-    lead: "Was hier steht, gilt statt dem Ordnernamen.",
-    recordingHint: "Link zu einer Aufnahme, z. B. YouTube",
-    /** Writes the sheet's word for "no recording" into the field. */
-    noRecording: "Gibt es keins",
-    noRecordingHint:
-      "Für Stücke ohne Aufnahme: „Angaben ergänzen“ fragt dann nicht mehr danach.",
-    reviewedHint: "z. B. 2026-10-18",
-    today: "Heute",
-    save: "Speichern",
-    cancel: "Abbrechen",
-    conflict:
-      "Jemand hat das Stück inzwischen geändert. Lade die Seite neu und mach deine Änderung noch einmal.",
-    notInSheet:
-      "Noch nicht in der Tabelle. Neue Ordner kommen innerhalb einer Minute dazu.",
-    renamed: (n: number) =>
-      n === 1
-        ? "Der neue Titel wurde auch in 1 Programm übernommen."
-        : `Der neue Titel wurde auch in ${n} Programmen übernommen.`,
-    problems: {
-      "title-missing": "Bitte einen Titel angeben.",
-      "title-taken":
-        "Diesen Titel hat schon ein anderes Stück. Programme finden Stücke über den Titel, er muss eindeutig sein.",
-      "bad-link":
-        "Das Hörbeispiel muss ein Link sein, der mit http:// oder https:// beginnt, oder „keins“.",
-      "bad-duration":
-        "Die Dauer ist nicht lesbar. Möglich sind z. B. 7:30, 7 Min. oder 1:02:00.",
-    },
-    durationHint: "z. B. 7:30",
-    composerHint: "mehrere mit Komma: Mozart, Haydn",
-    composerFullHint: "z. B. Ludwig van Beethoven – für die GEMA-Meldung",
-    listHint: "mehrere mit Komma trennen",
-    publisherHint: "z. B. Bärenreiter – für die GEMA-Meldung",
-    unreadInstrumentation: (text: string) =>
-      `Nicht als Instrument erkannt, bleibt so stehen: ${text}`,
-    missingColumns: (columns: string) =>
-      `${columns}: Die Spalten fehlen noch in der Tabelle. Einmal „Tabelle einrichten“ ausführen, dann lassen sie sich hier eintragen.`,
-  },
-  editor: {
-    newPiece: (title: string) => `„${title}“ als neues Stück anlegen`,
-    newPieceTitle: "Neues Stück",
-    newPieceLead:
-      "Kommt ohne Noten ins Archiv und gleich ins Programm. Das Programm wird erst mit „Speichern“ gespeichert.",
-    newPieceSave: "Anlegen und hinzufügen",
-    newPieceAnyway: "Trotzdem neu anlegen",
-    similarTitle: "Gibt es das Stück schon?",
-    similarTake: "Dieses nehmen",
-    orchestras: "Programm je Orchester",
-    orchestraTab: (orchestra: string) => `Programm ${orchestra}`,
-    jointTab: (orchestras: string[]) => `Gemeinsam: ${orchestras.join(" + ")}`,
-    jointHint: (orchestras: string[]) =>
-      `Stücke, die ${orchestras.join(" und ")} zusammen spielen. Sie stehen in den Drive-Ordnern aller beteiligten Orchester und in „Meine Noten“ aller Mitglieder.`,
-    addJoint: (orchestras: string[]) =>
-      `Stücke hinzufügen, die ${orchestras.join(" und ")} zusammen spielen`,
-    suggestions: "Vorschläge",
-    wished: "Gewünscht",
-    longAgo: "Lange nicht gespielt",
-    genres: (genres: string) => `Genres im Programm: ${genres}`,
-    forThisConcert: "für dieses Konzert",
-    lastPlayed: (year: string) => `zuletzt ${year}`,
-    newGenre: "neues Genre",
-    notInArchive: "nicht im Archiv",
-    take: "Übernehmen",
-    openSuggestions: (n: number) =>
-      n === 1
-        ? "1 Stückwunsch für die Planung"
-        : `${n} Stückwünsche für die Planung`,
-    edit: "Programm bearbeiten",
-    title: (concert: string) => `Programm: ${concert}`,
-    lead: "Stücke hinzufügen, sortieren, speichern.",
-    search: "Stück suchen und hinzufügen …",
-    empty: "Noch keine Stücke im Programm.",
-    noteLabel: "Notiz",
-    notePlaceholder: "z. B. Zugabe",
-    up: "Nach oben",
-    down: "Nach unten",
-    remove: "Entfernen",
-    save: "Speichern",
-    cancel: "Abbrechen",
-    saved: "Programm gespeichert.",
-    conflict:
-      "Jemand hat das Programm inzwischen geändert. Lade die Seite neu und mach deine Änderung noch einmal.",
-    notInSheet:
-      "Noch nicht in der Tabelle. Bestätigte Konzerte kommen automatisch dazu, unsichere („(?)“) erst später.",
-    noResults: "Kein Stück gefunden.",
-    sharedFrom: (concert: string) =>
-      `Dieses Konzert spielt das Programm von „${concert}“. Änderungen dort gelten auch hier.`,
-    editSource: "Dort bearbeiten",
-    ownProgram:
-      "Wenn du hier speicherst, bekommt dieses Konzert ein eigenes Programm.",
-    sharedWith: (concerts: string) =>
-      `Dieses Programm gilt auch für ${concerts}.`,
-    share: "Programm von einem anderen Konzert übernehmen",
-    shareLead:
-      "Für Konzerte mit gleichem Programm, das dann nur einmal gepflegt wird.",
-    shareSource: "Konzert",
-    shareReplaces: "Die Einträge dieses Konzerts werden dabei entfernt.",
-    shareButton: "Übernehmen",
-    shareCount: (n: number) => (n === 1 ? "1 Stück" : `${n} Stücke`),
-    shareUnknown:
-      "Dieses Konzert hat kein Programm, das übernommen werden kann.",
-    shareNeedsSetup:
-      "„Programm wie“: Fehlt noch in der Tabelle. Bitte einmal „Tabelle einrichten“ ausführen.",
-  },
-  status: {
-    /** The page audit (#185). */
-    pages: {
-      title: "Seitenaufrufe (30 Tage)",
-      lead: "Wie oft jede Seite geöffnet wurde, nach Rolle. Gezählt wird nur die Art der Seite, nicht wer sie geöffnet hat; nach 180 Tagen wird es gelöscht.",
-      route: "Seite",
-      roles: {
-        mitglied: "Mitglieder",
-        verwaltung: "Verwaltung",
-        gast: "Gäste",
-      },
-      none: "Noch keine Aufrufe gezählt.",
-    },
-    title: "Status",
-    lead: "Ob die Verbindung zu Google funktioniert.",
-    account: "Google-Dienstkonto",
-    drive: "Notenarchiv (Google Drive)",
-    calendar: "Probenkalender (Google Calendar)",
-    sheet: "Repertoire-Tabelle (Google Sheets)",
-    signIn: "Anmeldung (Google)",
-    look: "Aussehen und Funktionen",
-    accent: (
-      light: string,
-      lightRatio: string,
-      dark: string,
-      darkRatio: string,
-    ) =>
-      `Akzentfarbe: ${light} auf Hell (${lightRatio}:1), ${dark} auf Dunkel (${darkRatio}:1)`,
-    accentPreset: (dark: string, darkRatio: string) =>
-      `Akzentfarbe: auf Hell der Farbton der Vorgabe, ${dark} auf Dunkel (${darkRatio}:1)`,
-    accentAdjusted:
-      "Damit Text lesbar bleibt (mindestens 4,5:1), ist die Akzentfarbe für dieses Farbschema angepasst.",
-    badAccent: (value: string) =>
-      `ORCHESTRA_ACCENT „${value}" ist keine Farbe. Erwartet wird #rrggbb, z. B. #1d4ed8.`,
-    featuresOff: (names: string) => `Ausgeschaltet: ${names}`,
-    allFeatures: "Alle Funktionen sind eingeschaltet.",
-    unknownFeatures: (words: string) =>
-      `FEATURES_OFF enthält unbekannte Wörter: ${words}.`,
-    featuresHint:
-      "Erlaubt sind leihmaterial, gema, anwesenheit, anmeldungen, wuensche, kalender, offline und jahreszeiten.",
-    ok: "Verbunden",
-    error: "Fehler",
-    missing: "Nicht eingerichtet",
-    refresh: "Archiv neu einlesen",
-    setupGuide: "Anleitung zur Einrichtung",
-    setupSheet: "Tabelle einrichten",
-    dataMove: "Datenbank",
-    noAccess: (what: string, status: number) =>
-      `Kein Zugriff auf ${what} (${status}).`,
-    shareWith: (what: string, email: string) =>
-      `Prüfe die ID und teile ${what} mit ${email} (Lesezugriff reicht).`,
-    checkShare: "Prüfe die ID und die Freigabe.",
-    what: {
-      account: "das Google-Konto",
-      drive: "den Notenarchiv-Ordner",
-      calendar: "den Kalender",
-      sheet: "die Repertoire-Tabelle",
-    },
-    serviceAccount: (email: string) => `Dienstkonto: ${email}`,
-    driveAccess: (write: boolean) =>
-      `Drive: ${write ? "lesen und Meldungen spiegeln (DRIVE_WRITE)" : "nur lesen"}`,
-    keyHint:
-      "Prüfe, ob der Schlüssel vollständig eingefügt ist und das Dienstkonto noch existiert. Notfalls einen neuen Schlüssel erstellen.",
-    accountFirst: "Erst das Dienstkonto einrichten.",
-    archiveCounts: (pieces: number, files: number) =>
-      `${pieces} Stücke mit ${files} Dateien`,
-    categories: (list: string) => `Kategorien: ${list}`,
-    programs: (list: string) => `Aktuelle Programme: ${list}`,
-    indexed: (when: string, fresh: boolean, requests: number) =>
-      `Stand: ${when} (${fresh ? "gerade geladen" : "aus dem Cache"}, ${requests} Google-Anfragen)`,
-    indexNotBuilt:
-      "Das Archiv ist noch nicht eingelesen. Das macht der Hintergrundjob alle zehn Minuten; „Archiv neu einlesen“ liest es sofort ein.",
-    events: (n: number) => `${n} Termine in den nächsten 4 Monaten`,
-    nextEvent: (title: string, when: string) =>
-      `Nächster Termin: ${title}, ${when}`,
-    setupHint: "Auf der Seite „Tabelle einrichten“ werden sie angelegt.",
-    missingTabs: (tabs: string) => `Es fehlen die Blätter ${tabs}.`,
-    sheetUnreadable: "Die Tabelle konnte nicht gelesen werden.",
-    sheetCounts: (pieces: number, concerts: number) =>
-      `${pieces} Stücke, ${concerts} Konzerte`,
-    sheetProblems: (n: number) => `${n} Hinweise, siehe „Tabelle einrichten“`,
-    accessTabsMissing: (tabs: string) =>
-      `Für die Anmeldung fehlen die Blätter ${tabs}.`,
-    sheetMissingHint:
-      "Für Programme und „Gespielt bei“. Siehe Anleitung, Schritt 5.",
-    sheetShare: (email: string) =>
-      `Prüfe die ID und teile die Tabelle mit ${email} als Bearbeiter.`,
-    signInDisabled: "Die Anmeldung ist mit FORCE_AUTH=false ausgeschaltet.",
-    signInDisabledHint:
-      "Die App ist für alle offen und nur lesbar, auch diese Seite. Zum Einschalten FORCE_AUTH löschen oder auf true setzen.",
-    signInMissing: "GOOGLE_OAUTH_CLIENT_ID ist nicht gesetzt.",
-    signInMissingHint:
-      "Bis dahin ist die App für alle offen und nur lesbar. Siehe Anleitung, Schritt 9.",
-    redirectUri: (uri: string) => `Weiterleitungs-URI: ${uri}`,
-    bootstrapAdmins: (n: number) => `${n} Bootstrap-Admins`,
-    /** Background jobs (#160). */
-    jobs: "Hintergrundaufgaben",
-    jobNames: {
-      warm: "Caches füllen",
-      reminders: "Erinnerungen",
-      check: "Verbindung prüfen",
-      parts: "Stimmen prüfen",
-      retention: "Aufbewahrung",
-      errors: "Fehler melden",
-      export: "In die Tabelle schreiben",
-      backup: "Sicherung in Drive",
-      tickets: "Gästelisten löschen",
-    },
-    ticketsPruned: (n: number) =>
-      n === 0
-        ? "Keine Gästeliste fällig."
-        : n === 1
-          ? "Die Gästeliste eines vergangenen Konzerts gelöscht."
-          : `Gästelisten von ${n} vergangenen Konzerten gelöscht.`,
-    retentionOff: "Keine Aufbewahrungsfrist eingestellt; alle Namen bleiben.",
-    retentionDone: (n: number, cutoff: string) =>
-      `${n} ${n === 1 ? "Eintrag" : "Einträge"} von vor dem ${cutoff} ohne Namen.`,
-    partsChecked: (done: number, left: number) =>
-      `${done} ${done === 1 ? "Stimme" : "Stimmen"} geprüft, ${left ? `${left} noch offen` : "alle geprüft"}.`,
-    jobRun: (name: string, when: string, auto: boolean, ms: number) =>
-      `${name}: ${when}, ${auto ? "automatisch" : "per Knopf"}, ${ms} ms`,
-    jobNever: (name: string) => `${name}: noch nie gelaufen`,
-    jobsNever: "Noch keine Aufgabe ist von selbst gelaufen.",
-    jobsNeverHint:
-      "Nach dem Deploy laufen sie von selbst (Cron Trigger), jede in ihrem Takt. Lokal und in der Demo nur mit den Knöpfen unten.",
-    jobFailed: (name: string, message: string) =>
-      `${name} ist fehlgeschlagen: ${message}`,
-    jobsStale: (when: string) =>
-      `Seit ${when} ist keine Aufgabe mehr von selbst gelaufen.`,
-    jobsStaleHint:
-      "Prüfe im Cloudflare-Dashboard beim Worker unter „Settings → Triggers“, ob der Cron Trigger da ist.",
-    runJob: (name: string) => `${name} jetzt ausführen`,
-    warmSources: { archive: "Archiv", calendar: "Kalender", sheet: "Tabelle" },
-    warmDone: "Archiv, Kalender und Tabelle geladen.",
-    warmFailed: (sources: string) => `Nicht geladen: ${sources}.`,
-    /** Data the app writes itself (#161). */
-    store: "Datenbank (Cloudflare D1)",
-    storeD1: (version: string) => `D1, Schema ${version}`,
-    storeNoSchema: "D1 ist verbunden, das Schema fehlt aber noch.",
-    storeNoSchemaHint:
-      "Es wird beim Deploy angelegt, beim ersten Gebrauch oder mit „Tabelle einrichten“.",
-    storeMemory:
-      "Ohne D1: Benachrichtigungen und das Protokoll der Erinnerungen liegen nur im Speicher und sind nach einem Neustart weg.",
-    storeMemoryHint: "Die DB-Bindung in wrangler.toml anlegen, siehe README.",
-    storeDemo: "Demo: alles nur im Speicher.",
-    storeFailed: (message: string) => `D1 antwortet nicht: ${message}`,
-    /** The error log (#191). */
-    errors: "Fehlerprotokoll",
-    errorsNone: (days: number) => `Keine Fehler in den letzten ${days} Tagen.`,
-    errorsRecent: (n: number) =>
-      n === 1
-        ? "1 Fehlerart in den letzten 24 Stunden."
-        : `${n} Fehlerarten in den letzten 24 Stunden.`,
-    errorsHint:
-      "Nur Ort und Meldung, ohne wer betroffen war. Was öfter vorkommt, bitte als Problem auf GitHub melden; „Erledigt“ leert die Liste.",
-    errorLine: (
-      count: number,
-      source: string,
-      place: string,
-      message: string,
-      when: string,
-    ) => `${count}× ${source} ${place}: ${message} (zuletzt ${when})`,
-    errorSources: { server: "Server", client: "Browser" },
-    errorsClear: "Erledigt",
-    errorsCleared: "Fehlerprotokoll geleert.",
-    /** The deployed version against GitHub (#206). */
-    version: "Version",
-    versionRunning: (label: string) => `Läuft: ${label}`,
-    versionCurrent: "Aktuell",
-    versionUpToDate: "Auf dem Stand von GitHub (main).",
-    versionAhead: (n: number) =>
-      n === 1
-        ? "1 Änderung, die nicht auf main ist."
-        : `${n} Änderungen, die nicht auf main sind.`,
-    versionUpdate: "Update verfügbar",
-    versionBehind: (n: number) =>
-      n === 1
-        ? "Auf GitHub gibt es 1 neuere Änderung."
-        : `Auf GitHub gibt es ${n} neuere Änderungen.`,
-    versionBehindHint:
-      "Neu bereitstellen: mit dem Deploy-Workflow oder „pnpm run deploy“.",
-    versionUnchecked:
-      "GitHub war nicht erreichbar; ob es Neueres gibt, ist nicht geprüft.",
-    versionNoCommit: "Ohne Git gebaut: Welcher Stand das ist, ist unbekannt.",
-    /** Notifications (#157). */
-    push: "Benachrichtigungen (Web Push)",
-    pushOn: (devices: number) =>
-      devices === 1
-        ? "Eingerichtet, 1 Gerät angemeldet"
-        : `Eingerichtet, ${devices} Geräte angemeldet`,
-    pushMissing: "VAPID_PUBLIC_KEY und VAPID_PRIVATE_KEY sind nicht gesetzt.",
-    pushMissingHint:
-      "Mit „node scripts/vapid-keys.mjs“ erzeugen und als Secrets speichern. Bis dahin gibt es keine Erinnerungen.",
-    /** Optional services not set up yet, with the guide (docs/setup-google.md, step 10). */
-    extras: "Optionale Dienste",
-    extrasLead: "Für den Start nicht nötig. Was noch fehlt, mit Anleitung:",
-    extrasAllOn: "Alle optionalen Dienste sind eingerichtet.",
-    extrasOn: (names: string) => `Eingerichtet: ${names}`,
-    extraGuide: "Anleitung",
-    extraPlanned: "Noch nicht in der App",
-    extraNames: {
-      currentProgram: "Ordner für das aktuelle Programm",
-      driveWrite: "In Drive schreiben",
-      youtube: "YouTube-Dauer",
-      push: "Benachrichtigungen",
-      database: "Datenbank (D1)",
-      legal: "Kontakt für den Datenschutz",
-      email: "E-Mail",
-    },
-    extraWhat: {
-      currentProgram:
-        "Zeigt, was im aktuellen Programm ist, und hält die Programm-Ordner im Drive aktuell (DRIVE_CURRENT_PROGRAM_FOLDER_ID).",
-      driveWrite:
-        "Meldungen als Kommentare an den Dateien, Statuswörter im Dateinamen, Programm-Ordner abgleichen (DRIVE_WRITE).",
-      youtube:
-        "Schlägt die Dauer eines Stücks aus seinem Hörbeispiel vor (YOUTUBE_API_KEY).",
-      push: "Erinnerungen aufs Handy und Hinweise an die Admins bei Störungen (VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY).",
-      database:
-        "Speichert Benachrichtigungen, Erinnerungen und Terminumfragen dauerhaft (DB in wrangler.toml).",
-      legal:
-        "Name, Anschrift und E-Mail für Datenschutz und Nutzungsbedingungen (LEGAL_ADDRESS, LEGAL_EMAIL).",
-      email:
-        "Anmeldelinks und Erinnerungen per E-Mail, verschickt vom Google-Konto des Orchesters; oben auf dieser Seite verbinden.",
-    },
-  },
-  /** What the reminder and check jobs send and report (#157, #144, #159). */
-  reminders: {
-    pushOff: "Weder Benachrichtigungen noch E-Mail sind eingerichtet.",
-    quiet: "Nachtruhe, nichts verschickt.",
-    noDevices:
-      "Noch hat niemand Benachrichtigungen erlaubt, und kein E-Mail-Konto ist verbunden.",
-    noCalendar: "Der Kalender konnte nicht geladen werden.",
-    nothing: "Nichts zu erinnern.",
-    byMail: (n: number) => `${n} davon per E-Mail.`,
-    notReached: (n: number) =>
-      `${n} nicht zugestellt, nächstes Mal noch einmal.`,
-    sent: (n: number, left: number) =>
-      `${n === 1 ? "1 Erinnerung" : `${n} Erinnerungen`} verschickt${left ? `, ${left} beim nächsten Mal` : ""}.`,
-    signupTitle: (event: string) => `${event}: Kommst du?`,
-    signupBody: (when: string) =>
-      `${when}. Du hast noch nicht zu- oder abgesagt.`,
-    loanDueTitle: (piece: string) => `${piece} bald zurückgeben`,
-    loanOverdueTitle: (piece: string) => `${piece} ist überfällig`,
-    loanBody: (from: string, due: string) =>
-      `Leihmaterial${from ? ` von ${from}` : ""}, Rückgabe bis ${due}.`,
-    checkOk: "Archiv, Kalender und Tabelle erreichbar.",
-    checkFailed: (names: string) => `Nicht erreichbar: ${names}.`,
-    checkFailedTitle: "Verbindung zu Google gestört",
-    checkFailedBody: (what: string) =>
-      `Nicht erreichbar: ${what}. Mehr auf der Status-Seite.`,
-    checkOkTitle: "Verbindung zu Google wieder in Ordnung",
-    checkOkBody: "Archiv, Kalender und Tabelle sind wieder erreichbar.",
-    adminsTold: (n: number) =>
-      n === 1 ? "1 Admin benachrichtigt." : `${n} Admins benachrichtigt.`,
-    errorsNone: "Keine neuen Fehler.",
-    errorsNew: (n: number) =>
-      n === 1 ? "1 neue Fehlerart." : `${n} neue Fehlerarten.`,
-    errorsTitle: (n: number) =>
-      n === 1 ? "Ein neuer Fehler in der App" : `${n} neue Fehler in der App`,
-    errorsBody: (place: string, message: string, more: number) =>
-      `${place}: ${message}${more ? ` und ${more} weitere` : ""}. Mehr auf der Status-Seite.`,
-  },
-  /** Moving the data from the sheet into D1 and back (#186). */
-  dataMove: {
-    title: "Datenbank",
-    lead: "Wo die Daten liegen, die ihr pflegt: Stücke, Konzerte, Programme, Mitglieder, Rechte, Anmeldungen, Leihmaterial, Notizen und Einstellungen.",
-    sourceSheet:
-      "Die Google-Tabelle ist die Quelle. Jede Seite liest sie, jede Änderung geht hinein.",
-    sourceD1:
-      "Die Datenbank (D1) ist die Quelle. Die Tabelle ist eine Kopie, die jede Nacht neu geschrieben wird; Änderungen dort gehen beim nächsten Export verloren.",
-    noD1: "Ohne D1-Datenbank bleibt die Tabelle die Quelle. Die DB-Bindung in wrangler.toml anlegen, siehe README.",
-    preview: "Was übernommen würde",
-    previewLead:
-      "Gelesen gerade eben aus der Tabelle. Nichts ist geändert, bis du übernimmst.",
-    tabRows: (tab: string, rows: number) =>
-      `${tab}: ${rows === 1 ? "1 Zeile" : `${rows} Zeilen`}`,
-    unknown: (columns: string) =>
-      `Spalten, die die App nicht kennt und nicht übernimmt: ${columns}`,
-    missing: (columns: string) => `Fehlende Spalten, danach leer: ${columns}`,
-    total: (rows: number, tabs: number) =>
-      `${rows} Zeilen aus ${tabs} Blättern.`,
-    importButton: "Aus Tabelle übernehmen",
-    importConfirm:
-      "Alle Daten aus der Tabelle in die Datenbank übernehmen? Danach ist die Tabelle nur noch eine Kopie; was dort jemand ändert, geht verloren.",
-    imported: (rows: number, tabs: number) =>
-      `Übernommen: ${rows} Zeilen aus ${tabs} Blättern. Die Datenbank ist jetzt die Quelle.`,
-    exportButton: "Jetzt in die Tabelle schreiben",
-    exported: (rows: number, tabs: number) =>
-      `In die Tabelle geschrieben: ${rows} Zeilen in ${tabs} Blättern.`,
-    backButton: "Zurück zur Tabelle",
-    backConfirm:
-      "Die Tabelle wieder zur Quelle machen? Vorher wird alles aus der Datenbank hineingeschrieben.",
-    back: "Die Tabelle ist wieder die Quelle.",
-    download: "Alles herunterladen (JSON)",
-    restoreTitle: "Aus einer Sicherung wiederherstellen",
-    restoreLead:
-      "Eine Datei von „Alles herunterladen“ oder eine Sicherung aus Drive. Ersetzt alles in der Datenbank und macht sie zur Quelle.",
-    restoreFile: "Sicherung (JSON)",
-    restoreButton: "Wiederherstellen",
-    restoreConfirm:
-      "Alles in der Datenbank durch diese Sicherung ersetzen? Was seitdem geändert wurde, geht verloren.",
-    restoreNoFile: "Bitte eine Sicherungsdatei wählen.",
-    restoreTooLarge: "Die Datei ist zu groß für eine Sicherung dieser App.",
-    restoreNotBackup: "Das ist keine Sicherung dieser App.",
-    restored: (rows: number, tabs: number, skipped: number) =>
-      `Wiederhergestellt: ${rows} Zeilen aus ${tabs} Blättern${skipped ? `; ${skipped} ${skipped === 1 ? "Zeile passte nicht und fehlt" : "Zeilen passten nicht und fehlen"}` : ""}. Die Datenbank ist die Quelle.`,
-    failed: (message: string) => `Hat nicht geklappt: ${message}`,
-    backup:
-      "Sicherung: D1 kann 30 Tage zurückgesetzt werden (Time Travel), die Tabelle ist jede Nacht eine Kopie außerhalb von Cloudflare, und mit DRIVE_BACKUP_FOLDER_ID liegt jede Woche eine Datei mit allem in Drive (die letzten 8).",
-    statusD1: (rows: number) =>
-      `Quelle: Datenbank, ${rows} Zeilen; die Tabelle ist eine Kopie`,
-    exportSheetOff: "Die Tabelle ist die Quelle; nichts zu exportieren.",
-    exportUnchanged:
-      "Seit dem letzten Export nichts geändert; die Tabelle ist aktuell.",
-    backupSheetSource:
-      "Die Tabelle ist die Quelle; Drive hält ihre Versionen selbst.",
-    backupOff:
-      "DRIVE_BACKUP_FOLDER_ID ist nicht gesetzt; keine Sicherung in Drive.",
-    backupNoAccount:
-      "Kein Drive-Konto zum Schreiben: auf Status das Drive-Konto verbinden, oder DRIVE_WRITE für einen geteilten Ordner.",
-    backedUp: (name: string, rows: number, trashed: number) =>
-      `${name} mit ${rows} Zeilen in Drive gesichert${trashed ? `; ${trashed} ${trashed === 1 ? "alte Sicherung" : "alte Sicherungen"} im Papierkorb` : ""}.`,
-    /** Why the database refused a save (#186). */
-    refused: {
-      link: (tab: string, column: string, value: string) =>
-        `${tab}, ${column}: „${value}“ gibt es nicht. Erst anlegen, dann hier eintragen.`,
-      unique: (tab: string, column: string, value: string) =>
-        `${tab}, ${column}: ${value ? `„${value}“` : "Das"} gibt es schon.`,
-      required: (tab: string, column: string) => `${tab}: ${column} fehlt.`,
-      used: (tab: string) =>
-        `${tab}: Das wird noch gebraucht, z. B. in einem Programm. Erst dort entfernen.`,
-    },
-    skippedTitle: "Wird nicht übernommen",
-    skippedLead:
-      "Diese Zeilen übergeht die App schon heute; sie bleiben in der Tabelle, kommen aber nicht in die Datenbank.",
-    skipped: {
-      link: (tab: string, row: number, column: string, value: string) =>
-        `${tab}, Zeile ${row}: ${column} „${value}“ gibt es nicht`,
-      unique: (tab: string, row: number, column: string, value: string) =>
-        `${tab}, Zeile ${row}: ${column} „${value}“ doppelt`,
-      required: (tab: string, row: number, column: string) =>
-        `${tab}, Zeile ${row}: ${column} fehlt`,
-      used: (tab: string, row: number) =>
-        `${tab}, Zeile ${row}: wird noch gebraucht`,
-    },
-  },
-  /** Allowing notifications on /profil (#157). */
-  push: {
-    title: "Benachrichtigungen",
-    lead: "Erinnert dich auf diesem Gerät an Proben und Konzerte, auf die du noch nicht geantwortet hast, und sagt Bescheid, wenn deine Wünsche eine Antwort bekommen. Wer Leihmaterial betreut oder die App verwaltet, hört auch von Rückgaben, neuen Wünschen und Störungen.",
-    enable: "Benachrichtigungen erlauben",
-    disable: "Ausschalten",
-    test: "Test senden",
-    on: "Auf diesem Gerät an.",
-    elsewhere: (n: number) =>
-      n === 1 ? "Auf 1 anderen Gerät an." : `Auf ${n} anderen Geräten an.`,
-    denied:
-      "Benachrichtigungen sind für diese Seite blockiert. Erlaube sie in den Website-Einstellungen des Browsers.",
-    unsupported: "Dieser Browser kann keine Benachrichtigungen empfangen.",
-    installFirst:
-      "Auf iPhone und iPad gehen Benachrichtigungen erst, wenn die App auf dem Home-Bildschirm liegt (Teilen → „Zum Home-Bildschirm“).",
-    failed: "Das hat nicht geklappt. Bitte versuch es noch einmal.",
-    testTitle: "Test",
-    testBody: "So sehen Erinnerungen auf diesem Gerät aus.",
-    testSent:
-      "Gesendet. Kommt nichts an, prüfe die Mitteilungen in den Einstellungen des Geräts.",
-    hint: "Gilt für dieses Gerät. Beim Abmelden geht es hier aus.",
-  },
-  setup: {
-    title: "Repertoire-Tabelle einrichten",
-    lead: "Legt in der Repertoire-Tabelle die Blätter „Stücke“, „Konzerte“ und „Programm“ mit Überschriften und Auswahllisten an.",
-    notConfigured:
-      "REPERTOIRE_SHEET_ID ist nicht gesetzt. Lege zuerst eine leere Google-Tabelle an und trage ihre ID ein.",
-    share: (email: string) => `Teile die Tabelle mit ${email} als Bearbeiter.`,
-    failed: "Auf die Tabelle konnte nicht zugegriffen werden.",
-    sheet: "Tabelle",
-    open: "In Google Sheets öffnen",
-    tabs: "Blätter",
-    present: "vorhanden",
-    absent: "fehlt",
-    off: "nicht nötig, ausgeschaltet",
-    ready:
-      "Alles eingerichtet. Neue Stücke aus Drive und Konzerte aus dem Kalender werden automatisch eingetragen.",
-    run: "Jetzt einrichten",
-    rerun: "Formatierung erneuern",
-    safe: "Es werden nur fehlende Blätter und Spalten ergänzt. Vorhandene Einträge bleiben unverändert.",
-    done: "Fertig.",
-    created: (tabs: string) => `Angelegt: ${tabs}.`,
-    addedColumns: (columns: string) => `Ergänzte Spalten: ${columns}.`,
-    database: (migrations: string) => `Datenbank: ${migrations} angewendet.`,
-    removed: (tab: string) => `Das leere Blatt „${tab}“ wurde entfernt.`,
-    problems: "Hinweise zur Tabelle",
-    problem: {
-      "missing-column": "Spalte fehlt",
-      "duplicate-piece": "Stück doppelt",
-      "duplicate-concert": "Konzert doppelt",
-      "unknown-piece": "Stück nicht in „Stücke“",
-      "unknown-concert": "Konzert nicht in „Konzerte“",
-      "bad-date": "Datum nicht lesbar",
-      "duplicate-member": "Mitglied doppelt",
-      "unknown-right": "Unbekanntes Recht",
-    },
-    row: (n: number) => `Zeile ${n}`,
-    counts: (pieces: number, concerts: number, entries: number) =>
-      `${pieces} Stücke · ${concerts} Konzerte · ${entries} Programmeinträge`,
-  },
-  /**
-   * Tab and column names of the Repertoire sheet. The app finds columns by these
-   * headers, so columns may be reordered or added in the sheet. Renaming one here
-   * means renaming it in existing sheets too.
-   */
-  sheet: {
-    pieces: {
-      tab: "Stücke",
-      columns: {
-        title: "Titel",
-        composer: "Komponist",
-        /** "Ludwig van Beethoven" where "Komponist" says "Beethoven": for the GEMA list (#146). */
-        composerFull: "Komponist (voll)",
-        catalogue: "Werkverzeichnis",
-        arranger: "Arrangeur",
-        genre: "Genre",
-        difficulty: "Schwierigkeit",
-        notes: "Notiz",
-        reviewedAt: "Geprüft am",
-        recording: "Hörbeispiel",
-        /** "7:30"; adds up to the programme's length (#117). */
-        duration: "Dauer",
-        /** For the GEMA music list (#118). */
-        publisher: "Verlag",
-        /** The instruments the score is written for, "Flöte 1 & 2; Oboe; Geige 1 & 2" (#249). */
-        instrumentation: "Besetzung",
-        driveFolderId: "Drive-Ordner-ID",
-      },
-    },
-    concerts: {
-      tab: "Konzerte",
-      columns: {
-        date: "Datum",
-        title: "Anlass",
-        location: "Ort",
-        orchestra: "Orchester",
-        /** Another concert's "Anlass": this one plays the same programme (#70). */
-        sameProgramAs: "Programm wie",
-        eventId: "Kalender-Event-ID",
-        /** Guest choirs and orchestras by "Kurzname" from "Ensembles", or by their full name. */
-        partners: "Mitwirkende",
-        /** Empty: we organise and sell the tickets; else the ensemble (or anyone) who does. */
-        organizer: "Veranstalter",
-      },
-    },
-    program: {
-      tab: "Programm",
-      columns: {
-        concert: "Konzert",
-        position: "Nr.",
-        piece: "Stück",
-        notes: "Notiz",
-        /** Which of the concert's orchestras plays it; empty: all of them together. Guests by their "Kurzname". */
-        orchestra: "Orchester",
-        /** For pieces the guests bring, which aren't in "Stücke": what the GEMA list needs. */
-        composer: "Komponist",
-        arranger: "Arrangeur",
-        publisher: "Verlag",
-        duration: "Dauer",
-      },
-    },
-    /** Choirs and orchestras we play with: named under "Mitwirkende" in "Konzerte". */
-    ensembles: {
-      tab: "Ensembles",
-      columns: {
-        shortName: "Kurzname",
-        name: "Name",
-        /** "Chor", "Orchester" …: shown before the name on the website. */
-        kind: "Art",
-        conductor: "Leitung",
-        website: "Website",
-        /** A link to the logo image; only https. */
-        logo: "Logo",
-      },
-    },
-    members: {
-      tab: "Mitglieder",
-      columns: {
-        email: "E-Mail",
-        name: "Name",
-        instrument: "Instrument",
-        groups: "Gruppen",
-        orchestras: "Orchester",
-        status: "Status",
-        pausedUntil: "Pausiert bis",
-        linkVersion: "Link-Version",
-        /** The personal calendar feed (#122): like "Link-Version", a new link ends the old one. */
-        feedVersion: "Kalender-Version",
-        /** For a parent account: their children among the members, by name or email. */
-        children: "Kinder",
-      },
-    },
-    groups: {
-      tab: "Gruppen",
-      columns: {
-        name: "Gruppe",
-        description: "Beschreibung",
-      },
-    },
-    rights: {
-      tab: "Rechte",
-      columns: {
-        who: "Wer",
-        right: "Recht",
-      },
-    },
-    requests: {
-      tab: "Zugangsanfragen",
-      columns: {
-        email: "E-Mail",
-        name: "Name",
-        requestedAt: "Angefragt am",
-      },
-    },
-    reports: {
-      tab: "Meldungen",
-      columns: {
-        piece: "Stück",
-        pieceId: "Drive-Ordner-ID",
-        part: "Stimme",
-        fileId: "Datei-ID",
-        kind: "Art",
-        comment: "Kommentar",
-        status: "Status",
-        note: "Notiz",
-        reportedBy: "Gemeldet von",
-        reportedAt: "Gemeldet am",
-        marked: "Im Dateinamen",
-        driveComment: "Drive-Kommentar-ID",
-        /** A better Hörbeispiel, with "Hörbeispiel falsch". */
-        link: "Vorschlag",
-        /** Scan-Auftrag: wie dringend, wer scannt (E-Mail), was zu tun ist. */
-        priority: "Priorität",
-        assignee: "Wer scannt",
-        task: "Scan-Auftrag",
-        id: "Meldungs-ID",
-      },
-    },
-    wishes: {
-      tab: "Wünsche",
-      columns: {
-        kind: "Art",
-        title: "Titel",
-        composer: "Komponist",
-        link: "Link",
-        description: "Beschreibung",
-        status: "Status",
-        answer: "Antwort",
-        submittedBy: "Eingereicht von",
-        submittedAt: "Datum",
-        votes: "+1",
-        concert: "Konzert",
-        pieceId: "Stück-ID",
-        id: "Wunsch-ID",
-      },
-    },
-    /** Generated from the archive's file names; the app rewrites it, people only tick "erledigt". */
-    missingParts: {
-      tab: "Fehlende Stimmen",
-      columns: {
-        piece: "Stück",
-        part: "Stimme",
-        status: "Status",
-        fileId: "Datei-ID",
-        done: "erledigt",
-        /** Scan-Aufträge: welche Lücke zuerst, und wer sie scannt (E-Mail). */
-        priority: "Priorität",
-        assignee: "Wer scannt",
-      },
-    },
-    /** Who plays from which part: "B-Stimmen" are read by clarinets and trumpets. */
-    instrumentGroups: {
-      tab: "Instrumentgruppen",
-      columns: {
-        part: "Stimme",
-        players: "Gespielt von",
-        mutual: "Gegenseitig",
-        note: "Notiz",
-      },
-    },
-    signups: {
-      tab: "Anmeldungen",
-      columns: {
-        event: "Termin",
-        who: "Wer",
-        name: "Name",
-        answer: "Antwort",
-        instrument: "Instrument",
-        comment: "Kommentar",
-        answeredAt: "Datum",
-        eventId: "Termin-ID",
-      },
-    },
-    /** Which pieces are rehearsed at which rehearsal (#65); one row per rehearsal and piece. */
-    rehearsals: {
-      tab: "Proben",
-      columns: {
-        rehearsal: "Probe",
-        piece: "Stück",
-        notes: "Notiz",
-        eventId: "Termin-ID",
-      },
-    },
-    /** Rented or borrowed sheet music (#119); one row per loan. */
-    loans: {
-      tab: "Leihmaterial",
-      columns: {
-        piece: "Stück",
-        from: "Von",
-        borrowedAt: "Ausgeliehen am",
-        dueAt: "Zurück bis",
-        returned: "Zurückgegeben",
-        notes: "Notiz",
-      },
-    },
-    /** Who came to a rehearsal (#120); one row per rehearsal and person. */
-    attendance: {
-      tab: "Anwesenheit",
-      columns: {
-        event: "Termin",
-        who: "Wer",
-        name: "Name",
-        present: "Anwesend",
-        eventId: "Termin-ID",
-      },
-    },
-    /** Notes on a piece from rehearsals (#125): cuts, repeats, bowings; one row per note. */
-    pieceNotes: {
-      tab: "Hinweise",
-      columns: {
-        piece: "Stück",
-        /** Empty for everyone, else a section ("Streicher") or an instrument ("Geige"). */
-        section: "Für",
-        /** Empty for every performance, else a concert's "Anlass". */
-        concert: "Konzert",
-        note: "Hinweis",
-        by: "Von",
-        at: "Datum",
-        id: "Hinweis-ID",
-      },
-    },
-    /** Who plays which part instead of their own (#262): "die Saxophone spielen Fagott". */
-    partAssignments: {
-      tab: "Stimmenzuteilung",
-      columns: {
-        /** A member's e-mail, or an instrument for all its players ("Saxophon"). */
-        who: "Wer",
-        /** The part they play instead, as in file names: "Fagott II". */
-        part: "Spielt",
-        /** Empty for every piece. */
-        piece: "Stück",
-        /** Empty for always, else a concert's "Anlass". */
-        concert: "Konzert",
-        by: "Von",
-        at: "Datum",
-        id: "Zuteilungs-ID",
-      },
-    },
-    /** What a rehearsal did and what comes next (#145); one row per rehearsal. */
-    rehearsalNotes: {
-      tab: "Probennotizen",
-      columns: {
-        rehearsal: "Probe",
-        done: "Geprobt",
-        practise: "Zum Üben",
-        next: "Nächstes Mal",
-        by: "Von",
-        at: "Datum",
-        eventId: "Termin-ID",
-      },
-    },
-    /** A deployment's own instrument labels and spellings (#143); one row per instrument that differs from the preset. */
-    instruments: {
-      tab: "Instrumente",
-      columns: {
-        name: "Instrument",
-        label: "Anzeige",
-        aliases: "Weitere Schreibweisen",
-      },
-    },
-    /** Name, look and features set on /einstellungen; one row per setting. */
-    settings: {
-      tab: "Einstellungen",
-      columns: {
-        key: "Einstellung",
-        value: "Wert",
-      },
-      /** The words in the "Einstellung" column, one row each. */
-      keys: {
-        name: "Name",
-        shortName: "Kurzname",
-        logo: "Logo",
-        accent: "Akzentfarbe",
-        look: "Stil",
-        featuresOff: "Ausgeschaltet",
-        retention: "Aufbewahrung (Saisons)",
-        links: "Links",
-      },
-      /** The words for the look in the "Wert" column (#163). */
-      lookValues: {
-        bold: "kräftig",
-        plain: "schlicht",
-      },
-    },
-  },
-  /** Values of the dropdown columns in "Meldungen" and "Wünsche", as they appear in the sheet. */
-  /** Words the app writes into cells and reads back. */
-  sheetValues: {
-    /** In "Hörbeispiel": there is none, so "Angaben ergänzen" stops asking. */
-    noRecording: "keins",
-    /** Offered under "Art" in "Ensembles"; any other word works too. */
-    ensembleKinds: {
-      choir: "Chor",
-      orchestra: "Orchester",
-      band: "Band",
-      ensemble: "Ensemble",
-      soloist: "Solist:in",
-    },
-    /** Under "Priorität" in "Fehlende Stimmen". */
-    priority: { high: "hoch", medium: "mittel", low: "niedrig" },
-  },
-  feedbackValues: {
-    reportKind: {
-      missing: "Stimme fehlt",
-      pages: "Seiten fehlen",
-      cutoff: "Noten abgeschnitten",
-      crooked: "Schief oder verdreht",
-      scan: "Schlechter Scan",
-      empty: "Datei leer",
-      wrong: "Falsche Stimme",
-      /** A wrong note, a typo, wrong bar numbers in the music itself (#306), not the scan. */
-      notes: "Fehler in den Noten",
-      /** The piece's Hörbeispiel is wrong or missing; the report can carry a better link. */
-      recording: "Hörbeispiel falsch",
-      other: "Sonstiges",
-    },
-    /** Neu → zum Scannen (ans Scan-Team gegeben) → erledigt; oder verworfen. */
-    reportStatus: {
-      open: "offen",
-      scan: "zum Scannen",
-      done: "erledigt",
-      dismissed: "verworfen",
-    },
-    wishKind: { piece: "Stück", feature: "Funktion" },
-    wishStatus: {
-      open: "offen",
-      planned: "geplant",
-      done: "erledigt",
-      declined: "abgelehnt",
-    },
-  },
-  reports: {
-    placeholderCreated: (name: string) =>
-      `Platzhalter „${name}“ in Drive angelegt.`,
-    confirmMissing: "Fehlt bestätigen",
-    confirmMissingHint: (name: string) =>
-      `Legt den Platzhalter „${name}“ als Google-Doc im Stückordner an und schließt die Meldung.`,
-    placeholderManual:
-      "Bitte von Hand als Google-Doc im Stückordner anlegen, dann die Meldung schließen:",
-    missingPart: "Welche Stimme fehlt?",
-    missingNumber: "Nummer",
-    notInFolder: "Nicht im Ordner",
-    inFolder: "Schon im Ordner (z. B. andere Nummer)",
-    report: "Problem melden",
-    reportPart: (part: string) => `Problem mit „${part}“ melden`,
-    lead: "Stimme fehlt, Scan unleserlich, Seiten fehlen? Kurz melden, dann kümmert sich jemand darum.",
-    part: "Was ist betroffen?",
-    wholePiece: "Ganzes Stück",
-    kind: "Art des Problems",
-    comment: "Kommentar (optional)",
-    commentHint: "z. B. „Seite 3 fehlt“",
-    send: "Melden",
-    cancel: "Abbrechen",
-    thanks: "Danke! Die Meldung ist eingegangen.",
-    /** The page open in the practice viewer, at the start of the comment (#306). */
-    onPage: (page: number) => `Seite ${page}: `,
-    offline:
-      "Ohne Verbindung geht das Melden nicht. Versuch es gleich noch einmal.",
-    closeDialog: "Schließen",
-    /** The short button on a part in "Meine Noten" (#306). */
-    flag: "Melden",
-    failed:
-      "Die Meldung konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.",
-    notSetUp:
-      "Meldungen: Fehlt noch in der Tabelle. Bitte einmal „Tabelle einrichten“ ausführen.",
-    signInNeeded: "Zum Melden bitte anmelden.",
-    title: "Meldungen",
-    short: "Probleme mit Noten: prüfen und ans Scan-Team geben.",
-    pageLead:
-      "Was Mitglieder oder die App an den Noten gefunden haben: kurz ansehen, ans Scan-Team geben, abhaken.",
-    tabs: { inbox: "Neu", scan: "Zum Scannen", done: "Erledigt" },
-    byCheck: "Von der App gefunden",
-    checkHint:
-      "Die App zählt die Seiten jeder Stimme. Diese Datei ist leer oder hat viel weniger Seiten als die anderen.",
-    look: "Ansehen",
-    toScan: "Ans Scan-Team",
-    toScanHint:
-      "Das Scan-Team sieht den Auftrag mit Priorität. Am Stück steht dezent, dass die Stimme gemeldet ist.",
-    task: "Was ist zu tun?",
-    taskFor: {
-      missing: "Stimme scannen",
-      pages: "Fehlende Seiten nachscannen",
-      cutoff: "Neu scannen, ganze Seite aufs Glas",
-      crooked: "Gerade neu scannen",
-      scan: "Neu scannen, besser lesbar",
-      empty: "Neu scannen, die Datei ist leer",
-      wrong: "Die richtige Stimme scannen",
-      recording: "",
-      other: "",
-    } as Record<string, string>,
-    dismiss: "Verwerfen",
-    dismissHint:
-      "Kein Problem, oder schon erledigt. Am Stück steht dann nichts mehr.",
-    scanned: "Gescannt",
-    scannedHint: "Neu gescannt und in Drive ersetzt: schließt den Auftrag.",
-    backToInbox: "Zurück zu Neu",
-    changeJob: "Auftrag ändern",
-    noInbox: "Nichts Neues, alles geprüft.",
-    noScans: "Keine Scan-Aufträge.",
-    noScansMine: "Dir ist gerade nichts zugeteilt.",
-    mineOnly: "Nur meine",
-    together: (n: number) => `${n} Stimmen, am besten zusammen scannen`,
-    sent: "Ans Scan-Team gegeben.",
-    marker: { open: "gemeldet", scan: "wird neu gescannt" } as Record<
-      string,
-      string
-    >,
-    markerTitle: (kind: string, comment: string) =>
-      `Gemeldet: ${kind}${comment ? ` – ${comment.replace(/[.!?…\s]+$/, "")}` : ""}. Jemand kümmert sich darum.`,
-    pieceMarker: (what: string) => `Gemeldet: ${what}`,
-    already: (what: string) =>
-      `Schon gemeldet: ${what}. Noch einmal melden ist nicht nötig.`,
-    push: {
-      newTitle: "Neue Meldung",
-      body: (piece: string, what: string) => `${piece}: ${what}`,
-      doneTitle: "Deine Meldung ist erledigt",
-    },
-    open: "Offen",
-    done: "Erledigt",
-    noOpen: "Keine offenen Meldungen.",
-    noDone: "Noch nichts erledigt.",
-    close: "Erledigt",
-    reopen: "Wieder öffnen",
-    note: "Notiz (optional)",
-    noteHint: "z. B. „neu gescannt“",
-    by: (name: string, date: string) => `${name} · ${date}`,
-    toPiece: "Zum Stück",
-    openCount: (n: number) =>
-      n === 1 ? "1 offene Meldung" : `${n} offene Meldungen`,
-    gone: "Diese Meldung gibt es nicht mehr.",
-    unknownPart: "Diese Stimme gibt es in dem Stück nicht.",
-    // Mirrored into Drive (DRIVE_WRITE=true): a comment on the file, the status word in its name.
-    driveComment: (kind: string, comment: string) =>
-      `Über die Noten-App gemeldet: ${kind}${comment ? ` – ${comment}` : ""}`,
-    driveResolved: "Erledigt.",
-    driveReopened: "Wieder offen.",
-    inDrive: "In Drive kommentiert",
-    mark: "Im Dateinamen markieren",
-    markLabel: "Status",
-    marked: (word: string) => `Im Dateinamen: ${word}`,
-    markHint:
-      "Hängt das Statuswort an den Dateinamen in Drive an. „Erledigt“ entfernt es wieder.",
-    noFile: "Diese Meldung betrifft keine einzelne Datei.",
-    driveFailed:
-      "Gespeichert, aber in Drive konnte nichts geändert werden. Ist das Dienstkonto Bearbeiter des Noten-Ordners?",
-    recording: "Hörbeispiel",
-    recordingNone: "keins eingetragen",
-    suggestion: "Besseres Hörbeispiel (Link, optional)",
-    suggestionHint: "z. B. ein YouTube-Link",
-    suggested: "Vorschlag",
-    useSuggestion: "Vorschlag übernehmen",
-    useSuggestionHint:
-      "Trägt den Link als Hörbeispiel des Stücks ein und schließt die Meldung.",
-    suggestionUsed: "Als Hörbeispiel übernommen.",
-    reportRecording: "Hörbeispiel melden",
-  },
-  loans: {
-    title: "Leihmaterial",
-    lead: "Geliehene Noten und wann sie zurückmüssen.",
-    open: "Ausgeliehen",
-    returned: "Zurückgegeben",
-    noOpen: "Gerade ist nichts ausgeliehen.",
-    from: (from: string) => `von ${from}`,
-    borrowedAt: (day: string) => `seit ${day}`,
-    dueAt: (day: string) => `zurück bis ${day}`,
-    dueUnknown: "ohne Rückgabedatum",
-    due: (days: number) =>
-      days < -1
-        ? `seit ${-days} Tagen überfällig`
-        : days === -1
-          ? "seit gestern überfällig"
-          : days === 0
-            ? "heute fällig"
-            : days === 1
-              ? "morgen fällig"
-              : `in ${days} Tagen fällig`,
-    returnedAt: "zurückgegeben",
-    markReturned: "Zurückgegeben",
-    reopen: "Doch noch da",
-    add: "Leihmaterial eintragen",
-    addLead:
-      "Für Noten, die zurückmüssen. Zwei Wochen vor dem Datum steht die Rückgabe unter „Wartet auf dich“.",
-    piece: "Stück",
-    pieceHint: "Titel aus dem Archiv",
-    fromLabel: "Von (Verlag oder Orchester)",
-    borrowedLabel: "Ausgeliehen am",
-    dueLabel: "Zurück bis",
-    notes: "Notiz (optional)",
-    notesHint: "z. B. Leihgebühr, Ansprechpartner",
-    save: "Eintragen",
-    saved: "Eingetragen.",
-    problems: {
-      "piece-missing": "Bitte ein Stück angeben.",
-      "from-missing": "Bitte angeben, von wem die Noten sind.",
-      "bad-date":
-        "Das Datum ist nicht lesbar. Möglich sind 2026-12-15 oder 15.12.2026.",
-    } as Record<string, string>,
-    notSetUp:
-      "Leihmaterial: Fehlt noch in der Tabelle. Bitte einmal „Tabelle einrichten“ ausführen.",
-    failed:
-      "Die Tabelle konnte gerade nicht geändert werden. Bitte versuch es noch einmal.",
-    gone: "Dieser Eintrag hat sich in der Tabelle geändert. Bitte die Seite neu laden.",
-    onPiece: "Leihmaterial",
-    onPieceHint: "Bitte nur mit Bleistift eintragen und pünktlich zurückgeben.",
-    manage: "Alles Leihmaterial",
-    pastReturned: (n: number) =>
-      n === 1 ? "1 zurückgegeben" : `${n} zurückgegeben`,
-  },
-  wishes: {
-    title: "Wünsche",
-    lead: "Stücke und Ideen für die App vorschlagen.",
-    tabs: { piece: "Stückwünsche", feature: "Funktionswünsche" },
-    add: { piece: "Stück vorschlagen", feature: "Idee vorschlagen" },
-    titleLabel: "Titel",
-    composer: "Komponist (optional)",
-    link: "Link (optional)",
-    linkHint: "z. B. eine Aufnahme oder der Verlag",
-    why: "Warum? (optional)",
-    description: "Was soll die App können?",
-    send: "Wunsch abschicken",
-    thanks: "Danke! Dein Wunsch steht jetzt auf der Liste.",
-    empty: {
-      piece: "Noch keine Stückwünsche.",
-      feature: "Noch keine Funktionswünsche.",
-    },
-    vote: "Finde ich auch",
-    unvote: "Doch nicht",
-    votes: (n: number) => `+${n}`,
-    answer: "Antwort",
-    status: "Status",
-    setStatus: "Speichern",
-    manage: "Status und Antwort",
-    submittedBy: (name: string, date: string) => `Von ${name} · ${date}`,
-    anonymous: "anonym",
-    anonymousLabel: "Anonym einreichen",
-    anonymousHint:
-      "Ohne Namen gespeichert. Dann lässt sich der Wunsch nicht mehr zurückziehen.",
-    invalidLink: "Der Link muss mit http:// oder https:// beginnen.",
-    titleMissing: "Bitte einen Titel angeben.",
-    descriptionMissing: "Bitte beschreiben, was die App können soll.",
-    failed:
-      "Das konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.",
-    notSetUp:
-      "Wünsche: Fehlt noch in der Tabelle. Bitte einmal „Tabelle einrichten“ ausführen.",
-    signInNeeded:
-      "Wünsche brauchen eine Anmeldung, damit jede Person nur einmal „+1“ geben kann.",
-    gone: "Diesen Wunsch gibt es nicht mehr.",
-    toPiece: "Im Archiv",
-    titleHint: "Titel, auch aus dem Archiv",
-    concert: "Für welches Konzert?",
-    anyTime: "irgendwann",
-    forConcert: (concert: string) => `für ${concert}`,
-    delete: "Wunsch löschen",
-    confirmDelete: (title: string) =>
-      `„${title}“ wirklich löschen? Das lässt sich nicht rückgängig machen.`,
-    notYours:
-      "Löschen kannst du nur eigene Wünsche, solange sie noch offen sind.",
-    /** Notifications: a new wish for admins, an answer for whoever wished it and their +1s. */
-    pushNew: {
-      piece: "Neuer Stückwunsch",
-      feature: "Neue Idee für die App",
-    } as Record<string, string>,
-    pushAnswer: (title: string) => `Antwort auf „${title}“`,
-    pushStatus: (status: string, answer: string) =>
-      answer ? `${status}: ${answer}` : `Jetzt ${status}.`,
-  },
-  legal,
-  common: {
-    comingSoon: "Bald verfügbar",
-    backHome: "Zur Übersicht",
-    loading: "Seite lädt",
-    saveFailed:
-      "Speichern hat nicht geklappt. Deine Eingaben sind noch da – bitte versuch es noch einmal.",
-    saveUnavailable:
-      "Google antwortet nicht, nichts gespeichert. Deine Eingaben sind noch da.",
-    /** A row the save was going to change was changed or deleted in the meantime (#156). */
-    sheetChanged:
-      "Jemand hat das inzwischen in der Tabelle geändert. Lade die Seite neu und mach deine Änderung noch einmal.",
-    /** Other saves took too long; nothing was saved. */
-    sheetBusy:
-      "Gerade speichern viele gleichzeitig. Bitte gleich noch einmal versuchen.",
-    unsaved:
-      "Deine Änderungen sind noch nicht gespeichert. Seite trotzdem verlassen?",
-    share: "Teilen",
-    copied: "Kopiert. Jetzt z. B. in WhatsApp einfügen.",
-    copyFailed: "Kopieren hat nicht geklappt.",
-    quote: (text: string) => `„${text}“`,
-  },
-  /** Short answers from the server: refusals, things that are gone or unreachable, setup problems. */
-  messages: {
-    signInFirst: "Bitte zuerst anmelden.",
-    noRight: "Dafür fehlt dir die Berechtigung.",
-    membersOnly: "Nur für angemeldete Mitglieder.",
-    badRequest: "Ungültige Anfrage.",
-    archiveUnavailable: "Das Notenarchiv ist gerade nicht erreichbar.",
-    calendarUnavailable: "Der Kalender ist gerade nicht erreichbar.",
-    sheetFailed:
-      "Die Tabelle konnte gerade nicht geändert werden. Bitte versuch es noch einmal.",
-    noFile: "Diese Datei gibt es nicht im Notenarchiv.",
-    driveFailed: (status: string) =>
-      `Die Datei konnte nicht aus Drive geladen werden (Drive: ${status}).`,
-    noAnswer: "keine Antwort",
-    noPicture: "Kein Bild.",
-    wikimediaUnavailable: "Wikimedia ist gerade nicht erreichbar.",
-    noVideoLength: "Ohne YOUTUBE_API_KEY gibt es keine Videolänge.",
-    youtubeUnavailable: "YouTube ist gerade nicht erreichbar.",
-    signInOff: "Die Anmeldung ist nicht eingerichtet.",
-    noCalendar: "Diesen Kalender gibt es nicht.",
-    noEvent: "Diesen Termin gibt es nicht (mehr) im Kalender.",
-    noConcert: "Dieses Konzert gibt es nicht.",
-    noPiece: "Dieses Stück gibt es nicht (mehr) im Notenarchiv.",
-    featureOff: "Nicht eingeschaltet.",
-    programUnreadable: "Das Programm konnte nicht gelesen werden.",
-    grantMissing: "Bitte „Wer“ und ein Recht angeben.",
-    notSet: (variable: string) => `${variable} ist nicht gesetzt.`,
-    noAdmins:
-      "BOOTSTRAP_ADMINS ist nicht gesetzt: niemand kann Mitglieder freischalten.",
-    runSetup: (page: string) => `Bitte „${page}“ ausführen.`,
-    shortSecret: (min: number) =>
-      `SESSION_SECRET fehlt oder ist kürzer als ${min} Zeichen.`,
-    missingTab: (tab: string) => `Das Blatt „${tab}“ fehlt.`,
-    missingColumns: (tab: string, columns: string) =>
-      `Im Blatt „${tab}“ fehlen Spalten: ${columns}.`,
-  },
-  error: {
-    title: "Da ist etwas schiefgelaufen",
-    notFound: "Diese Seite gibt es nicht.",
-    /** A parent account asking for something outside the parents' area. */
-    forbidden: "Das ist im Elternbereich nicht verfügbar.",
-    notFoundLead:
-      "Vielleicht ist der Link alt oder ein Stück wurde umbenannt. Von hier aus geht es weiter:",
-    unavailableTitle: "Gerade nicht erreichbar",
-    unavailable: "Google antwortet gerade nicht. Gleich noch einmal versuchen.",
-    retry: "Noch einmal versuchen",
-  },
+	nav: {
+		/** Shown after the orchestra's short name in the header. */
+		appName: 'Notenarchiv',
+		beta: 'Beta',
+		betaNote: 'Vorschau: Die App ist noch in Arbeit. Fehler und Wünsche gern melden.',
+		home: 'Übersicht',
+		pieces: 'Archiv',
+		concerts: 'Kalender',
+		myParts: 'Meine Noten',
+		wishes: 'Wünsche',
+		reports: 'Meldungen',
+		loans: 'Leihmaterial',
+		ensembles: 'Ensembles',
+		kummer: 'Kummerkasten',
+		/** The parents' area (/eltern) and what parent accounts see in the menu. */
+		parents: 'Elternbereich',
+		parentMessages: 'Nachrichten',
+		parentNotices: 'Elternmitteilungen',
+		drillsOverview: 'Übestand',
+		gaps: 'Fehlende Stimmen',
+		naming: 'Dateinamen',
+		admin: 'Mitglieder & Rechte',
+		setup: 'Tabelle einrichten',
+		settings: 'Einstellungen',
+		status: 'Status',
+		polls: 'Terminumfragen',
+		more: 'Mehr',
+		profile: 'Profil',
+		details: 'Angaben ergänzen',
+		chronicle: 'Chronik',
+		drills: 'Übebereich',
+		menu: 'Alle Seiten',
+		close: 'Menü schließen',
+		crumbs: 'Seitenpfad',
+		groups: { musik: 'Proben & Noten', mitmachen: 'Mitmachen', pflege: 'Noten pflegen', verwaltung: 'App & Mitglieder', eltern: 'Eltern' },
+		/** The organisers' area in the tab bar, the header and "Mehr" (#185). */
+		organise: 'Verwaltung',
+		workspace: 'Bereich',
+		/** After a tab's count, for screen readers: "Meldungen 1 offen". */
+		open: 'offen',
+		skip: 'Zum Inhalt springen',
+		main: 'Hauptnavigation'
+	},
+	/** Everything waiting for you, in one list (#185). */
+	todo: {
+		title: 'Zu erledigen',
+		lead: 'Alles, was gerade auf dich wartet, an einem Ort. Jede Zeile führt dahin, wo du es erledigst.',
+		empty: 'Nichts offen. Schön!',
+		/** Before a deadline: polls and rented music. */
+		until: (date: string) => `bis ${date}`,
+		kinds: {
+			report: 'Meldungen',
+			request: 'Zugangsanfragen',
+			wish: 'Wünsche',
+			loan: 'Leihmaterial zurückgeben',
+			attendance: 'Anwesenheit eintragen',
+			poll: 'Terminumfragen beantworten',
+			other: 'Außerdem'
+		} as Record<string, string>,
+		/** On the organisers' hub, above the groups. */
+		hub: (n: number) => (n === 1 ? '1 Sache wartet' : `${n} Dinge warten`)
+	},
+	organise: {
+		title: 'Verwaltung',
+		lead: 'Alles, was ihr fürs Orchester erledigt: die Noten pflegen, Mitglieder und die App.'
+	},
+	footer: {
+		links: 'Das Orchester im Netz',
+		source: 'Quellcode',
+		/** The instrument drawings are CC BY: credited on the terms page, not on every page. */
+		credits: {
+			heading: 'Bildnachweise',
+			text: 'Die Zeichnungen der Instrumente sind von Lorc, Delapouite und weiteren Mitwirkenden von game-icons.net, unter der Lizenz CC BY 3.0.',
+			license: 'Lizenztext'
+		}
+	},
+	theme: {
+		label: 'Farbschema',
+		system: 'System',
+		light: 'Hell',
+		dark: 'Dunkel'
+	},
+	textSize: {
+		label: 'Schriftgröße',
+		hint: 'Gilt für dieses Gerät.',
+		small: 'Klein',
+		normal: 'Normal',
+		large: 'Groß'
+	},
+	home: {
+		title: (orchestra: string) => `Notenarchiv des ${orchestra}`,
+		hello: (name: string) => `Hallo ${name}`,
+		upNext: 'Als Nächstes',
+		details: 'Details',
+		allDates: 'Alle Termine',
+		nextConcert: 'Nächstes Konzert',
+		nextConcertEmpty: 'Sobald der Kalender verbunden ist, steht hier das nächste Konzert mit Programm.',
+		noNextConcert: 'Gerade ist kein Konzert im Kalender eingetragen.',
+		program: 'Programm',
+		pieces: (n: number) => (n === 1 ? '1 Stück' : `${n} Stücke`),
+		morePieces: (n: number) => `+ ${n} weitere`,
+		nextRehearsal: 'Nächste Probe',
+		/** Over the answer buttons docked above the tab bar: "Bist du am Samstag dabei?". */
+		areYouIn: (day: string) => `Bist du am ${day} dabei?`,
+		/** The dates after the next one. */
+		later: 'Danach',
+		/** After "Antwort fehlt" on a later date: opens it to answer. */
+		answerNow: 'Jetzt antworten',
+		quickLinks: 'Alle Bereiche',
+		work: 'Aufgaben im Orchester',
+		/** In the greeting: the next concert, "Herbstkonzert in 25 Tagen" (#221). */
+		countdown: (concert: string, when: string) => `${concert} ${when}`,
+		todo: {
+			title: 'Wartet auf dich',
+			/** All open work as one row after its count ("6 Dinge warten auf dich"); it opens to the list (#220). */
+			summary: (n: number) => (n === 1 ? 'Sache wartet auf dich' : 'Dinge warten auf dich'),
+			reports: (n: number) => (n === 1 ? 'offene Meldung' : 'offene Meldungen'),
+			wishes: (n: number) => (n === 1 ? 'offener Wunsch' : 'offene Wünsche'),
+			requests: (n: number) => (n === 1 ? 'Zugangsanfrage' : 'Zugangsanfragen'),
+			loans: (n: number) => (n === 1 ? 'Rückgabe steht an' : 'Rückgaben stehen an'),
+			attendance: (n: number) => (n === 1 ? 'Probe ohne Anwesenheit' : 'Proben ohne Anwesenheit'),
+			polls: (n: number) => (n === 1 ? 'Terminumfrage' : 'Terminumfragen'),
+			scans: (n: number) => (n === 1 ? 'Stimme zum Scannen' : 'Stimmen zum Scannen')
+		},
+		/** One line under each page on the start page. */
+		describe: {
+			'/meine-noten': 'Deine Stimmen fürs nächste Konzert.',
+			'/kalender': 'Proben und Konzerte.',
+			'/chronik': 'Alle Konzerte seit den Anfängen, in Zahlen.',
+			'/ueben': 'Noten lesen, Tonarten, Töne treffen: ein paar Minuten am Tag.',
+			'/profil': 'Instrument, Orchester, eigener Kalender.',
+			'/stuecke': 'Alle Stücke mit allen Stimmen.',
+			'/stuecke/angaben': 'Fehlende Angaben zu Stücken ergänzen.',
+			'/fehlende-stimmen': 'Lücken im Archiv.',
+			'/namen': 'Dateinamen in die Konvention bringen.',
+			'/wuensche': 'Stücke und Ideen vorschlagen.',
+			'/meldungen': 'Gemeldete Probleme bearbeiten.',
+			'/leihmaterial': 'Geliehene Noten und wann sie zurückmüssen.',
+			'/admin': 'Mitglieder, Rollen und Anfragen.',
+			'/einstellungen': 'Orchester, Tabelle und Daten, Status.',
+			'/termine': 'Termine mit dem Orga-Team abstimmen.',
+			'/ensembles': 'Chöre und Orchester, mit denen wir auftreten.'
+		} as Record<string, string>
+	},
+	pieces: {
+		title: 'Notenarchiv',
+		lead: 'Alle Stücke mit allen Stimmen.',
+		empty: 'Sobald Google Drive verbunden ist, erscheinen hier alle Stücke aus dem Notenarchiv.',
+		failed: 'Das Notenarchiv konnte gerade nicht geladen werden. Versuch es gleich noch einmal.',
+		loading: 'Das Notenarchiv wird gerade aus Drive eingelesen. Das dauert bis zu zehn Minuten; schau dann noch einmal vorbei.',
+		checkStatus: 'Verbindung prüfen',
+		search: 'Archiv filtern: Titel, Komponist, Stimme, Notiz …',
+		searchLabel: 'Archiv filtern',
+		needsWork: 'Mit Lücken',
+		/** No conductor's score in the archive, beside the other status. */
+		noScore: 'Partitur fehlt',
+		noMusic: 'Ohne Noten',
+		byComposer: (composer: string) => `Werke von ${composer}`,
+		clearComposer: 'Komponisten-Filter entfernen',
+		categoryFiles: 'Dateien zu dieser Kategorie',
+		count: (n: number) => (n === 1 ? '1 Stück' : `${n} Stücke`),
+		parts: (n: number) => (n === 1 ? '1 Stimme' : `${n} Stimmen`),
+		noResults: 'Nichts gefunden.',
+		clearSearch: 'Suche leeren',
+		// Found not by the title but by a part or a note on the piece.
+		foundParts: (instruments: string) => `Stimme: ${instruments}`,
+		foundNote: (excerpt: string) => `Notiz: ${excerpt}`,
+		filter: 'Filter',
+		filterGroups: { mine: 'Für mich', programs: 'Orchester', categories: 'Genre', difficulty: 'Schwierigkeit', length: 'Dauer', state: 'Zustand' },
+		lengths: { kurz: 'Bis 5 Min.', mittel: '5–10 Min.', lang: 'Über 10 Min.' },
+		myPart: 'Mit meiner Stimme',
+		assigned: 'Mir zugeteilt',
+		coming: 'In kommenden Konzerten',
+		withRecording: 'Mit Hörbeispiel',
+		status: {
+			ok: '',
+			missing: 'Stimmen fehlen',
+			// Pages missing inside a part's PDF (UNVOLLSTÄNDIG in the file name), not a missing part.
+			incomplete: 'Seiten fehlen',
+			empty: 'Keine Noten',
+			none: 'Nicht im Archiv'
+		}
+	},
+	piece: {
+		details: 'Details',
+		/** The member's own parts at the top of the page (#216). */
+		yourPart: (part: string) => `Deine Stimme: ${part}`,
+		alsoPart: (part: string) => `Auch: ${part}`,
+		yours: 'deine',
+		reportedMissing: 'Als fehlend gemeldet',
+		reportedMissingHint: 'Gemeldet, aber noch nicht bestätigt. Nach der Bestätigung steht ein Platzhalter im Ordner.',
+		folder: 'Drive-Ordner',
+		editShort: 'Bearbeiten',
+		reportShort: 'Melden',
+		upcoming: 'Demnächst',
+		recording: 'Hörbeispiel',
+		edit: 'Angaben bearbeiten',
+		saved: 'Gespeichert.',
+		groups: {
+			featured: 'Partitur & Solo',
+			holz: 'Holzbläser',
+			blech: 'Blechbläser',
+			schlagwerk: 'Schlagwerk',
+			tasten: 'Tasten & Harfe',
+			gesang: 'Gesang',
+			streicher: 'Streicher',
+			sonstige: 'Stimmen für alle',
+			other: 'Weitere Dateien'
+		},
+		partStatus: {
+			ok: '',
+			missing: 'fehlt',
+			empty: 'leer',
+			incomplete: 'Seiten fehlen'
+		},
+		missingSummary: (n: number) =>
+			n === 1 ? '1 Stimme fehlt, ist leer oder es fehlen Seiten.' : `${n} Stimmen fehlen, sind leer oder es fehlen Seiten.`,
+		playedAt: 'Gespielt bei',
+		sections: 'Fassungen',
+		playedBadge: 'gespielt',
+		sectionHint: {
+			played: 'Die Stimmen, die gespielt werden.',
+			complete: 'Das komplette Werk, zum Nachschlagen.',
+			movement: '',
+			other: ''
+		},
+		sectionFolder: 'Diesen Ordner in Google Drive',
+		otherVersions: 'Weitere Fassungen dieses Werks',
+		moreBy: (composer: string) => `Weitere Werke von ${composer}`,
+		again: 'Wieder spielen',
+		againMine: 'Möchte ich wieder spielen',
+		againHint: 'Zeigt der Programmplanung, dass du das Stück gern wieder spielen würdest. Nochmal klicken nimmt es zurück.',
+		againPlanned: 'Ist für ein Programm vorgemerkt.',
+		allBy: (composer: string) => `Alle Werke von ${composer}`,
+		playedAtNone: 'Noch in keinem Konzert eingetragen.',
+		playedAtNoSheet: 'Erscheint, sobald die Repertoire-Tabelle eingerichtet ist.',
+		noMusic: 'Keine Noten im Archiv, nur in der Tabelle eingetragen.',
+		info: {
+			duration: 'Dauer',
+			publisher: 'Verlag',
+			arranger: 'Arrangement',
+			genre: 'Genre',
+			difficulty: 'Schwierigkeit',
+			reviewedAt: 'Geprüft am',
+			notes: 'Notiz'
+		},
+		driveHint: 'Öffnet sich in Google Drive (Zugriff auf den Noten-Ordner nötig).',
+		portrait: (name: string) => `Porträt von ${name}`,
+		portraitCredit: 'Bild: Wikimedia Commons',
+		/** A film's title logo or an icon for it (#312). */
+		filmPicture: (film: string) => `Bild zum Film ${film}`,
+		bandPicture: (band: string) => `Logo von ${band}`,
+		iconCredit: 'Icon: Iconify'
+	},
+	concerts: {
+		title: 'Kalender',
+		lead: 'Proben, Konzerte und Terminumfragen.',
+		empty: 'Sobald der Probenkalender verbunden ist, erscheinen hier alle Konzerte und Proben.',
+		failed: 'Der Kalender konnte gerade nicht geladen werden. Versuch es gleich noch einmal.',
+		past: 'Vergangene Konzerte',
+		noUpcoming: 'Gerade stehen keine Termine im Kalender.',
+		subscribe: 'Google Kalender abonnieren',
+		ownCalendar: 'Termine in meinen Kalender',
+		filters: { kind: 'Art', answer: 'Meine Antwort', concerts: 'Konzerte', rehearsals: 'Proben' },
+		view: 'Ansicht',
+		list: 'Liste',
+		calendar: 'Monat',
+		next: 'Als Nächstes',
+		today: 'Heute',
+		previousMonth: 'Vorheriger Monat',
+		nextMonth: 'Nächster Monat',
+		noEventsThatDay: 'An diesem Tag ist nichts eingetragen.',
+		types: {
+			konzert: 'Konzert',
+			generalprobe: 'Generalprobe',
+			probe: 'Probe',
+			sonstiges: 'Termin'
+		},
+		tentative: 'noch unsicher',
+		allDay: 'ganztägig',
+		relative: (days: number) =>
+			days === 0 ? 'heute' : days === 1 ? 'morgen' : days > 1 ? `in ${days} Tagen` : days === -1 ? 'gestern' : `vor ${-days} Tagen`,
+		forConcert: (title: string) => `für ${title}`
+	},
+	calendar: {
+		/** Date polls next to the dates (#95). */
+		polls: {
+			new: 'Neue Terminumfrage',
+			candidate: 'Zur Wahl',
+			waiting: (n: number, title: string) => (n === 1 ? `Terminumfrage „${title}“: deine Antwort fehlt` : `${n} Terminumfragen warten auf deine Antwort`)
+		},
+		edit: {
+			open: 'Bearbeiten',
+			title: 'Termin bearbeiten',
+			save: 'Änderungen speichern',
+			lead: 'Wird direkt im Google Kalender geändert, für alle sichtbar.',
+			saved: 'Gespeichert: Der Termin ist im Kalender geändert.'
+		},
+		add: {
+			open: 'Termin eintragen',
+			short: 'Termin',
+			more: 'Weitere Angaben',
+			lead: 'Kommt direkt in den Google Kalender, für alle sichtbar.',
+			type: 'Art',
+			title: 'Titel',
+			concertHint: 'z. B. Frühlingskonzert',
+			untitled: (word: string) => `leer: „${word}“`,
+			date: 'Datum',
+			start: 'Beginn',
+			end: 'Ende',
+			timeHint: 'Ohne Beginn ganztägig; ohne Ende zwei Stunden beim Konzert, drei bei Proben.',
+			location: 'Ort',
+			locationHint: 'z. B. Aula, Musterschule',
+			concert: 'Probe für',
+			noConcert: 'Kein bestimmtes Konzert',
+			tentative: 'Noch unsicher (erscheint mit „(?)“)',
+			description: 'Notiz',
+			save: 'In den Kalender eintragen',
+			yearOnly: 'Genaues Datum unbekannt, nur das Jahr',
+			saveArchive: 'Ins Archiv eintragen',
+			leadArchive: 'Liegt in der Vergangenheit: kommt ins Archiv (Repertoire-Tabelle), nicht in den Kalender.',
+			archiveOnly: 'Frühere Konzerte kommen ins Archiv; neue Termine trägt ein, wer Termine plant.',
+			places: 'Vorschläge für den Ort',
+			added: (title: string) => `„${title}“ steht jetzt im Kalender.`,
+			show: 'Ansehen',
+			/** A role limited to some orchestras (#305) plans only their dates. */
+			otherOrchestra: (orchestras: string) => `Du planst Termine nur für ${orchestras}. Bitte eins davon ankreuzen.`,
+			readOnly:
+				'Termine eintragen ist aus: Die App darf den Kalender nur lesen. Dafür CALENDAR_WRITE="true" setzen und den Kalender für das Dienstkonto mit „Änderungen an Terminen vornehmen“ freigeben.',
+			problems: {
+				type: 'Bitte Konzert, Probe oder Generalprobe wählen.',
+				title: 'Ein Konzert braucht einen Titel.',
+				date: 'Bitte ein Datum wählen.',
+				'too-early': 'So weit zurück zeigt die Seite keine Termine. Ein früheres Konzert kommt ins Archiv; dafür „Konzert“ wählen.',
+				'too-late': 'So weit voraus zeigt die Seite noch keine Termine (bis 18 Monate). Stimmt das Jahr?',
+				time: 'Bitte die Uhrzeit als SS:MM angeben; ein Ende nur mit Beginn.',
+				end: 'Das Ende muss nach dem Beginn liegen.',
+				concert: 'Das Konzert gibt es im Kalender nicht (mehr); bitte eines aus der Liste wählen.',
+				orchestra: 'Bitte die Orchester aus der Liste wählen.',
+				'too-long': 'Das ist zu lang: Titel bis 120, Ort bis 200, Notiz bis 2000 Zeichen.'
+			},
+			errors: {
+				'not-configured': 'Der Kalender ist noch nicht verbunden (CALENDAR_ID).',
+				'read-only':
+					'Termine eintragen ist aus: Die App darf den Kalender nur lesen. Dafür CALENDAR_WRITE="true" setzen und den Kalender für das Dienstkonto mit „Änderungen an Terminen vornehmen“ freigeben.',
+				refused: 'Google hat abgelehnt: Das Dienstkonto darf in diesem Kalender keine Termine ändern. Bitte den Kalender mit „Änderungen an Terminen vornehmen“ freigeben.',
+				failed: 'Der Termin konnte gerade nicht eingetragen werden. Bitte versuch es gleich noch einmal.'
+			}
+		}
+	},
+	concert: {
+		/** In the public feed for the orchestra's website (#197). */
+		publish: {
+			title: 'Website',
+			on: 'Auf der Website des Orchesters',
+			off: 'Nicht auf der Website des Orchesters',
+			publish: 'Veröffentlichen',
+			withdraw: 'Zurückziehen',
+			details: 'Text und Karten für die Website',
+			detailsHint: 'Alles freiwillig. Die Website zeigt die Sprache, in der sie gerade gelesen wird.',
+			textDe: 'Text (deutsch)',
+			textEn: 'Text (englisch)',
+			ticketUrl: 'Link zu den Karten',
+			ticketNoteDe: 'Hinweis zu Karten (deutsch)',
+			ticketNoteEn: 'Hinweis zu Karten (englisch)',
+			ticketNotePlaceholder: 'z. B. Eintritt frei, Spenden erbeten',
+			save: 'Speichern',
+			saved: 'Gespeichert',
+			badLink: 'Der Link zu den Karten muss mit https:// beginnen.'
+		},
+		map: 'Karte',
+		openInCalendar: 'Im Google Kalender',
+		rehearsals: 'Proben',
+		addRehearsal: 'Probe eintragen',
+		noRehearsals: 'Keine Proben im Kalender.',
+		pastRehearsals: (n: number) => (n === 1 ? '1 vergangene Probe' : `${n} vergangene Proben`),
+		program: 'Programm',
+		programEmpty: 'Noch kein Programm eingetragen.',
+		programNoSheet: 'Erscheint, sobald die Repertoire-Tabelle eingerichtet ist.',
+		programHint: 'Steht im Blatt „Programm“.',
+		notInArchive: 'keine Noten im Archiv',
+		archive: 'Aus der Chronik',
+		dateUnknown: 'Datum unbekannt',
+		preparesFor: 'Probe für',
+		orchestras: {
+			over: 'Orchester',
+			all: 'Alle Orchester',
+			change: 'Ändern',
+			save: 'Speichern',
+			hint: 'Nur wer in einem der angekreuzten Orchester spielt, sieht die Probe und wird bei „Wer kommt?“ mitgezählt.',
+			none: 'Bitte mindestens ein Orchester ankreuzen.',
+			saved: 'Orchester gespeichert.'
+		},
+		sharedFrom: 'Gleiches Programm wie',
+		sharedWith: 'Dieses Programm gilt auch für',
+		description: 'Notiz aus dem Kalender',
+		views: { label: 'Ansicht', overview: 'Übersicht', planning: 'Planung' },
+		tools: 'Werkzeuge',
+		lastAttendance: 'Anwesenheit der letzten Probe'
+	},
+	/** Notes after a rehearsal (#145). */
+	rehearsalNotes: {
+		title: 'Aus der Probe',
+		previous: (date: string) => `Aus der letzten Probe, ${date}`,
+		done: 'Geprobt',
+		practise: 'Zum Üben',
+		next: 'Nächstes Mal',
+		doneHint: 'z. B. „Egmont bis Takt 120“',
+		practiseHint: 'z. B. „ab Buchstabe B langsam“',
+		nextHint: 'z. B. „Morgenstimmung, ab B“',
+		write: 'Notiz schreiben',
+		edit: 'Notiz bearbeiten',
+		lead: 'Für alle, die nicht da waren. Alle Felder leeren entfernt die Notiz.',
+		empty: 'Noch keine Notiz zu dieser Probe.',
+		save: 'Speichern',
+		cancel: 'Abbrechen',
+		by: (by: string, at: string) => [by, at].filter(Boolean).join(', '),
+		saved: 'Notiz gespeichert.',
+		tooLong: 'Höchstens 1000 Zeichen pro Feld, bitte.',
+		failed: 'Die Notiz konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.',
+		notSetUp: 'Dem Blatt „Probennotizen“ fehlen Spalten. Auf der Seite „Tabelle einrichten“ werden sie ergänzt.',
+		gone: 'Notizen gibt es nur für Proben, die schon begonnen haben.',
+		home: (date: string) => `Aus der Probe am ${date}`
+	},
+	/** Notes on a piece from rehearsals (#125). */
+	pieceFolder: {
+		title: 'Noten in Drive',
+		createLead: 'Für dieses Stück gibt es noch keinen Ordner im Notenarchiv. Der Name folgt der Namenskonvention; du kannst ihn vorher ändern.',
+		folderName: 'Ordnername',
+		create: 'Ordner in Drive anlegen',
+		created: 'Ordner angelegt. Jetzt die Stimmen hochladen.',
+		uploadLead: 'PDFs auswählen oder hierher ziehen. Für jede Datei schlägt die App den Namen nach der Konvention vor.',
+		choose: 'PDFs auswählen',
+		dropHere: 'PDFs hier ablegen',
+		shortTitle: (short: string) => `Kurztitel: ${short}`,
+		newName: (old: string) => `Neuer Name für ${old}`,
+		unclear: 'Stimme nicht erkannt: bitte den Namen prüfen.',
+		replaces: 'ersetzt die Datei im Ordner',
+		notPdf: (names: string) => `Nur PDFs, übersprungen: ${names}`,
+		upload: (count: number) => (count === 1 ? '1 Datei hochladen' : `${count} Dateien hochladen`),
+		uploading: (done: number, total: number) => `Lade hoch … ${done} von ${total}`,
+		uploaded: (count: number) => (count === 1 ? '1 Datei hochgeladen.' : `${count} Dateien hochgeladen.`),
+		notUploaded: (names: string) => `Nicht hochgeladen: ${names}`,
+		discard: 'Verwerfen',
+		missing: 'Stimme fehlt',
+		missingLead: 'Legt den Platzhalter „… - FEHLT“ im Ordner an, damit die Lücke überall zu sehen ist.',
+		instrument: 'Instrument',
+		number: 'Nummer',
+		addPlaceholder: 'Platzhalter anlegen',
+		placeholderCreated: (name: string) => `Platzhalter „${name}“ angelegt.`,
+		noDriveWrite: 'Die App darf Drive nur lesen (DRIVE_WRITE ist nicht gesetzt).',
+		exists: 'Das Stück hat schon einen Ordner in Drive.',
+		noFolder: 'Das Stück hat noch keinen Ordner in Drive.',
+		notInSheet: 'Das Stück steht nicht (mehr) im Blatt „Stücke“. Bitte die Seite neu laden.',
+		nameMissing: 'Bitte einen Namen angeben.',
+		nameTaken: (name: string) => `Im Notenarchiv gibt es schon „${name}“.`,
+		tooLarge: 'Die Datei ist leer oder zu groß.',
+		placeholderExists: (name: string) => `„${name}“ liegt schon im Ordner.`,
+		noQuota: 'Drive hat die Datei abgelehnt: Das Dienstkonto der App hat keinen eigenen Speicher. Unter „Status“ das Drive-Konto des Notenarchivs verbinden, dann gehen neue Dateien.',
+		needsAccount: 'Neue Dateien brauchen ein verbundenes Drive-Konto (unter „Status“); bis dahin lassen sich nur vorhandene Dateien ersetzen.',
+		owner: (email: string) => `Neue Dateien gehören ${email}.`,
+		failed: 'Drive hat nicht geantwortet oder die Änderung abgelehnt. Bitte später noch einmal versuchen.'
+	},
+	driveAccount: {
+		connect: 'Drive-Konto für Uploads verbinden',
+		disconnect: 'Drive-Konto trennen',
+		confirmDisconnect: 'Drive-Konto trennen? Neue Stimmen lassen sich dann nicht mehr hochladen.',
+		connected: (email: string) => `Neue Stimmen werden als ${email} hochgeladen.`,
+		lead: 'Neue Stimmen werden als das Konto hochgeladen, dem das Notenarchiv gehört, denn das Dienstkonto der App hat keinen eigenen Speicher. Google fragt dabei nach Zugriff auf Drive.',
+		connectedNow: 'Drive-Konto verbunden.',
+		noScope: 'Google hat den Zugriff auf Drive nicht erteilt. Bitte noch einmal verbinden und den Haken bei Drive setzen.',
+		wrongUser: 'Nur wer Mitglieder verwalten darf, kann das Drive-Konto verbinden.',
+		connectFailed: 'Das Verbinden hat nicht geklappt. Bitte noch einmal versuchen.',
+		disconnectedNow: 'Drive-Konto getrennt.'
+	},
+	pieceNotes: {
+		title: 'Hinweise aus den Proben',
+		earlier: 'Hinweise zu früheren Konzerten',
+		none: 'Noch keine Hinweise, z. B. Sprünge, Wiederholungen oder Striche.',
+		add: 'Hinweis hinzufügen',
+		text: 'Hinweis',
+		textHint: 'z. B. „Sprung von Takt 40 nach 88“ oder „ohne Wiederholung“',
+		section: 'Für',
+		everyone: 'Alle',
+		sections: 'Register',
+		instruments: 'Instrumente',
+		concert: 'Gilt für',
+		always: 'Jede Aufführung',
+		save: 'Speichern',
+		delete: 'Löschen',
+		deleteNamed: (text: string) => `Hinweis „${text}“ löschen`,
+		forSection: (section: string) => `Für ${section}`,
+		forConcert: (concert: string) => `Nur ${concert}`,
+		meta: (by: string, at: string) => [by, at].filter(Boolean).join(', '),
+		saved: 'Hinweis gespeichert.',
+		deleted: 'Hinweis gelöscht.',
+		failed: 'Der Hinweis konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.',
+		notSetUp: 'Dem Blatt „Hinweise“ fehlen Spalten. Auf der Seite „Tabelle einrichten“ werden sie ergänzt.',
+		gone: 'Den Hinweis gibt es nicht mehr; vielleicht hat ihn jemand schon gelöscht.',
+		problems: {
+			empty: 'Bitte einen Hinweis eintragen.',
+			'too-long': 'Höchstens 500 Zeichen, bitte.',
+			section: 'Bitte ein Register oder Instrument aus der Liste wählen.',
+			concert: 'Bitte ein Konzert aus der Liste wählen.'
+		},
+		inMyParts: 'Hinweise'
+	},
+	/** Who plays which part instead of their own (#262). */
+	partAssignments: {
+		title: 'Stimmenzuteilung',
+		lead: 'Wer statt der eigenen Stimme eine andere spielt, z. B. die Saxophone die Fagottstimme. In „Meine Noten“ und im Stimmensatz zählt dann diese.',
+		none: 'Alle spielen ihre eigene Stimme.',
+		add: 'Stimme zuteilen',
+		who: 'Wer',
+		instruments: 'Alle von einem Instrument',
+		members: 'Einzelne Mitglieder',
+		part: 'Spielt',
+		number: 'Nr.',
+		anyNumber: 'egal',
+		concert: 'Gilt für',
+		always: 'Immer',
+		allPieces: 'Für alle Stücke, nicht nur dieses',
+		save: 'Zuteilen',
+		delete: 'Löschen',
+		deleteNamed: (who: string, part: string) => `Zuteilung „${who} spielt ${part}“ löschen`,
+		plays: (who: string, part: string) => `${who} spielt ${part}`,
+		onlyConcert: (concert: string) => `Nur ${concert}`,
+		everyPiece: 'Alle Stücke',
+		forever: 'Immer',
+		meta: (by: string, at: string) => [by, at].filter(Boolean).join(', '),
+		assigned: 'zugeteilt',
+		saved: 'Stimme zugeteilt.',
+		deleted: 'Zuteilung gelöscht.',
+		failed: 'Die Zuteilung konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.',
+		notSetUp: 'Dem Blatt „Stimmenzuteilung“ fehlen Spalten. Auf der Seite „Tabelle einrichten“ werden sie ergänzt.',
+		gone: 'Die Zuteilung gibt es nicht mehr; vielleicht hat sie jemand schon gelöscht.',
+		problems: {
+			who: 'Bitte ein Instrument oder Mitglied aus der Liste wählen.',
+			part: 'Bitte eine Stimme aus der Liste wählen.',
+			concert: 'Bitte ein Konzert aus der Liste wählen.'
+		}
+	},
+	/** The season report for the annual meeting (#147). */
+	season: {
+		title: 'Saisonbericht',
+		lead: 'Was in einem Zeitraum los war, zum Ausdrucken für die Jahreshauptversammlung. Anwesenheit nur als Summe, ohne Namen.',
+		back: 'Chronik',
+		from: 'Von',
+		to: 'Bis',
+		show: 'Anzeigen',
+		print: 'Drucken',
+		presets: {
+			twelve: 'Letzte 12 Monate',
+			season: (label: string) => `Saison ${label}`,
+			lastYear: (year: number) => `${year}`,
+			thisYear: (year: number) => `${year}`
+		},
+		presetsLabel: 'Zeitraum',
+		heading: (orchestra: string) => `Saisonbericht ${orchestra}`,
+		figures: 'Auf einen Blick',
+		concerts: (n: number) => (n === 1 ? 'Konzert' : 'Konzerte'),
+		pieces: (n: number) => (n === 1 ? 'Stück gespielt' : 'Stücke gespielt'),
+		debuts: 'davon zum ersten Mal',
+		rehearsals: (n: number) => (n === 1 ? 'Probe' : 'Proben'),
+		concertsTitle: 'Konzerte und Programme',
+		noConcerts: 'In diesem Zeitraum gab es kein Konzert.',
+		noProgram: 'Programm nicht eingetragen',
+		firstTime: 'zum ersten Mal',
+		debutsTitle: 'Zum ersten Mal gespielt',
+		noDebuts: 'Kein Stück war neu im Repertoire.',
+		debutAt: (concert: string) => `bei ${concert}`,
+		rehearsalsTitle: 'Proben',
+		rehearsalCount: (n: number) => (n === 1 ? '1 Probe fand statt.' : `${n} Proben fanden statt.`),
+		noCalendar: 'Der Kalender ist nicht verbunden, Proben fehlen deshalb.',
+		attendance: (rehearsals: number, average: string, rate: number) =>
+			`Bei ${rehearsals === 1 ? '1 Probe' : `${rehearsals} Proben`} wurde die Anwesenheit erfasst: im Schnitt ${average} Personen da, ${rate} % der Erfassten.`,
+		noAttendance: 'In diesem Zeitraum wurde keine Anwesenheit erfasst.',
+		archiveTitle: 'Archiv und Mitmachen',
+		reports: (made: number, done: number) =>
+			`${made === 1 ? '1 Problem mit Noten wurde' : `${made} Probleme mit Noten wurden`} gemeldet, ${done} davon ${done === 1 ? 'ist' : 'sind'} erledigt.`,
+		wishes: (n: number) => (n === 1 ? '1 Wunsch wurde eingereicht.' : `${n} Wünsche wurden eingereicht.`),
+		created: (day: string) => `Erstellt am ${day}. Proben stammen aus dem Kalender, der drei Jahre zurückreicht.`
+	},
+	/** The orchestra's history (#61). */
+	chronicle: {
+		title: 'Chronik',
+		lead: 'Alle Konzerte seit den Anfängen, und was das Orchester am liebsten spielt.',
+		views: { label: 'Ansicht', timeline: 'Zeitleiste', numbers: 'In Zahlen' },
+		concerts: (n: number) => (n === 1 ? 'Konzert' : 'Konzerte'),
+		pieces: (n: number) => (n === 1 ? 'Stück' : 'Stücke'),
+		performances: (n: number) => (n === 1 ? 'Aufführung' : 'Aufführungen'),
+		since: 'seit',
+		decade: (decade: number) => `${decade}er`,
+		undated: 'Ohne Datum',
+		yearUnknown: 'Jahr unbekannt',
+		debut: 'neu',
+		debutHint: 'Zum ersten Mal gespielt',
+		noProgram: 'Programm nicht eingetragen',
+		mostPlayed: 'Am häufigsten gespielt',
+		mostPlayedNone: 'Noch kein Stück stand auf mehr als einem Programm.',
+		times: (n: number) => `${n}×`,
+		lastPlayed: (year: number) => `zuletzt ${year}`,
+		playedIn: (first: number, last: number) => (first === last ? `${first}` : `${first}–${last}`),
+		composers: 'Meistgespielte Komponisten',
+		composerLine: (count: number, pieces: number) => `${count}× gespielt, ${pieces === 1 ? '1 Stück' : `${pieces} Stücke`}`,
+		byDecade: 'Nach Jahrzehnten',
+		decadeLine: (concerts: number, pieces: number) =>
+			`${concerts === 1 ? '1 Konzert' : `${concerts} Konzerte`}, ${pieces === 1 ? '1 Stück' : `${pieces} Stücke`}`,
+		longAgo: 'Lange nicht gespielt',
+		longAgoLead: (years: number) => `Seit ${years} Jahren oder länger nicht mehr auf dem Programm, vielleicht wieder einmal?`,
+		plannedAgain: 'wieder geplant',
+		longAgoNone: (years: number) => `Kein Stück liegt länger als ${years} Jahre zurück.`,
+		neverPlayed: 'Noch nie gespielt',
+		neverPlayedLead: (n: number) =>
+			n === 1 ? '1 Stück mit Noten im Archiv stand noch auf keinem Programm.' : `${n} Stücke mit Noten im Archiv standen noch auf keinem Programm.`,
+		andMore: (n: number) => `und ${n} weitere`,
+		empty: 'Noch keine vergangenen Konzerte. Alte Konzerte kommen ins Blatt „Konzerte“, ihre Programme ins Blatt „Programm“; ein Jahr als Datum reicht.',
+		noSheet: 'Die Chronik entsteht aus der Repertoire-Tabelle, die noch nicht verbunden ist.',
+		seasonReport: 'Saisonbericht'
+	},
+	attendance: {
+		title: 'Anwesenheit',
+		pageTitle: (event: string) => `Anwesenheit: ${event}`,
+		lead: 'Antippen, wer da war. Zusagen sind vorausgewählt.',
+		take: 'Anwesenheit erfassen',
+		edit: 'Anwesenheit bearbeiten',
+		present: (n: number, of: number) => `${n} von ${of} da`,
+		notTaken: 'Für diese Probe ist noch keine Anwesenheit erfasst.',
+		allYes: 'Alle Zusagen',
+		none: 'Niemand',
+		search: 'Name suchen …',
+		save: 'Speichern',
+		saved: 'Anwesenheit gespeichert.',
+		cancel: 'Abbrechen',
+		answered: { yes: 'Zusage', maybe: 'vielleicht', no: 'Absage' } as Record<string, string>,
+		notYet: 'Die Anwesenheit lässt sich erfassen, sobald die Probe begonnen hat.',
+		notARehearsal: 'Anwesenheit gibt es nur für Proben.',
+		notSetUp: 'Anwesenheit: Fehlt noch in der Tabelle. Bitte einmal „Tabelle einrichten“ ausführen.',
+		nobody: 'Für diese Probe gibt es keine Mitglieder und keine Zusagen.',
+		conflict: 'Jemand hat die Anwesenheit inzwischen geändert. Lade die Seite neu und mach deine Änderung noch einmal.',
+		failed: 'Die Anwesenheit konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.',
+		mine: (present: number, of: number) => `Du warst bei ${present} von ${of} ${of === 1 ? 'Probe' : 'Proben'}, für die Anwesenheit erfasst ist.`,
+		overview: 'Anwesenheit bei den Proben',
+		overviewLead: (taken: number) => (taken === 1 ? 'Aus 1 Probe mit erfasster Anwesenheit.' : `Aus ${taken} Proben mit erfasster Anwesenheit.`),
+		overviewHint: 'Nur für die Person selbst und alle mit dem Recht „Anwesenheit erfassen“ sichtbar.',
+		person: 'Name',
+		total: 'Proben',
+		count: (present: number, of: number) => `${present}/${of}`
+	},
+	/** Offline use and the installable app (#62). */
+	/** /einstellungen: name, logo, colour and features per orchestra (#75, #134). */
+	settings: {
+		title: 'Einstellungen',
+		lead: 'Wie die App für alle aussieht und was sie anbietet.',
+		/** The settings' sections (#185): one page for every setting. */
+		sections: { label: 'Bereiche der Einstellungen', orchestra: 'Orchester', sheet: 'Tabelle & Daten', status: 'Status' },
+		identity: 'Name',
+		name: 'Name des Orchesters',
+		shortName: 'Kurzname',
+		shortNameHint: 'Für die Kopfzeile auf dem Handy, höchstens 24 Zeichen.',
+		privacy: 'Datenschutz',
+		retention: 'Namen bei Zu- und Absagen und Anwesenheit behalten für (Saisons)',
+		retentionPlaceholder: 'unbegrenzt',
+		retentionHint:
+			'Ältere Einträge bleiben ohne Namen stehen, damit Chronik und Saisonbericht weiter zählen. Eine Saison läuft von September bis August; die laufende zählt mit. Leer lässt alle Namen stehen.',
+		logo: 'Logo',
+		logoField: 'Link zum Logo',
+		logoHint: 'Ein quadratisches Bild als https-Link, z. B. von der Website des Orchesters, oder eine Datei der App wie /logo.png.',
+		logoPreview: 'Vorschau',
+		links: 'Website und Social Media',
+		linksField: 'Links unten auf jeder Seite',
+		linksHint: 'Ein Link pro Zeile, davor ein Name, z. B. „Instagram https://www.instagram.com/orchester/“. Instagram, Facebook und YouTube bekommen ihr Zeichen. Leer zeigt keine.',
+		colour: 'Farbe',
+		accent: 'Akzentfarbe',
+		accentDefault: (colour: string) => `Standardfarbe (${colour})`,
+		presets: 'Vorschläge',
+		presetNames: { gold: 'Gold', navy: 'Marineblau', petrol: 'Petrol', forest: 'Waldgrün', bordeaux: 'Bordeaux', violet: 'Violett' } as Record<string, string>,
+		colourHint: 'Für Hell und Dunkel wird die Farbe so weit angepasst, dass Text gut lesbar bleibt (mindestens 4,5:1).',
+		light: 'Hell',
+		dark: 'Dunkel',
+		sample: 'Knopf',
+		link: 'Link',
+		ratio: (value: string) => `Kontrast ${value}:1`,
+		look: 'Stil',
+		lookDefault: (look: string) => `Vorgabe der Installation (${look})`,
+		looks: {
+			bold: 'Kräftig: schmale, fette Überschriften und das Logo groß hinter der Begrüßung, wie auf Plakaten',
+			plain: 'Schlicht: klassische Überschriften mit Serifen, kein Logo im Hintergrund'
+		} as Record<string, string>,
+		lookNames: { bold: 'kräftig', plain: 'schlicht' } as Record<string, string>,
+		features: 'Funktionen',
+		featuresLead: 'Was das Orchester nicht nutzt, verschwindet aus Menüs und Seiten. Einträge in der Tabelle bleiben erhalten.',
+		featuresFromDefault: 'Noch nicht hier gespeichert: gezeigt ist die Vorgabe der Installation (FEATURES_OFF).',
+		describe: {
+			loans: 'Geliehene Noten mit Rückgabedatum.',
+			musicReport: 'Die Musikfolge für die GEMA beim Drucken eines Konzerts.',
+			attendance: 'Wer bei den Proben war.',
+			signups: 'Zu- und Absagen für Proben und Konzerte.',
+			wishes: 'Stücke und Ideen vorschlagen, mit +1.',
+			calendarFeed: 'Persönlicher Kalender zum Abonnieren im Profil.',
+			offline: 'Stimmen in „Meine Noten“ für die Probe ohne Netz speichern.',
+			seasons: 'Kleine Zeichnungen zur Jahreszeit: Schneeflocke, Blüte, Kürbis.',
+			tickets: 'Karten für Konzerte über die Website reservieren, bezahlt an der Abendkasse, mit Einlass per Handy.',
+			drills: 'Kurze Übungen zu Notenlesen, Tonarten, Intervallen, Rhythmus, Tönen, Tonleitern, Vom-Blatt-Spiel, Zusammenspiel und Transponieren. Sie laufen auf dem Gerät; nur die Übezeit zählt für die Probenzeit.'
+		} as Record<string, string>,
+		instruments: 'Instrumente',
+		instrumentsLead:
+			'Wie Instrumente in der App heißen und welche Schreibweisen in Dateinamen erkannt werden. Die Dateinamen selbst und die Namensprüfung bleiben beim Wort aus den Dateinamen.',
+		fileWord: 'In Dateinamen',
+		shownAs: 'In der App',
+		moreSpellings: 'Weitere Schreibweisen',
+		moreSpellingsHint: 'Weitere Schreibweisen durch Kommas trennen, z. B. „Violine, Vl.“.',
+		known: (words: string) => `Bekannt: ${words}`,
+		saveInstruments: 'Instrumente speichern',
+		instrumentsSaved: 'Gespeichert. Gilt sofort für alle.',
+		invalidInstrument: (name: string) => `Bei „${name}“: höchstens 30 Zeichen für den Namen, höchstens 12 Schreibweisen mit je 40 Zeichen, nur Buchstaben, Ziffern, Leerzeichen, Punkt und Bindestrich.`,
+		emptyIsDefault: 'Leere Felder nehmen die Vorgabe der Installation, sie steht grau im Feld.',
+		save: 'Speichern',
+		saved: 'Gespeichert. Die Änderungen gelten sofort für alle.',
+		failed: 'Speichern hat nicht geklappt. Gleich noch einmal versuchen.',
+		notConfigured: 'Es ist noch keine Repertoire-Tabelle verbunden; dort werden die Einstellungen gespeichert.',
+		readFailed: 'Die Einstellungen konnten gerade nicht gelesen werden.',
+		stored: 'Gespeichert im Blatt „Einstellungen“ der Repertoire-Tabelle.',
+		invalid: {
+			name: 'Der Name ist zu lang (höchstens 80 Zeichen).',
+			shortName: 'Der Kurzname ist zu lang (höchstens 24 Zeichen).',
+			logo: 'Das Logo muss ein https-Link sein oder mit / beginnen.',
+			accent: 'Die Farbe muss die Form #rrggbb haben.',
+			look: 'Bitte einen der Stile wählen.',
+			featuresOff: '',
+			retention: 'Die Aufbewahrung ist eine Zahl von Saisons, 1 bis 20, oder leer.',
+			links: 'Jede Zeile braucht einen Link, der mit https:// beginnt; höchstens 8.'
+		}
+	},
+	/** Parts of the app that can be turned off (#134), by their key in src/lib/features.ts. */
+	features: {
+		loans: 'Leihmaterial',
+		musicReport: 'Musikfolge (GEMA)',
+		attendance: 'Anwesenheit',
+		signups: 'Anmeldungen',
+		wishes: 'Wünsche',
+		calendarFeed: 'Kalender-Abo',
+		offline: 'Noten offline speichern',
+		seasons: 'Jahreszeiten',
+		tickets: 'Konzertkarten',
+		drills: 'Übebereich'
+	},
+	/** Concert tickets (docs/tickets-plan.md): the sale's setup, the mail, the ticket page and the door. */
+	tickets: {
+		title: 'Karten',
+		/** On the concert's page, for organisers. */
+		manage: 'Kartenverkauf',
+		door: 'Einlass',
+		doorHint: 'Karten scannen und Gäste einlassen',
+		manageHint: 'Plätze, Preise und Reservierungen',
+		notAConcert: 'Karten gibt es nur für Konzerte.',
+		setup: {
+			lead: 'Reservierungen über die Website, bezahlt wird an der Abendkasse. Gedruckte Karten aus dem Sekretariat zählen hier noch nicht mit: lass für sie Plätze frei.',
+			open: 'Verkauf auf der Website geöffnet',
+			capacity: 'Plätze online',
+			capacityHint: 'So viele Karten gibt es über die Website. Freie Platzwahl.',
+			prices: 'Preise',
+			pricesHint: 'Eine Kartenart pro Zeile, der Preis an der Kasse zuletzt: „Erwachsene 12“, „Ermäßigt 6,50“, „Kinder bis 12 0“.',
+			fee: 'Online-Zuschlag',
+			feeHint: 'Kommt bei Online-Karten auf den Preis, um die Gebühren zu decken. Die Website, die Mail und die Karte zeigen ihn immer getrennt vom Preis; an der Kasse gibt es ihn nicht, Freikarten bleiben frei.',
+			feePercent: 'Prozent vom Preis',
+			feeCents: 'Fester Betrag pro Karte (€)',
+			feeExample: (price: string, fee: string, total: string) => `Beispiel: ${price} + ${fee} Online-Zuschlag = ${total}`,
+			noFee: 'Kein Online-Zuschlag: Online-Karten kosten dasselbe wie an der Kasse.',
+			online: 'Online',
+			onlineUntil: 'Online-Verkauf endet',
+			onlineUntilHint: 'Danach gibt es Karten nur noch an der Abendkasse.',
+			save: 'Speichern',
+			saved: 'Gespeichert.',
+			badPrices: 'Jede Zeile braucht eine Kartenart und einen Preis, keine Art doppelt.',
+			badCapacity: 'Die Plätze müssen eine Zahl zwischen 1 und 5000 sein.',
+			badFee: 'Der Zuschlag muss zwischen 0 und 20 % und 0 und 5 € liegen.',
+			badUntil: 'Das Ende des Online-Verkaufs fehlt oder liegt nach dem Konzertbeginn.',
+			past: 'Das Konzert ist vorbei. Die Gästeliste wird einige Wochen danach gelöscht.'
+		},
+		counts: {
+			sold: 'Reserviert',
+			left: 'Frei',
+			checkedIn: 'Eingelassen',
+			free: 'Freikarten',
+			takings: 'An der Kasse zu kassieren',
+			fees: (fees: string) => `davon ${fees} Online-Zuschlag für die Gebühren`
+		},
+		orders: {
+			title: 'Reservierungen',
+			empty: 'Noch keine Reservierungen.',
+			tickets: (n: number) => (n === 1 ? '1 Karte' : `${n} Karten`),
+			cancelled: 'storniert',
+			paid: 'bezahlt',
+			cancel: 'Stornieren',
+			restore: 'Wiederherstellen',
+			markPaid: 'Bezahlt',
+			csv: 'Gästeliste als CSV',
+			csvHeader: (): string[] => ['Name', 'E-Mail', 'Karten', 'Kartenarten', 'Betrag', 'davon Online-Zuschlag', 'Status', 'Reserviert am'],
+			conflict: 'Für die wiederhergestellte Reservierung sind nicht mehr genug Plätze frei.',
+			free: 'Freikarte',
+			openTickets: 'Karten öffnen'
+		},
+		/** Freikarten the organisers hand out to named guests. */
+		free: {
+			title: 'Freikarten',
+			lead: 'Für Gäste, die nichts bezahlen. Freikarten kommen zu den Plätzen online hinzu und gelten am Einlass wie jede andere Karte.',
+			name: 'Name',
+			email: 'E-Mail (freiwillig)',
+			emailHint: 'Mit E-Mail bekommt der Gast den Link zu den Karten per Mail. Ohne gibst du ihn selbst weiter.',
+			count: 'Anzahl',
+			give: 'Freikarten anlegen',
+			given: (n: number, name: string) => `${n === 1 ? '1 Freikarte' : `${n} Freikarten`} für ${name} angelegt.`,
+			mailed: (email: string) => `Der Link ging per Mail an ${email}.`,
+			notMailed: 'Die Mail konnte nicht verschickt werden. Gib den Link selbst weiter.',
+			share: 'Gib diesen Link weiter oder druck die Karten aus:',
+			noSale: 'Freikarten gibt es, sobald der Kartenverkauf gespeichert ist, und nur vor dem Konzert.',
+			label: 'Freikarte',
+			nothingToPay: 'Freikarten: Es gibt nichts zu bezahlen.',
+			subject: (concert: string) => `Deine Freikarten: ${concert}`,
+			mailReserved: (concert: string, date: string, time: string) => `für ${concert} am ${date}${time ? `, ${time}` : ''} haben wir Freikarten für dich:`,
+			mailLine: (n: number) => (n === 1 ? '1 Freikarte, es gibt nichts zu bezahlen.' : `${n} Freikarten, es gibt nichts zu bezahlen.`)
+		},
+		mail: {
+			subject: (concert: string) => `Deine Karten: ${concert}`,
+			hello: (name: string) => `Hallo ${name},`,
+			reserved: (concert: string, date: string, time: string) => `deine Karten für ${concert} am ${date}${time ? `, ${time}` : ''} sind reserviert:`,
+			line: (n: number, label: string, price: string, fee: string, sum: string) => `${n} × ${label} à ${price}${fee} = ${sum}`,
+			lineFee: (base: string, fee: string) => ` (${base} + ${fee} Online-Zuschlag)`,
+			total: (total: string) => `Zusammen: ${total}`,
+			feeExplained: (fees: string) => `Darin sind ${fees} Online-Zuschlag. Er deckt die Gebühren des Online-Verkaufs; an der Kasse gekaufte Karten haben ihn nicht.`,
+			payAtDoor: 'Bezahlt wird an der Abendkasse, bevor du hineingehst.',
+			link: 'Deine Karten mit den Codes für den Einlass, zum Vorzeigen auf dem Handy oder ausgedruckt:',
+			codes: 'Die Codes deiner Karten:',
+			cancel: (orchestra: string) => `Du kannst nicht kommen? Antworte einfach auf diese Mail, dann geben wir die Plätze frei. Viel Freude beim Konzert!\n${orchestra}`
+		},
+		ticket: {
+			lead: 'Zeig die Codes am Einlass vor, auf dem Handy oder ausgedruckt. Jeder Code lässt eine Person hinein.',
+			of: (i: number, n: number) => `Karte ${i} von ${n}`,
+			freeSeating: 'Freie Platzwahl',
+			priceWithFee: (total: string, base: string, fee: string) => `${total} (${base} + ${fee} Online-Zuschlag)`,
+			total: 'Zusammen',
+			fee: 'Der Online-Zuschlag deckt die Gebühren des Online-Verkaufs. An der Kasse gekaufte Karten haben ihn nicht.',
+			payAtDoor: 'Bezahlt wird an der Abendkasse, bevor du hineingehst.',
+			cancelled: 'Diese Reservierung ist storniert. Die Codes gelten nicht mehr.',
+			print: 'Drucken',
+			code: 'Code'
+		},
+		doorPage: {
+			lead: 'Codes scannen und Gäste einlassen. Lade die Liste, solange du Netz hast; danach geht es auch ohne.',
+			load: 'Liste laden',
+			reload: 'Liste neu laden',
+			loaded: (n: number, time: string) => `${n} Karten, geladen um ${time}.`,
+			noList: 'Noch keine Liste auf diesem Gerät. Lade sie, solange du Netz hast.',
+			loadFailed: 'Die Liste konnte nicht geladen werden. Mit der gespeicherten geht es weiter.',
+			scan: 'Scannen',
+			stop: 'Kamera aus',
+			noCamera: 'Die Kamera ist nicht verfügbar. Gib den Code ein oder such nach dem Namen.',
+			code: 'Code eingeben',
+			check: 'Prüfen',
+			welcome: 'Willkommen!',
+			used: (time: string) => `Schon eingelassen um ${time}`,
+			unknown: 'Unbekannter Code',
+			search: 'Name suchen',
+			admit: 'Einlassen',
+			admitted: 'drin',
+			counter: (n: number, of: number) => `${n} von ${of} drin`,
+			pending: (n: number) => (n === 1 ? '1 Einlass wartet auf Netz' : `${n} Einlässe warten auf Netz`),
+			synced: 'Alles übertragen',
+			offline: 'Ohne Netz: Einlässe werden gespeichert und später übertragen.'
+		},
+		problems: {
+			name: 'Bitte gib deinen Namen an.',
+			email: 'Bitte gib eine gültige E-Mail-Adresse an.',
+			empty: 'Wähle mindestens eine Karte.',
+			tooMany: 'Höchstens 10 Karten pro Bestellung.',
+			unknownType: 'Diese Kartenart gibt es nicht.',
+			closed: 'Für dieses Konzert gibt es keine Karten online.',
+			ended: 'Der Online-Verkauf ist vorbei. Karten gibt es an der Abendkasse.',
+			soldout: 'Online ist alles vergeben. Vielleicht gibt es an der Abendkasse noch Karten.',
+			full: 'So viele Plätze sind nicht mehr frei.',
+			rate: 'Zu viele Bestellungen in kurzer Zeit. Versuch es später noch einmal.',
+			noConcert: 'Dieses Konzert gibt es nicht.',
+			count: 'Wähle zwischen 1 und 10 Karten.'
+		} as Record<string, string>
+	},
+	pwa: {
+		description: 'Noten, Proben und Konzerte des Orchesters, auch offline im Probenraum.',
+		offline: 'Offline: Du siehst die zuletzt geladene Fassung. Offline gespeicherte Noten lassen sich öffnen.',
+		save: 'Offline speichern',
+		saving: (done: number, total: number) => `Speichere ${done} von ${total} …`,
+		saved: (n: number) => (n === 1 ? '1 Stimme offline gespeichert' : `${n} Stimmen offline gespeichert`),
+		update: 'Offline-Kopie erneuern',
+		newVersion: 'Neue Version verfügbar',
+		reload: 'Neu laden',
+		remove: 'Offline-Kopie löschen',
+		failed: (n: number) => (n === 1 ? '1 Stimme ließ sich nicht speichern.' : `${n} Stimmen ließen sich nicht speichern.`),
+		hint: 'Deine Stimmen auf diesem Gerät, für den Probenraum ohne Netz.',
+		unsupported: 'Dieser Browser kann Noten nicht offline speichern.',
+		offlineBadge: 'offline da',
+		savePart: (label: string) => `${label} offline speichern`,
+		removePart: (label: string) => `${label}: Offline-Kopie löschen`,
+		shelf: {
+			title: 'Offline auf diesem Gerät',
+			lead: 'Diese Stimmen öffnen sich auch ohne Netz. Speichern kannst du jede Stimme auf der Seite ihres Stücks.',
+			count: (n: number) => (n === 1 ? '1 Stimme' : `${n} Stimmen`),
+			view: (label: string) => `${label} zum Üben öffnen`,
+			removeAll: 'Alle löschen',
+			confirmRemoveAll: 'Alle offline gespeicherten Stimmen von diesem Gerät löschen?'
+		}
+	},
+	/** The personal calendar feed (#122), on /profil and in the feed itself. */
+	feed: {
+		title: 'Termine im eigenen Kalender',
+		lead: 'Alle Termine in deiner Kalender-App, mit deiner Antwort (✓ ? ✗) und was geprobt wird.',
+		create: 'Kalender-Link erzeugen',
+		subscribe: 'Im Kalender abonnieren',
+		copy: 'Link kopieren',
+		copied: 'Kopiert',
+		renew: 'Neuen Link erzeugen',
+		revoke: 'Link sperren',
+		confirmRenew: 'Neuen Link erzeugen? Kalender, die den alten abonniert haben, bekommen dann keine Termine mehr.',
+		confirmRevoke: 'Link sperren? Kalender, die ihn abonniert haben, bekommen dann keine Termine mehr.',
+		hint: 'Persönlich, nicht weitergeben. Google Kalender: Weitere Kalender → Per URL.',
+		notSetUp: 'Noch nicht eingerichtet. Die Verwaltung muss einmal „Tabelle einrichten“ ausführen.',
+		failed: 'Der Link konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.',
+		program: 'Programm:',
+		rehearsed: 'Geprobt:',
+		answer: (answer: string) => `Deine Antwort: ${answer}`,
+		details: 'Details:',
+		parts: 'Deine Noten:',
+		calendarName: (orchestra: string) => `${orchestra} · Termine`,
+		/** The concerts for the orchestra's website (#197). */
+		publicCalendarName: (orchestra: string) => `${orchestra} · Konzerte`,
+		publicProgram: 'Programm:'
+	},
+	/** The planners' checklist on a concert page, worked out from the data. */
+	check: {
+		title: 'Konzert-Check',
+		lead: 'Was für dieses Konzert schon steht und was noch fehlt.',
+		allDone: 'Alles erledigt',
+		pieces: (n: number) => (n === 1 ? '1 Stück' : `${n} Stücken`),
+		open: (n: number) => (n === 1 ? '1 Punkt offen' : `${n} Punkte offen`),
+		program: (n: number) => (n === 1 ? 'Programm mit 1 Stück eingetragen' : `Programm mit ${n} Stücken eingetragen`),
+		noProgram: 'Noch kein Programm eingetragen',
+		partsComplete: 'Alle Stimmen im Archiv',
+		partGaps: (pieces: string) => `Bei ${pieces} fehlen Stimmen oder Seiten`,
+		planComplete: 'Jedes Stück ist in einer Probe eingeplant',
+		duration: (minutes: number) => `Dauer ca. ${minutes} Min.`,
+		durationGaps: (pieces: string) => `Bei ${pieces} fehlt die Dauer`,
+		loansDue: (titles: string) => `Leihmaterial muss vor dem Konzert zurück: ${titles}`,
+		returnLoans: (titles: string) => `Leihmaterial zurückgeben: ${titles}`,
+		reportReady: 'Musikfolge für die GEMA ist vollständig',
+		reportGaps: (pieces: string) => `Musikfolge: Bei ${pieces} fehlen noch Angaben`
+	},
+	duration: {
+		label: 'Dauer',
+		/** "ca. 74 Min. (2 Stücke ohne Dauer)" */
+		total: (minutes: number, missing: number) =>
+			`ca. ${minutes} Min.${missing ? ` (${missing === 1 ? '1 Stück' : `${missing} Stücke`} ohne Dauer)` : ''}`,
+		/** One piece's length next to dates and times, where "17:30" would read as a clock time (#218). */
+		minutes: (minutes: number) => `${minutes} Min.`,
+		unknown: 'Dauer noch unbekannt',
+		hint: 'Die Dauer steht beim Stück („Angaben bearbeiten“) und wird hier zusammengezählt.'
+	},
+	rehearsalPlan: {
+		title: 'Geprobt wird',
+		planned: 'Geprobt:',
+		empty: 'Noch nicht eingetragen.',
+		edit: 'Probenplan bearbeiten',
+		pageTitle: (concert: string) => `Probenplan: ${concert}`,
+		lead: 'Für jede Probe antippen, welche Stücke dran sind.',
+		all: 'Alle',
+		none: 'Keine',
+		past: 'vorbei',
+		count: (n: number) => (n === 1 ? '1 Stück' : `${n} Stücke`),
+		overview: 'Wie oft geprobt',
+		times: (n: number) => (n === 1 ? '1 Probe' : `${n} Proben`),
+		stillToCome: (n: number) => (n === 0 ? 'keine mehr' : `noch ${n}`),
+		never: 'nicht eingeplant',
+		unplanned: (n: number) => (n === 1 ? '1 Stück aus dem Programm ist in keiner Probe eingeplant.' : `${n} Stücke aus dem Programm sind in keiner Probe eingeplant.`),
+		notInProgram: 'nicht im Programm',
+		noProgram: 'Erst das Programm eintragen, dann den Probenplan.',
+		noRehearsals: 'Keine Proben im Kalender.',
+		notSetUp: 'In der Repertoire-Tabelle fehlt das Blatt „Proben“. Bitte einmal „Tabelle einrichten“ ausführen.',
+		notAConcert: 'Einen Probenplan gibt es nur für Konzerte aus dem Kalender.',
+		programLink: 'Programm bearbeiten',
+		save: 'Speichern',
+		cancel: 'Abbrechen',
+		saved: 'Probenplan gespeichert.',
+		conflict: 'Jemand hat den Probenplan inzwischen geändert. Lade die Seite neu und mach deine Änderung noch einmal.',
+		failed: 'Der Probenplan konnte nicht gelesen werden.'
+	},
+	naming: {
+		title: 'Dateinamen',
+		lead: 'Dateien, die nicht „<Kurztitel> - <Stimme>.pdf“ heißen, mit Vorschlag. Umbenannt wird nur, was angehakt ist.',
+		counts: (rename: number, unclear: number, folders: number) =>
+			`${rename} ${rename === 1 ? 'Vorschlag' : 'Vorschläge'} · ${unclear} unklar · in ${folders} ${folders === 1 ? 'Ordner' : 'Ordnern'}`,
+		shortTitle: 'Kurztitel',
+		openFolder: 'Ordner in Drive',
+		shortTitleHint: 'Steht vor jeder Stimme. Kurz halten, damit die Stimme auf dem Handy lesbar bleibt.',
+		long: 'lang fürs Handy',
+		unclear: 'unklar',
+		unclearHint: (words: string) => `Nicht erkannt: ${words}. Bitte von Hand umbenennen.`,
+		takenHint: (name: string) => `„${name}“ gibt es schon. Bitte von Hand umbenennen.`,
+		nothingHint: 'Keine Stimme erkannt. Bitte von Hand umbenennen.',
+		rename: (n: number) => (n === 1 ? '1 Datei umbenennen' : `${n} Dateien umbenennen`),
+		renamedIn: (n: number, folder: string) => `${n === 1 ? '1 Datei' : `${n} Dateien`} in „${folder}“ umbenannt.`,
+		all: 'Alle auswählen',
+		none: 'Alle Dateinamen folgen der Konvention.',
+		onlyUnclear: 'Nur noch Unklares',
+		noDriveWrite: 'Umbenennen ist aus: Die App darf Drive nur lesen (DRIVE_WRITE ist nicht gesetzt).',
+		progress: (done: number, total: number) => `Benenne um: ${done} von ${total} …`,
+		gone: 'Diesen Ordner gibt es nicht mehr. Bitte die Seite neu laden.',
+		failed: (names: string[]) => `Nicht umbenannt: ${names.join(', ')}`,
+		filter: { all: 'Alle Ordner', rename: 'Mit Vorschlägen', unclear: 'Mit Unklarem' },
+		failedLoad: 'Das Notenarchiv konnte gerade nicht geladen werden.'
+	},
+	gaps: {
+		title: 'Fehlende Stimmen',
+		lead: 'Alle Lücken im Archiv: aus den Dateinamen und den offenen Meldungen.',
+		all: 'Alle',
+		current: 'Aktuelle Programme',
+		counts: { missing: 'fehlen', empty: 'leer', incomplete: 'mit fehlenden Seiten', reports: 'davon nur gemeldet', hints: 'Hinweise aus der Prüfung', unscored: 'laut Besetzung ohne Stimme' },
+		unscored: 'laut Besetzung, keine Stimme',
+		scoresBad: 'Die gelesenen Besetzungen ließen sich nicht verarbeiten.',
+		/** Reading every score's Besetzung in the browser (#249). */
+		scores: {
+			title: 'Besetzung aus den Partituren lesen',
+			lead: (count: number) =>
+				`${count === 1 ? '1 Stück hat' : `${count} Stücke haben`} eine Partitur, aber noch keine Besetzung. Der Browser liest die Instrumentennamen am linken Rand der ersten Seite, eine Partitur nach der anderen. Gespeichert wird erst, was du übernimmst; eine eingetragene Besetzung bleibt.`,
+			ocr: 'Scans ohne Text per Texterkennung lesen (langsamer; lädt beim ersten Mal einige MB von jsDelivr, die Noten bleiben im Browser)',
+			start: 'Partituren lesen',
+			stop: 'Anhalten',
+			progress: (done: number, total: number) => `${done} von ${total} gelesen`,
+			withText: 'mit Textebene',
+			scans: 'Scans ohne Text',
+			byOcr: 'davon per Texterkennung gelesen',
+			found: 'Besetzung erkannt',
+			failed: 'nicht lesbar',
+			nothing: 'nichts erkannt',
+			scan: 'Scan, nicht gelesen',
+			take: (count: number) => (count === 1 ? '1 Besetzung übernehmen' : `${count} Besetzungen übernehmen`),
+			saved: (count: number) => (count === 1 ? '1 Besetzung gespeichert.' : `${count} Besetzungen gespeichert.`)
+		},
+		unscoredTitle: 'Die Besetzung des Stücks nennt dieses Instrument, aber im Archiv gibt es keine Stimme dafür, auch keine gemeinsame.',
+		hint: {
+			empty: 'vielleicht leer',
+			incomplete: (pages: number, usual: number) => `vielleicht unvollständig: ${pages} ${pages === 1 ? 'Seite' : 'Seiten'}, die anderen meist ${usual}`
+		},
+		hintTitle: 'Von der App gefunden: die Datei ist leer oder nicht lesbar, oder sie hat viel weniger Seiten als die anderen Stimmen.',
+		hintConfirm: (word: string) => `Als ${word} markieren`,
+		hintDismiss: 'Stimmt so',
+		hintGone: 'Diesen Hinweis gibt es nicht mehr.',
+		hintDriveFailed: 'Die Datei konnte in Drive nicht umbenannt werden. Bitte versuch es noch einmal oder benenn sie von Hand um.',
+		checkProgress: (checked: number, total: number) => `Die App prüft die Seiten der Stimmen nach und nach: ${checked} von ${total} PDFs geprüft.`,
+		reported: 'gemeldet',
+		reportedHint: 'In der App gemeldet. Der Dateiname in Drive sagt es noch nicht.',
+		none: 'Keine Lücken im Archiv.',
+		noneHere: 'In dieser Auswahl gibt es keine Lücken.',
+		failed: 'Das Notenarchiv konnte gerade nicht geladen werden.',
+		manage: 'Meldungen bearbeiten',
+		link: 'Alle fehlenden Stimmen',
+		done: 'erledigt',
+		doneHint: 'Als erledigt markiert, z. B. bestellt. Die Lücke verschwindet, sobald die Datei umbenannt ist.',
+		markDone: 'Erledigt',
+		markOpen: 'Wieder offen',
+		markGone: 'Diese Lücke ist noch nicht in der Liste; gleich noch einmal versuchen.',
+		/** Scan-Aufträge: Priorität und wer scannt, pro Lücke oder für alle Lücken eines Stücks. */
+		mine: 'Mir zugeteilt',
+		priority: 'Priorität',
+		priorities: { high: 'Priorität hoch', medium: 'Priorität mittel', low: 'Priorität niedrig' },
+		noPriority: 'ohne Priorität',
+		assignee: 'Wer scannt',
+		nobody: 'noch niemand',
+		assignedTo: (name: string) => `scannt: ${name}`,
+		assignedToMe: 'scannst du',
+		plan: 'Scan planen',
+		planAll: 'Für alle Lücken planen',
+		planAllHint: (n: number) => `Gilt für ${n === 1 ? 'die Lücke' : `alle ${n} Lücken`} dieses Stücks.`,
+		save: 'Speichern',
+		cancel: 'Abbrechen',
+		saved: 'Gespeichert.',
+		notScanner: 'Diese Person darf keine Noten bearbeiten. Gib ihr in „Mitglieder & Rechte“ die Rolle Notenwart.',
+		planGone: 'Diese Lücken sind noch nicht in der Liste; gleich noch einmal versuchen.',
+		push: {
+			title: 'Bitte scannen',
+			titleHigh: 'Bitte bald scannen',
+			body: (piece: string, parts: string[]) => `${piece}: ${parts.join(', ')}`
+		},
+		pieceTitle: 'Zu scannen',
+		pieceLead: 'Was in diesem Stück fehlt, wer es scannt und wie dringend.'
+	},
+	instrumentation: {
+		title: 'Besetzung',
+		lead: 'Welche Stimmen für dieses Programm da sind.',
+		onlyPlayed: 'Nur Instrumente der Mitglieder',
+		piece: 'Stück',
+		legend: {
+			own: 'Stimme da',
+			shared: 'Gemeinsame Stimme',
+			problem: 'Fehlt, leer oder es fehlen Seiten',
+			none: 'Keine Stimme'
+		},
+		noMusic: 'keine Noten',
+		gaps: (n: number) => (n === 1 ? '1 Lücke bei Instrumenten der Mitglieder' : `${n} Lücken bei Instrumenten der Mitglieder`)
+	},
+	myParts: {
+		title: 'Meine Noten',
+		lead: 'Deine Stimmen, in Programmreihenfolge.',
+		empty: 'Nach der Anmeldung findest du hier deine Stimmen für jedes Konzert.',
+		wholeProgram: 'Noch kein Probenplan, deshalb das ganze Programm.',
+		concert: 'Konzert',
+		jumpTo: 'Springen zu',
+		more: (n: number) => (n === 1 ? 'Noch 1 Konzert' : `Noch ${n} Konzerte`),
+		instrument: 'Instrument',
+		number: 'Stimme',
+		anyNumber: 'alle',
+		pickInstrument: 'Was spielst du? Einmal auswählen, dann sind deine Noten immer hier.',
+		unknownInstrument: (text: string) => `„${text}“ kennt die App nicht als Instrument. Bitte einmal auswählen.`,
+		save: 'Merken',
+		saved: 'Gemerkt.',
+		change: 'Ändern',
+		show: 'Anzeigen',
+		noConcert: 'Gerade steht kein Konzert mit Programm an.',
+		noProgram: 'Für dieses Konzert ist noch kein Programm eingetragen.',
+		shared: 'Gemeinsame Stimme',
+		/** The button that opens a part: what the tap does, not just the instrument (#223). */
+		open: (part: string) => `${part} öffnen`,
+		noPart: (instrument: string) => `Keine Stimme für ${instrument}`,
+		noMusic: 'Keine Noten im Archiv',
+		missing: 'fehlt im Archiv',
+		summary: (found: number, total: number) => `${found} von ${total} Stücken mit Stimme`,
+		merge: 'Als eine PDF',
+		/** Playing a concert from a tablet (#194). */
+		concertMode: {
+			open: 'Auftrittsmodus',
+			hint: 'Deine Stimmen in Programmfolge im Vollbild. Blättern mit Tippen oder Pedal geht gleich ins nächste Stück, der Bildschirm bleibt an.',
+			title: 'Auftrittsmodus',
+			piece: 'Stück',
+			night: 'Nacht'
+		},
+		merging: (done: number, total: number) => `Lade Stimme ${done} von ${total} …`,
+		mergeFailed: 'Die PDF konnte nicht erstellt werden. Die einzelnen Stimmen lassen sich weiter öffnen.',
+		skipped: (n: number) =>
+			n === 1 ? 'Eine Stimme fehlt in der PDF, sie ließ sich nicht laden:' : `${n} Stimmen fehlen in der PDF, sie ließen sich nicht laden:`,
+		skipOffline: 'keine Verbindung',
+		skipHttp: (status: number, text: string) => (status === 403 ? 'nicht angemeldet' : `Fehler ${status}${text ? ` – ${text.slice(0, 120)}` : ''}`),
+		skipUnreadable: 'die Datei ist keine lesbare PDF',
+		mergeHint: 'Fügt deine Stimmen in Programmreihenfolge zu einer Datei zusammen, zum Drucken oder fürs Tablet.',
+		mergeOff: 'Das Zusammenfügen geht nur mit Anmeldung.',
+		pickInstruments: 'Was spielst du? Einmal auswählen, dann sind deine Noten immer hier.',
+		paused: (until?: string) =>
+			until ? `Du bist bis ${until} pausiert. Deine Noten siehst du trotzdem.` : 'Du bist gerade pausiert. Deine Noten siehst du trotzdem.',
+		inactive: 'Du bist als inaktiv eingetragen. Deine Noten siehst du trotzdem.',
+		profileHint: 'Ändern lässt sich das auch im Profil.'
+	},
+	instruments: {
+		more: 'Mehr Instrumente …',
+		moreIn: (n: number) => `${n} weitere`,
+		holds: 'Enthält:',
+		holdsOf: (part: string) => `Instrumente in ${part}`,
+		addHeld: '+ Instrument',
+		/** Instruments already in the Besetzung on their own that this generic part could hold. */
+		suggestHeld: 'Schon gewählt:',
+		moveInto: (instrument: string, part: string) => `${instrument} in ${part} übernehmen`,
+		dragHint: 'In eine Sammelstimme ziehen',
+		solo: 'Solo',
+		soloHint: 'Solist:in vorne beim Dirigat. Ohne Stimmennummern spielt nur die Solist:in.',
+		choose: 'Instrument wählen',
+		search: 'Instrument suchen …',
+		common: 'Häufig',
+		none: (query: string) => `Kein Instrument passt zu „${query}“.`,
+		add: 'Weiteres Instrument',
+		remove: 'Instrument entfernen',
+		removeNamed: (name: string) => `${name} entfernen`,
+		change: 'Ändern',
+		done: 'Fertig',
+		chosen: (n: number) => (n === 1 ? '1 Instrument' : `${n} Instrumente`),
+		numbers: 'Stimmen',
+		numbersHint: 'keine Auswahl: alle Stimmen',
+		score: (label: string) => `Erste Seite: ${label}`,
+		scoreHint: 'Am linken Rand der ersten Seite stehen alle Instrumente der Partitur.'
+	},
+	/** Filters for a list, several at once (archive, calendar). */
+	filters: {
+		button: 'Filter',
+		active: (label: string, n: number) => `${label}, ${n} aktiv`,
+		close: 'Schließen',
+		reset: 'Zurücksetzen',
+		show: (n: number) => (n === 1 ? '1 Eintrag anzeigen' : `${n} anzeigen`),
+		would: (n: number) => (n === 1 ? '1 Eintrag' : `${n} Einträge`)
+	},
+	/** The Besetzung as a seating plan on the piece's page (#249). */
+	seating: {
+		title: 'Besetzung',
+		noPart: 'keine Stimme',
+		solo: 'Solo',
+		score: 'Partitur',
+		scoreShort: 'Part.',
+		missing: (names: string) => `Ohne Stimme im Archiv: ${names}`,
+		/** As scores abbreviate them, by the instrument names in the config. */
+		abbr: {
+			Geige: 'Vl',
+			Viola: 'Va',
+			Violoncello: 'Vc',
+			Kontrabass: 'Kb',
+			'E-Bass': 'E-B',
+			Blockflöte: 'Bfl',
+			'Tenor-Blockflöte': 'TBfl',
+			Piccolo: 'Picc',
+			Flöte: 'Fl',
+			Oboe: 'Ob',
+			Englischhorn: 'Eh',
+			Klarinette: 'Kl',
+			Altklarinette: 'AKl',
+			Bassklarinette: 'BKl',
+			Fagott: 'Fg',
+			'Sopran-Saxophon': 'SSax',
+			'Alt-Saxophon': 'ASax',
+			'Tenor-Saxophon': 'TSax',
+			'Bariton-Saxophon': 'BSax',
+			Saxophon: 'Sax',
+			Horn: 'Hr',
+			Trompete: 'Trp',
+			Posaune: 'Pos',
+			Bassposaune: 'BPos',
+			Bariton: 'Bar',
+			Tuba: 'Tb',
+			Pauke: 'Pk',
+			Schlagwerk: 'Schl',
+			Glockenspiel: 'Glsp',
+			Xylophon: 'Xyl',
+			Marimba: 'Mar',
+			Vibraphon: 'Vib',
+			Harfe: 'Hf',
+			Klavier: 'Klav',
+			Cembalo: 'Cemb',
+			Orgel: 'Org',
+			Chor: 'Chor',
+			Sopran: 'S',
+			Alt: 'A',
+			Tenor: 'T',
+			Bassstimme: 'B',
+			Frauenchor: 'FrCh',
+			Männerchor: 'MCh'
+		} as Record<string, string>
+	},
+	quickSearch: {
+		label: 'Schnellsuche',
+		open: 'Suchen',
+		shortcut: 'Strg K',
+		placeholder: 'Stück, Stimme, Konzert oder Seite …',
+		inArchive: (n: number) => (n === 1 ? 'Im Archiv zeigen' : `Alle ${n} im Archiv zeigen`),
+		pages: 'Seiten',
+		pieces: 'Stücke',
+		concerts: 'Konzerte',
+		upcoming: 'Demnächst',
+		recent: 'Zuletzt geöffnet',
+		loading: 'Lädt …',
+		none: (query: string) => `Nichts gefunden für „${query}“.`,
+		keys: '↑↓ wählen · ↵ öffnen · Esc schließen'
+	},
+	currentProgram: {
+		title: 'Aktuelles Programm im Drive',
+		sync: 'Abgleichen',
+		noFolder: (name: string) => `Noch kein Programmordner für ${name} – Abgleichen legt die Verknüpfungen an.`,
+		complete: (count: number, folder: string) => `Alle ${count} Stücke liegen im Programmordner »${folder}«.`,
+		partly: (linked: number, total: number, folder: string) => `${linked} von ${total} Stücken liegen im Programmordner »${folder}«.`,
+		extra: (count: number) => (count === 1 ? '1 anderes Stück liegt noch drin.' : `${count} andere Stücke liegen noch drin.`),
+		notNext: 'Nicht das nächste Konzert dieses Orchesters.',
+		done: (added: number, removed: number) => `Abgeglichen: ${added} ergänzt, ${removed} herausgenommen.`,
+		removedHint: 'Herausgenommene Verknüpfungen liegen im Papierkorb.',
+		stuck: (names: string[]) => `${names.map((name) => `»${name}«`).join(', ')} kann nur herausnehmen, wer die Verknüpfung angelegt hat: bitte von Hand im Drive löschen.`,
+		open: 'Ordner öffnen',
+		failed: 'Abgleichen hat nicht geklappt. Hat das Dienstkonto Bearbeitungsrechte für den Ordner?',
+		ambiguous: 'Mehrere Programmordner und kein Orchester am Konzert: bitte in der Tabelle das Orchester eintragen.',
+		none: 'Für dieses Orchester gibt es keinen Programmordner, und DRIVE_CURRENT_PROGRAM_FOLDER_ID nennt keinen Ordner, in dem einer entstehen kann.',
+		autoDone: 'Auch im Drive-Ordner »Aktuelles Programm« abgeglichen.',
+		autoFailed: 'Im Drive-Ordner »Aktuelles Programm« konnte das Programm nicht abgeglichen werden.'
+	},
+	polls: {
+		title: 'Terminumfragen',
+		lead: 'Termine abstimmen, bevor sie in den Kalender kommen – nur mit den Gruppen, die es angeht.',
+		notSetUp: 'Terminumfragen brauchen eine Datenbank (D1). Wie sie eingerichtet wird, steht in docs/setup-google.md.',
+		empty: 'Gerade läuft keine Umfrage für dich.',
+		open: 'Offen',
+		closed: 'Abgeschlossen',
+		yourTurn: 'Deine Antwort fehlt',
+		new: 'Neue Umfrage',
+		fields: {
+			title: 'Worum geht es?',
+			titleHint: 'z. B. Probenwochenende im Frühjahr',
+			note: 'Notiz (optional)',
+			dates: 'Termine zur Auswahl',
+			date: 'Datum',
+			until: 'letzter Tag (optional)',
+			datesHint: 'Für ein Wochenende einen letzten Tag angeben: dann steht Fr–Sa als eine Wahl.',
+			start: 'von',
+			end: 'bis',
+			addDate: 'Weiterer Termin',
+			removeDate: 'Termin entfernen',
+			groups: 'Für wen?',
+			deadline: 'Antworten bis (optional)'
+		},
+		create: 'Umfrage starten',
+		errors: {
+			title: 'Bitte angeben, worum es geht.',
+			options: 'Bitte mindestens zwei Termine angeben (höchstens 30).',
+			groups: 'Bitte mindestens eine Gruppe wählen.',
+			time: 'Bitte die Uhrzeiten prüfen: „bis“ kommt nach „von“.'
+		},
+		forGroups: (groups: string) => `Für ${groups}`,
+		by: (name: string) => `von ${name}`,
+		until: (date: string) => `Antworten bis ${date}`,
+		answers: (count: number) => (count === 1 ? '1 Antwort' : `${count} Antworten`),
+		answer: { yes: 'Ja', maybe: 'Vielleicht', no: 'Nein' },
+		you: 'Du',
+		comment: 'Kommentar (optional)',
+		save: 'Antwort speichern',
+		saved: 'Antwort gespeichert.',
+		best: 'Bester Termin',
+		chosen: 'Gewählt',
+		choose: 'Nehmen',
+		/** Closing with the ticked dates (#209): none, one, or several (a weekend). */
+		closeWith: (n: number) => (n === 0 ? 'Ohne Termin abschließen' : n === 1 ? 'Mit 1 Termin abschließen' : `Mit ${n} Terminen abschließen`),
+		reopen: 'Wieder öffnen',
+		remove: 'Umfrage löschen',
+		removeConfirm: 'Diese Umfrage mit allen Antworten löschen?',
+		toCalendar: 'In Google Kalender eintragen',
+		waiting: 'Noch keine Antwort von',
+		noAccess: 'Diese Umfrage ist nicht für dich.',
+		failed: 'Speichern hat nicht geklappt. Gleich noch einmal versuchen.'
+	},
+	auth: {
+		title: 'Anmelden',
+		lead: 'Melde dich an, um Noten, Konzerte und Programme zu sehen.',
+		button: 'Mit Google anmelden',
+		privacy: 'Die App erfährt dabei nur deinen Namen und deine E-Mail-Adresse.',
+		notReady: 'Die Anmeldung ist noch nicht fertig eingerichtet:',
+		errors: {
+			abgebrochen: 'Die Anmeldung wurde abgebrochen.',
+			abgelaufen: 'Die Anmeldung ist abgelaufen. Bitte versuch es noch einmal.',
+			konto: 'Dieses Google-Konto hat keine bestätigte E-Mail-Adresse.',
+			google: 'Google hat die Anmeldung gerade nicht bestätigt. Bitte versuch es noch einmal.'
+		} as Record<string, string>,
+		signedInAs: (email: string) => `Angemeldet als ${email}`,
+		logout: 'Abmelden',
+		switchAccount: 'Mit einem anderen Konto anmelden',
+		/** Several accounts on one device (an admin's and a member's, a shared tablet). */
+		accounts: {
+			title: 'Konten auf diesem Gerät',
+			lead: 'Ohne neue Anmeldung zwischen Konten wechseln, z. B. auf einem geteilten Gerät.',
+			add: 'Weiteres Konto hinzufügen',
+			switchTo: 'Wechseln',
+			forget: 'Entfernen',
+			forgetConfirm: (name: string) => `${name} von diesem Gerät entfernen?`,
+			current: 'Aktiv',
+			onDevice: 'Auf diesem Gerät gespeichert'
+		}
+	},
+	signups: {
+		title: 'Anmeldung',
+		question: 'Bist du dabei?',
+		answers: { yes: 'Ich komme', maybe: 'Vielleicht', no: 'Ich kann nicht' } as Record<string, string>,
+		answerValues: { yes: 'Zusage', maybe: 'Vielleicht', no: 'Absage' } as Record<string, string>,
+		yourAnswer: 'Deine Antwort',
+		/** On the start page, after the short line "Du kommst" (#214): shows the buttons again. */
+		change: 'ändern',
+		/** In the calendar list: what you answered, or that the date still waits for it. */
+		status: { yes: 'Du kommst', maybe: 'Vielleicht', no: 'Abgesagt', open: 'Antwort fehlt' } as Record<string, string>,
+		instrument: 'Instrument bei diesem Termin',
+		ownInstrument: (instrument: string) => (instrument ? `wie im Profil (${instrument})` : 'wie im Profil'),
+		comment: 'Kommentar (optional)',
+		commentHint: 'z. B. komme später',
+		details: 'Instrument oder Kommentar ändern',
+		save: 'Speichern',
+		saved: 'Gespeichert.',
+		withdraw: 'Antwort zurückziehen',
+		signInNeeded: 'Für Zu- und Absagen bitte anmelden.',
+		notSetUp: 'Anmeldungen: Fehlt noch in der Tabelle. Bitte einmal „Tabelle einrichten“ ausführen.',
+		failed: 'Die Antwort konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.',
+		gone: 'Diesen Termin gibt es nicht (mehr) oder er ist vorbei.',
+		coverage: 'Besetzung',
+		coverageLead: 'Zusagen je Stimme.',
+		byPart: 'Nach Stimmen getrennt',
+		summary: (yes: number, maybe: number, no: number, open: number) =>
+			[`${yes} ${yes === 1 ? 'Zusage' : 'Zusagen'}`, maybe && `${maybe} vielleicht`, no && `${no} ${no === 1 ? 'Absage' : 'Absagen'}`, open && `${open} offen`]
+				.filter(Boolean)
+				.join(' · '),
+		uncovered: 'niemand',
+		noInstrument: 'Ohne Instrument',
+		kinds: { yes: 'kommen', maybe: 'vielleicht', no: 'können nicht', open: 'offen' } as Record<string, string>,
+		comments: 'Kommentare',
+		noOne: 'Noch keine Antworten und keine Mitglieder mit Instrument.'
+	},
+	details: {
+		title: 'Angaben ergänzen',
+		lead: 'Stücke mit fehlenden Angaben, der Reihe nach ergänzen. Vorschläge helfen.',
+		filterLabel: 'Was fehlt',
+		filters: {
+			alle: 'Etwas fehlt',
+			komponist: 'Ohne Komponist',
+			genre: 'Ohne Genre',
+			hoerbeispiel: 'Ohne Hörbeispiel',
+			werkverzeichnis: 'Ohne Werkverzeichnis'
+		} as Record<string, string>,
+		missing: { composer: 'Komponist', genre: 'Genre', recording: 'Hörbeispiel', catalogue: 'Werkverzeichnis' } as Record<string, string>,
+		progress: (percent: number) => `${percent} % der Stücke vollständig`,
+		start: (n: number) => (n === 1 ? 'Das eine Stück bearbeiten' : `Der Reihe nach bearbeiten (${n})`),
+		working: (filter: string, open: number) => `Angaben ergänzen · ${filter}: noch ${open} ${open === 1 ? 'Stück' : 'Stücke'}.`,
+		saveNext: 'Speichern & weiter',
+		backToList: 'Zur Liste',
+		allDone: 'Geschafft: In dieser Liste ist nichts mehr offen.',
+		none: 'Hier fehlt nichts.',
+		noRecording: 'Gibt es keins',
+		noRecordingHint: (title: string) => `„${title}“ hat kein Hörbeispiel: nicht mehr danach fragen`,
+		noRecordingSaved: (title: string) => `„${title}“: als ohne Hörbeispiel vermerkt.`
+	},
+	suggest: {
+		title: 'Vorschläge',
+		lead: '„Übernehmen“ trägt ins Formular ein; gespeichert wird mit „Speichern“.',
+		fromScore: 'Aus den Noten lesen',
+		fileLabel: 'Aus welcher Datei lesen',
+		reading: 'Lese die Noten …',
+		online: 'Online nachschlagen',
+		searching: 'Suche bei Wikidata …',
+		youtube: 'Hörbeispiel auf YouTube suchen',
+		youtubeHint: 'Passende Aufnahme öffnen, Link kopieren, bei „Hörbeispiel“ einfügen.',
+		videoLength: 'Dauer aus dem Video',
+		videoLooking: 'Frage YouTube …',
+		videoNoLength: 'YouTube nennt für dieses Video keine Länge.',
+		videoFailed: 'YouTube ist gerade nicht erreichbar.',
+		whichWork: 'Welches Werk ist es?',
+		apply: 'Übernehmen',
+		/** Adds a name to a list field ("Mozart" → "Mozart, Haydn") instead of replacing it. */
+		add: 'Ergänzen',
+		applied: 'eingetragen',
+		openWikidata: 'Bei Wikidata ansehen',
+		sources: { score: 'aus den Noten', wikidata: 'Wikidata', archive: 'aus dem Archiv', youtube: 'Video' } as Record<string, string>,
+		scanOnly: 'Ein Scan ohne Text. Vielleicht hilft eine andere Stimme oder „Online nachschlagen“.',
+		ocr: 'Besetzung per Texterkennung',
+		ocrReading: 'Erkenne Text …',
+		ocrHint: 'Liest die Instrumentennamen am linken Rand der ersten Seite. Die Texterkennung lädt beim ersten Mal einige MB von jsDelivr; die Noten selbst bleiben im Browser.',
+		nothingInScan: 'Am linken Rand der ersten Seite ließen sich keine Instrumente erkennen.',
+		ocrFailed: 'Die Texterkennung ließ sich nicht laden oder ist fehlgeschlagen.',
+		nothingInScore: 'In den Noten steht kein Komponist, Arrangeur oder Werkverzeichnis, das sich sicher lesen lässt.',
+		downloadFailed: 'Die Datei konnte nicht geladen werden.',
+		unreadable: 'Die Datei ist keine lesbare PDF.',
+		nothingOnline: 'Wikidata kennt kein Werk mit diesem Titel. Vielleicht hilft der Originaltitel oder der Komponist im Formular.',
+		nothingInWork: 'Zu diesem Werk hat Wikidata keine weiteren Angaben.',
+		onlineFailed: 'Wikidata ist gerade nicht erreichbar.',
+		busy: 'Wikidata bittet um eine kurze Pause. In einer Minute geht es wieder.'
+	},
+	demo: {
+		label: 'Demo',
+		note: 'Erfundene Beispieldaten. Änderungen bleiben nur bis zum Neustart.',
+		viewAs: 'Ansehen als',
+		admin: 'Verwaltung',
+		member: 'Mitglied',
+		parent: 'Eltern',
+		reset: 'Zurücksetzen'
+	},
+	viewer: {
+		show: 'Noten ansehen',
+		hide: 'Noten ausblenden',
+		page: (page: number, pages: number) => `Seite ${page} von ${pages}`,
+		previous: 'Vorige Seite',
+		next: 'Nächste Seite',
+		larger: 'Größer',
+		smaller: 'Kleiner',
+		open: 'In neuem Tab öffnen',
+		loading: 'Lade die Noten …',
+		hint: 'Angaben von der Seite abtippen, oder im neuen Tab markieren und kopieren.'
+	},
+	/** Email and password sign-in: the form on /anmelden, signing up and resetting by email, the profile. */
+	password: {
+		email: 'E-Mail-Adresse',
+		password: 'Passwort',
+		signIn: 'Anmelden',
+		signInErrors: {
+			wrong: 'E-Mail-Adresse oder Passwort stimmt nicht.',
+			limited: 'Zu viele Versuche. Bitte in einer Viertelstunde noch einmal.',
+			failed: 'Das hat gerade nicht geklappt. Bitte versuch es noch einmal.'
+		} as Record<string, string>,
+		createOrReset: 'Konto anlegen oder Passwort vergessen?',
+		noMailHint: 'Noch kein Passwort? Lass dir von der Verwaltung einen persönlichen Link geben und leg im Profil ein Passwort fest.',
+		requestTitle: 'Passwort festlegen',
+		requestLead: 'Für ein neues Konto oder wenn du dein Passwort vergessen hast: Wir schicken dir einen Link, mit dem du ein Passwort festlegst.',
+		send: 'Link per E-Mail schicken',
+		sent: (email: string) => `Wir haben einen Link an ${email} geschickt. Er gilt eine Stunde. Schau auch im Spam-Ordner nach.`,
+		mailErrors: {
+			invalid: 'Bitte eine E-Mail-Adresse eingeben.',
+			limited: 'Zu viele Versuche. Bitte in einer Stunde noch einmal.',
+			failed: 'Das hat gerade nicht geklappt. Bitte versuch es noch einmal.'
+		} as Record<string, string>,
+		noMail: 'Gerade können keine E-Mails verschickt werden. Bitte frag die Verwaltung nach einem persönlichen Link; danach kannst du im Profil ein Passwort festlegen.',
+		toSignIn: 'Zur Anmeldung',
+		newSubject: (orchestra: string) => `Dein Konto: ${orchestra}`,
+		newBody: (name: string, orchestra: string, link: string) =>
+			`Hallo${name ? ` ${name}` : ''},\n\nmit diesem Link legst du dein Passwort für ${orchestra} fest. Er gilt eine Stunde:\n\n${link}\n\nDu wolltest kein Konto anlegen? Dann lösch diese E-Mail einfach.`,
+		resetSubject: (orchestra: string) => `Neues Passwort: ${orchestra}`,
+		resetBody: (name: string, link: string) =>
+			`Hallo${name ? ` ${name}` : ''},\n\nmit diesem Link legst du ein neues Passwort fest. Er gilt eine Stunde und nur einmal:\n\n${link}\n\nDu hast kein neues Passwort angefordert? Dann lösch diese E-Mail einfach; dein Passwort bleibt, wie es ist.`,
+		setTitle: 'Passwort festlegen',
+		resetTitle: 'Neues Passwort',
+		setLead: (email: string) => `Für ${email}.`,
+		newPassword: 'Neues Passwort',
+		repeat: 'Noch einmal',
+		current: 'Bisheriges Passwort',
+		rule: (min: number) => `Mindestens ${min} Zeichen. Ein Satz, den du dir merken kannst, ist besser als ein kurzes kompliziertes Wort.`,
+		problems: {
+			short: 'Das Passwort ist zu kurz.',
+			long: 'Das Passwort ist zu lang.',
+			mismatch: 'Die beiden Passwörter sind nicht gleich.'
+		} as Record<string, string>,
+		save: 'Passwort speichern',
+		failed: 'Das Passwort konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.',
+		linkInvalid: 'Dieser Link ist abgelaufen oder wurde schon benutzt.',
+		newLink: 'Neuen Link anfordern',
+		profileTitle: 'Passwort',
+		profileHas: (email: string) => `Du kannst dich mit ${email} und deinem Passwort anmelden. Ein neues Passwort meldet dich überall sonst ab.`,
+		profileNone: (email: string) => `Leg ein Passwort fest, dann meldest du dich auch mit ${email} und Passwort an.`,
+		set: 'Passwort festlegen',
+		change: 'Passwort ändern',
+		saved: 'Passwort gespeichert.',
+		wrongCurrent: 'Das bisherige Passwort stimmt nicht.',
+		forgot: 'Passwort vergessen?'
+	},
+	/** The member's own access link on /profil. */
+	ownLink: {
+		title: 'Persönlicher Zugangslink',
+		lead: 'Ein Link, mit dem du dich ohne Passwort anmeldest, z. B. auf einem zweiten Gerät.',
+		create: 'Zugangslink erzeugen',
+		show: 'Link anzeigen',
+		keep: 'Persönlich: Wer den Link hat, ist als du angemeldet. Nicht weitergeben.',
+		confirmRenew: 'Neuen Link erzeugen? Der alte gilt dann nicht mehr, und wer damit angemeldet ist, wird abgemeldet.',
+		confirmRenewViaLink: 'Neuen Link erzeugen? Der alte gilt dann nicht mehr; Geräte, die damit angemeldet sind, werden abgemeldet (dieses nicht).',
+		confirmRevoke: 'Link sperren? Wer damit angemeldet ist, wird abgemeldet.',
+		confirmRevokeViaLink: 'Link sperren? Du bist mit diesem Link angemeldet und wirst dann auch hier abgemeldet.',
+		revoked: 'Link gesperrt.'
+	},
+	accessLink: {
+		title: 'Zugang per Link',
+		hello: (name: string) => (name ? `Hallo ${name}!` : 'Hallo!'),
+		lead: 'Mit diesem persönlichen Link meldest du dich ohne Passwort an.',
+		signIn: 'Anmelden',
+		keep: 'Bewahre den Link gut auf und gib ihn nicht weiter. Er gilt, bis du (im Profil) oder die Verwaltung einen neuen erzeugt.',
+		invalid: 'Dieser Link gilt nicht mehr. Bitte frag die Verwaltung nach einem neuen.',
+		toSignIn: 'Zur Anmeldung'
+	},
+	/** Email (#123): sign-in links, reminders, the account on /status. */
+	email: {
+		or: 'oder',
+		toSignIn: 'Zur Anmeldung',
+		hello: (name: string) => (name ? `Hallo ${name},` : 'Hallo,'),
+		answerLinks: 'Antworten:',
+		openInApp: 'In der App:',
+		footer: (orchestra: string, profile: string) => `${orchestra}\nKeine Erinnerungen mehr per E-Mail: ${profile}`,
+		answerTitle: 'Deine Antwort',
+		answerLead: (name: string) => (name ? `${name}, bist du dabei?` : 'Bist du dabei?'),
+		answerSaved: (answer: string) => `Gespeichert: ${answer}. Ändern kannst du es jederzeit in der App.`,
+		answerInvalid: 'Dieser Link gilt nicht mehr: Der Termin ist vorbei oder du bist nicht mehr eingetragen.',
+		answerChange: 'Zum Termin in der App',
+		profileTitle: 'Erinnerungen per E-Mail',
+		profileLead: (email: string) =>
+			`An ${email}, wenn du auf eine Probe oder ein Konzert der nächsten Tage noch nicht geantwortet hast und auf keinem Gerät Benachrichtigungen an sind.`,
+		profileOn: 'An.',
+		profileOff: 'Abbestellt.',
+		turnOff: 'Abbestellen',
+		turnOn: 'Wieder einschalten',
+		profileFailed: 'Das hat nicht geklappt. Bitte versuch es noch einmal.',
+		status: 'E-Mail',
+		connected: (email: string, since: string) => `Verschickt von ${email} (verbunden am ${since}).`,
+		links: (origin: string) => `Links in E-Mails führen zu ${origin}.`,
+		optOuts: (n: number) => (n === 1 ? '1 Mitglied hat E-Mail-Erinnerungen abbestellt.' : `${n} Mitglieder haben E-Mail-Erinnerungen abbestellt.`),
+		notConnected: 'Kein E-Mail-Konto verbunden: Konto anlegen, Passwort vergessen und Erinnerungen per E-Mail sind aus.',
+		connectHint:
+			'Melde dich mit dem Google-Konto des Orchesters an, das die E-Mails verschicken soll. Google fragt nach der Erlaubnis, in seinem Namen E-Mails zu senden, mehr nicht. Im OAuth-Zustimmungsbildschirm muss die App „In Produktion“ sein, sonst endet die Erlaubnis nach 7 Tagen.',
+		needsSignIn: 'Erst die Anmeldung mit Google einrichten (Schritt 9).',
+		connect: 'E-Mail-Konto verbinden',
+		disconnect: 'Trennen',
+		confirmDisconnect: 'E-Mail-Konto trennen? Links zum Festlegen eines Passworts und E-Mail-Erinnerungen gehen dann nicht mehr raus.',
+		revoked: 'Google hat die Erlaubnis zum Senden zurückgenommen. Bitte das Konto neu verbinden.',
+		lastError: (message: string) => `Die letzte E-Mail ging nicht raus: ${message}`,
+		connectedNow: 'E-Mail-Konto verbunden.',
+		disconnectedNow: 'E-Mail-Konto getrennt.',
+		connectFailed: 'Das Konto konnte nicht verbunden werden. Bitte erlaube auf der Google-Seite das Senden von E-Mails und versuch es noch einmal.',
+		noScope: 'Google hat das Senden nicht erlaubt. Bitte beim Verbinden den Haken bei „E-Mails senden“ setzen.',
+		wrongUser: 'Nur wer die App verwaltet, kann ein E-Mail-Konto verbinden.'
+	},
+	access: {
+		title: 'Zugang beantragen',
+		hello: (name: string) => `Hallo ${name}!`,
+		lead: 'Du bist angemeldet, aber noch nicht als Mitglied freigeschaltet.',
+		request: 'Zugang beantragen',
+		nameLabel: 'Vor- und Nachname',
+		surnameNeeded: 'Bitte Vor- und Nachnamen angeben, damit die Verwaltung dich zuordnen kann.',
+		requested: 'Deine Anfrage ist angekommen. Sobald sie bestätigt ist, kannst du die App nutzen. Lade die Seite dann neu.',
+		unavailable: 'Anfragen sind gerade nicht möglich. Bitte melde dich direkt beim Vorstand.'
+	},
+	rights: {
+		ansehen: 'Stücke, Konzerte und Noten ansehen (hat jedes Mitglied)',
+		'programme.bearbeiten': 'Konzertprogramme bearbeiten',
+		'stuecke.bearbeiten': 'Angaben zu Stücken bearbeiten',
+		'archiv.bearbeiten': 'Frühere Konzerte und Stücke eintragen',
+		'anmeldungen.sehen': 'Zu- und Absagen aller sehen',
+		'anwesenheit.erfassen': 'Anwesenheit bei Proben erfassen und sehen',
+		'termine.planen': 'Terminumfragen anlegen, abschließen und alle sehen',
+		'karten.verwalten': 'Kartenverkauf für Konzerte einrichten und die Gästeliste sehen',
+		'karten.einlass': 'Karten am Einlass prüfen',
+		'kummerkasten.lesen': 'Kummerkasten lesen und beantworten (ohne zu sehen, wer schreibt)',
+		'eltern.informieren': 'Mitteilungen an die Eltern schreiben',
+		'ueben.begleiten': 'Übestand der Mitglieder sehen, die ihn teilen',
+		'mitglieder.verwalten': 'Mitglieder und Rechte verwalten'
+	},
+	/** Invitation links (/admin makes them, /auth/einladung/… uses them): someone new fills in their own details. */
+	invite: {
+		title: 'Willkommen!',
+		lead: 'Du bist eingeladen. Trag dich hier ein, dann kannst du gleich loslegen.',
+		aboutYou: 'Über dich',
+		signIn: 'So meldest du dich an',
+		signInLead: 'Mit dieser E-Mail-Adresse und dem Passwort meldest du dich ab jetzt an.',
+		join: 'Eintragen und loslegen',
+		nameMissing: 'Bitte deinen Vor- und Nachnamen eintragen.',
+		instrumentMissing: 'Bitte wähl mindestens ein Instrument.',
+		exists: 'Mit dieser E-Mail-Adresse bist du schon eingetragen. Melde dich einfach an.',
+		joinFailed: 'Das Eintragen hat gerade nicht geklappt. Bitte versuch es noch einmal.',
+		invalid: 'Diese Einladung ist abgelaufen oder wurde schon benutzt. Bitte frag die Verwaltung nach einer neuen.',
+		failed: 'Die Einladung konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.',
+		adminTitle: 'Per Link einladen',
+		adminLead: (days: number) =>
+			`Du schickst einen Link, und die Person trägt Name, E-Mail-Adresse, Passwort und Instrument selbst ein. Jeder Link gilt einmal und ${days} Tage.`,
+		label: 'Für wen? (optional)',
+		labelHint: 'Nur für dich, damit du den Link in der Liste wiedererkennst.',
+		roles: 'Rollen (optional)',
+		create: 'Einladungslink erzeugen',
+		created: 'Link erzeugt. Kopier ihn und schick ihn per Messenger oder E-Mail.',
+		open: 'Offene Einladungen',
+		unnamed: 'Ohne Namen',
+		until: (day: string) => `gilt bis ${day}`,
+		revoke: 'Zurückziehen',
+		confirmRevoke: 'Einladung zurückziehen? Der Link funktioniert dann nicht mehr.',
+		revoked: 'Einladung zurückgezogen.',
+		unavailable: 'Einladungen brauchen die Datenbank (D1), weil sich neue Mitglieder mit Passwort anmelden.'
+	},
+	admin: {
+		setupSections: 'Einrichtung',
+		title: 'Verwaltung',
+		lead: 'Mitglieder freischalten und Rechte vergeben.',
+		openSheet: 'Tabelle öffnen',
+		notSetUp: 'In der Repertoire-Tabelle fehlen die Blätter für Mitglieder und Rechte.',
+		runSetup: 'Tabelle einrichten',
+		requests: 'Zugangsanfragen',
+		noRequests: 'Keine offenen Anfragen.',
+		approve: 'Freischalten',
+		decline: 'Ablehnen',
+		approveAll: (n: number) => `Alle ${n} freischalten`,
+		declineAll: 'Alle ablehnen',
+		confirmDeclineAll: (n: number) => `Wirklich alle ${n} Anfragen ablehnen?`,
+		requestGone: 'Diese Anfrage gibt es nicht mehr.',
+		members: 'Mitglieder',
+		noMembers: 'Noch keine Mitglieder eingetragen.',
+		addMember: 'Mitglied hinzufügen',
+		email: 'E-Mail',
+		name: 'Vor- und Nachname',
+		instrument: 'Instrument',
+		groups: 'Gruppen',
+		groupsHint: 'mehrere mit Komma trennen',
+		add: 'Hinzufügen',
+		remove: 'Entfernen',
+		confirmRemove: (name: string) => `${name} wirklich entfernen?`,
+		rightsTitle: 'Rechte',
+		edit: 'Bearbeiten',
+		showEmails: 'E-Mail-Adressen anzeigen',
+		noSurname: 'Nachname fehlt',
+		noSurnameHint: 'Über „Bearbeiten“ ergänzen, damit gleiche Vornamen unterscheidbar bleiben.',
+		save: 'Speichern',
+		cancel: 'Abbrechen',
+		searchMembers: 'Mitglieder suchen …',
+		noInstrument: 'kein Instrument',
+		unknownInstrument: 'Dieses Instrument kennt die App nicht.',
+		memberGone: 'Dieses Mitglied gibt es nicht mehr. Bitte die Seite neu laden.',
+		effectiveRights: 'Darf',
+		noMemberMatch: 'Kein Mitglied passt zur Suche.',
+		memberCount: (n: number) => (n === 1 ? '1 Mitglied' : `${n} Mitglieder`),
+		filterMembers: 'Mitglieder filtern',
+		filterStatus: 'Status',
+		filterRole: 'Rolle',
+		filterOrchestra: 'Orchester',
+		filterAccess: 'Hinweise',
+		noInstrumentGroup: 'Ohne Instrument',
+		noRole: 'Ohne Rolle',
+		instrumentGroups: 'Instrumentgruppen',
+		instrumentGroupsLead: 'Wer aus welchen Stimmen spielt, für „Meine Noten“ und die Besetzung. Blatt „Instrumentgruppen“.',
+		instrumentGroupsDefaults: 'Es gelten die Voreinstellungen unten. Mit der ersten eigenen Gruppe landen sie im Blatt.',
+		instrumentGroupsUnknown: (names: string) => `Diese Namen kennt die App nicht als Instrument: ${names}`,
+		alsoPlayedBy: 'auch gespielt von',
+		mutual: 'gegenseitig mit',
+		groupPart: 'Stimme',
+		groupPartExample: 'Percussion',
+		groupPlayersExample: 'Schlagwerk, Mallet Percussion',
+		groupPlayers: 'Gespielt von (mit Komma trennen)',
+		mutualLabel: 'Gegenseitig: alle spielen die Stimmen der anderen',
+		groupMissing: 'Bitte eine Stimme und mindestens ein Instrument angeben.',
+		groupGone: 'Diese Gruppe hat sich in der Tabelle geändert. Bitte die Seite neu laden.',
+		rightsLead: 'Rechte gelten für eine E-Mail-Adresse oder eine Gruppe.',
+		who: 'Wer',
+		right: 'Recht',
+		grant: 'Vergeben',
+		revoke: 'Entziehen',
+		noGrants: 'Noch keine Rechte vergeben. Bootstrap-Admins haben immer alle Rechte.',
+		bootstrap: (emails: string) => `Immer alle Rechte (BOOTSTRAP_ADMINS): ${emails}`,
+		saved: 'Gespeichert.',
+		invalidEmail: 'Bitte eine gültige E-Mail-Adresse eingeben.',
+		exists: 'Diese E-Mail-Adresse ist schon eingetragen.',
+		grantExists: 'Dieses Recht ist schon vergeben.',
+		orchestras: 'Orchester',
+		status: 'Status',
+		roles: 'Rollen',
+		rolesLead: 'Eine Rolle ist eine Gruppe mit Rechten; vergeben über „Bearbeiten“. Blätter „Gruppen“ und „Rechte“.',
+		roleMembers: (n: number) => (n === 1 ? '1 Mitglied' : `${n} Mitglieder`),
+		roleNoRights: 'keine Rechte',
+		roleNameMissing: 'Bitte einen Namen für die Rolle angeben (keine E-Mail-Adresse).',
+		addRole: 'Rolle anlegen',
+		roleName: 'Name',
+		roleDescription: 'Beschreibung',
+		/** A role limited to some orchestras (#305). */
+		/** A role one person holds for some orchestras only (#305): Dirigat of A and B, not of the others. */
+		roleOnlyFor: 'nur für bestimmte Orchester',
+		roleOrchestrasFor: (role: string) => `Orchester, für die ${role} gilt`,
+		roleOrchestrasHint:
+			'Eine Rolle gilt für alle Orchester, außer du schränkst sie bei dieser Person ein. Dann gelten ihre Rechte nur für Termine, Programme und Anwesenheit dieser Orchester. In der Tabelle steht das als „Dirigat (A, B)“.',
+		addPresetRoles: (names: string) => `Standardrollen anlegen: ${names}`,
+		confirmRemoveRole: (name: string) => `Rolle „${name}“ mit ihren Rechten entfernen?`,
+		singleRights: 'Einzelne Rechte',
+		singleRightsLead: 'Rechte für eine einzelne Person. Meist ist eine Rolle besser.',
+		memberRoles: 'Rollen und Gruppen',
+		/** For a parent account: its children among the members. */
+		children: 'Kinder',
+		childrenHint: 'Für Eltern: ihre Kinder, die bei uns spielen, mit Komma getrennt (Name oder E-Mail). Mit Status „Eltern“ sieht das Konto nur den Elternbereich.',
+		childrenUnknown: (names: string) => `Nicht in der Mitgliederliste: ${names}`,
+		linkUnavailable: 'Zugangslinks brauchen die Anmeldung mit SESSION_SECRET.',
+		accessLink: 'Zugangslink',
+		accessLinkActive: 'Zugang per Link',
+		accessLinkRevoked: 'Link gesperrt',
+		linkShow: 'Link anzeigen',
+		linkNew: 'Neuen Link erzeugen',
+		linkCreate: 'Zugangslink erzeugen',
+		linkRevoke: 'Link sperren',
+		linkHint: 'Für Mitglieder ohne Google-Konto, z. B. per WhatsApp schicken. Ein neuer Link oder „Sperren“ beendet den alten.',
+		linkFor: (name: string) => `Persönlicher Link für ${name}:`,
+		copy: 'Kopieren',
+		copied: 'Kopiert',
+		confirmNewLink: (name: string) => `Neuen Link für ${name} erzeugen? Der bisherige gilt dann nicht mehr.`,
+		confirmRevokeLink: (name: string) => `Link für ${name} sperren? Wer damit angemeldet ist, wird abgemeldet.`
+	},
+	profile: {
+		title: 'Profil',
+		lead: 'Deine Angaben und Einstellungen, nach Themen geordnet.',
+		settings: 'Einstellungen',
+		sections: {
+			jump: 'Auf dieser Seite',
+			about: 'Über dich',
+			aboutLead: 'Was du spielst und ob du gerade dabei bist. Danach richten sich deine Noten und die Besetzung.',
+			notify: 'Benachrichtigungen & Kalender',
+			notifyLead: 'Wie du von Proben und Konzerten erfährst.',
+			app: 'Ansicht & App',
+			appLead: 'Wie die App aussieht, auf diesem Gerät.',
+			practice: 'Üben & deine Daten',
+			practiceLead: 'Was die App nur für dich speichert, und alles zum Mitnehmen.',
+			signIn: 'Anmeldung & Sicherheit',
+			signInLead: 'Womit du dich anmeldest, und abmelden.'
+		},
+		notMember: 'Das Profil gibt es für eingetragene Mitglieder.',
+		name: 'Vor- und Nachname',
+		instruments: 'Instrumente',
+		orchestras: 'Orchester',
+		orchestrasHint: 'Keins angekreuzt: Du siehst die Konzerte aller Orchester.',
+		status: 'Status',
+		statuses: { aktiv: 'aktiv', pausiert: 'pausiert', inaktiv: 'inaktiv', verwaltung: 'nur Verwaltung', eltern: 'Eltern' } as Record<string, string>,
+		statusHints: {
+			aktiv: 'Du zählst bei der Besetzung mit.',
+			pausiert: 'Zum Beispiel Auslandssemester oder Elternzeit. Mit Datum wirst du danach automatisch wieder aktiv.',
+			inaktiv: 'Du behältst den Zugang, zählst aber bei der Besetzung nicht mit.',
+			verwaltung: 'Ein reines Verwaltungskonto, das nicht mitspielt: Es taucht bei Anmeldungen, Anwesenheit und Umfragen nicht auf.',
+			eltern: 'Ein Elternteil, das nicht mitspielt: Es sieht nur den Elternbereich mit den Terminen seiner Kinder, keine Noten.'
+		} as Record<string, string>,
+		pausedUntil: 'Pausiert bis (optional)',
+		pausedUntilShort: (day: string) => `bis ${day}`,
+		save: 'Speichern',
+		saved: 'Gespeichert.',
+		groups: 'Gruppen',
+		groupsHint: 'Gruppen und Rechte vergibt die Verwaltung.',
+		gone: 'Dein Eintrag in „Mitglieder“ wurde nicht gefunden. Bitte die Seite neu laden.',
+		failed: 'Das Profil konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.',
+		unknownStatus: 'Diesen Status gibt es nicht.',
+		badDate: 'Das Datum ist nicht lesbar.'
+	},
+	/** The tour for new members: the essentials, then setting the app up on their profile; retaken from /profil. */
+	tour: {
+		label: 'Tour durch die App',
+		welcome: (name: string) => (name ? `Willkommen, ${name}!` : 'Willkommen!'),
+		offer: 'In zwei Minuten siehst du, wo deine Termine und Noten sind, und richtest die App für dich ein.',
+		offerOpen: 'In einer Minute siehst du, wo die Termine und Noten sind.',
+		chapters: {
+			basics: 'Das Wichtigste',
+			basicsHint: (n: number) => `${n} kurze Schritte`,
+			setup: 'Für dich einrichten',
+			setupHint: 'Instrument, Ansicht, Erinnerungen'
+		},
+		start: 'Tour starten',
+		skip: 'Überspringen',
+		end: 'Tour beenden',
+		back: 'Zurück',
+		next: 'Weiter',
+		finish: 'Fertig',
+		step: (n: number, of: number) => `Schritt ${n} von ${of}`,
+		setupOffer: {
+			title: 'Das Wichtigste kennst du',
+			body: 'Magst du die App noch kurz für dich einrichten? Das dauert eine Minute.',
+			start: 'Einrichten',
+			later: 'Später'
+		},
+		steps: {
+			home: { title: 'Dein nächster Termin', body: 'Hier steht immer, was als Nächstes ansteht. Mit einem Tipp sagst du zu oder ab und öffnest deine Noten dafür.' },
+			parts: { title: 'Meine Noten', body: 'Deine Stimmen für die nächsten Proben und Konzerte, passend zu deinem Instrument. Offline gespeichert gehen sie auch im Probenraum ohne Netz.' },
+			calendar: { title: 'Kalender', body: 'Alle Proben und Konzerte mit Zeit, Ort und Programm. Hier antwortest du auch auf spätere Termine.' },
+			pieces: { title: 'Archiv', body: 'Jedes Stück mit Noten, Hörbeispielen und Hinweisen, unter „Mehr“. Das Feld hier filtert die Liste, auch nach Stimme; die Lupe oben findet alles in der App.' },
+			more: { title: 'Mehr', body: 'Alle weiteren Seiten, zum Beispiel das Archiv und die Chronik. Ganz unten stellst du hell oder dunkel und die Schriftgröße ein.' },
+			instruments: { title: 'Dein Instrument', body: 'Trag ein, was du spielst; danach richtet sich „Meine Noten“. Mit „Speichern“ gilt es überall.' },
+			view: { title: 'Ansicht und Schrift', body: 'Hell, dunkel oder wie dein Gerät, und die Schrift größer, wenn du magst. Probier es gleich aus.' },
+			notifications: { title: 'Erinnerungen', body: 'Lass dich an Antworten, Proben und Leihmaterial erinnern: auf diesem Gerät oder per E-Mail.' },
+			install: { title: 'Aufs Handy', body: 'Als App auf dem Startbildschirm öffnet sich alles mit einem Tipp, auch ohne Netz. Die Anleitung zeigt dir, wie.' },
+			done: { title: 'Fertig!', body: 'Viel Spaß beim Spielen. Die Tour findest du hier jederzeit wieder.' },
+			doneOpen: { title: 'Fertig!', body: 'Viel Spaß beim Spielen. Hell, dunkel und die Schriftgröße findest du unter „Mehr“.' }
+		},
+		retake: 'Tour noch einmal machen',
+		retakeHint: 'Das Wichtigste und deine Einstellungen, Schritt für Schritt.'
+	},
+	/** The app on the home screen (#279): the start page's hint, /install and the profile's entry. */
+	install: {
+		title: (name: string) => `${name} auf deinem Handy`,
+		entryHint: 'Installation und Hilfe',
+		entryInstalled: 'Installiert · Anleitung und Hilfe',
+		pageTitle: 'App installieren',
+		lead: (name: string) => `Leg ${name} auf deinen Startbildschirm. Dann öffnet es sich mit einem Tipp, wie jede andere App.`,
+		shareDescription: 'Noten, Proben und Konzerte als App auf dem Handy, in einer Minute eingerichtet.',
+		benefits: {
+			parts: { title: 'Deine Noten mit einem Tipp', body: 'Termine und Stimmen öffnen sich sofort, ohne Suchen im Browser.' },
+			offline: { title: 'Auch ohne Netz', body: 'Gespeicherte Stimmen und zuletzt geöffnete Seiten gehen im Probenraum ohne Empfang.' },
+			reminders: { title: 'Erinnerungen', body: 'Auf dem iPhone gibt es Benachrichtigungen nur für die App auf dem Startbildschirm.' }
+		},
+		hint: {
+			title: (name: string) => `Installiere die ${name}-App`,
+			body: 'Deine Noten, Termine und Konzertinformationen, jederzeit griffbereit.',
+			install: 'Jetzt installieren',
+			later: 'Später',
+			never: 'Nicht mehr fragen'
+		},
+		device: 'Dein Gerät',
+		platforms: { ios: 'iPhone, iPad', android: 'Android', desktop: 'Computer' },
+		oneTap: {
+			title: 'Mit einem Tipp installieren',
+			body: 'Dein Browser kann die App direkt installieren. Er fragt einmal nach, dann liegt sie auf deinem Startbildschirm.',
+			button: 'Jetzt installieren',
+			manual: 'Lieber Schritt für Schritt'
+		},
+		step: (n: number, of: number) => `Schritt ${n} von ${of}`,
+		back: 'Zurück',
+		next: 'Weiter',
+		finish: 'Erledigt',
+		restart: 'Noch einmal von vorn',
+		notSafari: 'Auf dem iPhone klappt das am sichersten in Safari. Kopiere den Link und öffne ihn dort.',
+		fromApp: 'Kommst du aus WhatsApp? Tippe unten rechts auf das Kompass-Symbol oder auf „In Safari öffnen“.',
+		otherAndroid: 'Diese Seite ist im Browser einer anderen App offen. Tippe auf die drei Punkte und „Im Browser öffnen“, dann geht es in Chrome weiter.',
+		samsung: 'Samsung Internet warnt beim Installieren vor einer alten Android-Version; das liegt am Browser, nicht an der App. Am besten öffnest du die Seite in Chrome.',
+		firefox: 'Firefox kann Web-Apps auf dem Computer nicht installieren. Öffne die Seite in Chrome oder Edge, oder leg dir ein Lesezeichen an.',
+		copyLink: 'Link kopieren',
+		copied: 'Kopiert',
+		steps: {
+			ios: [
+				{ title: 'Tippe auf „Teilen“', body: 'Das Quadrat mit dem Pfeil nach oben, in der Leiste von Safari. Siehst du es nicht, tippe zuerst auf die drei Punkte unten rechts.' },
+				{ title: '„Zum Home-Bildschirm“ wählen', body: 'Schieb die Liste etwas nach oben, bis du „Zum Home-Bildschirm“ siehst, und tippe darauf.' },
+				{ title: 'Auf „Hinzufügen“ tippen', body: 'Oben rechts. Den Namen kannst du so lassen.' }
+			] as InstallSteps,
+			iosMenu: [
+				{ title: 'Tippe auf die drei Punkte', body: 'Unten rechts, neben der Adresse.' },
+				{ title: 'Tippe auf „Teilen“', body: 'Ganz oben im Menü.' },
+				{ title: '„Zum Home-Bildschirm“ wählen', body: 'Schieb die Liste nach oben. Steht es nicht da, tippe zuerst auf „Mehr“.' },
+				{ title: 'Auf „Hinzufügen“ tippen', body: '„Als Web-App öffnen“ bleibt an. Dann oben rechts auf „Hinzufügen“.' }
+			] as InstallSteps,
+			android: [
+				{ title: 'Öffne das Menü', body: 'Tippe oben rechts auf die drei Punkte.' },
+				{ title: '„App installieren“ wählen', body: 'Je nach Version heißt es auch „Zum Startbildschirm hinzufügen“.' },
+				{ title: 'Auf „Installieren“ tippen', body: 'Kurz warten: Das Symbol erscheint auf deinem Startbildschirm.' }
+			] as InstallSteps,
+			desktop: [
+				{ title: 'Auf das Installieren-Symbol klicken', body: 'Rechts in der Adressleiste: ein Bildschirm mit einem Pfeil. Oder im Menü (drei Punkte) „Seite als App installieren“.' },
+				{ title: 'Auf „Installieren“ klicken', body: 'Die App öffnet sich in einem eigenen Fenster und liegt danach im Startmenü oder im Dock.' }
+			] as InstallSteps,
+			mac: [
+				{ title: 'Menü „Ablage“ öffnen', body: 'Oben in der Menüleiste von Safari.' },
+				{ title: '„Zum Dock hinzufügen“ wählen', body: 'Dann auf „Hinzufügen“ klicken. Das geht ab macOS Sonoma.' }
+			] as InstallSteps
+		},
+		done: {
+			title: 'Geschafft!',
+			body: (name: string) => `${name} ist jetzt auf deinem Startbildschirm. Du kannst die App jederzeit direkt öffnen und deine Noten auch offline nutzen.`
+		},
+		standalone: { title: 'Du nutzt schon die App', body: 'Du hast sie vom Startbildschirm aus geöffnet. Hier ist nichts mehr zu tun.' },
+		manualDone: {
+			title: 'Schau auf deinen Startbildschirm',
+			body: (name: string) => `Dort sollte jetzt das Symbol von ${name} liegen. Öffne die App künftig darüber, dann geht alles mit einem Tipp, auch ohne Netz.`
+		},
+		open: 'Zur App'
+	},
+	/** Everything the sheet keeps about a member, as one file (#158). */
+	myData: {
+		drills: 'Übebereich (geteilt)',
+		title: 'Meine Daten',
+		lead: 'Alles, was die App über dich speichert: dein Eintrag, Zu- und Absagen, Anwesenheit, Meldungen, Wünsche und Notizen aus der Repertoire-Tabelle, dazu deine Geräte für Benachrichtigungen, die Erinnerungen, die du bekommen hast, und deine Antworten in Terminumfragen.',
+		download: 'Meine Daten herunterladen',
+		hint: 'Eine JSON-Datei, die sich mit jedem Texteditor öffnen lässt. Zum Ändern oder Löschen wende dich an die Verwaltung.',
+		fileName: 'meine-daten',
+		explain: 'Deine Zeilen aus der Repertoire-Tabelle des Orchesters, nach Blatt, mit den Spaltennamen der Tabelle; dazu, was die App selbst in ihrer Datenbank (D1) über dich speichert.',
+		/** From D1 (#161): devices with notifications on, and the reminders sent. */
+		devices: 'Geräte für Benachrichtigungen',
+		pushService: 'Zustelldienst',
+		since: 'Angemeldet seit (UTC)',
+		keys: 'Schlüssel zum Verschlüsseln',
+		keysStored: 'gespeichert, hier nicht ausgegeben',
+		polls: 'Terminumfragen',
+		poll: 'Umfrage',
+		pollDate: 'Termin',
+		pollAnswer: 'Antwort',
+		pollComment: 'Kommentar',
+		pollAnsweredAt: 'Geantwortet (UTC)',
+		reminders: 'Verschickte Erinnerungen',
+		mailReminders: 'Erinnerungen per E-Mail',
+		mailState: 'Stand',
+		mailOff: 'abbestellt',
+		tour: 'Tour durch die App',
+		tourDone: 'bis zum Ende angesehen',
+		tourSkipped: 'übersprungen',
+		reminderKind: 'Art',
+		reminderAbout: 'Wofür',
+		sentAt: 'Verschickt (UTC)',
+		reminderKinds: { signup: 'Zu- oder Absage fehlt', 'loan-due': 'Leihmaterial bald fällig', 'loan-overdue': 'Leihmaterial überfällig' } as Record<string, string>,
+		myVote: 'Mein +1',
+		yes: 'ja',
+		no: 'nein'
+	},
+	/** The Übebereich (#300, #315): drills on the device, nothing sent. */
+	drills: {
+		title: 'Übebereich',
+		lead: 'Ein paar Minuten am Tag: Noten lesen, Tonarten erkennen, Intervalle hören, Rhythmen klopfen, Töne treffen, Tonleitern spielen, vom Blatt spielen, einsetzen und im Akkord stimmen, transponieren. Die Übungen passen sich dir an.',
+		private: 'Dein Fortschritt und das Mikrofon bleiben auf diesem Gerät. Gesendet wird höchstens die Übezeit, wenn du die Probenzeit aufzeichnest.',
+		unsaved: 'Dieser Browser kann den Fortschritt nicht speichern (ein privates Fenster?). Üben geht trotzdem.',
+		instrument: 'Instrument',
+		clef: 'Schlüssel',
+		clefs: { treble: 'Violinschlüssel', bass: 'Bassschlüssel', alto: 'Altschlüssel', tenor: 'Tenorschlüssel' },
+		instruments: {
+			violin: 'Violine',
+			viola: 'Bratsche',
+			cello: 'Violoncello',
+			doubleBass: 'Kontrabass',
+			flute: 'Flöte',
+			piccolo: 'Piccolo',
+			oboe: 'Oboe',
+			englishHorn: 'Englischhorn',
+			clarinet: 'Klarinette in B',
+			bassClarinet: 'Bassklarinette',
+			bassoon: 'Fagott',
+			sopranoSax: 'Sopransaxophon',
+			altoSax: 'Altsaxophon',
+			tenorSax: 'Tenorsaxophon',
+			baritoneSax: 'Baritonsaxophon',
+			horn: 'Horn in F',
+			trumpet: 'Trompete in B',
+			trombone: 'Posaune',
+			euphonium: 'Euphonium, Tenorhorn',
+			tuba: 'Tuba',
+			timpani: 'Pauken',
+			mallets: 'Stabspiele',
+			keys: 'Tasteninstrument, Harfe',
+			highVoice: 'Hohe Stimme',
+			lowVoice: 'Tiefe Stimme',
+			treble: 'Anderes, im Violinschlüssel',
+			bass: 'Anderes, im Bassschlüssel'
+		},
+		kinds: {
+			mix: { title: 'Tagesrunde', lead: 'Rund zehn Minuten: einspielen, wiederholen, was dran ist, eine neue Melodie vom Blatt.' },
+			notes: { title: 'Noten lesen', lead: 'Welcher Ton ist das? So schnell, wie du sicher bist.' },
+			keys: { title: 'Tonarten', lead: 'Welche Tonart hat diese Vorzeichnung?' },
+			play: { title: 'Töne spielen', lead: 'Spiel den Ton; das Mikrofon hört, ob er stimmt.' },
+			ear: { title: 'Intervalle hören', lead: 'Zwei Töne: wie weit liegen sie auseinander? Später Dreiklänge und kurze Hördiktate.' },
+			rhythm: { title: 'Rhythmus', lead: 'Lesen, anhören, nachklopfen: ein Takt nach dem Einzählen.' },
+			pulse: { title: 'Puls halten', lead: 'Das Metronom wird leiser und verstummt; du klopfst im Tempo weiter.' },
+			entry: { title: 'Einsätze', lead: 'Pausen zählen, dem Dirigenten folgen, pünktlich einsetzen, mit Begleitung.' },
+			tune: { title: 'Im Akkord stimmen', lead: 'Ein Akkord klingt: spiel Terz, Quarte oder Quinte so, dass sie rein klingt.' },
+			sight: { title: 'Vom Blatt', lead: 'Jedes Mal eine neue kurze Melodie: kurz ansehen, einzählen, durchspielen.' },
+			scale: { title: 'Tonleitern', lead: 'Tonleitern und Dreiklänge auf und ab, über einem Liegeton. Jeder Ton zeigt, ob er saß.' },
+			trans: { title: 'Transponieren', lead: 'Welcher Ton klingt, und wie liest du Stimmen in anderen Stimmungen?' }
+		},
+		start: 'Los',
+		again: 'Noch eine Runde',
+		back: 'Zur Übersicht',
+		stop: 'Runde beenden',
+		mastered: (mastered: number, total: number) => `${mastered} von ${total} sicher`,
+		due: (count: number) => (count === 1 ? '1 heute dran' : `${count} heute dran`),
+		fresh: 'Noch nicht angefangen',
+		known: (count: number) => `${count} schon gekonnt, wird bald geprüft`,
+		today: (minutes: number, goal: number) => `Heute ${minutes} von ${goal} Minuten`,
+		streak: (days: number) => (days === 1 ? '1 Tag in Folge' : `${days} Tage in Folge`),
+		streakHint: 'Ein freier Tag dazwischen unterbricht die Serie nicht.',
+		history: {
+			title: 'Die letzten zwei Wochen',
+			label: 'Übezeit pro Tag in den letzten zwei Wochen',
+			goal: (goal: number) => `Tagesziel ${goal} Minuten`,
+			day: 'Tag',
+			minutes: 'Minuten',
+			right: 'richtig',
+			pace: 'pro Antwort',
+			none: 'nicht geübt',
+			tip: (date: string, minutes: string, right: string, pace: string) => `${date}: ${minutes} Min., ${right} richtig, ${pace} s pro Antwort`,
+			summary: (days: number, right: string | null) => (right === null ? `An ${days} Tagen geübt` : `An ${days} Tagen geübt, ${right} richtig`)
+		},
+		reflection: {
+			ask: 'Was war heute schwer?',
+			hint: 'Ein Stichwort reicht. Es bleibt auf diesem Gerät und steht vor deiner nächsten Runde.',
+			save: 'Merken',
+			saved: 'Gemerkt.',
+			last: (date: string) => `Dein Stichwort vom ${date}`
+		},
+		overview: {
+			days: 'Übetage',
+			minutes: 'Minuten',
+			right: 'richtig',
+			last: 'zuletzt',
+			weeksLabel: (weeks: number[]) => `Übetage der letzten vier Wochen: ${weeks.join(', ')}`,
+			weeksCaption: 'Übetage pro Woche, die letzten vier Wochen',
+			skillLine: (answers: number, right: string, minutes: number) => `${answers} Aufgaben · ${right} · ${minutes} Min.`,
+			skills: { chord: 'Dreiklänge hören', other: 'Sonstiges', dict: 'Hördiktat', mix: 'Tagesrunde' } as Record<string, string>,
+			nothing: 'In den letzten vier Wochen nicht geübt.'
+		},
+		leaders: {
+			title: 'Übestand',
+			lead: 'Was Mitglieder aus dem Übebereich mit Dirigat und Lehrkräften teilen: Übetage, Minuten und Trefferquote der letzten vier Wochen.',
+			none: 'Noch teilt niemand seinen Übestand mit dir. Mitglieder schalten das selbst im Übebereich ein; bei Kindern stimmen die Eltern zu.',
+			privacy: 'Hier steht nur, wer es selbst freigegeben hat. Einzelne Antworten oder Aufnahmen gibt es nicht: Sie verlassen das Gerät nie.'
+		},
+		daily: {
+			title: 'Schritte der Tagesrunde',
+			steps: { warmup: 'Einspielen', review: 'Wiederholen', sight: 'Vom Blatt', done: 'Fertig' } as Record<string, string>,
+			done: 'Tagesrunde geschafft',
+			skip: 'Schritt überspringen',
+			doneLead: (minutes: number) => (minutes < 1 ? 'Kurz und regelmäßig wirkt am meisten.' : `${minutes} Min. heute in dieser Runde. Kurz und regelmäßig wirkt am meisten.`)
+		},
+		sharing: {
+			title: 'Gemeinsam üben',
+			lead: 'Freiwillig: Teile eine kurze Tagesübersicht. Alles bleibt aus, bis du es einschaltest.',
+			board: { title: 'Wochenwertung', hint: 'Wer in deinem Orchester an wie vielen Tagen geübt hat. Es zählt Regelmäßigkeit, nicht Können; nur Vornamen.' },
+			leaders: { title: 'Dirigat und Lehrkräfte', hint: 'Sie sehen deine Übetage, Minuten und Trefferquote pro Übung der letzten vier Wochen.' },
+			parents: { title: 'Meine Eltern', hint: 'Deine Eltern sehen dieselbe Übersicht in ihrem Bereich.' },
+			waiting: 'Wochenwertung und Dirigat warten noch auf das Okay deiner Eltern. Sie geben es im Elternbereich.',
+			failed: 'Das hat nicht geklappt. Versuch es gleich noch einmal.',
+			privacy: 'Geteilt wird nur, wie viel und wie sicher du geübt hast, nie einzelne Antworten oder was das Mikrofon hört. Alles aus löscht, was geteilt wurde.',
+			boardTitle: 'Diese Woche',
+			challenge: (goal: number, have: number) => `Wochenaufgabe: an ${goal} Tagen üben (du: ${have})`,
+			challengeMet: 'Wochenaufgabe geschafft!',
+			challengeCount: (met: number, all: number) => `${met} von ${all} haben sie geschafft`,
+			you: (name: string) => `${name} (du)`,
+			days: (days: number) => (days === 1 ? '1 Tag' : `${days} Tage`),
+			boardHint: 'Neu ab Montag. Ein Tag zählt, sobald du an ihm geübt hast und online warst.'
+		},
+		question: (n: number, of: number) => `${n} / ${of}`,
+		new: 'Neu',
+		whichNote: 'Welcher Ton?',
+		whichKey: (mode: 'major' | 'minor') => (mode === 'major' ? 'Welche Dur-Tonart?' : 'Welche Moll-Tonart?'),
+		playThis: 'Spiel diesen Ton',
+		right: 'Richtig!',
+		rightSlow: 'Richtig. Beim nächsten Mal schneller?',
+		/** Wrong note: which one it was, and where the one named would be (`steps` letters up or down). */
+		wrongNote: (right: string, given: string, steps: number) =>
+			`Das ist ${right}. ${given} läge ${Math.abs(steps)} ${Math.abs(steps) === 1 ? 'Stufe' : 'Stufen'} ${steps > 0 ? 'höher' : 'tiefer'}.`,
+		itIs: (right: string) => `Das ist ${right}.`,
+		accidentals: (count: number, sharps: boolean) => (count === 0 ? 'ohne Vorzeichen' : `${count} ${sharps ? '♯' : '♭'}`),
+		tips: {
+			sharps: 'Merkhilfe: Das letzte Kreuz liegt einen Halbton unter dem Grundton.',
+			flats: 'Merkhilfe: Das vorletzte ♭ nennt die Tonart (ein ♭ allein: F-Dur).',
+			minor: 'Merkhilfe: Moll liegt eine kleine Terz unter der Dur-Tonart mit denselben Vorzeichen.'
+		},
+		inTune: 'Getroffen, sauber!',
+		cents: (cents: number) => `Getroffen, ${Math.abs(cents)} Cent zu ${cents > 0 ? 'hoch' : 'tief'}.`,
+		heard: (note: string) => `Gehört: ${note}.`,
+		octave: 'Richtiger Ton, andere Oktave.',
+		listening: 'Hört zu …',
+		micStart: 'Mikrofon an und los',
+		sounding: (written: string, sounding: string) => `Geschrieben ${written}, klingt ${sounding}.`,
+		skip: 'Weiß ich nicht',
+		next: 'Weiter',
+		sound: 'Nach der Antwort anspielen (Ton oder Dreiklang)',
+		replay: 'Ton anhören',
+		replayChord: 'Dreiklang anhören',
+		keyboard: 'Auch mit der Tastatur: C D E F G A H, Leertaste für weiter.',
+		tapThis: 'Klopf diesen Rhythmus',
+		example: 'So klingt es …',
+		countIn: 'Einzählen …',
+		tapNow: 'Jetzt klopfen!',
+		tapPad: 'Hier tippen',
+		tapStart: 'Einzählen und klopfen',
+		keyboardRhythm: 'Auch mit der Leertaste: einmal zum Einzählen, dann im Rhythmus.',
+		inTime: 'Genau im Takt!',
+		rhythmLoose: (ms: number) => `Richtig, im Schnitt ${ms} ms daneben.`,
+		rhythmWrong: (missed: number, extra: number) =>
+			[missed ? (missed === 1 ? '1 Note nicht getroffen' : `${missed} Noten nicht getroffen`) : '', extra ? (extra === 1 ? '1 Schlag zu viel' : `${extra} Schläge zu viel`) : '']
+				.filter(Boolean)
+				.join(', ') + '. Rot: verpasst; die Dreiecke zeigen deine Schläge.',
+		noTaps: 'Keine Schläge gehört. Tipp auf die Fläche oder drück die Leertaste.',
+		rhythmShown: 'So geht er; hör ihn dir an.',
+		dragging: 'Du bist etwas spät dran: denk die kurzen Werte schon mit, bevor sie kommen.',
+		rushing: 'Du bist etwas zu früh: lass lange Noten und Pausen ganz ausklingen.',
+		calibrateTitle: 'Kurz abgleichen',
+		calibrateLead:
+			'Jedes Gerät braucht etwas Zeit, bis ein Klick zu hören ist und ein Tippen ankommt. Tippe nach dem Einzählen achtmal genau mit dem Klick, dann misst die Übung deine Schläge richtig. Das passiert nur einmal.',
+		calibrateStart: 'Abgleichen',
+		calibrateNow: 'Mit dem Klick tippen …',
+		calibrateFailed: 'Das war noch nicht gleichmäßig genug. Noch einmal?',
+		recalibrate: 'neu abgleichen',
+		pulseAsk: (silent: number) => `Halte den Puls: ${silent} Takte allein`,
+		pulseLead: (heard: number, silent: number) =>
+			`Klopf Viertel mit: ${heard} Takte mit Metronom, einen, in dem es leiser wird, dann ${silent} allein. Am Ende kommt ein Klick zurück.`,
+		tapAlong: 'Mitklopfen …',
+		keepPulse: 'Allein weiter …',
+		pulseHeld: 'Puls gehalten, sehr gleichmäßig!',
+		pulseLoose: (ms: number) => `Puls gehalten, im Schnitt ${ms} ms daneben.`,
+		pulseLost: (missed: number, extra: number) =>
+			`Den Puls verloren: ${[missed ? (missed === 1 ? '1 Schlag verpasst' : `${missed} Schläge verpasst`) : '', extra ? (extra === 1 ? '1 Schlag zu viel' : `${extra} Schläge zu viel`) : ''].filter(Boolean).join(', ')}.`,
+		pulseSped: (ms: number) => `Du bist schneller geworden: am Ende ${ms} ms zu früh. Denk die Viertel ruhig weiter, auch durch die langen Noten.`,
+		pulseSlowed: (ms: number) => `Du bist langsamer geworden: am Ende ${ms} ms zu spät. Halte die Spannung bis zum nächsten Schlag.`,
+		pulseSkipped: 'Beim nächsten Mal einfach versuchen: erst mitklopfen, dann allein weiter.',
+		/** "G-Dur-Tonleiter", "a-Moll harmonisch": `key` is the key's name ("G-Dur", "a-Moll"). */
+		scaleName: (key: string, type: string, octaves = 1): string =>
+			(({
+				major: `${key}-Tonleiter`,
+				harmonic: `${key} harmonisch`,
+				melodic: `${key} melodisch`,
+				arpMajor: `${key}-Dreiklang`,
+				arpMinor: `${key}-Dreiklang`
+			})[type] ?? key) + (octaves > 1 ? `, ${octaves === 2 ? 'zwei' : 'drei'} Oktaven` : ''),
+		upAndDown: (octaves: number) =>
+			octaves === 1 ? 'Eine Oktave auf und ab, ohne anzuhalten.' : `${octaves === 2 ? 'Zwei' : 'Drei'} Oktaven auf und ab, ohne anzuhalten. Die Zeilen gehen ineinander über.`,
+		drone: 'Liegeton',
+		droneOff: 'aus',
+		droneTonic: 'Grundton',
+		droneFifth: 'Grundton und Quinte',
+		click: (perMinute: number) => `Metronom (${perMinute} Töne pro Minute)`,
+		hideCents: 'Cent erst danach zeigen',
+		headphones: 'Mit Liegeton oder Metronom helfen Kopfhörer: dann hört das Mikrofon nur dich.',
+		soundingScale: (note: string) => `Klingt ab ${note}.`,
+		playingScale: 'Spiel durch …',
+		doneTake: 'Fertig',
+		scaleClean: 'Alle Töne getroffen, und sauber!',
+		scaleCents: (cents: number) => `Alle Töne getroffen, im Schnitt ${cents} Cent daneben.`,
+		scaleWrong: (wrong: number, missed: number, extra: number) =>
+			[
+				wrong ? (wrong === 1 ? '1 falscher Ton' : `${wrong} falsche Töne`) : '',
+				missed ? `${missed} ausgelassen` : '',
+				extra ? (extra === 1 ? '1 Ton zu viel' : `${extra} Töne zu viel`) : ''
+			]
+				.filter(Boolean)
+				.join(', ') + '. Unter den Noten steht, was zu hören war.',
+		scaleSharp: 'Meist etwas zu hoch: hör auf den Liegeton und gib nach, bis es nicht mehr schwebt.',
+		scaleFlat: 'Meist etwas zu tief: hör auf den Liegeton und greif die Töne etwas höher.',
+		scaleUneven: 'Die Töne kamen ungleichmäßig. Probier es mit dem Metronom.',
+		noNotes: 'Keine Töne gehört. Ist das Mikrofon frei?',
+		scaleShown: 'So klingt sie; hör sie dir an.',
+		level: (level: number, of: number) => `Stufe ${level} von ${of}`,
+		lookKey: (key: string, accidentals: string) => `Tonart: ${key} (${accidentals})`,
+		lookTime: (meter: string, tempo: string, bpm: number, dotted: boolean) => `${meter}-Takt, ${tempo} (${dotted ? 'punktierte Viertel' : 'Viertel'} = ${bpm})`,
+		lookRange: (low: string, high: string) => `Tiefster Ton ${low}, höchster ${high}`,
+		lookShort: (len: number, bar: number) => `${len === 1 ? 'Sechzehntel' : 'Achtel'} in Takt ${bar}: vorher mitzählen`,
+		lookAccidental: (bar: number) => `Vorzeichen außerhalb der Tonart in Takt ${bar}`,
+		lookLeap: (interval: string, bar: number) => `Sprung (${interval}) in Takt ${bar}`,
+		/** Scale steps to the interval's name: 4 a fifth. */
+		intervalSteps: ['Prime', 'Sekunde', 'Terz', 'Quarte', 'Quinte', 'Sexte', 'Septime', 'Oktave'] as string[],
+		prepLeft: (seconds: number) => `Noch ${seconds} s zum Ansehen`,
+		prepDone: 'Bereit? Dann los.',
+		sightStart: 'Einzählen und spielen',
+		keepGoing: 'Nicht anhalten: ein falscher Ton ist nicht schlimm, Weiterspielen zählt.',
+		keepGoingNow: 'Weiterspielen …',
+		readAhead: 'Vorauslesen: jeder Takt verschwindet kurz bevor er dran ist',
+		timing: { early: 'früh', late: 'spät' },
+		sightResult: (right: number, inTime: number, total: number) => `${right} von ${total} Tönen getroffen, ${inTime} davon im Takt.`,
+		stoppedEarly: 'Vor dem Ende aufgehört? Beim nächsten Mal einfach weiterspielen, auch nach einem Fehler.',
+		levelUp: (level: number) => `Weiter zu Stufe ${level}!`,
+		levelDown: (level: number) => `Zurück zu Stufe ${level}, damit es wieder läuft.`,
+		howWasIt: 'Ohne Mikrofon: wie lief es?',
+		selfGood: 'Gut',
+		selfOkay: 'Ging so',
+		selfHard: 'Schwer',
+		noMicSight: 'Ohne Mikrofon läuft die Melodie trotzdem mit; danach sagst du, wie es ging.',
+		sightAverage: (percent: number) => `Im Schnitt ${percent} %`,
+		duet: 'Mit zweiter Stimme (Begleitung)',
+		placement: {
+			title: 'Einstufung',
+			offer: 'Spielst du schon länger?',
+			offerLead:
+				'Ein kurzer Test (etwa drei Minuten) findet heraus, was du schon sicher kannst: Noten in deinen Schlüsseln, Tonarten, Intervalle. Das wird dann nicht neu geübt, nur in den nächsten Tagen kurz geprüft.',
+			start: 'Test machen',
+			skip: 'Von vorne anfangen',
+			done: 'Einstufung fertig',
+			fromStart: 'von vorne',
+			bands: {
+				notes: ['die Orientierungstöne', 'das ganze Liniensystem', 'die ersten Hilfslinien', 'auch weite Hilfslinien'],
+				keys: ['Dur bis 2 Vorzeichen', 'Dur und Moll bis 2 Vorzeichen', 'Dur bis 4 Vorzeichen', 'Dur und Moll bis 4 Vorzeichen', 'Dur bis 7 Vorzeichen', 'alle Tonarten'],
+				ear: ['klar verschiedene Intervalle nacheinander', 'dieselben auch zusammen', 'alle nacheinander', 'alle, auch zusammen']
+			} as Record<string, string[]>,
+			after: 'Was du schon kannst, kommt in den nächsten Tagen zur Kontrolle wieder. Sitzt es, geht es weiter; wenn nicht, übst du es wie neu.',
+			close: 'Schließen',
+			again: 'Einstufung machen'
+		},
+		lookEntry: (bars: number, beat: number) => `${bars} ${bars === 1 ? 'Takt' : 'Takte'} Pause, Einsatz auf ${beat}`,
+		countRests: 'Pausen zählen, dann einsetzen …',
+		entryOnTime: 'Pünktlich eingesetzt!',
+		entryMissed: 'Den Einsatz habe ich nicht gehört.',
+		entryOff: (beats: number) => {
+			const amount = Math.max(0.5, Math.round(Math.abs(beats) * 2) / 2);
+			const said = amount === 0.5 ? 'einen halben Schlag' : `${String(amount).replace('.', ',')} ${amount === 1 ? 'Schlag' : 'Schläge'}`;
+			return `Einsatz ${said} zu ${beats > 0 ? 'spät' : 'früh'}.`;
+		},
+		tuneRoles: { fifth: 'Quinte', fourth: 'Quarte', majorThird: 'große Terz', minorThird: 'kleine Terz' },
+		tuneAsk: (role: string) => `Spiel die ${role} rein dazu`,
+		tuneStart: 'Akkord und Mikrofon an',
+		tuneHeadphones: 'Am besten mit Kopfhörern: dann hört das Mikrofon nur dich, nicht den Akkord.',
+		tunePure: 'rein',
+		tunePiano: 'Klavier',
+		tunedPure: (cents: number) => (Math.abs(cents) <= 2 ? 'Rein!' : `Rein, ${Math.abs(cents)} Cent ${cents > 0 ? 'darüber' : 'darunter'}.`),
+		tunedOff: (cents: number) => `${Math.abs(cents)} Cent zu ${cents > 0 ? 'hoch' : 'tief'} für rein.`,
+		tuneShown: 'So klingt sie rein; hör hin.',
+		pureTips: {
+			majorThird: 'Eine reine große Terz liegt 14 Cent tiefer als auf dem Klavier. Tiefer, bis der Klang ruhig steht.',
+			minorThird: 'Eine reine kleine Terz liegt 16 Cent höher als auf dem Klavier. Höher, bis der Klang ruhig steht.',
+			fifth: 'Eine reine Quinte ist nur 2 Cent weiter als auf dem Klavier. Hör, bis nichts mehr schwebt.',
+			fourth: 'Eine reine Quarte ist nur 2 Cent enger als auf dem Klavier. Hör, bis nichts mehr schwebt.'
+		} as Record<string, string>,
+		done: 'Runde geschafft',
+		doneRight: (right: number, total: number) => `${right} von ${total} richtig`,
+		doneTime: (seconds: string) => `meist ${seconds} s pro Antwort`,
+		doneNew: (count: number) => (count === 1 ? '1 Neues dazugelernt' : `${count} Neue dazugelernt`),
+		doneMastered: (count: number) => `${count} sicher`,
+		noPlay: 'Für dieses Instrument gibt es noch keine Spielübung.',
+		how: 'So funktioniert es',
+		howItems: [
+			'Kurze Runden mit 20 Fragen. Was du falsch hattest, kommt in derselben Runde wieder.',
+			'Was du sicher weißt, kommt erst nach Tagen wieder, dann nach Wochen. So bleibt es im Gedächtnis.',
+			'Neues kommt dazu, wenn die meisten Antworten stimmen. Läuft es zäh, mischt die Übung Bekanntes ein.',
+			'Sicher heißt richtig und schnell: Beim Vom-Blatt-Spielen ist keine Zeit zum Abzählen.',
+			'Weißt du einen Ton schon beim ersten Mal schnell, wird er übersprungen; so kommst du rasch zu dem, was neu ist.',
+			'Die Einstufung am Anfang (jederzeit wiederholbar) überspringt, was du schon sicher kannst; es kommt bald zur Kontrolle wieder.',
+			'Zusammenspiel: Bei den Einsätzen zählst du Pausen, während die Begleitung spielt; pünktlich einsetzen zählt so viel wie die Töne. Im Akkord stimmst du rein, nicht wie am Klavier: eine große Terz etwas tiefer, eine kleine etwas höher.',
+			'Vom Blatt: jede Melodie ist neu, denn Blattspiel lernt man an viel Unbekanntem. Zwei gute Durchgänge nacheinander heben die Stufe, zwei schwache senken sie: mehr Tonarten, Sprünge, kürzere Noten, Moll, längere Melodien.',
+			'Tonleitern gehen den Quintenzirkel entlang, Dur vor Moll, mit Dreiklängen. Sicher heißt: alle Töne getroffen, im Schnitt höchstens 15 Cent daneben. Mit „Cent erst danach zeigen“ spielst du nach Gehör gegen den Liegeton.',
+			'Puls halten: Das Metronom verstummt, du klopfst allein weiter, erst zwei Takte, später bis zu zwölf, langsam und schnell. Die Linie im Ergebnis zeigt, ob du schneller oder langsamer wirst.',
+			'Rhythmen werden schneller, sobald du sie sicher klopfst, und die Toleranz wird enger. Sicher heißt hier: gleichmäßig, im Schnitt höchstens 60 ms daneben.',
+			'Es wird nach und nach schwerer: weitere Schlüssel deines Instruments (beim Cello Bass, dann Tenor, dann Violin), Intervalle von klar verschieden bis leicht verwechselbar, Stimmen in anderen Stimmungen.'
+		] as string[],
+		/** Intervals by their size in semitones. */
+		intervals: ['Prime', 'kleine Sekunde', 'große Sekunde', 'kleine Terz', 'große Terz', 'Quarte', 'Tritonus', 'Quinte', 'kleine Sexte', 'große Sexte', 'kleine Septime', 'große Septime', 'Oktave'] as string[],
+		whichInterval: (harmonic: boolean) => (harmonic ? 'Welches Intervall, zusammen gespielt?' : 'Welches Intervall?'),
+		listen: 'Anhören',
+		intervalWas: (name: string, semitones: number) => `Das war: ${name} (${semitones} ${semitones === 1 ? 'Halbton' : 'Halbtöne'}).`,
+		/** "eine große Sekunde tiefer": `semitones` up (positive) or down. */
+		shift: (name: string, semitones: number) => `${Math.abs(semitones) === 6 ? 'einen' : 'eine'} ${name} ${semitones > 0 ? 'höher' : 'tiefer'}`,
+		partIn: (key: string) => `Stimme in ${key}`,
+		transQuestion: (part: string | null) => (part ? `${part}: welchen Ton spielst du?` : 'Welcher Ton klingt?'),
+		concertTip: (instrument: string, shift: string) => `Merkhilfe: ${instrument} klingt ${shift} als notiert.`,
+		partTip: (shift: string) => `Merkhilfe: alles ${shift} lesen.`,
+		clefAuto: (names: string) => `Automatisch: ${names}`,
+		ladder: 'Schlüssel nach und nach',
+		clefLocked: (clef: string, before: string, have: number, need: number) => `${clef}: kommt, wenn ${need} Töne im ${before} sicher sitzen (jetzt ${have}).`,
+		newClef: (clef: string) => `Neu freigeschaltet: ${clef}!`,
+		treeOn: 'Deine Zeit in den Runden zählt auch für deinen Übebaum.',
+		whichMelody: 'Welche Melodie hast du gehört?',
+		melodyLabel: (n: number) => `Melodie ${n}`,
+		melodyWas: (n: number) => `Es war Melodie ${n}. Hör noch einmal hin, wo sie sich unterscheiden.`,
+		whichChord: 'Welcher Dreiklang?',
+		chordQualities: {
+			major: 'Dur',
+			minor: 'Moll',
+			diminished: 'vermindert',
+			augmented: 'übermäßig'
+		} as Record<string, string>,
+		chordWas: (name: string, how: string) => `Das war ${name}: ${how}.`,
+		chordHow: {
+			major: 'große Terz, darüber kleine',
+			minor: 'kleine Terz, darüber große',
+			diminished: 'zwei kleine Terzen',
+			augmented: 'zwei große Terzen'
+		} as Record<string, string>,
+		treeLink: 'Dein Übebaum im Profil',
+		stages: ['Grundlagen', 'Hören und Halten', 'Lesen und Spielen', 'Zusammenspiel'] as string[],
+		stageOpen: (open: number, of: number) => (open === of ? 'alles freigeschaltet' : `${open} von ${of} freigeschaltet`),
+		stagesLabel: 'Deine Stufen',
+		progress: 'Dein Stand',
+		lockedUntil: 'Kommt, wenn du so weit bist:',
+		locked: 'Noch gesperrt',
+		need: (of: string, count: number, have: number) =>
+			of === 'sightLevel'
+				? `Vom Blatt Stufe ${count} (jetzt ${Math.max(1, have)})`
+				: `${count} ${{ notes: 'Noten sicher lesen', keys: 'Tonarten sicher', rhythm: 'Rhythmen sicher', play: 'Töne sicher gespielt', ear: 'Intervalle sicher' }[of] ?? of} (jetzt ${have})`,
+		newDrills: (names: string[]) => `Neu freigeschaltet: ${names.join(', ')}!`,
+		badges: {
+			title: 'Abzeichen',
+			count: (earned: number, total: number) => `${earned} von ${total}`,
+			lead: 'Jedes Abzeichen steht für etwas, das du jetzt kannst: alles darin richtig und schnell.',
+			earned: (names: string[]) => (names.length === 1 ? `Neues Abzeichen: ${names[0]}!` : `Neue Abzeichen: ${names.join(', ')}!`),
+			since: (day: string) => `seit ${day}`,
+			progress: (have: number, need: number) => `${have} von ${need}`,
+			groups: { read: 'Lesen', hear: 'Hören', play: 'Spielen', steady: 'Dranbleiben' },
+			staff: (clef: string) => `${clef}: alle Linien und Zwischenräume`,
+			ledger: (clef: string) => `${clef} mit Hilfslinien`,
+			keys: { sharps: 'Alle Kreuz-Tonarten', flats: 'Alle B-Tonarten', minor: 'Alle Moll-Tonarten' },
+			ear: (harmonic: boolean) => (harmonic ? 'Intervalle zusammen gehört' : 'Intervalle nacheinander gehört'),
+			rhythm: 'Alle Rhythmen',
+			pulse: 'Ruhiger Puls',
+			play: 'Jeden Ton getroffen',
+			scales: (octaves: number) => (octaves === 1 ? 'Alle Tonleitern' : `Alle Tonleitern über ${octaves === 2 ? 'zwei' : 'drei'} Oktaven`),
+			trans: (parts: boolean) => (parts ? 'Stimmen in allen Stimmungen' : 'Klingend gedacht'),
+			tune: 'Sauber im Akkord',
+			sight: (level: number) => `Vom Blatt: Stufe ${level}`,
+			entry: 'Einsätze: höchste Stufe',
+			streak: (days: number) => `${days} Tage in Folge`,
+			chords: 'Dreiklänge gehört',
+			dictation: 'Melodien nachgehört'
+		},
+		chosen: (instrument: string) => `Eingestellt: ${instrument}`,
+		chosenLead: (clefs: string) =>
+			`Das ist dein Instrument laut Mitgliederliste. Geübt wird im ${clefs}; weitere Schlüssel deines Instruments kommen dazu, sobald du so weit bist.`,
+		chosenOthers: (others: string) => `Du spielst auch ${others}: unter „ändern“ kannst du umstellen.`,
+		chosenNone: 'Geübt wird im Violinschlüssel',
+		chosenNoneLead: 'In der Mitgliederliste steht kein Instrument, das die Übungen kennen. Unter „ändern“ wählst du deines.',
+		chosenOk: 'Passt',
+		change: 'ändern',
+		changeHint: 'Den Schlüssel wählt die Übung selbst, nach deinem Instrument und wie weit du bist. Nur selten nötig, ihn festzulegen.',
+		auto: 'automatisch',
+		treeTitle: 'Übebaum',
+		treeNext: (duration: string, stage: string) => `noch ${duration} bis ${stage}`,
+		treeStart: 'Im Profil einschalten',
+		treeOff: 'Mit „Probenzeit aufzeichnen“ im Profil wächst dein Übebaum auch mit diesen Runden.',
+		reset: 'Fortschritt auf diesem Gerät löschen',
+		confirmReset: 'Deinen ganzen Übe-Fortschritt auf diesem Gerät löschen? Das lässt sich nicht rückgängig machen.',
+		letters: ['C', 'D', 'E', 'F', 'G', 'A', 'H'] as string[],
+		/** The keys that answer each letter. */
+		letterKeys: ['c', 'd', 'e', 'f', 'g', 'a', 'h'] as string[],
+		noteName: (step: number, alter: number): string => {
+			if (step === 6 && alter === -1) return 'B';
+			if (step === 6 && alter === -2) return 'Heses';
+			const letter = 'CDEFGAH'[step];
+			// Es and As, not Ees and Aes.
+			const vowel = step === 2 || step === 5;
+			const suffix = { [-2]: vowel ? 'ses' : 'eses', [-1]: vowel ? 's' : 'es', 0: '', 1: 'is', 2: 'isis' }[alter] ?? '';
+			return letter + suffix;
+		},
+		keyName: (name: string, mode: 'major' | 'minor') => (mode === 'major' ? `${name}-Dur` : `${name.toLowerCase()}-Moll`)
+	},
+	/** Practice time ("Probenzeit"): opt-in on /profil, only visible to the member. */
+	practice: {
+		title: 'Probenzeit',
+		lead: 'Wie lange du die Noten deines Instruments geöffnet hattest, nach Woche und Monat, und ein Baum, der damit wächst.',
+		private: 'Nur du siehst deine Probenzeit: nicht die Verwaltung, nicht andere Mitglieder, in keiner Auswertung.',
+		how: 'Gezählt wird, solange eine Stimme deines Instruments aus „Meine Noten“ in der App offen und die Seite sichtbar ist. Nach 20 Minuten ohne Tippen, Blättern oder Taste pausiert die Zählung; ein Öffnen zählt höchstens 3 Stunden, ein Tag höchstens 12. Runden im Übebereich zählen auch, mit der Zeit, in der du antwortest. Noten in Drive oder auf Papier zählen nicht.',
+		question: 'Möchtest du deine Probenzeit aufzeichnen?',
+		turnOn: 'Probenzeit aufzeichnen',
+		turnOff: 'Aufzeichnen ausschalten',
+		on: 'Wird aufgezeichnet, solange eine Stimme aus „Meine Noten“ in der Probenansicht offen ist.',
+		off: 'Ausgeschaltet. Deine bisherige Zeit bleibt, bis du sie löschst.',
+		delete: 'Aufgezeichnete Zeit löschen',
+		confirmDelete: 'Deine ganze aufgezeichnete Probenzeit löschen? Das lässt sich nicht rückgängig machen; der Baum fängt wieder als Samen an.',
+		deleted: 'Gelöscht.',
+		failed: 'Das hat nicht geklappt. Bitte gleich noch einmal versuchen.',
+		week: 'Woche',
+		month: 'Monat',
+		view: 'Zeitraum',
+		earlier: 'Früher',
+		later: 'Später',
+		thisWeek: 'Diese Woche',
+		thisMonth: 'Dieser Monat',
+		total: (duration: string) => `Zusammen ${duration}`,
+		perDay: (day: string, duration: string) => `${day}: ${duration}`,
+		nothing: 'In diesem Zeitraum noch keine Probenzeit.',
+		/** "1 Std. 5 Min.", "25 Min.", "0 Min." */
+		duration: (seconds: number) => {
+			const minutes = Math.floor(seconds / 60);
+			const hours = Math.floor(minutes / 60);
+			return hours ? `${hours} Std.${minutes % 60 ? ` ${minutes % 60} Min.` : ''}` : `${minutes} Min.`;
+		},
+		tree: {
+			title: 'Dein Baum',
+			seed: 'Samen',
+			seedling: 'Setzling',
+			sapling: 'Kleiner Baum',
+			tree: (age: number) => (age === 1 ? 'Baum' : `Baum, ${age} Jahresringe`),
+			all: (duration: string) => `Insgesamt ${duration} geübt`,
+			next: (duration: string, stage: string) => `Noch ${duration} bis zur nächsten Stufe: ${stage}`,
+			hint: 'Ab 10 Stunden wird aus dem Samen ein Setzling, nach 15 weiteren ein kleiner Baum, danach alle 20 Stunden ein größerer, älterer Baum.'
+		},
+		viewer: {
+			back: 'Meine Noten',
+			counting: 'Zählt als Probenzeit',
+			today: (duration: string) => `Heute ${duration}`,
+			idle: 'Noch am Üben? Hier tippen: die Pause zählt dann mit.',
+			paused: 'Pausiert: tippe auf die Noten, um weiterzuzählen.',
+			full: 'Dieses Öffnen hat 3 Stunden gezählt. Öffne die Stimme neu, um weiterzuzählen.',
+			stopped: 'Probenzeit ist ausgeschaltet; hier zählt nichts mehr.',
+			notCounting: 'Probenzeit ist aus.',
+			turnOn: 'Im Profil einschalten',
+			elsewhere: 'In Drive öffnen (zählt nicht)',
+			failed: 'Die Noten ließen sich nicht laden.',
+			title: (part: string, piece: string) => `${part} · ${piece}`,
+			fitPage: 'Ganze Seite',
+			fitWidth: 'Seitenbreite',
+			zoom: 'Zoom',
+			zoomIn: 'Vergrößern',
+			zoomOut: 'Verkleinern',
+			zoomReset: 'Zurück auf 100 %',
+			fullscreen: 'Vollbild',
+			exitFullscreen: 'Vollbild beenden',
+			turnHint: 'Blättern: an den linken oder rechten Rand tippen, mit den Pfeiltasten oder einem Blätterpedal.',
+			tools: 'Werkzeuge',
+			closeTools: 'Werkzeuge schließen',
+			moveTools: 'Werkzeuge verschieben (Pfeiltasten, Escape: automatisch)',
+			autoPlace: 'Automatisch platzieren',
+			fold: 'Einklappen',
+			toolsAt: (x: number, y: number) => `Werkzeuge bei ${x} % von links, ${y} % von oben`,
+			toolsAuto: 'Werkzeuge automatisch platziert'
+		},
+		recording: {
+			title: 'Hörbeispiel',
+			play: 'Hier abspielen',
+			open: 'Aufnahme öffnen',
+			hint: 'Lädt das Video von YouTube erst beim Abspielen.'
+		},
+		metronome: {
+			title: 'Metronom',
+			bpm: 'Schläge pro Minute',
+			slower: 'Langsamer',
+			faster: 'Schneller',
+			tap: 'Tippen',
+			tapHint: 'Im Tempo tippen, um es zu übernehmen.',
+			tempo: 'Tempo',
+			meter: 'Takt',
+			noMeter: 'ohne Takt',
+			count: 'Zählzeit',
+			eighths: 'Achtel',
+			dotted: 'Punktierte Viertel',
+			start: 'Start',
+			stop: 'Stopp'
+		},
+		tuner: {
+			title: 'Stimmgerät',
+			start: 'Mikrofon einschalten',
+			stop: 'Beenden',
+			listening: 'Spiel einen Ton …',
+			noMic: 'Kein Zugriff aufs Mikrofon. Erlaube es in den Einstellungen des Browsers.',
+			insecure: 'Das Mikrofon gibt der Browser nur über eine sichere Verbindung (https) frei.',
+			tapToListen: 'Zum Zuhören tippen',
+			reference: 'Kammerton a′',
+			/** From C, German names: B is B flat, H is B. */
+			notes: ['C', 'Cis', 'D', 'Es', 'E', 'F', 'Fis', 'G', 'Gis', 'A', 'B', 'H'] as string[],
+			cents: (cents: number) => `${cents > 0 ? '+' : cents < 0 ? '−' : '±'}${Math.abs(cents)} Cent`,
+			inTune: 'Stimmt',
+			low: 'zu tief',
+			high: 'zu hoch',
+			last: 'zuletzt gehört',
+			off: 'Mikrofon ist aus.'
+		},
+		drone: {
+			title: 'Liegeton',
+			note: 'Ton',
+			octave: 'Oktave',
+			fifth: 'mit Quinte',
+			volume: 'Lautstärke',
+			heard: 'Gehörten Ton nehmen',
+			play: (note: string) => `${note} spielen`,
+			stop: 'Liegeton aus'
+		},
+		marks: {
+			title: 'Notizen',
+			pen: 'Stift',
+			graphite: 'Bleistift',
+			red: 'Rot',
+			blue: 'Blau',
+			eraser: 'Radierer',
+			undo: 'Rückgängig',
+			clear: 'Seite leeren',
+			confirmClear: 'Alle Notizen auf dieser Seite löschen?',
+			done: 'Fertig',
+			saving: 'Speichert …',
+			saved: 'Gespeichert',
+			queued: 'Auf dem Gerät gespeichert, wird gesendet, sobald du wieder online bist.',
+			failed: (status: string) => (status ? `Nicht gespeichert (Fehler ${status}).` : 'Nicht gespeichert. Bitte die Verbindung prüfen.'),
+			private: 'Nur du siehst deine Notizen.',
+			symbolsTitle: 'Zeichen',
+			symbols: { downbow: 'Abstrich', upbow: 'Aufstrich', breath: 'Atemzeichen', fermata: 'Fermate', pp: 'pianissimo', p: 'piano', mp: 'mezzopiano', mf: 'mezzoforte', f: 'forte', ff: 'fortissimo', cresc: 'crescendo', dim: 'decrescendo' },
+			pageFull: 'Die Seite ist voll. Radier etwas weg oder nimm Zeichen, die brauchen kaum Platz.',
+			nearlyFull: 'Die Seite ist fast voll. Zeichen brauchen kaum Platz.',
+			sharedNote: 'Deiner Stimmgruppe angeboten. Sonst siehst nur du deine Notizen.',
+			/** On /profil. */
+			profileTitle: 'Notizen in deinen Noten',
+			count: (parts: number) => (parts === 1 ? 'In einer Stimme.' : `In ${parts} Stimmen.`),
+			deleteAll: 'Alle Notizen löschen',
+			confirmDeleteAll: 'Alle deine Notizen in allen Stimmen löschen? Das lässt sich nicht rückgängig machen.'
+		},
+		/** Notes offered to and from the others who play the same part. */
+		share: {
+			share: 'Mit Stimmgruppe teilen',
+			unshare: 'Nicht mehr teilen',
+			confirm: 'Deine Notizen in dieser Stimme, so wie sie jetzt sind, deiner Stimmgruppe anbieten? Wer dieselbe Stimme spielt, sieht sie und kann sie übernehmen oder ablehnen.',
+			confirmUnshare: 'Das Angebot zurückziehen? Was andere schon übernommen haben, bleibt bei ihnen.',
+			nothing: 'Hier gibt es noch keine Notizen zum Teilen.',
+			failed: 'Das hat nicht geklappt. Bitte versuch es noch einmal.',
+			someone: 'Jemand aus deiner Stimmgruppe',
+			offered: (name: string, count: number) => `${name} bietet dir ${count === 1 ? 'eine Notiz' : `${count} Notizen`} in dieser Stimme an.`,
+			show: 'Ansehen',
+			hide: 'Ausblenden',
+			pick: 'Tippe eine angebotene Notiz an, um sie zu übernehmen.',
+			onPage: (count: number) => (count ? `Auf dieser Seite: ${count}.` : 'Auf dieser Seite keine.'),
+			take: 'Notiz übernehmen',
+			takeAll: 'Alle übernehmen',
+			decline: 'Ablehnen',
+			done: 'Fertig',
+			skipped: (count: number) => (count === 1 ? 'Eine Notiz passte nicht mehr auf die Seite.' : `${count} Notizen passten nicht mehr auf die Seite.`)
+		},
+		/** In "Meine Daten herunterladen". */
+		data: 'Probenzeit',
+		dataOn: 'Aufzeichnen',
+		dataDay: 'Tag',
+		dataMinutes: 'Minuten',
+		dataMarks: 'Notizen in den Noten',
+		dataFile: 'Datei',
+		dataPage: 'Seite',
+		dataStrokes: 'Striche'
+	},
+	/** A full set of parts to print for a concert (#195). */
+	partSet: {
+		link: 'Stimmensatz',
+		title: 'Stimmensatz',
+		lead: (players: number) =>
+			`Wie viele Ausdrucke jede Stimme braucht, aus ${players === 1 ? '1 aktiven Mitglied' : `${players} aktiven Mitgliedern`} und ihren Instrumenten: eine pro Person, bei Streichern eine pro Pult, die Partitur einmal. Zum Prüfen und Ändern, dann als eine PDF zum Drucken.`,
+		players: (n: number) => (n === 1 ? '1 spielt' : n ? `${n} spielen` : 'niemand'),
+		copies: (part: string) => `Ausdrucke von ${part}`,
+		noMusic: 'Keine Noten im Archiv.',
+		total: (copies: number, parts: number) => `${copies} ${copies === 1 ? 'Ausdruck' : 'Ausdrucke'} von ${parts} ${parts === 1 ? 'Stimme' : 'Stimmen'}`,
+		build: 'Als eine PDF',
+		building: (i: number, n: number) => `Stimme ${i} von ${n} …`,
+		notPdf: 'keine PDF',
+		fileName: 'Stimmensatz',
+		orchestra: 'Für',
+		allOrchestras: 'Alle Orchester',
+		apply: 'Anzeigen'
+	},
+	print: {
+		link: 'Drucken',
+		title: (concert: string) => 'Drucken: ' + concert,
+		handout: 'Programmzettel',
+		setlist: 'Setlist',
+		handoutHint: 'Für das Publikum: Programm mit Komponisten.',
+		setlistHint: 'Für Dirigat und Pult: groß, nummeriert, nur die Titel.',
+		print: 'Drucken',
+		back: 'Zurück zum Konzert',
+		empty: 'Für dieses Konzert ist noch kein Programm eingetragen.',
+		program: 'Programm',
+		totalLength: (minutes: number) => `Dauer ca. ${minutes} Minuten`
+	},
+	/** The music list for the collecting society (#118). Another country: other words here, or musicReport: false in the config. */
+	/** Concerts with other choirs and orchestras: who plays with us, who organises it. */
+	kummer: {
+		title: 'Kummerkasten',
+		lead: 'Was dich bedrückt, ärgert oder was du loswerden willst: an die Leitung, anonym. Antworten bekommst du hier, nur du siehst sie.',
+		tabs: { write: 'Schreiben', mine: 'Meine Nachrichten', inbox: 'Eingang' },
+		privacy:
+			'Anonym heißt: Die Leitung sieht deinen Namen nicht, und er steht nirgends in der Tabelle. Die App erkennt nur dich selbst wieder, damit du Antworten bekommst. Was du schreibst, kann trotzdem verraten, wer du bist.',
+		to: 'An',
+		toAll: 'Die ganze Leitung',
+		toSome: 'Nur an bestimmte Personen',
+		toHint: 'Wer die Nachricht liest. Ohne Auswahl alle, die den Kummerkasten lesen.',
+		noLeitung: 'Noch liest niemand den Kummerkasten. Die Verwaltung vergibt dafür das Recht „Kummerkasten lesen“.',
+		subject: 'Betreff',
+		subjectHint: 'Worum geht es, in ein paar Worten',
+		body: 'Nachricht',
+		signed: (name: string) => `Meinen Namen mitschicken (${name})`,
+		signedHint: 'Nur wenn du möchtest, dass die Leitung weiß, wer schreibt.',
+		send: 'Abschicken',
+		sent: 'Abgeschickt. Antworten findest du unter „Meine Nachrichten“.',
+		anonymous: 'Anonym',
+		you: 'Du',
+		named: (name: string) => `von ${name}`,
+		for: (names: string) => `an ${names}`,
+		forAll: 'an die ganze Leitung',
+		empty: 'Du hast noch nichts geschrieben.',
+		inboxEmpty: 'Keine Nachrichten für dich.',
+		unread: 'Neu',
+		closed: 'Erledigt',
+		answered: 'Beantwortet',
+		waiting: 'Noch keine Antwort',
+		reply: 'Antworten',
+		replyHint: 'Die Antwort sieht nur, wer geschrieben hat, und wer die Nachricht bekommen hat.',
+		replyAuthorHint: 'Bleibt so anonym wie deine erste Nachricht.',
+		replySend: 'Antwort schicken',
+		replied: 'Antwort verschickt.',
+		close: 'Als erledigt markieren',
+		reopen: 'Wieder öffnen',
+		closedNote: 'Die Leitung hat das als erledigt markiert. Du kannst trotzdem noch antworten.',
+		back: 'Zum Kummerkasten',
+		notSetUp: 'Der Kummerkasten braucht die Datenbank der App (D1) und die Anmeldung. Beides ist hier noch nicht eingerichtet.',
+		signIn: 'Bitte melde dich an, um den Kummerkasten zu nutzen.',
+		gone: 'Diese Nachricht gibt es nicht, oder sie ist nicht für dich.',
+		failed: 'Das ging gerade nicht. Bitte versuch es gleich noch einmal.',
+		todoAnswers: (n: number) => (n === 1 ? 'neue Antwort im Kummerkasten' : 'neue Antworten im Kummerkasten'),
+		todoInbox: (n: number) => (n === 1 ? 'neue Nachricht im Kummerkasten' : 'neue Nachrichten im Kummerkasten'),
+		problems: {
+			subject: 'Bitte einen Betreff angeben.',
+			body: 'Bitte etwas schreiben.',
+			'too-long': 'Das ist zu lang: Betreff bis 120, Nachricht bis 5000 Zeichen.',
+			recipient: 'Diese Person liest den Kummerkasten nicht (mehr). Bitte die Seite neu laden.'
+		}
+	},
+	/** The parents' area (/eltern): what a parent account sees, and the notices written for it. */
+	parents: {
+		drills: {
+			title: 'Übebereich',
+			lead: 'Was dein Kind im Übebereich der App übt, bleibt auf seinem Gerät. Es kann eine kurze Übersicht mit dir teilen. Wochenwertung und Dirigat gibt es für Kinder nur mit deinem Okay.',
+			allowed: 'Darf in der Wochenwertung erscheinen und mit Dirigat und Lehrkräften teilen, wenn es das selbst einschaltet.',
+			notAllowed: 'Erscheint nicht in der Wochenwertung und teilt nichts mit Dirigat und Lehrkräften.',
+			allow: 'Erlauben',
+			takeBack: 'Zurücknehmen',
+			failed: 'Das hat nicht geklappt.',
+			notShared: (name: string) => `${name} teilt die Übersicht (noch) nicht mit dir. Das stellt ${name} im Übebereich ein.`
+		},
+		title: 'Elternbereich',
+		lead: (name: string) => `Hallo ${name}! Hier siehst du die nächsten Termine deiner Kinder, kannst sie entschuldigen, Karten reservieren und der Leitung schreiben.`,
+		noChildren: 'Noch ist kein Kind mit deinem Konto verknüpft. Die Verwaltung trägt deine Kinder bei dir unter „Mitglieder“ ein.',
+		children: 'Deine Kinder',
+		notices: {
+			title: 'Elternmitteilungen',
+			shortTitle: 'Mitteilungen',
+			lead: 'Mitteilungen erscheinen im Elternbereich und, wo die Eltern es erlaubt haben, als Benachrichtigung auf ihren Geräten.',
+			heading: 'Überschrift',
+			body: 'Text',
+			for: 'Für',
+			forHint: 'Nichts angekreuzt: an alle Eltern. Sonst nur an Eltern von Kindern in diesen Orchestern.',
+			forAll: 'alle Eltern',
+			forSome: (orchestras: string) => `Eltern aus ${orchestras}`,
+			send: 'Veröffentlichen',
+			added: 'Veröffentlicht.',
+			remove: 'Löschen',
+			confirmRemove: (title: string) => `Mitteilung „${title}“ löschen? Die Eltern sehen sie dann nicht mehr.`,
+			empty: 'Noch keine Mitteilungen.',
+			by: (name: string, day: string) => (name ? `${name} · ${day}` : day),
+			reaches: (n: number) => (n === 1 ? 'erreicht 1 Elternteil' : `erreicht ${n} Eltern`),
+			noParents: 'Noch ist kein Eltern-Konto mit einem Kind verknüpft. Das geht in der Mitgliederverwaltung: Status „Eltern“ und die Kinder eintragen.',
+			notSetUp: 'Mitteilungen brauchen die Datenbank der App (D1). Sie ist hier noch nicht eingerichtet.',
+			failed: 'Das ging gerade nicht. Bitte versuch es gleich noch einmal.',
+			problems: {
+				title: 'Bitte eine Überschrift angeben.',
+				body: 'Bitte etwas schreiben.',
+				'too-long': 'Das ist zu lang: Überschrift bis 120, Text bis 5000 Zeichen.'
+			} as Record<string, string>
+		},
+		dates: 'Nächste Termine',
+		noDates: 'In den nächsten Wochen steht nichts an.',
+		inDays: (n: number) => (n === 0 ? 'heute' : n === 1 ? 'morgen' : `in ${n} Tagen`),
+		status: { yes: 'kommt', maybe: 'vielleicht', no: 'entschuldigt', open: 'noch keine Antwort' } as Record<string, string>,
+		comes: 'Kommt',
+		excuse: 'Entschuldigen',
+		reason: 'Grund (optional)',
+		reasonHint: 'z. B. krank, Klassenfahrt',
+		excuseSend: 'Entschuldigen',
+		cancel: 'Abbrechen',
+		saved: 'Gespeichert.',
+		/** In the sheet's comment, so the Leitung sees a parent answered. */
+		answeredBy: (name: string) => `eingetragen von ${name}`,
+		answerFailed: 'Das ging gerade nicht. Bitte lade die Seite neu und versuch es noch einmal.',
+		/** Before the Leitung's view of the writer: "Paula Beispiel (Eltern von Mia)". */
+		parentOf: (names: string) => `Eltern von ${names}`,
+		and: 'und',
+		tickets: {
+			title: 'Karten reservieren',
+			left: (n: number) => (n === 1 ? 'Noch 1 Platz frei.' : `Noch ${n} Plätze frei.`),
+			payAtDoor: 'Bezahlt wird an der Abendkasse.',
+			name: 'Auf welchen Namen?',
+			count: (label: string, price: string) => `${label} (${price})`,
+			reserve: 'Reservieren',
+			reserved: 'Reserviert!',
+			mailed: 'Eine Bestätigung ist per E-Mail unterwegs.',
+			show: 'Karten ansehen'
+		},
+		write: 'Der Leitung schreiben',
+		messages: {
+			title: 'Nachrichten',
+			lead: 'Fragen, Hinweise oder eine längere Abwesenheit: an die Leitung, mit deinem Namen. Die Antworten findest du hier.',
+			signedAs: (signature: string) => `Die Leitung sieht als Absender: ${signature}`,
+			newMessage: 'Neue Nachricht',
+			sent: 'Abgeschickt. Die Antwort erscheint hier, sobald die Leitung geschrieben hat.',
+			yours: 'Deine Nachrichten',
+			empty: 'Du hast noch nichts geschrieben.',
+			noLeitung: 'Noch liest niemand die Nachrichten. Die Verwaltung vergibt dafür das Recht „Kummerkasten lesen“.'
+		}
+	},
+	ensembles: {
+		title: 'Ensembles',
+		lead: 'Chöre und Orchester, mit denen wir Konzerte geben. Ein Konzert wählt sie unter „Mitwirkende“; Logo, Leitung und Website erscheinen mit ihm auf der Website.',
+		add: 'Ensemble hinzufügen',
+		addLead: 'Der Kurzname ist, wie Programm und Konzerte das Ensemble nennen, z. B. „KCH“. Ohne ihn gilt der volle Name.',
+		shortName: 'Kurzname',
+		shortNameHint: 'z. B. KCH',
+		name: 'Name',
+		nameHint: 'z. B. Kammerchor Unna',
+		kind: 'Art',
+		conductor: 'Leitung',
+		website: 'Website',
+		logo: 'Logo (Bildlink, https)',
+		logoHint: 'https://…/logo.png',
+		save: 'Speichern',
+		create: 'Hinzufügen',
+		edit: 'Bearbeiten',
+		remove: 'Entfernen',
+		removeConfirm: (name: string) => `„${name}“ aus dem Tab „Ensembles“ entfernen?`,
+		cancel: 'Abbrechen',
+		search: 'Ensembles durchsuchen',
+		count: (n: number) => (n === 1 ? '1 Ensemble' : `${n} Ensembles`),
+		empty: 'Noch keine Ensembles. Das erste hier hinzufügen; der Tab „Ensembles“ entsteht dabei.',
+		noMatch: 'Kein Ensemble passt zur Suche.',
+		concerts: (n: number) => (n === 1 ? 'in 1 Konzert' : `in ${n} Konzerten`),
+		unused: 'In keinem Konzert',
+		shortLocked: 'Konzerte nennen das Ensemble mit diesem Kurznamen; er bleibt deshalb, solange es dort steht.',
+		inUseRemove: 'Steht in Konzerten; erst dort unter „Mitwirkende“ abwählen.',
+		added: (name: string) => `„${name}“ ist jetzt in der Liste.`,
+		saved: 'Gespeichert.',
+		removed: (name: string) => `„${name}“ ist entfernt.`,
+		failed: 'Das ging gerade nicht. Bitte gleich noch einmal versuchen.',
+		manage: 'Ensembles verwalten',
+		problems: {
+			name: 'Bitte einen Namen oder Kurznamen eingeben.',
+			taken: 'Diesen Namen hat schon ein anderes Ensemble.',
+			ours: 'So heißt eines unserer Orchester; bitte einen anderen Kurznamen wählen.',
+			website: 'Die Website bitte als Link angeben, z. B. https://kammerchor-unna.de.',
+			logo: 'Das Logo bitte als https-Link zu einem Bild angeben.',
+			'too-long': 'Das ist zu lang (höchstens 300 Zeichen je Feld).',
+			'in-use': 'Konzerte nennen das Ensemble mit seinem Kurznamen; der bleibt, solange es dort steht.',
+			gone: 'Die Zeile hat sich in der Tabelle geändert. Bitte die Seite neu laden.'
+		}
+	},
+	partners: {
+		/** "mit Kammerchor Unna und Posaunenchor Kamen". */
+		with: (names: string[]) => `mit ${names.length > 1 ? `${names.slice(0, -1).join(', ')} und ${names.at(-1)}` : (names[0] ?? '')}`,
+		over: 'Mitwirkende',
+		organizedBy: (name: string) => `Veranstalter: ${name}`,
+		conductor: (name: string) => `Leitung: ${name}`,
+		title: 'Mitwirkende und Veranstalter',
+		lead: 'Wer dieses Konzert spielt: unsere Orchester und die Chöre und Orchester, mit denen wir es geben. Sie stehen im Programm, in der Musikfolge und auf der Website.',
+		ours: 'Unsere Orchester',
+		known: 'Gäste aus dem Tab „Ensembles“',
+		others: 'Weitere',
+		othersHint: 'Volle Namen, mit Komma getrennt. Logo, Leitung und Website kommen aus dem Tab „Ensembles“.',
+		organizer: 'Veranstalter',
+		us: (name: string) => `${name} (wir)`,
+		organizerHint: 'Veranstaltet ein anderes Ensemble, verkauft es auch die Karten: Der Verkauf hier bleibt dann zu, und die Website verlinkt den Kartenlink unter „Für die Website“.',
+		save: 'Speichern',
+		saved: 'Gespeichert.',
+		needsSetup: 'In „Konzerte“ fehlen noch die Spalten „Mitwirkende“ und „Veranstalter“. Einmal „Tabelle einrichten“ ausführen.',
+		ticketsElsewhere: (name: string) => `${name} veranstaltet dieses Konzert und verkauft die Karten. Der Verkauf über die App ist deshalb zu.`,
+		guestPiece: 'Gaststück eintragen',
+		guestPieceLead: 'Ein Stück, das die Gäste mitbringen und das nicht in unserem Archiv ist. Für die Musikfolge braucht es Komponist, Verlag und Dauer.',
+		guestTitle: 'Titel',
+		guestComposer: 'Komponist (voller Name)',
+		guestArranger: 'Bearbeiter',
+		guestPublisher: 'Verlag',
+		guestDuration: 'Dauer, z. B. 4:30',
+		guestAdd: 'Ins Programm',
+		guestTag: 'Gaststück',
+		reportScope: 'In der Musikfolge',
+		reportAll: 'Alle Stücke',
+		reportOurs: 'Nur unsere',
+		reportScopeHint: 'Der Veranstalter meldet das Konzert. Meldet ein Gast-Ensemble seine Stücke selbst, stehen hier nur unsere.',
+		fillInProgram: 'Im Programm ergänzen'
+	},
+	musicReport: {
+		tab: 'Musikfolge (GEMA)',
+		title: 'Musikfolge',
+		hint: 'Für die GEMA-Meldung, als CSV ins Formular übernehmen.',
+		csv: 'Als CSV laden',
+		columns: {
+			position: 'Nr.',
+			title: 'Titel',
+			composer: 'Komponist',
+			arranger: 'Bearbeiter',
+			publisher: 'Verlag',
+			duration: 'Dauer',
+			performers: 'Ausführende'
+		},
+		gaps: (n: number) => (n === 1 ? 'Bei 1 Stück fehlen noch Angaben:' : `Bei ${n} Stücken fehlen noch Angaben:`),
+		missing: { composer: 'Komponist', composerFull: 'Komponist (voll)', publisher: 'Verlag', duration: 'Dauer' } as Record<string, string>,
+		complete: 'Alle Angaben sind da.',
+		fullNames: 'Die GEMA möchte Komponisten mit vollem Namen, z. B. „Ludwig van Beethoven“ statt „Beethoven“. Die Liste nimmt dafür die Spalte „Komponist (voll)“; „Online nachschlagen“ beim Bearbeiten füllt sie.',
+		fill: 'Ergänzen',
+		organizer: 'Veranstalter',
+		date: 'Datum',
+		venue: 'Ort'
+	},
+	retention: {
+		anonymous: 'Ohne Namen'
+	},
+	erase: {
+		anonymous: 'Ehemaliges Mitglied',
+		button: 'Alle Daten löschen …',
+		title: (name: string) => `Alle Daten von ${name} löschen`,
+		lead: 'Für eine Bitte um Löschung (Art. 17 DSGVO). Was nur diese Person betrifft, wird gelöscht. Wo eine Zeile auch für andere zählt (Zusagen, Anwesenheit, +1, Hinweise), bleibt sie ohne Namen stehen, damit Zählungen und Saisonbericht stimmen.',
+		nothing: 'Außer der Zeile in „Mitglieder“ gibt es keine Daten zu dieser Person.',
+		remove: (count: number) => (count === 1 ? '1 Eintrag wird gelöscht' : `${count} Einträge werden gelöscht`),
+		anonymise: (count: number) => (count === 1 ? '1 Eintrag bleibt ohne Namen' : `${count} Einträge bleiben ohne Namen`),
+		confirm: 'Endgültig löschen',
+		confirmQuestion: (name: string) => `Alle Daten von ${name} endgültig löschen? Das lässt sich nicht rückgängig machen.`,
+		done: (name: string) => `Die Daten von ${name} sind gelöscht.`,
+		failed: 'Das Löschen hat nicht ganz geklappt. Was erledigt ist, bleibt erledigt; bitte noch einmal versuchen.',
+		stored: {
+			devices: 'Geräte für Benachrichtigungen',
+			reminders: 'Verschickte Erinnerungen',
+			settings: 'Einstellungen (E-Mails, Tour, Übezeit)',
+			practice: 'Übezeit (Tage)',
+			drills: 'Geteilter Übestand und Zustimmung der Eltern',
+			marks: 'Eigene Eintragungen in Noten (Seiten)',
+			polls: 'Terminumfragen',
+			kummer: 'Kummerkasten (eigene Nachrichten gelöscht, Antworten ohne Namen)'
+		}
+	},
+	archive: {
+		addPiece: 'Stück ohne Noten eintragen',
+		addPieceLead: 'Für gespielte Stücke ohne Noten im Archiv.',
+		orchestra: 'Orchester',
+		pieceTitle: 'Titel',
+		composer: 'Komponist',
+		catalogue: 'Werkverzeichnis',
+		add: 'Eintragen',
+		failed: 'Die Tabelle konnte gerade nicht geändert werden. Bitte versuch es noch einmal.',
+		problems: {
+			'title-missing': 'Bitte einen Namen angeben.',
+			'title-taken': 'Diesen Namen gibt es schon. Programme verweisen über den Namen, er muss eindeutig sein, z. B. mit Jahreszahl.',
+			'bad-date': 'Das Datum ist nicht lesbar. Möglich sind 1957, 1957-12, 21.12.1957 oder 12.1957.'
+		}
+	},
+	pieceEditor: {
+		title: (piece: string) => `Bearbeiten: ${piece}`,
+		lead: 'Was hier steht, gilt statt dem Ordnernamen.',
+		recordingHint: 'Link zu einer Aufnahme, z. B. YouTube',
+		/** Writes the sheet's word for "no recording" into the field. */
+		noRecording: 'Gibt es keins',
+		noRecordingHint: 'Für Stücke ohne Aufnahme: „Angaben ergänzen“ fragt dann nicht mehr danach.',
+		reviewedHint: 'z. B. 2026-10-18',
+		today: 'Heute',
+		save: 'Speichern',
+		cancel: 'Abbrechen',
+		conflict: 'Jemand hat das Stück inzwischen geändert. Lade die Seite neu und mach deine Änderung noch einmal.',
+		notInSheet: 'Noch nicht in der Tabelle. Neue Ordner kommen innerhalb einer Minute dazu.',
+		renamed: (n: number) => (n === 1 ? 'Der neue Titel wurde auch in 1 Programm übernommen.' : `Der neue Titel wurde auch in ${n} Programmen übernommen.`),
+		problems: {
+			'title-missing': 'Bitte einen Titel angeben.',
+			'title-taken': 'Diesen Titel hat schon ein anderes Stück. Programme finden Stücke über den Titel, er muss eindeutig sein.',
+			'bad-link': 'Das Hörbeispiel muss ein Link sein, der mit http:// oder https:// beginnt, oder „keins“.',
+			'bad-duration': 'Die Dauer ist nicht lesbar. Möglich sind z. B. 7:30, 7 Min. oder 1:02:00.'
+		},
+		durationHint: 'z. B. 7:30',
+		composerHint: 'mehrere mit Komma: Mozart, Haydn',
+		composerFullHint: 'z. B. Ludwig van Beethoven – für die GEMA-Meldung',
+		listHint: 'mehrere mit Komma trennen',
+		publisherHint: 'z. B. Bärenreiter – für die GEMA-Meldung',
+		unreadInstrumentation: (text: string) => `Nicht als Instrument erkannt, bleibt so stehen: ${text}`,
+		missingColumns: (columns: string) => `${columns}: Die Spalten fehlen noch in der Tabelle. Einmal „Tabelle einrichten“ ausführen, dann lassen sie sich hier eintragen.`
+	},
+	editor: {
+		newPiece: (title: string) => `„${title}“ als neues Stück anlegen`,
+		newPieceTitle: 'Neues Stück',
+		newPieceLead: 'Kommt ohne Noten ins Archiv und gleich ins Programm. Das Programm wird erst mit „Speichern“ gespeichert.',
+		newPieceSave: 'Anlegen und hinzufügen',
+		newPieceAnyway: 'Trotzdem neu anlegen',
+		similarTitle: 'Gibt es das Stück schon?',
+		similarTake: 'Dieses nehmen',
+		orchestras: 'Programm je Orchester',
+		orchestraTab: (orchestra: string) => `Programm ${orchestra}`,
+		jointTab: (orchestras: string[]) => `Gemeinsam: ${orchestras.join(' + ')}`,
+		jointHint: (orchestras: string[]) =>
+			`Stücke, die ${orchestras.join(' und ')} zusammen spielen. Sie stehen in den Drive-Ordnern aller beteiligten Orchester und in „Meine Noten“ aller Mitglieder.`,
+		addJoint: (orchestras: string[]) => `Stücke hinzufügen, die ${orchestras.join(' und ')} zusammen spielen`,
+		suggestions: 'Vorschläge',
+		wished: 'Gewünscht',
+		longAgo: 'Lange nicht gespielt',
+		genres: (genres: string) => `Genres im Programm: ${genres}`,
+		forThisConcert: 'für dieses Konzert',
+		lastPlayed: (year: string) => `zuletzt ${year}`,
+		newGenre: 'neues Genre',
+		notInArchive: 'nicht im Archiv',
+		take: 'Übernehmen',
+		openSuggestions: (n: number) => (n === 1 ? '1 Stückwunsch für die Planung' : `${n} Stückwünsche für die Planung`),
+		edit: 'Programm bearbeiten',
+		title: (concert: string) => `Programm: ${concert}`,
+		lead: 'Stücke hinzufügen, sortieren, speichern.',
+		search: 'Stück suchen und hinzufügen …',
+		empty: 'Noch keine Stücke im Programm.',
+		noteLabel: 'Notiz',
+		notePlaceholder: 'z. B. Zugabe',
+		up: 'Nach oben',
+		down: 'Nach unten',
+		remove: 'Entfernen',
+		save: 'Speichern',
+		cancel: 'Abbrechen',
+		saved: 'Programm gespeichert.',
+		conflict: 'Jemand hat das Programm inzwischen geändert. Lade die Seite neu und mach deine Änderung noch einmal.',
+		notInSheet: 'Noch nicht in der Tabelle. Bestätigte Konzerte kommen automatisch dazu, unsichere („(?)“) erst später.',
+		noResults: 'Kein Stück gefunden.',
+		sharedFrom: (concert: string) => `Dieses Konzert spielt das Programm von „${concert}“. Änderungen dort gelten auch hier.`,
+		editSource: 'Dort bearbeiten',
+		ownProgram: 'Wenn du hier speicherst, bekommt dieses Konzert ein eigenes Programm.',
+		sharedWith: (concerts: string) => `Dieses Programm gilt auch für ${concerts}.`,
+		share: 'Programm von einem anderen Konzert übernehmen',
+		shareLead: 'Für Konzerte mit gleichem Programm, das dann nur einmal gepflegt wird.',
+		shareSource: 'Konzert',
+		shareReplaces: 'Die Einträge dieses Konzerts werden dabei entfernt.',
+		shareButton: 'Übernehmen',
+		shareCount: (n: number) => (n === 1 ? '1 Stück' : `${n} Stücke`),
+		shareUnknown: 'Dieses Konzert hat kein Programm, das übernommen werden kann.',
+		shareNeedsSetup: '„Programm wie“: Fehlt noch in der Tabelle. Bitte einmal „Tabelle einrichten“ ausführen.'
+	},
+	status: {
+		/** The page audit (#185). */
+		pages: {
+			title: 'Seitenaufrufe (30 Tage)',
+			lead: 'Wie oft jede Seite geöffnet wurde, nach Rolle. Gezählt wird nur die Art der Seite, nicht wer sie geöffnet hat; nach 180 Tagen wird es gelöscht.',
+			route: 'Seite',
+			roles: { mitglied: 'Mitglieder', verwaltung: 'Verwaltung', gast: 'Gäste' },
+			none: 'Noch keine Aufrufe gezählt.'
+		},
+		title: 'Status',
+		lead: 'Ob die Verbindung zu Google funktioniert.',
+		account: 'Google-Dienstkonto',
+		drive: 'Notenarchiv (Google Drive)',
+		calendar: 'Probenkalender (Google Calendar)',
+		sheet: 'Repertoire-Tabelle (Google Sheets)',
+		signIn: 'Anmeldung (Google)',
+		look: 'Aussehen und Funktionen',
+		accent: (light: string, lightRatio: string, dark: string, darkRatio: string) =>
+			`Akzentfarbe: ${light} auf Hell (${lightRatio}:1), ${dark} auf Dunkel (${darkRatio}:1)`,
+		accentPreset: (dark: string, darkRatio: string) => `Akzentfarbe: auf Hell der Farbton der Vorgabe, ${dark} auf Dunkel (${darkRatio}:1)`,
+		accentAdjusted: 'Damit Text lesbar bleibt (mindestens 4,5:1), ist die Akzentfarbe für dieses Farbschema angepasst.',
+		badAccent: (value: string) => `ORCHESTRA_ACCENT „${value}" ist keine Farbe. Erwartet wird #rrggbb, z. B. #1d4ed8.`,
+		featuresOff: (names: string) => `Ausgeschaltet: ${names}`,
+		allFeatures: 'Alle Funktionen sind eingeschaltet.',
+		unknownFeatures: (words: string) => `FEATURES_OFF enthält unbekannte Wörter: ${words}.`,
+		featuresHint: 'Erlaubt sind leihmaterial, gema, anwesenheit, anmeldungen, wuensche, kalender, offline und jahreszeiten.',
+		ok: 'Verbunden',
+		error: 'Fehler',
+		missing: 'Nicht eingerichtet',
+		refresh: 'Archiv neu einlesen',
+		setupGuide: 'Anleitung zur Einrichtung',
+		setupSheet: 'Tabelle einrichten',
+		dataMove: 'Datenbank',
+		noAccess: (what: string, status: number) => `Kein Zugriff auf ${what} (${status}).`,
+		shareWith: (what: string, email: string) => `Prüfe die ID und teile ${what} mit ${email} (Lesezugriff reicht).`,
+		checkShare: 'Prüfe die ID und die Freigabe.',
+		what: { account: 'das Google-Konto', drive: 'den Notenarchiv-Ordner', calendar: 'den Kalender', sheet: 'die Repertoire-Tabelle' },
+		serviceAccount: (email: string) => `Dienstkonto: ${email}`,
+		driveAccess: (write: boolean) => `Drive: ${write ? 'lesen und Meldungen spiegeln (DRIVE_WRITE)' : 'nur lesen'}`,
+		keyHint: 'Prüfe, ob der Schlüssel vollständig eingefügt ist und das Dienstkonto noch existiert. Notfalls einen neuen Schlüssel erstellen.',
+		accountFirst: 'Erst das Dienstkonto einrichten.',
+		archiveCounts: (pieces: number, files: number) => `${pieces} Stücke mit ${files} Dateien`,
+		categories: (list: string) => `Kategorien: ${list}`,
+		programs: (list: string) => `Aktuelle Programme: ${list}`,
+		indexed: (when: string, fresh: boolean, requests: number) =>
+			`Stand: ${when} (${fresh ? 'gerade geladen' : 'aus dem Cache'}, ${requests} Google-Anfragen)`,
+		indexNotBuilt: 'Das Archiv ist noch nicht eingelesen. Das macht der Hintergrundjob alle zehn Minuten; „Archiv neu einlesen“ liest es sofort ein.',
+		events: (n: number) => `${n} Termine in den nächsten 4 Monaten`,
+		nextEvent: (title: string, when: string) => `Nächster Termin: ${title}, ${when}`,
+		setupHint: 'Auf der Seite „Tabelle einrichten“ werden sie angelegt.',
+		missingTabs: (tabs: string) => `Es fehlen die Blätter ${tabs}.`,
+		sheetUnreadable: 'Die Tabelle konnte nicht gelesen werden.',
+		sheetCounts: (pieces: number, concerts: number) => `${pieces} Stücke, ${concerts} Konzerte`,
+		sheetProblems: (n: number) => `${n} Hinweise, siehe „Tabelle einrichten“`,
+		accessTabsMissing: (tabs: string) => `Für die Anmeldung fehlen die Blätter ${tabs}.`,
+		sheetMissingHint: 'Für Programme und „Gespielt bei“. Siehe Anleitung, Schritt 5.',
+		sheetShare: (email: string) => `Prüfe die ID und teile die Tabelle mit ${email} als Bearbeiter.`,
+		signInDisabled: 'Die Anmeldung ist mit FORCE_AUTH=false ausgeschaltet.',
+		signInDisabledHint: 'Die App ist für alle offen und nur lesbar, auch diese Seite. Zum Einschalten FORCE_AUTH löschen oder auf true setzen.',
+		signInMissing: 'GOOGLE_OAUTH_CLIENT_ID ist nicht gesetzt.',
+		signInMissingHint: 'Bis dahin ist die App für alle offen und nur lesbar. Siehe Anleitung, Schritt 9.',
+		redirectUri: (uri: string) => `Weiterleitungs-URI: ${uri}`,
+		bootstrapAdmins: (n: number) => `${n} Bootstrap-Admins`,
+		/** Background jobs (#160). */
+		jobs: 'Hintergrundaufgaben',
+		jobNames: { warm: 'Caches füllen', reminders: 'Erinnerungen', check: 'Verbindung prüfen', parts: 'Stimmen prüfen', retention: 'Aufbewahrung', errors: 'Fehler melden', export: 'In die Tabelle schreiben', backup: 'Sicherung in Drive', tickets: 'Gästelisten löschen' },
+		ticketsPruned: (n: number) => (n === 0 ? 'Keine Gästeliste fällig.' : n === 1 ? 'Die Gästeliste eines vergangenen Konzerts gelöscht.' : `Gästelisten von ${n} vergangenen Konzerten gelöscht.`),
+		retentionOff: 'Keine Aufbewahrungsfrist eingestellt; alle Namen bleiben.',
+		retentionDone: (n: number, cutoff: string) => `${n} ${n === 1 ? 'Eintrag' : 'Einträge'} von vor dem ${cutoff} ohne Namen.`,
+		partsChecked: (done: number, left: number) => `${done} ${done === 1 ? 'Stimme' : 'Stimmen'} geprüft, ${left ? `${left} noch offen` : 'alle geprüft'}.`,
+		jobRun: (name: string, when: string, auto: boolean, ms: number) => `${name}: ${when}, ${auto ? 'automatisch' : 'per Knopf'}, ${ms} ms`,
+		jobNever: (name: string) => `${name}: noch nie gelaufen`,
+		jobsNever: 'Noch keine Aufgabe ist von selbst gelaufen.',
+		jobsNeverHint: 'Nach dem Deploy laufen sie von selbst (Cron Trigger), jede in ihrem Takt. Lokal und in der Demo nur mit den Knöpfen unten.',
+		jobFailed: (name: string, message: string) => `${name} ist fehlgeschlagen: ${message}`,
+		jobsStale: (when: string) => `Seit ${when} ist keine Aufgabe mehr von selbst gelaufen.`,
+		jobsStaleHint: 'Prüfe im Cloudflare-Dashboard beim Worker unter „Settings → Triggers“, ob der Cron Trigger da ist.',
+		runJob: (name: string) => `${name} jetzt ausführen`,
+		warmSources: { archive: 'Archiv', calendar: 'Kalender', sheet: 'Tabelle' },
+		warmDone: 'Archiv, Kalender und Tabelle geladen.',
+		warmFailed: (sources: string) => `Nicht geladen: ${sources}.`,
+		/** Data the app writes itself (#161). */
+		store: 'Datenbank (Cloudflare D1)',
+		storeD1: (version: string) => `D1, Schema ${version}`,
+		storeNoSchema: 'D1 ist verbunden, das Schema fehlt aber noch.',
+		storeNoSchemaHint: 'Es wird beim Deploy angelegt, beim ersten Gebrauch oder mit „Tabelle einrichten“.',
+		storeMemory: 'Ohne D1: Benachrichtigungen und das Protokoll der Erinnerungen liegen nur im Speicher und sind nach einem Neustart weg.',
+		storeMemoryHint: 'Die DB-Bindung in wrangler.toml anlegen, siehe README.',
+		storeDemo: 'Demo: alles nur im Speicher.',
+		storeFailed: (message: string) => `D1 antwortet nicht: ${message}`,
+		/** The error log (#191). */
+		errors: 'Fehlerprotokoll',
+		errorsNone: (days: number) => `Keine Fehler in den letzten ${days} Tagen.`,
+		errorsRecent: (n: number) => (n === 1 ? '1 Fehlerart in den letzten 24 Stunden.' : `${n} Fehlerarten in den letzten 24 Stunden.`),
+		errorsHint: 'Nur Ort und Meldung, ohne wer betroffen war. Was öfter vorkommt, bitte als Problem auf GitHub melden; „Erledigt“ leert die Liste.',
+		errorLine: (count: number, source: string, place: string, message: string, when: string) => `${count}× ${source} ${place}: ${message} (zuletzt ${when})`,
+		errorSources: { server: 'Server', client: 'Browser' },
+		errorsClear: 'Erledigt',
+		errorsCleared: 'Fehlerprotokoll geleert.',
+		/** The deployed version against GitHub (#206). */
+		version: 'Version',
+		versionRunning: (label: string) => `Läuft: ${label}`,
+		versionCurrent: 'Aktuell',
+		versionUpToDate: 'Auf dem Stand von GitHub (main).',
+		versionAhead: (n: number) => (n === 1 ? '1 Änderung, die nicht auf main ist.' : `${n} Änderungen, die nicht auf main sind.`),
+		versionUpdate: 'Update verfügbar',
+		versionBehind: (n: number) => (n === 1 ? 'Auf GitHub gibt es 1 neuere Änderung.' : `Auf GitHub gibt es ${n} neuere Änderungen.`),
+		versionBehindHint: 'Neu bereitstellen: mit dem Deploy-Workflow oder „pnpm run deploy“.',
+		versionUnchecked: 'GitHub war nicht erreichbar; ob es Neueres gibt, ist nicht geprüft.',
+		versionNoCommit: 'Ohne Git gebaut: Welcher Stand das ist, ist unbekannt.',
+		/** Notifications (#157). */
+		push: 'Benachrichtigungen (Web Push)',
+		pushOn: (devices: number) => (devices === 1 ? 'Eingerichtet, 1 Gerät angemeldet' : `Eingerichtet, ${devices} Geräte angemeldet`),
+		pushMissing: 'VAPID_PUBLIC_KEY und VAPID_PRIVATE_KEY sind nicht gesetzt.',
+		pushMissingHint: 'Mit „node scripts/vapid-keys.mjs“ erzeugen und als Secrets speichern. Bis dahin gibt es keine Erinnerungen.',
+		/** Optional services not set up yet, with the guide (docs/setup-google.md, step 10). */
+		extras: 'Optionale Dienste',
+		extrasLead: 'Für den Start nicht nötig. Was noch fehlt, mit Anleitung:',
+		extrasAllOn: 'Alle optionalen Dienste sind eingerichtet.',
+		extrasOn: (names: string) => `Eingerichtet: ${names}`,
+		extraGuide: 'Anleitung',
+		extraPlanned: 'Noch nicht in der App',
+		extraNames: {
+			currentProgram: 'Ordner für das aktuelle Programm',
+			driveWrite: 'In Drive schreiben',
+			youtube: 'YouTube-Dauer',
+			push: 'Benachrichtigungen',
+			database: 'Datenbank (D1)',
+			legal: 'Kontakt für den Datenschutz',
+			email: 'E-Mail'
+		},
+		extraWhat: {
+			currentProgram: 'Zeigt, was im aktuellen Programm ist, und hält die Programm-Ordner im Drive aktuell (DRIVE_CURRENT_PROGRAM_FOLDER_ID).',
+			driveWrite: 'Meldungen als Kommentare an den Dateien, Statuswörter im Dateinamen, Programm-Ordner abgleichen (DRIVE_WRITE).',
+			youtube: 'Schlägt die Dauer eines Stücks aus seinem Hörbeispiel vor (YOUTUBE_API_KEY).',
+			push: 'Erinnerungen aufs Handy und Hinweise an die Admins bei Störungen (VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY).',
+			database: 'Speichert Benachrichtigungen, Erinnerungen und Terminumfragen dauerhaft (DB in wrangler.toml).',
+			legal: 'Name, Anschrift und E-Mail für Datenschutz und Nutzungsbedingungen (LEGAL_ADDRESS, LEGAL_EMAIL).',
+			email: 'Anmeldelinks und Erinnerungen per E-Mail, verschickt vom Google-Konto des Orchesters; oben auf dieser Seite verbinden.'
+		}
+	},
+	/** What the reminder and check jobs send and report (#157, #144, #159). */
+	reminders: {
+		pushOff: 'Weder Benachrichtigungen noch E-Mail sind eingerichtet.',
+		quiet: 'Nachtruhe, nichts verschickt.',
+		noDevices: 'Noch hat niemand Benachrichtigungen erlaubt, und kein E-Mail-Konto ist verbunden.',
+		noCalendar: 'Der Kalender konnte nicht geladen werden.',
+		nothing: 'Nichts zu erinnern.',
+		byMail: (n: number) => `${n} davon per E-Mail.`,
+		notReached: (n: number) => `${n} nicht zugestellt, nächstes Mal noch einmal.`,
+		sent: (n: number, left: number) => `${n === 1 ? '1 Erinnerung' : `${n} Erinnerungen`} verschickt${left ? `, ${left} beim nächsten Mal` : ''}.`,
+		signupTitle: (event: string) => `${event}: Kommst du?`,
+		signupBody: (when: string) => `${when}. Du hast noch nicht zu- oder abgesagt.`,
+		loanDueTitle: (piece: string) => `${piece} bald zurückgeben`,
+		loanOverdueTitle: (piece: string) => `${piece} ist überfällig`,
+		loanBody: (from: string, due: string) => `Leihmaterial${from ? ` von ${from}` : ''}, Rückgabe bis ${due}.`,
+		checkOk: 'Archiv, Kalender und Tabelle erreichbar.',
+		checkFailed: (names: string) => `Nicht erreichbar: ${names}.`,
+		checkFailedTitle: 'Verbindung zu Google gestört',
+		checkFailedBody: (what: string) => `Nicht erreichbar: ${what}. Mehr auf der Status-Seite.`,
+		checkOkTitle: 'Verbindung zu Google wieder in Ordnung',
+		checkOkBody: 'Archiv, Kalender und Tabelle sind wieder erreichbar.',
+		adminsTold: (n: number) => (n === 1 ? '1 Admin benachrichtigt.' : `${n} Admins benachrichtigt.`),
+		errorsNone: 'Keine neuen Fehler.',
+		errorsNew: (n: number) => (n === 1 ? '1 neue Fehlerart.' : `${n} neue Fehlerarten.`),
+		errorsTitle: (n: number) => (n === 1 ? 'Ein neuer Fehler in der App' : `${n} neue Fehler in der App`),
+		errorsBody: (place: string, message: string, more: number) => `${place}: ${message}${more ? ` und ${more} weitere` : ''}. Mehr auf der Status-Seite.`
+	},
+	/** Moving the data from the sheet into D1 and back (#186). */
+	dataMove: {
+		title: 'Datenbank',
+		lead: 'Wo die Daten liegen, die ihr pflegt: Stücke, Konzerte, Programme, Mitglieder, Rechte, Anmeldungen, Leihmaterial, Notizen und Einstellungen.',
+		sourceSheet: 'Die Google-Tabelle ist die Quelle. Jede Seite liest sie, jede Änderung geht hinein.',
+		sourceD1: 'Die Datenbank (D1) ist die Quelle. Die Tabelle ist eine Kopie, die jede Nacht neu geschrieben wird; Änderungen dort gehen beim nächsten Export verloren.',
+		noD1: 'Ohne D1-Datenbank bleibt die Tabelle die Quelle. Die DB-Bindung in wrangler.toml anlegen, siehe README.',
+		preview: 'Was übernommen würde',
+		previewLead: 'Gelesen gerade eben aus der Tabelle. Nichts ist geändert, bis du übernimmst.',
+		tabRows: (tab: string, rows: number) => `${tab}: ${rows === 1 ? '1 Zeile' : `${rows} Zeilen`}`,
+		unknown: (columns: string) => `Spalten, die die App nicht kennt und nicht übernimmt: ${columns}`,
+		missing: (columns: string) => `Fehlende Spalten, danach leer: ${columns}`,
+		total: (rows: number, tabs: number) => `${rows} Zeilen aus ${tabs} Blättern.`,
+		importButton: 'Aus Tabelle übernehmen',
+		importConfirm: 'Alle Daten aus der Tabelle in die Datenbank übernehmen? Danach ist die Tabelle nur noch eine Kopie; was dort jemand ändert, geht verloren.',
+		imported: (rows: number, tabs: number) => `Übernommen: ${rows} Zeilen aus ${tabs} Blättern. Die Datenbank ist jetzt die Quelle.`,
+		exportButton: 'Jetzt in die Tabelle schreiben',
+		exported: (rows: number, tabs: number) => `In die Tabelle geschrieben: ${rows} Zeilen in ${tabs} Blättern.`,
+		backButton: 'Zurück zur Tabelle',
+		backConfirm: 'Die Tabelle wieder zur Quelle machen? Vorher wird alles aus der Datenbank hineingeschrieben.',
+		back: 'Die Tabelle ist wieder die Quelle.',
+		download: 'Alles herunterladen (JSON)',
+		restoreTitle: 'Aus einer Sicherung wiederherstellen',
+		restoreLead: 'Eine Datei von „Alles herunterladen“ oder eine Sicherung aus Drive. Ersetzt alles in der Datenbank und macht sie zur Quelle.',
+		restoreFile: 'Sicherung (JSON)',
+		restoreButton: 'Wiederherstellen',
+		restoreConfirm: 'Alles in der Datenbank durch diese Sicherung ersetzen? Was seitdem geändert wurde, geht verloren.',
+		restoreNoFile: 'Bitte eine Sicherungsdatei wählen.',
+		restoreTooLarge: 'Die Datei ist zu groß für eine Sicherung dieser App.',
+		restoreNotBackup: 'Das ist keine Sicherung dieser App.',
+		restored: (rows: number, tabs: number, skipped: number) =>
+			`Wiederhergestellt: ${rows} Zeilen aus ${tabs} Blättern${skipped ? `; ${skipped} ${skipped === 1 ? 'Zeile passte nicht und fehlt' : 'Zeilen passten nicht und fehlen'}` : ''}. Die Datenbank ist die Quelle.`,
+		failed: (message: string) => `Hat nicht geklappt: ${message}`,
+		backup: 'Sicherung: D1 kann 30 Tage zurückgesetzt werden (Time Travel), die Tabelle ist jede Nacht eine Kopie außerhalb von Cloudflare, und mit DRIVE_BACKUP_FOLDER_ID liegt jede Woche eine Datei mit allem in Drive (die letzten 8).',
+		statusD1: (rows: number) => `Quelle: Datenbank, ${rows} Zeilen; die Tabelle ist eine Kopie`,
+		exportSheetOff: 'Die Tabelle ist die Quelle; nichts zu exportieren.',
+		exportUnchanged: 'Seit dem letzten Export nichts geändert; die Tabelle ist aktuell.',
+		backupSheetSource: 'Die Tabelle ist die Quelle; Drive hält ihre Versionen selbst.',
+		backupOff: 'DRIVE_BACKUP_FOLDER_ID ist nicht gesetzt; keine Sicherung in Drive.',
+		backupNoAccount: 'Kein Drive-Konto zum Schreiben: auf Status das Drive-Konto verbinden, oder DRIVE_WRITE für einen geteilten Ordner.',
+		backedUp: (name: string, rows: number, trashed: number) =>
+			`${name} mit ${rows} Zeilen in Drive gesichert${trashed ? `; ${trashed} ${trashed === 1 ? 'alte Sicherung' : 'alte Sicherungen'} im Papierkorb` : ''}.`,
+		/** Why the database refused a save (#186). */
+		refused: {
+			link: (tab: string, column: string, value: string) => `${tab}, ${column}: „${value}“ gibt es nicht. Erst anlegen, dann hier eintragen.`,
+			unique: (tab: string, column: string, value: string) => `${tab}, ${column}: ${value ? `„${value}“` : 'Das'} gibt es schon.`,
+			required: (tab: string, column: string) => `${tab}: ${column} fehlt.`,
+			used: (tab: string) => `${tab}: Das wird noch gebraucht, z. B. in einem Programm. Erst dort entfernen.`
+		},
+		skippedTitle: 'Wird nicht übernommen',
+		skippedLead: 'Diese Zeilen übergeht die App schon heute; sie bleiben in der Tabelle, kommen aber nicht in die Datenbank.',
+		skipped: {
+			link: (tab: string, row: number, column: string, value: string) => `${tab}, Zeile ${row}: ${column} „${value}“ gibt es nicht`,
+			unique: (tab: string, row: number, column: string, value: string) => `${tab}, Zeile ${row}: ${column} „${value}“ doppelt`,
+			required: (tab: string, row: number, column: string) => `${tab}, Zeile ${row}: ${column} fehlt`,
+			used: (tab: string, row: number) => `${tab}, Zeile ${row}: wird noch gebraucht`
+		}
+	},
+	/** Allowing notifications on /profil (#157). */
+	push: {
+		title: 'Benachrichtigungen',
+		lead: 'Erinnert dich auf diesem Gerät an Proben und Konzerte, auf die du noch nicht geantwortet hast, und sagt Bescheid, wenn deine Wünsche eine Antwort bekommen. Wer Leihmaterial betreut oder die App verwaltet, hört auch von Rückgaben, neuen Wünschen und Störungen.',
+		enable: 'Benachrichtigungen erlauben',
+		disable: 'Ausschalten',
+		test: 'Test senden',
+		on: 'Auf diesem Gerät an.',
+		elsewhere: (n: number) => (n === 1 ? 'Auf 1 anderen Gerät an.' : `Auf ${n} anderen Geräten an.`),
+		denied: 'Benachrichtigungen sind für diese Seite blockiert. Erlaube sie in den Website-Einstellungen des Browsers.',
+		unsupported: 'Dieser Browser kann keine Benachrichtigungen empfangen.',
+		installFirst: 'Auf iPhone und iPad gehen Benachrichtigungen erst, wenn die App auf dem Home-Bildschirm liegt (Teilen → „Zum Home-Bildschirm“).',
+		failed: 'Das hat nicht geklappt. Bitte versuch es noch einmal.',
+		testTitle: 'Test',
+		testBody: 'So sehen Erinnerungen auf diesem Gerät aus.',
+		testSent: 'Gesendet. Kommt nichts an, prüfe die Mitteilungen in den Einstellungen des Geräts.',
+		hint: 'Gilt für dieses Gerät. Beim Abmelden geht es hier aus.'
+	},
+	setup: {
+		title: 'Repertoire-Tabelle einrichten',
+		lead: 'Legt in der Repertoire-Tabelle die Blätter „Stücke“, „Konzerte“ und „Programm“ mit Überschriften und Auswahllisten an.',
+		notConfigured: 'REPERTOIRE_SHEET_ID ist nicht gesetzt. Lege zuerst eine leere Google-Tabelle an und trage ihre ID ein.',
+		share: (email: string) => `Teile die Tabelle mit ${email} als Bearbeiter.`,
+		failed: 'Auf die Tabelle konnte nicht zugegriffen werden.',
+		sheet: 'Tabelle',
+		open: 'In Google Sheets öffnen',
+		tabs: 'Blätter',
+		present: 'vorhanden',
+		absent: 'fehlt',
+		off: 'nicht nötig, ausgeschaltet',
+		ready: 'Alles eingerichtet. Neue Stücke aus Drive und Konzerte aus dem Kalender werden automatisch eingetragen.',
+		run: 'Jetzt einrichten',
+		rerun: 'Formatierung erneuern',
+		safe: 'Es werden nur fehlende Blätter und Spalten ergänzt. Vorhandene Einträge bleiben unverändert.',
+		done: 'Fertig.',
+		created: (tabs: string) => `Angelegt: ${tabs}.`,
+		addedColumns: (columns: string) => `Ergänzte Spalten: ${columns}.`,
+		database: (migrations: string) => `Datenbank: ${migrations} angewendet.`,
+		removed: (tab: string) => `Das leere Blatt „${tab}“ wurde entfernt.`,
+		problems: 'Hinweise zur Tabelle',
+		problem: {
+			'missing-column': 'Spalte fehlt',
+			'duplicate-piece': 'Stück doppelt',
+			'duplicate-concert': 'Konzert doppelt',
+			'unknown-piece': 'Stück nicht in „Stücke“',
+			'unknown-concert': 'Konzert nicht in „Konzerte“',
+			'bad-date': 'Datum nicht lesbar',
+			'duplicate-member': 'Mitglied doppelt',
+			'unknown-right': 'Unbekanntes Recht'
+		},
+		row: (n: number) => `Zeile ${n}`,
+		counts: (pieces: number, concerts: number, entries: number) =>
+			`${pieces} Stücke · ${concerts} Konzerte · ${entries} Programmeinträge`
+	},
+	/**
+	 * Tab and column names of the Repertoire sheet. The app finds columns by these
+	 * headers, so columns may be reordered or added in the sheet. Renaming one here
+	 * means renaming it in existing sheets too.
+	 */
+	sheet: {
+		pieces: {
+			tab: 'Stücke',
+			columns: {
+				title: 'Titel',
+				composer: 'Komponist',
+				/** "Ludwig van Beethoven" where "Komponist" says "Beethoven": for the GEMA list (#146). */
+				composerFull: 'Komponist (voll)',
+				catalogue: 'Werkverzeichnis',
+				arranger: 'Arrangeur',
+				genre: 'Genre',
+				difficulty: 'Schwierigkeit',
+				notes: 'Notiz',
+				reviewedAt: 'Geprüft am',
+				recording: 'Hörbeispiel',
+				/** "7:30"; adds up to the programme's length (#117). */
+				duration: 'Dauer',
+				/** For the GEMA music list (#118). */
+				publisher: 'Verlag',
+				/** The instruments the score is written for, "Flöte 1 & 2; Oboe; Geige 1 & 2" (#249). */
+				instrumentation: 'Besetzung',
+				driveFolderId: 'Drive-Ordner-ID'
+			}
+		},
+		concerts: {
+			tab: 'Konzerte',
+			columns: {
+				date: 'Datum',
+				title: 'Anlass',
+				location: 'Ort',
+				orchestra: 'Orchester',
+				/** Another concert's "Anlass": this one plays the same programme (#70). */
+				sameProgramAs: 'Programm wie',
+				eventId: 'Kalender-Event-ID',
+				/** Guest choirs and orchestras by "Kurzname" from "Ensembles", or by their full name. */
+				partners: 'Mitwirkende',
+				/** Empty: we organise and sell the tickets; else the ensemble (or anyone) who does. */
+				organizer: 'Veranstalter'
+			}
+		},
+		program: {
+			tab: 'Programm',
+			columns: {
+				concert: 'Konzert',
+				position: 'Nr.',
+				piece: 'Stück',
+				notes: 'Notiz',
+				/** Which of the concert's orchestras plays it; empty: all of them together. Guests by their "Kurzname". */
+				orchestra: 'Orchester',
+				/** For pieces the guests bring, which aren't in "Stücke": what the GEMA list needs. */
+				composer: 'Komponist',
+				arranger: 'Arrangeur',
+				publisher: 'Verlag',
+				duration: 'Dauer'
+			}
+		},
+		/** Choirs and orchestras we play with: named under "Mitwirkende" in "Konzerte". */
+		ensembles: {
+			tab: 'Ensembles',
+			columns: {
+				shortName: 'Kurzname',
+				name: 'Name',
+				/** "Chor", "Orchester" …: shown before the name on the website. */
+				kind: 'Art',
+				conductor: 'Leitung',
+				website: 'Website',
+				/** A link to the logo image; only https. */
+				logo: 'Logo'
+			}
+		},
+		members: {
+			tab: 'Mitglieder',
+			columns: {
+				email: 'E-Mail',
+				name: 'Name',
+				instrument: 'Instrument',
+				groups: 'Gruppen',
+				orchestras: 'Orchester',
+				status: 'Status',
+				pausedUntil: 'Pausiert bis',
+				linkVersion: 'Link-Version',
+				/** The personal calendar feed (#122): like "Link-Version", a new link ends the old one. */
+				feedVersion: 'Kalender-Version',
+				/** For a parent account: their children among the members, by name or email. */
+				children: 'Kinder'
+			}
+		},
+		groups: {
+			tab: 'Gruppen',
+			columns: {
+				name: 'Gruppe',
+				description: 'Beschreibung'
+			}
+		},
+		rights: {
+			tab: 'Rechte',
+			columns: {
+				who: 'Wer',
+				right: 'Recht'
+			}
+		},
+		requests: {
+			tab: 'Zugangsanfragen',
+			columns: {
+				email: 'E-Mail',
+				name: 'Name',
+				requestedAt: 'Angefragt am'
+			}
+		},
+		reports: {
+			tab: 'Meldungen',
+			columns: {
+				piece: 'Stück',
+				pieceId: 'Drive-Ordner-ID',
+				part: 'Stimme',
+				fileId: 'Datei-ID',
+				kind: 'Art',
+				comment: 'Kommentar',
+				status: 'Status',
+				note: 'Notiz',
+				reportedBy: 'Gemeldet von',
+				reportedAt: 'Gemeldet am',
+				marked: 'Im Dateinamen',
+				driveComment: 'Drive-Kommentar-ID',
+				/** A better Hörbeispiel, with "Hörbeispiel falsch". */
+				link: 'Vorschlag',
+				/** Scan-Auftrag: wie dringend, wer scannt (E-Mail), was zu tun ist. */
+				priority: 'Priorität',
+				assignee: 'Wer scannt',
+				task: 'Scan-Auftrag',
+				id: 'Meldungs-ID'
+			}
+		},
+		wishes: {
+			tab: 'Wünsche',
+			columns: {
+				kind: 'Art',
+				title: 'Titel',
+				composer: 'Komponist',
+				link: 'Link',
+				description: 'Beschreibung',
+				status: 'Status',
+				answer: 'Antwort',
+				submittedBy: 'Eingereicht von',
+				submittedAt: 'Datum',
+				votes: '+1',
+				concert: 'Konzert',
+				pieceId: 'Stück-ID',
+				id: 'Wunsch-ID'
+			}
+		},
+		/** Generated from the archive's file names; the app rewrites it, people only tick "erledigt". */
+		missingParts: {
+			tab: 'Fehlende Stimmen',
+			columns: {
+				piece: 'Stück',
+				part: 'Stimme',
+				status: 'Status',
+				fileId: 'Datei-ID',
+				done: 'erledigt',
+				/** Scan-Aufträge: welche Lücke zuerst, und wer sie scannt (E-Mail). */
+				priority: 'Priorität',
+				assignee: 'Wer scannt'
+			}
+		},
+		/** Who plays from which part: "B-Stimmen" are read by clarinets and trumpets. */
+		instrumentGroups: {
+			tab: 'Instrumentgruppen',
+			columns: {
+				part: 'Stimme',
+				players: 'Gespielt von',
+				mutual: 'Gegenseitig',
+				note: 'Notiz'
+			}
+		},
+		signups: {
+			tab: 'Anmeldungen',
+			columns: {
+				event: 'Termin',
+				who: 'Wer',
+				name: 'Name',
+				answer: 'Antwort',
+				instrument: 'Instrument',
+				comment: 'Kommentar',
+				answeredAt: 'Datum',
+				eventId: 'Termin-ID'
+			}
+		},
+		/** Which pieces are rehearsed at which rehearsal (#65); one row per rehearsal and piece. */
+		rehearsals: {
+			tab: 'Proben',
+			columns: {
+				rehearsal: 'Probe',
+				piece: 'Stück',
+				notes: 'Notiz',
+				eventId: 'Termin-ID'
+			}
+		},
+		/** Rented or borrowed sheet music (#119); one row per loan. */
+		loans: {
+			tab: 'Leihmaterial',
+			columns: {
+				piece: 'Stück',
+				from: 'Von',
+				borrowedAt: 'Ausgeliehen am',
+				dueAt: 'Zurück bis',
+				returned: 'Zurückgegeben',
+				notes: 'Notiz'
+			}
+		},
+		/** Who came to a rehearsal (#120); one row per rehearsal and person. */
+		attendance: {
+			tab: 'Anwesenheit',
+			columns: {
+				event: 'Termin',
+				who: 'Wer',
+				name: 'Name',
+				present: 'Anwesend',
+				eventId: 'Termin-ID'
+			}
+		},
+		/** Notes on a piece from rehearsals (#125): cuts, repeats, bowings; one row per note. */
+		pieceNotes: {
+			tab: 'Hinweise',
+			columns: {
+				piece: 'Stück',
+				/** Empty for everyone, else a section ("Streicher") or an instrument ("Geige"). */
+				section: 'Für',
+				/** Empty for every performance, else a concert's "Anlass". */
+				concert: 'Konzert',
+				note: 'Hinweis',
+				by: 'Von',
+				at: 'Datum',
+				id: 'Hinweis-ID'
+			}
+		},
+		/** Who plays which part instead of their own (#262): "die Saxophone spielen Fagott". */
+		partAssignments: {
+			tab: 'Stimmenzuteilung',
+			columns: {
+				/** A member's e-mail, or an instrument for all its players ("Saxophon"). */
+				who: 'Wer',
+				/** The part they play instead, as in file names: "Fagott II". */
+				part: 'Spielt',
+				/** Empty for every piece. */
+				piece: 'Stück',
+				/** Empty for always, else a concert's "Anlass". */
+				concert: 'Konzert',
+				by: 'Von',
+				at: 'Datum',
+				id: 'Zuteilungs-ID'
+			}
+		},
+		/** What a rehearsal did and what comes next (#145); one row per rehearsal. */
+		rehearsalNotes: {
+			tab: 'Probennotizen',
+			columns: {
+				rehearsal: 'Probe',
+				done: 'Geprobt',
+				practise: 'Zum Üben',
+				next: 'Nächstes Mal',
+				by: 'Von',
+				at: 'Datum',
+				eventId: 'Termin-ID'
+			}
+		},
+		/** A deployment's own instrument labels and spellings (#143); one row per instrument that differs from the preset. */
+		instruments: {
+			tab: 'Instrumente',
+			columns: {
+				name: 'Instrument',
+				label: 'Anzeige',
+				aliases: 'Weitere Schreibweisen'
+			}
+		},
+		/** Name, look and features set on /einstellungen; one row per setting. */
+		settings: {
+			tab: 'Einstellungen',
+			columns: {
+				key: 'Einstellung',
+				value: 'Wert'
+			},
+			/** The words in the "Einstellung" column, one row each. */
+			keys: {
+				name: 'Name',
+				shortName: 'Kurzname',
+				logo: 'Logo',
+				accent: 'Akzentfarbe',
+				look: 'Stil',
+				featuresOff: 'Ausgeschaltet',
+				retention: 'Aufbewahrung (Saisons)',
+				links: 'Links'
+			},
+			/** The words for the look in the "Wert" column (#163). */
+			lookValues: {
+				bold: 'kräftig',
+				plain: 'schlicht'
+			}
+		}
+	},
+	/** Values of the dropdown columns in "Meldungen" and "Wünsche", as they appear in the sheet. */
+	/** Words the app writes into cells and reads back. */
+	sheetValues: {
+		/** In "Hörbeispiel": there is none, so "Angaben ergänzen" stops asking. */
+		noRecording: 'keins',
+		/** Offered under "Art" in "Ensembles"; any other word works too. */
+		ensembleKinds: { choir: 'Chor', orchestra: 'Orchester', band: 'Band', ensemble: 'Ensemble', soloist: 'Solist:in' },
+		/** Under "Priorität" in "Fehlende Stimmen". */
+		priority: { high: 'hoch', medium: 'mittel', low: 'niedrig' }
+	},
+	feedbackValues: {
+		reportKind: {
+			missing: 'Stimme fehlt',
+			pages: 'Seiten fehlen',
+			cutoff: 'Noten abgeschnitten',
+			crooked: 'Schief oder verdreht',
+			scan: 'Schlechter Scan',
+			empty: 'Datei leer',
+			wrong: 'Falsche Stimme',
+			/** A wrong note, a typo, wrong bar numbers in the music itself (#306), not the scan. */
+			notes: 'Fehler in den Noten',
+			/** The piece's Hörbeispiel is wrong or missing; the report can carry a better link. */
+			recording: 'Hörbeispiel falsch',
+			other: 'Sonstiges'
+		},
+		/** Neu → zum Scannen (ans Scan-Team gegeben) → erledigt; oder verworfen. */
+		reportStatus: { open: 'offen', scan: 'zum Scannen', done: 'erledigt', dismissed: 'verworfen' },
+		wishKind: { piece: 'Stück', feature: 'Funktion' },
+		wishStatus: { open: 'offen', planned: 'geplant', done: 'erledigt', declined: 'abgelehnt' }
+	},
+	reports: {
+		placeholderCreated: (name: string) => `Platzhalter „${name}“ in Drive angelegt.`,
+		confirmMissing: 'Fehlt bestätigen',
+		confirmMissingHint: (name: string) => `Legt den Platzhalter „${name}“ als Google-Doc im Stückordner an und schließt die Meldung.`,
+		placeholderManual: 'Bitte von Hand als Google-Doc im Stückordner anlegen, dann die Meldung schließen:',
+		missingPart: 'Welche Stimme fehlt?',
+		missingNumber: 'Nummer',
+		notInFolder: 'Nicht im Ordner',
+		inFolder: 'Schon im Ordner (z. B. andere Nummer)',
+		report: 'Problem melden',
+		reportPart: (part: string) => `Problem mit „${part}“ melden`,
+		lead: 'Stimme fehlt, Scan unleserlich, Seiten fehlen? Kurz melden, dann kümmert sich jemand darum.',
+		part: 'Was ist betroffen?',
+		wholePiece: 'Ganzes Stück',
+		kind: 'Art des Problems',
+		comment: 'Kommentar (optional)',
+		commentHint: 'z. B. „Seite 3 fehlt“',
+		send: 'Melden',
+		cancel: 'Abbrechen',
+		thanks: 'Danke! Die Meldung ist eingegangen.',
+		/** The page open in the practice viewer, at the start of the comment (#306). */
+		onPage: (page: number) => `Seite ${page}: `,
+		offline: 'Ohne Verbindung geht das Melden nicht. Versuch es gleich noch einmal.',
+		closeDialog: 'Schließen',
+		/** The short button on a part in "Meine Noten" (#306). */
+		flag: 'Melden',
+		failed: 'Die Meldung konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.',
+		notSetUp: 'Meldungen: Fehlt noch in der Tabelle. Bitte einmal „Tabelle einrichten“ ausführen.',
+		signInNeeded: 'Zum Melden bitte anmelden.',
+		title: 'Meldungen',
+		short: 'Probleme mit Noten: prüfen und ans Scan-Team geben.',
+		pageLead: 'Was Mitglieder oder die App an den Noten gefunden haben: kurz ansehen, ans Scan-Team geben, abhaken.',
+		tabs: { inbox: 'Neu', scan: 'Zum Scannen', done: 'Erledigt' },
+		byCheck: 'Von der App gefunden',
+		checkHint: 'Die App zählt die Seiten jeder Stimme. Diese Datei ist leer oder hat viel weniger Seiten als die anderen.',
+		look: 'Ansehen',
+		toScan: 'Ans Scan-Team',
+		toScanHint: 'Das Scan-Team sieht den Auftrag mit Priorität. Am Stück steht dezent, dass die Stimme gemeldet ist.',
+		task: 'Was ist zu tun?',
+		taskFor: {
+			missing: 'Stimme scannen',
+			pages: 'Fehlende Seiten nachscannen',
+			cutoff: 'Neu scannen, ganze Seite aufs Glas',
+			crooked: 'Gerade neu scannen',
+			scan: 'Neu scannen, besser lesbar',
+			empty: 'Neu scannen, die Datei ist leer',
+			wrong: 'Die richtige Stimme scannen',
+			recording: '',
+			other: ''
+		} as Record<string, string>,
+		dismiss: 'Verwerfen',
+		dismissHint: 'Kein Problem, oder schon erledigt. Am Stück steht dann nichts mehr.',
+		scanned: 'Gescannt',
+		scannedHint: 'Neu gescannt und in Drive ersetzt: schließt den Auftrag.',
+		backToInbox: 'Zurück zu Neu',
+		changeJob: 'Auftrag ändern',
+		noInbox: 'Nichts Neues, alles geprüft.',
+		noScans: 'Keine Scan-Aufträge.',
+		noScansMine: 'Dir ist gerade nichts zugeteilt.',
+		mineOnly: 'Nur meine',
+		together: (n: number) => `${n} Stimmen, am besten zusammen scannen`,
+		sent: 'Ans Scan-Team gegeben.',
+		marker: { open: 'gemeldet', scan: 'wird neu gescannt' } as Record<string, string>,
+		markerTitle: (kind: string, comment: string) => `Gemeldet: ${kind}${comment ? ` – ${comment.replace(/[.!?…\s]+$/, '')}` : ''}. Jemand kümmert sich darum.`,
+		pieceMarker: (what: string) => `Gemeldet: ${what}`,
+		already: (what: string) => `Schon gemeldet: ${what}. Noch einmal melden ist nicht nötig.`,
+		push: {
+			newTitle: 'Neue Meldung',
+			body: (piece: string, what: string) => `${piece}: ${what}`,
+			doneTitle: 'Deine Meldung ist erledigt'
+		},
+		open: 'Offen',
+		done: 'Erledigt',
+		noOpen: 'Keine offenen Meldungen.',
+		noDone: 'Noch nichts erledigt.',
+		close: 'Erledigt',
+		reopen: 'Wieder öffnen',
+		note: 'Notiz (optional)',
+		noteHint: 'z. B. „neu gescannt“',
+		by: (name: string, date: string) => `${name} · ${date}`,
+		toPiece: 'Zum Stück',
+		openCount: (n: number) => (n === 1 ? '1 offene Meldung' : `${n} offene Meldungen`),
+		gone: 'Diese Meldung gibt es nicht mehr.',
+		unknownPart: 'Diese Stimme gibt es in dem Stück nicht.',
+		// Mirrored into Drive (DRIVE_WRITE=true): a comment on the file, the status word in its name.
+		driveComment: (kind: string, comment: string) => `Über die Noten-App gemeldet: ${kind}${comment ? ` – ${comment}` : ''}`,
+		driveResolved: 'Erledigt.',
+		driveReopened: 'Wieder offen.',
+		inDrive: 'In Drive kommentiert',
+		mark: 'Im Dateinamen markieren',
+		markLabel: 'Status',
+		marked: (word: string) => `Im Dateinamen: ${word}`,
+		markHint: 'Hängt das Statuswort an den Dateinamen in Drive an. „Erledigt“ entfernt es wieder.',
+		noFile: 'Diese Meldung betrifft keine einzelne Datei.',
+		driveFailed: 'Gespeichert, aber in Drive konnte nichts geändert werden. Ist das Dienstkonto Bearbeiter des Noten-Ordners?',
+		recording: 'Hörbeispiel',
+		recordingNone: 'keins eingetragen',
+		suggestion: 'Besseres Hörbeispiel (Link, optional)',
+		suggestionHint: 'z. B. ein YouTube-Link',
+		suggested: 'Vorschlag',
+		useSuggestion: 'Vorschlag übernehmen',
+		useSuggestionHint: 'Trägt den Link als Hörbeispiel des Stücks ein und schließt die Meldung.',
+		suggestionUsed: 'Als Hörbeispiel übernommen.',
+		reportRecording: 'Hörbeispiel melden'
+	},
+	loans: {
+		title: 'Leihmaterial',
+		lead: 'Geliehene Noten und wann sie zurückmüssen.',
+		open: 'Ausgeliehen',
+		returned: 'Zurückgegeben',
+		noOpen: 'Gerade ist nichts ausgeliehen.',
+		from: (from: string) => `von ${from}`,
+		borrowedAt: (day: string) => `seit ${day}`,
+		dueAt: (day: string) => `zurück bis ${day}`,
+		dueUnknown: 'ohne Rückgabedatum',
+		due: (days: number) =>
+			days < -1 ? `seit ${-days} Tagen überfällig` : days === -1 ? 'seit gestern überfällig' : days === 0 ? 'heute fällig' : days === 1 ? 'morgen fällig' : `in ${days} Tagen fällig`,
+		returnedAt: 'zurückgegeben',
+		markReturned: 'Zurückgegeben',
+		reopen: 'Doch noch da',
+		add: 'Leihmaterial eintragen',
+		addLead: 'Für Noten, die zurückmüssen. Zwei Wochen vor dem Datum steht die Rückgabe unter „Wartet auf dich“.',
+		piece: 'Stück',
+		pieceHint: 'Titel aus dem Archiv',
+		fromLabel: 'Von (Verlag oder Orchester)',
+		borrowedLabel: 'Ausgeliehen am',
+		dueLabel: 'Zurück bis',
+		notes: 'Notiz (optional)',
+		notesHint: 'z. B. Leihgebühr, Ansprechpartner',
+		save: 'Eintragen',
+		saved: 'Eingetragen.',
+		problems: {
+			'piece-missing': 'Bitte ein Stück angeben.',
+			'from-missing': 'Bitte angeben, von wem die Noten sind.',
+			'bad-date': 'Das Datum ist nicht lesbar. Möglich sind 2026-12-15 oder 15.12.2026.'
+		} as Record<string, string>,
+		notSetUp: 'Leihmaterial: Fehlt noch in der Tabelle. Bitte einmal „Tabelle einrichten“ ausführen.',
+		failed: 'Die Tabelle konnte gerade nicht geändert werden. Bitte versuch es noch einmal.',
+		gone: 'Dieser Eintrag hat sich in der Tabelle geändert. Bitte die Seite neu laden.',
+		onPiece: 'Leihmaterial',
+		onPieceHint: 'Bitte nur mit Bleistift eintragen und pünktlich zurückgeben.',
+		manage: 'Alles Leihmaterial',
+		pastReturned: (n: number) => (n === 1 ? '1 zurückgegeben' : `${n} zurückgegeben`)
+	},
+	wishes: {
+		title: 'Wünsche',
+		lead: 'Stücke und Ideen für die App vorschlagen.',
+		tabs: { piece: 'Stückwünsche', feature: 'Funktionswünsche' },
+		add: { piece: 'Stück vorschlagen', feature: 'Idee vorschlagen' },
+		titleLabel: 'Titel',
+		composer: 'Komponist (optional)',
+		link: 'Link (optional)',
+		linkHint: 'z. B. eine Aufnahme oder der Verlag',
+		why: 'Warum? (optional)',
+		description: 'Was soll die App können?',
+		send: 'Wunsch abschicken',
+		thanks: 'Danke! Dein Wunsch steht jetzt auf der Liste.',
+		empty: { piece: 'Noch keine Stückwünsche.', feature: 'Noch keine Funktionswünsche.' },
+		vote: 'Finde ich auch',
+		unvote: 'Doch nicht',
+		votes: (n: number) => `+${n}`,
+		answer: 'Antwort',
+		status: 'Status',
+		setStatus: 'Speichern',
+		manage: 'Status und Antwort',
+		submittedBy: (name: string, date: string) => `Von ${name} · ${date}`,
+		anonymous: 'anonym',
+		anonymousLabel: 'Anonym einreichen',
+		anonymousHint: 'Ohne Namen gespeichert. Dann lässt sich der Wunsch nicht mehr zurückziehen.',
+		invalidLink: 'Der Link muss mit http:// oder https:// beginnen.',
+		titleMissing: 'Bitte einen Titel angeben.',
+		descriptionMissing: 'Bitte beschreiben, was die App können soll.',
+		failed: 'Das konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.',
+		notSetUp: 'Wünsche: Fehlt noch in der Tabelle. Bitte einmal „Tabelle einrichten“ ausführen.',
+		signInNeeded: 'Wünsche brauchen eine Anmeldung, damit jede Person nur einmal „+1“ geben kann.',
+		gone: 'Diesen Wunsch gibt es nicht mehr.',
+		toPiece: 'Im Archiv',
+		titleHint: 'Titel, auch aus dem Archiv',
+		concert: 'Für welches Konzert?',
+		anyTime: 'irgendwann',
+		forConcert: (concert: string) => `für ${concert}`,
+		delete: 'Wunsch löschen',
+		confirmDelete: (title: string) => `„${title}“ wirklich löschen? Das lässt sich nicht rückgängig machen.`,
+		notYours: 'Löschen kannst du nur eigene Wünsche, solange sie noch offen sind.',
+		/** Notifications: a new wish for admins, an answer for whoever wished it and their +1s. */
+		pushNew: { piece: 'Neuer Stückwunsch', feature: 'Neue Idee für die App' } as Record<string, string>,
+		pushAnswer: (title: string) => `Antwort auf „${title}“`,
+		pushStatus: (status: string, answer: string) => (answer ? `${status}: ${answer}` : `Jetzt ${status}.`)
+	},
+	legal,
+	common: {
+		comingSoon: 'Bald verfügbar',
+		backHome: 'Zur Übersicht',
+		loading: 'Seite lädt',
+		saveFailed: 'Speichern hat nicht geklappt. Deine Eingaben sind noch da – bitte versuch es noch einmal.',
+		saveUnavailable: 'Google antwortet nicht, nichts gespeichert. Deine Eingaben sind noch da.',
+		/** A row the save was going to change was changed or deleted in the meantime (#156). */
+		sheetChanged: 'Jemand hat das inzwischen in der Tabelle geändert. Lade die Seite neu und mach deine Änderung noch einmal.',
+		/** Other saves took too long; nothing was saved. */
+		sheetBusy: 'Gerade speichern viele gleichzeitig. Bitte gleich noch einmal versuchen.',
+		unsaved: 'Deine Änderungen sind noch nicht gespeichert. Seite trotzdem verlassen?',
+		share: 'Teilen',
+		copied: 'Kopiert. Jetzt z. B. in WhatsApp einfügen.',
+		copyFailed: 'Kopieren hat nicht geklappt.',
+		quote: (text: string) => `„${text}“`
+	},
+	/** Short answers from the server: refusals, things that are gone or unreachable, setup problems. */
+	messages: {
+		signInFirst: 'Bitte zuerst anmelden.',
+		noRight: 'Dafür fehlt dir die Berechtigung.',
+		membersOnly: 'Nur für angemeldete Mitglieder.',
+		badRequest: 'Ungültige Anfrage.',
+		archiveUnavailable: 'Das Notenarchiv ist gerade nicht erreichbar.',
+		calendarUnavailable: 'Der Kalender ist gerade nicht erreichbar.',
+		sheetFailed: 'Die Tabelle konnte gerade nicht geändert werden. Bitte versuch es noch einmal.',
+		noFile: 'Diese Datei gibt es nicht im Notenarchiv.',
+		driveFailed: (status: string) => `Die Datei konnte nicht aus Drive geladen werden (Drive: ${status}).`,
+		noAnswer: 'keine Antwort',
+		noPicture: 'Kein Bild.',
+		wikimediaUnavailable: 'Wikimedia ist gerade nicht erreichbar.',
+		noVideoLength: 'Ohne YOUTUBE_API_KEY gibt es keine Videolänge.',
+		youtubeUnavailable: 'YouTube ist gerade nicht erreichbar.',
+		signInOff: 'Die Anmeldung ist nicht eingerichtet.',
+		noCalendar: 'Diesen Kalender gibt es nicht.',
+		noEvent: 'Diesen Termin gibt es nicht (mehr) im Kalender.',
+		noConcert: 'Dieses Konzert gibt es nicht.',
+		noPiece: 'Dieses Stück gibt es nicht (mehr) im Notenarchiv.',
+		featureOff: 'Nicht eingeschaltet.',
+		programUnreadable: 'Das Programm konnte nicht gelesen werden.',
+		grantMissing: 'Bitte „Wer“ und ein Recht angeben.',
+		notSet: (variable: string) => `${variable} ist nicht gesetzt.`,
+		noAdmins: 'BOOTSTRAP_ADMINS ist nicht gesetzt: niemand kann Mitglieder freischalten.',
+		runSetup: (page: string) => `Bitte „${page}“ ausführen.`,
+		shortSecret: (min: number) => `SESSION_SECRET fehlt oder ist kürzer als ${min} Zeichen.`,
+		missingTab: (tab: string) => `Das Blatt „${tab}“ fehlt.`,
+		missingColumns: (tab: string, columns: string) => `Im Blatt „${tab}“ fehlen Spalten: ${columns}.`
+	},
+	error: {
+		title: 'Da ist etwas schiefgelaufen',
+		notFound: 'Diese Seite gibt es nicht.',
+		/** A parent account asking for something outside the parents' area. */
+		forbidden: 'Das ist im Elternbereich nicht verfügbar.',
+		notFoundLead: 'Vielleicht ist der Link alt oder ein Stück wurde umbenannt. Von hier aus geht es weiter:',
+		unavailableTitle: 'Gerade nicht erreichbar',
+		unavailable: 'Google antwortet gerade nicht. Gleich noch einmal versuchen.',
+		retry: 'Noch einmal versuchen'
+	}
 } as const;

@@ -25,6 +25,10 @@
 	import { badgeProgress, badgesFor, newBadges, type Badge, type BadgeGroup } from '#lib/practice/drills/badges.ts';
 	import { addAnswer, DAILY_GOAL_MINUTES, dayKey, emptyData, history, MAX_UNSENT, REFLECTION_MAX, streak, type DrillData } from '#lib/practice/drills/progress.ts';
 	import PracticeHistory from '#lib/components/PracticeHistory.svelte';
+	import DrillSharing from '#lib/components/DrillSharing.svelte';
+	import DailyRound from '#lib/components/DailyRound.svelte';
+	import { invalidateAll } from '$app/navigation';
+	import { sharesAny, summaryRows, type Sharing } from '#lib/practice/drills/sharing.ts';
 	import { dayNumber, record, summary } from '#lib/practice/drills/scheduler.ts';
 	import { clearDrills, loadDrills, saveDrills } from '#lib/practice/drills/store.ts';
 	import { alterInKey, CLEFS, pitchAt, type Clef, type Pitch } from '#lib/practice/drills/theory.ts';
@@ -52,6 +56,7 @@
 		syncUnlocks();
 		syncBadges();
 		sendTime();
+		sendDays();
 	});
 
 	const instrument = $derived<ProfileId>(isProfileId(drills.settings.instrument) ? drills.settings.instrument : own);
@@ -168,22 +173,56 @@
 	function start(kind: Kind) {
 		remember();
 		playing = kind;
+		if (kind === 'mix') {
+			dailySteps = dailyPlan();
+			daily = dailySteps[0];
+			dailyFrom = drills.days[dayKey()]?.ms ?? 0;
+		}
 	}
+
+	/**
+	 * The daily round (#315): about ten minutes made of what's due. A scale to warm up over a
+	 * drone, once scales are open; the notes, keys and intervals due for review; one new melody at
+	 * sight, once sight-reading is open; and a line for what was hard. Short, mixed and regular,
+	 * as spacing research suggests.
+	 */
+	type DailyStep = 'warmup' | 'review' | 'sight' | 'done';
+	let daily = $state<DailyStep>('review');
+	let dailySteps = $state<DailyStep[]>(['review', 'done']);
+	let dailyFrom = 0;
+	/** Questions in the review step: with a warm-up and a melody around it, fewer than a full round. */
+	const DAILY_REVIEW = 12;
+	const dailyPlan = (): DailyStep[] => [
+		...(cards.scale.open && warmupScale ? (['warmup'] as const) : []),
+		'review',
+		...(cards.sight.open ? (['sight'] as const) : []),
+		'done'
+	];
+	/** The scale to warm up with: the one most overdue among those met, else the next new one. */
+	const warmupScale = $derived(
+		orders.scale.filter((id) => drills.items[id]).sort((a, b) => drills.items[a].due - drills.items[b].due)[0] ?? orders.scale[0] ?? null
+	);
+	function nextDaily() {
+		daily = dailySteps[dailySteps.indexOf(daily) + 1] ?? 'done';
+		sendDays();
+	}
+	const dailyMinutes = $derived(Math.max(0, Math.round(((drills.days[dayKey()]?.ms ?? 0) - dailyFrom) / 60_000)));
 	function exit() {
 		playing = null;
 		announce();
 		sendTime();
+		sendDays();
 	}
 
 	/** `measure` is what counts for fluency: the time to answer, or for a rhythm how far the taps were off. */
 	function onanswer(id: string, correct: boolean, ms: number, measure = ms) {
 		drills.items[id] = record(drills.items[id], correct, measure, dayNumber(), FLUENT_MS[kindOf(id)]);
-		practised(correct, ms);
+		practised(correct, ms, kindOf(id));
 	}
 
 	/** The day's practice and the practice tree: every answer, and every melody read at sight. */
-	function practised(correct: boolean, ms: number) {
-		drills.days = addAnswer(drills.days, dayKey(), correct, ms);
+	function practised(correct: boolean, ms: number, skill: string) {
+		drills.days = addAnswer(drills.days, dayKey(), correct, ms, skill);
 		// A clef that opens stays open.
 		const opening = clefLadder(prof, drills.items, drills.opened).filter((step) => step.open && !drills.opened.includes(step.clef));
 		if (opening.length) drills.opened = [...drills.opened, ...opening.map((step) => step.clef)];
@@ -217,6 +256,35 @@
 		} catch {
 			// Offline: kept for the next time.
 		}
+	}
+
+	/**
+	 * What the member shares (#300), and the summary sent when a round ends and the page opens:
+	 * the last four weeks per day and skill, replacing what was sent before. Only while sharing.
+	 */
+	// Set here as it changes, until the next load brings the same back.
+	let sharing = $derived(data.sharing);
+	async function sendDays() {
+		if (!sharesAny(sharing?.chosen)) return;
+		try {
+			const response = await fetch('/api/ueben/tage', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ rows: summaryRows(drills.days, dayKey()) }),
+				keepalive: true
+			});
+			if (response.status === 409 && sharing) sharing = { ...sharing, chosen: null };
+		} catch {
+			// Offline: sent with the next round.
+		}
+	}
+	async function share(next: Sharing) {
+		const response = await fetch('/api/ueben/teilen', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(next) });
+		if (!response.ok) throw new Error(String(response.status));
+		sharing = await response.json();
+		await sendDays();
+		// The board shows once the member is on it.
+		await invalidateAll();
 	}
 
 	/** The last two weeks, for the member's own view of how it's going. */
@@ -263,6 +331,7 @@
 		placement = null;
 		announce();
 		sendTime();
+		sendDays();
 	}
 
 	/**
@@ -405,7 +474,7 @@
 		onanswer={(id, correct, ms) => {
 			recordProbe(test, id, correct, ms);
 			testProgress = placementProgress(test);
-			practised(correct, ms);
+			practised(correct, ms, kindOf(id));
 		}}
 		oncalibrate={() => {}}
 		onsetting={setting}
@@ -428,9 +497,57 @@
 		onlevel={(state) => setting(entry ? { entry: { ...drills.settings.entry, [instrument]: state } } : { sight: { ...drills.settings.sight, [instrument]: state } })}
 		onreadahead={(readAhead) => setting({ readAhead })}
 		onduet={(duet) => setting({ duet })}
-		onpractice={(ms, good) => practised(good, ms)}
+		onpractice={(ms, good) => practised(good, ms, entry ? 'entry' : 'sight')}
 		onexit={exit}
 	/>
+{:else if playing === 'mix'}
+	<DailyRound
+		steps={dailySteps}
+		step={daily}
+		last={drills.reflection ?? null}
+		minutes={dailyMinutes}
+		onsave={(text) => {
+			drills.reflection = { day: dayKey(), text: text.trim().slice(0, REFLECTION_MAX) };
+			persist();
+		}}
+		onexit={exit}
+		onskip={nextDaily}
+	>
+		{#key daily}
+			{#if daily === 'sight'}
+				<SightRound
+					{instrument}
+					{clefs}
+					level={drills.settings.sight?.[instrument]}
+					readAhead={!!drills.settings.readAhead}
+					title={tx.daily.steps.sight}
+					length={1}
+					onlevel={(state) => setting({ sight: { ...drills.settings.sight, [instrument]: state } })}
+					onreadahead={(readAhead) => setting({ readAhead })}
+					onpractice={(ms, good) => practised(good, ms, 'sight')}
+					onfinish={nextDaily}
+					onexit={exit}
+				/>
+			{:else}
+				<DrillRound
+					order={daily === 'warmup' && warmupScale ? [warmupScale] : orders.mix}
+					length={daily === 'warmup' ? 1 : DAILY_REVIEW}
+					{clefs}
+					{instrument}
+					states={drills.items}
+					{sound}
+					title={tx.daily.steps[daily]}
+					tapOffset={drills.settings.tapOffset}
+					settings={daily === 'warmup' ? { ...drills.settings, drone: drills.settings.drone && drills.settings.drone !== 'off' ? drills.settings.drone : 'tonic' } : drills.settings}
+					{onanswer}
+					oncalibrate={(tapOffset) => setting({ tapOffset })}
+					onsetting={setting}
+					onfinish={nextDaily}
+					onexit={exit}
+				/>
+			{/if}
+		{/key}
+	</DailyRound>
 {:else if playing}
 	<DrillRound
 		order={orders[playing]}
@@ -444,15 +561,6 @@
 		{onanswer}
 		oncalibrate={(tapOffset) => setting({ tapOffset })}
 		onsetting={setting}
-		reflect={playing === 'mix'
-			? {
-					last: drills.reflection ?? null,
-					onsave: (text) => {
-						drills.reflection = { day: dayKey(), text: text.trim().slice(0, REFLECTION_MAX) };
-						persist();
-					}
-				}
-			: undefined}
 		onexit={exit}
 	/>
 {:else}
@@ -691,6 +799,10 @@
 				</section>
 			{/if}
 		{/each}
+
+		{#if ready && sharing}
+			<DrillSharing {sharing} board={data.board} onchange={share} />
+		{/if}
 
 		{#if ready}
 			<details class="ui-card badges" open={freshBadges.length > 0}>
