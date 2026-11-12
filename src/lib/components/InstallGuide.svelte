@@ -2,6 +2,7 @@
 	import { tick } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import { t } from '#lib/i18n/index.ts';
+	import { Copier } from '#lib/clipboard.svelte.ts';
 	import type { InstallPlatform } from '#lib/install/install.ts';
 	import { install, promptInstall } from '#lib/install/state.svelte.ts';
 	import Icon from './Icon.svelte';
@@ -61,16 +62,8 @@
 		if ((await promptInstall()) === 'accepted') justNow = true;
 	}
 
-	let copied = $state(false);
-	async function copy() {
-		try {
-			await navigator.clipboard.writeText(`${location.origin}/install`);
-			copied = true;
-			setTimeout(() => (copied = false), 2500);
-		} catch {
-			// The address bar has it too.
-		}
-	}
+	// Without a clipboard the address bar has it too.
+	const copier = new Copier();
 
 	const success = $derived(!again && (install.standalone || justNow || install.installed));
 </script>
@@ -112,7 +105,7 @@
 		{#if here && platform === 'ios' && device?.browser !== 'safari'}
 			<div class="msg info note">
 				<p>{t.install.notSafari}</p>
-				<button class="btn small secondary" onclick={copy}><Icon name={copied ? 'check' : 'link'} size={14} />{copied ? t.install.copied : t.install.copyLink}</button>
+				<button class="btn small secondary" onclick={() => copier.copy(`${location.origin}/install`)}><Icon name={copier.copied ? 'check' : 'link'} size={14} />{copier.copied ? t.install.copied : t.install.copyLink}</button>
 			</div>
 		{:else if here && platform === 'android' && device?.browser === 'samsung'}
 			<p class="msg info">{t.install.samsung}</p>

@@ -5,6 +5,7 @@
 	import { config } from '#lib/config/index.ts';
 	import { formatDay } from '#lib/events/format.ts';
 	import { t } from '#lib/i18n/index.ts';
+	import { Copier } from '#lib/clipboard.svelte.ts';
 	import type { InstrumentFamily } from '#lib/config/types.ts';
 	import { applyFilters, type FilterGroup } from '#lib/filters.ts';
 	import Avatar from '#lib/components/Avatar.svelte';
@@ -119,16 +120,8 @@
 		if (!confirm(question)) event.preventDefault();
 	};
 
-	let copied = $state(false);
-	async function copy(text: string) {
-		try {
-			await navigator.clipboard.writeText(text);
-			copied = true;
-			setTimeout(() => (copied = false), 2000);
-		} catch {
-			// No clipboard (e.g. plain http): the field is selected on focus for copying by hand.
-		}
-	}
+	// Without a clipboard (e.g. plain http) the field is selected on focus for copying by hand.
+	const copier = new Copier();
 
 	const confirmRemove = (name: string) => (event: SubmitEvent) => {
 		if (!confirm(t.admin.confirmRemove(name))) event.preventDefault();
@@ -281,7 +274,7 @@
 										<p>{t.admin.linkFor(member.name)}</p>
 										<div class="link-row">
 											<input readonly value={form.link.url} onfocus={(event) => event.currentTarget.select()} aria-label={t.admin.accessLink} />
-											<button class="btn ghost" type="button" onclick={() => copy(form!.link!.url)}>{copied ? t.admin.copied : t.admin.copy}</button>
+											<button class="btn ghost" type="button" onclick={() => copier.copy(form!.link!.url)}>{copier.copied ? t.admin.copied : t.admin.copy}</button>
 										</div>
 									{/if}
 									<div class="row-buttons">
@@ -388,7 +381,7 @@
 						<p><Icon name="check" size={16} />{t.invite.created}</p>
 						<div class="link-row">
 							<input readonly value={form.invited.url} onfocus={(event) => event.currentTarget.select()} aria-label={t.invite.adminTitle} />
-							<button class="btn" type="button" onclick={() => copy(form!.invited!.url)}>{copied ? t.admin.copied : t.admin.copy}</button>
+							<button class="btn" type="button" onclick={() => copier.copy(form!.invited!.url)}>{copier.copied ? t.admin.copied : t.admin.copy}</button>
 						</div>
 					</div>
 				{:else if form?.inviteRevoked}
@@ -421,7 +414,7 @@
 									<strong>{invite.label || t.invite.unnamed}</strong>
 									<span class="meta">{t.invite.until(formatDay(invite.expiresAt.slice(0, 10), config.locale))}{invite.groups ? ` · ${invite.groups}` : ''}</span>
 								</span>
-								<button class="btn ghost small" type="button" onclick={() => copy(invite.url)}>{t.admin.copy}</button>
+								<button class="btn ghost small" type="button" onclick={() => copier.copy(invite.url)}>{t.admin.copy}</button>
 								<form method="POST" action="?/inviteRevoke" use:enhance={submit} onsubmit={(event) => confirm(t.invite.confirmRevoke) || event.preventDefault()}>
 									<input type="hidden" name="id" value={invite.id} />
 									<button class="btn ghost small danger" disabled={saving.busy}>{t.invite.revoke}</button>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { t } from '#lib/i18n/index.ts';
+	import { readLocalJson, writeLocalJson } from '#lib/local-storage.ts';
 	import { detectPitch, DRONE_HARMONICS, noteFrequency, PitchSmoother } from '#lib/practice/audio.ts';
 	import TunerGauge from './TunerGauge.svelte';
 
@@ -16,29 +17,20 @@
 	const KEY = 'tuner';
 	function remembered(): { a4: number; pitchClass: number; octave: number; fifth: boolean; volume: number } {
 		const fallback = { a4: 440, pitchClass: 9, octave: 3, fifth: false, volume: 0.6 };
-		try {
-			const value = { ...fallback, ...JSON.parse(localStorage.getItem(KEY) ?? '{}') };
-			return {
-				a4: value.a4 >= 415 && value.a4 <= 466 ? value.a4 : 440,
-				pitchClass: Number.isInteger(value.pitchClass) && value.pitchClass >= 0 && value.pitchClass < 12 ? value.pitchClass : 9,
-				octave: Number.isInteger(value.octave) && value.octave >= 1 && value.octave <= 5 ? value.octave : 3,
-				fifth: !!value.fifth,
-				volume: value.volume >= 0 && value.volume <= 1 ? value.volume : 0.6
-			};
-		} catch {
-			return fallback;
-		}
+		const value = { ...fallback, ...(readLocalJson(KEY) as Partial<typeof fallback> | undefined) };
+		return {
+			a4: value.a4 >= 415 && value.a4 <= 466 ? value.a4 : 440,
+			pitchClass: Number.isInteger(value.pitchClass) && value.pitchClass >= 0 && value.pitchClass < 12 ? value.pitchClass : 9,
+			octave: Number.isInteger(value.octave) && value.octave >= 1 && value.octave <= 5 ? value.octave : 3,
+			fifth: !!value.fifth,
+			volume: value.volume >= 0 && value.volume <= 1 ? value.volume : 0.6
+		};
 	}
 
 	const start = remembered();
 	let a4 = $state(start.a4);
 	$effect(() => {
-		const value = JSON.stringify({ a4, pitchClass, octave, fifth, volume });
-		try {
-			localStorage.setItem(KEY, value);
-		} catch {
-			// Not remembered, that's all.
-		}
+		writeLocalJson(KEY, { a4, pitchClass, octave, fifth, volume });
 	});
 
 	// The tuner.

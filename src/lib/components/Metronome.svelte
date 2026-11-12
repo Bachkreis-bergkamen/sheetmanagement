@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { t } from '#lib/i18n/index.ts';
+	import { readLocalJson, writeLocalJson } from '#lib/local-storage.ts';
 	import { clampBpm, clicksOf, isCompound, MAX_BPM, meterById, METERS, MIN_BPM, tapTempo, tempoName, TEMPI, type Accent } from '#lib/practice/audio.ts';
 	import MetronomeDevice from './MetronomeDevice.svelte';
 
@@ -11,12 +12,8 @@
 
 	const KEY = 'metronome';
 	function remembered(): { bpm: number; meter: string; dotted: boolean } {
-		try {
-			const value = JSON.parse(localStorage.getItem(KEY) ?? '{}') as { bpm?: number; meter?: string; dotted?: boolean };
-			return { bpm: clampBpm(value.bpm ?? 92), meter: meterById(value.meter ?? '4/4').id, dotted: !!value.dotted };
-		} catch {
-			return { bpm: 92, meter: '4/4', dotted: false };
-		}
+		const value = (readLocalJson(KEY) ?? {}) as { bpm?: number; meter?: string; dotted?: boolean };
+		return { bpm: clampBpm(value.bpm ?? 92), meter: meterById(value.meter ?? '4/4').id, dotted: !!value.dotted };
 	}
 
 	const start = remembered();
@@ -36,12 +33,7 @@
 	const UNIT = { quarter: '♩', eighth: '♪', half: '𝅗𝅥', dotted: '♩.' } as const;
 
 	$effect(() => {
-		const value = JSON.stringify({ bpm, meter: meterId, dotted });
-		try {
-			localStorage.setItem(KEY, value);
-		} catch {
-			// Not remembered, that's all.
-		}
+		writeLocalJson(KEY, { bpm, meter: meterId, dotted });
 	});
 
 	let context: AudioContext | null = null;

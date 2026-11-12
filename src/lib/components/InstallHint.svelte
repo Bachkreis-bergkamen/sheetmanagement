@@ -2,6 +2,7 @@
 	import { slide } from 'svelte/transition';
 	import { goto } from '$app/navigation';
 	import { t } from '#lib/i18n/index.ts';
+	import { readLocal, writeLocal } from '#lib/local-storage.ts';
 	import { dismissal, hintDue, INSTALL_HINT_KEY } from '#lib/install/install.ts';
 	import { install, promptInstall } from '#lib/install/state.svelte.ts';
 	import { tour } from '#lib/tour/state.svelte.ts';
@@ -16,11 +17,9 @@
 
 	let stored = $state<string | null>('never');
 	$effect(() => {
-		try {
-			stored = localStorage.getItem(INSTALL_HINT_KEY);
-		} catch {
-			// Without storage it can't remember "Später", so it doesn't ask at all.
-		}
+		// Without storage it can't remember "Später", so it doesn't ask at all.
+		const kept = readLocal(INSTALL_HINT_KEY);
+		if (kept !== undefined) stored = kept;
 	});
 
 	const phone = $derived(install.device?.platform === 'ios' || install.device?.platform === 'android');
@@ -28,11 +27,8 @@
 
 	function dismiss(kind: 'later' | 'never') {
 		stored = dismissal(kind, Date.now());
-		try {
-			localStorage.setItem(INSTALL_HINT_KEY, stored);
-		} catch {
-			// Then only for this visit.
-		}
+		// Without storage, only for this visit.
+		writeLocal(INSTALL_HINT_KEY, stored);
 	}
 
 	async function start() {

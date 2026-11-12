@@ -1,4 +1,5 @@
 import { detectDevice, INSTALLED_KEY, type Device } from './install.ts';
+import { readLocal, writeLocal } from '#lib/local-storage.ts';
 
 /** Chrome's and Edge's own install dialog, offered through an event that may come early (app.html keeps it). */
 export type InstallPromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }> };
@@ -69,19 +70,10 @@ export async function promptInstall(): Promise<'accepted' | 'dismissed' | 'unava
 	return outcome;
 }
 
-function remembered() {
-	try {
-		return localStorage.getItem(INSTALLED_KEY) === '1';
-	} catch {
-		return false;
-	}
-}
+const remembered = () => readLocal(INSTALLED_KEY) === '1';
 
 function remember() {
 	window.__installed = true;
-	try {
-		localStorage.setItem(INSTALLED_KEY, '1');
-	} catch {
-		// Then the hint may ask once more in the browser; from the home screen it never does.
-	}
+	// Without storage the hint may ask once more in the browser; from the home screen it never does.
+	writeLocal(INSTALLED_KEY, '1');
 }

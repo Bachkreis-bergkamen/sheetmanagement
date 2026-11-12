@@ -1,4 +1,4 @@
-import { getStore } from '../db/index.ts';
+import { readState, writeState } from '../app-state.ts';
 import { randomToken } from './session.ts';
 
 /**
@@ -28,18 +28,9 @@ export interface Invite {
 const isInvite = (value: unknown): value is Invite =>
 	!!value && typeof value === 'object' && typeof (value as Invite).id === 'string' && typeof (value as Invite).expiresAt === 'string';
 
-async function read(): Promise<Invite[]> {
-	const raw = await getStore().getState(KEY);
-	if (!raw) return [];
-	try {
-		const parsed: unknown = JSON.parse(raw);
-		return Array.isArray(parsed) ? parsed.filter(isInvite) : [];
-	} catch {
-		return [];
-	}
-}
+const read = () => readState(KEY, (value) => (Array.isArray(value) ? value.filter(isInvite) : []));
 
-const write = (invites: Invite[]) => getStore().setState(KEY, JSON.stringify(invites));
+const write = (invites: Invite[]) => writeState(KEY, invites);
 
 const open = (invite: Invite, now: number) => Date.parse(invite.expiresAt) > now;
 

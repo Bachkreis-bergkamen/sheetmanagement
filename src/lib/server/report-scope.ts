@@ -1,4 +1,4 @@
-import { getStore } from './db/index.ts';
+import { readState, recordIn, sortedByKey, writeState } from './app-state.ts';
 import { defaultReportScope, type LibraryConcert, type ReportScope } from './library.ts';
 
 /**
@@ -8,21 +8,14 @@ import { defaultReportScope, type LibraryConcert, type ReportScope } from './lib
  */
 const KEY = 'report-scopes';
 
-async function stored(): Promise<Record<string, ReportScope>> {
-	const text = await getStore()
-		.getState(KEY)
-		.catch(() => null);
-	try {
-		const all = text ? (JSON.parse(text) as unknown) : {};
-		return all && typeof all === 'object' && !Array.isArray(all) ? (all as Record<string, ReportScope>) : {};
-	} catch {
-		return {};
-	}
-}
+const stored = () => readState(KEY, (value) => recordIn<ReportScope>(value));
 
 /** The scope chosen for the concert, else the default: all pieces unless a guest organises it. */
 export async function reportScopeOf(concert: Pick<LibraryConcert, 'id' | 'organizer'>): Promise<ReportScope> {
-	const chosen = (await stored())[concert.id];
+	const chosen = await stored().then(
+		(all) => all[concert.id],
+		() => undefined
+	);
 	return chosen === 'all' || chosen === 'ours' ? chosen : defaultReportScope(concert);
 }
 
@@ -31,5 +24,5 @@ export async function setReportScope(concert: Pick<LibraryConcert, 'id' | 'organ
 	const all = await stored();
 	if (scope === defaultReportScope(concert)) delete all[concert.id];
 	else all[concert.id] = scope;
-	await getStore().setState(KEY, JSON.stringify(Object.fromEntries(Object.entries(all).sort(([a], [b]) => a.localeCompare(b)))));
+	await writeState(KEY, sortedByKey(Object.entries(all)));
 }

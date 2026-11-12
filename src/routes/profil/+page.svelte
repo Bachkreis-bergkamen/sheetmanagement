@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { FormState } from '#lib/forms.svelte.ts';
 	import { t } from '#lib/i18n/index.ts';
+	import { Copier } from '#lib/clipboard.svelte.ts';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import MemberFields from '#lib/components/MemberFields.svelte';
@@ -39,16 +40,8 @@
 		].filter((group) => group !== null)
 	);
 
-	let copied = $state(false);
-	async function copy(text: string) {
-		try {
-			await navigator.clipboard.writeText(text);
-			copied = true;
-			setTimeout(() => (copied = false), 2500);
-		} catch {
-			// The field below is selectable as a fallback.
-		}
-	}
+	// Without a clipboard the field below is selectable.
+	const copier = new Copier();
 </script>
 
 <Title title={t.profile.title} />
@@ -143,8 +136,8 @@
 					{:else}
 						<div class="feed-actions">
 							<a class="btn" href={data.feed.webcal}><Icon name="calendar" size={16} />{t.feed.subscribe}</a>
-							<button class="btn ghost" type="button" onclick={() => copy(data.feed?.state === 'active' ? data.feed.url : '')}>
-								<Icon name={copied ? 'check' : 'link'} size={16} />{copied ? t.feed.copied : t.feed.copy}
+							<button class="btn ghost" type="button" onclick={() => copier.copy(data.feed?.state === 'active' ? data.feed.url : '')}>
+								<Icon name={copier.copied ? 'check' : 'link'} size={16} />{copier.copied ? t.feed.copied : t.feed.copy}
 							</button>
 						</div>
 						<input class="feed-url" readonly value={data.feed.url} aria-label={t.feed.title} onfocus={(event) => event.currentTarget.select()} />
@@ -262,8 +255,8 @@
 					<p class="msg info">{t.feed.notSetUp}</p>
 				{:else if form && 'link' in form && form.link}
 					<div class="feed-actions">
-						<button class="btn" type="button" onclick={() => copy(form && 'link' in form ? String(form.link) : '')}>
-							<Icon name={copied ? 'check' : 'link'} size={16} />{copied ? t.feed.copied : t.feed.copy}
+						<button class="btn" type="button" onclick={() => copier.copy(form && 'link' in form ? String(form.link) : '')}>
+							<Icon name={copier.copied ? 'check' : 'link'} size={16} />{copier.copied ? t.feed.copied : t.feed.copy}
 						</button>
 					</div>
 					<input class="feed-url" readonly value={form.link} aria-label={t.ownLink.title} onfocus={(event) => event.currentTarget.select()} />

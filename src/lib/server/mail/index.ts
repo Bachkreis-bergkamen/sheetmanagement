@@ -1,7 +1,6 @@
-import { authConfig } from '../auth/index.ts';
-import { base64url, fromBase64url } from '../auth/session.ts';
+import { connectableAuth, connectedAccount } from '../connected-account.ts';
 import { getStore } from '../db/index.ts';
-import { isDemo, orchestra } from '../env.ts';
+import { orchestra } from '../env.ts';
 import { accessToken, MailError, sendGmail } from './gmail.ts';
 
 /**
@@ -27,76 +26,27 @@ interface Stored extends MailAccount {
 const KEY = 'mail-account';
 /** The last sending failure, for /status; cleared by the next mail that goes out. */
 const ERROR_KEY = 'mail-error';
-const encoder = new TextEncoder();
-
-async function cryptoKey(secret: string) {
-	const digest = await crypto.subtle.digest('SHA-256', encoder.encode(`mail-account:${secret}`));
-	return crypto.subtle.importKey('raw', digest, 'AES-GCM', false, ['encrypt', 'decrypt']);
-}
-
-/** Encrypts an account's refresh token for the store; also used for the Drive account (#193). */
-export async function seal<T>(value: T, secret: string): Promise<string> {
-	const iv = crypto.getRandomValues(new Uint8Array(12));
-	const data = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await cryptoKey(secret), encoder.encode(JSON.stringify(value)));
-	return `${base64url(iv)}.${base64url(data)}`;
-}
-
-export async function open<T = Stored>(sealed: string, secret: string): Promise<T | null> {
-	const [iv, data] = sealed.split('.');
-	if (!iv || !data) return null;
-	try {
-		const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromBase64url(iv) }, await cryptoKey(secret), fromBase64url(data));
-		return JSON.parse(new TextDecoder().decode(plain)) as T;
-	} catch {
-		// A new SESSION_SECRET: the account has to be connected again.
-		return null;
-	}
-}
-
-function client() {
-	const auth = authConfig();
-	return auth.mode === 'on' && auth.google && !auth.problems.length && !isDemo() ? auth : null;
-}
-
-// One read per isolate and minute; every page with a mail form asks.
-let cached: { at: number; value: Stored | null } | undefined;
+const account = connectedAccount<Stored>(KEY);
 let token: { refreshToken: string; token: string; expiresAt: number } | undefined;
-
-async function stored(): Promise<Stored | null> {
-	const auth = client();
-	if (!auth) return null;
-	if (cached && Date.now() - cached.at < 60_000) return cached.value;
-	const sealed = await getStore()
-		.getState(KEY)
-		.catch(() => null);
-	const value = sealed ? await open(sealed, auth.sessionSecret) : null;
-	cached = { at: Date.now(), value };
-	return value;
-}
 
 /** The connected account, without its token; null while none is connected. */
 export async function mailAccount(): Promise<MailAccount | null> {
-	const account = await stored();
-	return account ? { email: account.email, origin: account.origin, connectedAt: account.connectedAt } : null;
+	const stored = await account.read();
+	return stored ? { email: stored.email, origin: stored.origin, connectedAt: stored.connectedAt } : null;
 }
 
-export const mailReady = async () => !!(await stored());
+export const mailReady = async () => !!(await account.read());
 
-export async function connectMail(account: Stored): Promise<void> {
-	const auth = client();
-	if (!auth) throw new MailError('Sign-in is not set up');
-	const store = getStore();
-	await store.setState(KEY, await seal(account, auth.sessionSecret));
-	await store.setState(ERROR_KEY, '');
-	cached = undefined;
+export async function connectMail(stored: Stored): Promise<void> {
+	if (!connectableAuth()) throw new MailError('Sign-in is not set up');
+	await account.save(stored);
+	await getStore().setState(ERROR_KEY, '');
 	token = undefined;
 }
 
 export async function disconnectMail(): Promise<void> {
-	const store = getStore();
-	await store.setState(KEY, '');
-	await store.setState(ERROR_KEY, '');
-	cached = undefined;
+	await account.clear();
+	await getStore().setState(ERROR_KEY, '');
 	token = undefined;
 }
 
@@ -110,14 +60,14 @@ export async function mailError(): Promise<string | null> {
  * failure is logged and kept for /status, never thrown, so one bad address doesn't stop a job.
  */
 export async function sendMail(to: string, subject: string, text: string, fetchImpl?: typeof fetch): Promise<boolean> {
-	const auth = client();
-	const account = await stored();
-	if (!auth || !account) return false;
+	const auth = connectableAuth();
+	const sender = await account.read();
+	if (!auth || !sender) return false;
 	try {
-		if (!token || token.refreshToken !== account.refreshToken || token.expiresAt - 120_000 < Date.now()) {
-			token = { refreshToken: account.refreshToken, ...(await accessToken(auth, account.refreshToken, fetchImpl)) };
+		if (!token || token.refreshToken !== sender.refreshToken || token.expiresAt - 120_000 < Date.now()) {
+			token = { refreshToken: sender.refreshToken, ...(await accessToken(auth, sender.refreshToken, fetchImpl)) };
 		}
-		await sendGmail(token.token, { from: { name: orchestra().name, email: account.email }, to, subject, text }, fetchImpl);
+		await sendGmail(token.token, { from: { name: orchestra().name, email: sender.email }, to, subject, text }, fetchImpl);
 		if (await mailError()) await getStore().setState(ERROR_KEY, '');
 		return true;
 	} catch (cause) {

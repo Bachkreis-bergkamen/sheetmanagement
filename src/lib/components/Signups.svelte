@@ -5,7 +5,8 @@
 	import { enhance } from '$app/forms';
 	import { FormState } from '#lib/forms.svelte.ts';
 	import { t } from '#lib/i18n/index.ts';
-		import type { PageData } from '../../routes/kalender/[id]/$types';
+	import { readLocal, writeLocal } from '#lib/local-storage.ts';
+	import type { PageData } from '../../routes/kalender/[id]/$types';
 	import SignupAnswers from './SignupAnswers.svelte';
 
 	/** "Bist du dabei?" on an upcoming event, and how well each section is covered (#94). */
@@ -29,18 +30,10 @@
 	const BY_PART = 'signups-by-part';
 	let byPart = $state(false);
 	$effect(() => {
-		try {
-			byPart = localStorage.getItem(BY_PART) === '1';
-		} catch {
-			// Private mode or blocked storage: grouped, as by default.
-		}
+		byPart = readLocal(BY_PART) === '1';
 	});
 	function rememberByPart() {
-		try {
-			localStorage.setItem(BY_PART, byPart ? '1' : '0');
-		} catch {
-			// Not remembered; the choice still holds on this page.
-		}
+		writeLocal(BY_PART, byPart ? '1' : '0');
 	}
 	const sections = $derived(byPart && signups.byPart ? signups.byPart : signups.sections);
 </script>
