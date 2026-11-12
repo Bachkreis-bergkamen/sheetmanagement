@@ -129,7 +129,7 @@
 		<!-- For screen readers and for the record: the Besetzung as text. -->
 		<ul class="sr-only">
 			<li>{t.seating.score}{score ? '' : ` (${t.seating.noPart})`}</li>
-			{#each voices as voice (voice.instrument)}<li>{voiceText(voice)}{lacking.has(voice.instrument) ? ` (${t.seating.noPart})` : ''}</li>{/each}
+			{#each voices as voice (voiceText(voice))}<li>{voiceText(voice)}{lacking.has(voice.instrument) ? ` (${t.seating.noPart})` : ''}</li>{/each}
 		</ul>
 		{#if missing.length || !score}
 			<p class="missing"><span class="mark" aria-hidden="true"></span>{t.seating.missing([...(score ? [] : [t.seating.score]), ...missing.map(voiceText)].join(', '))}</p>
