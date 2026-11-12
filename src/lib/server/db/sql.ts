@@ -205,6 +205,61 @@ export function sqlStore(db: D1): Store {
 		async deletePractice(email) {
 			await run('DELETE FROM practice_days WHERE email = ?', email);
 		},
+
+		async drillSharing(email) {
+			const [row] = await all<{ board: number; leaders: number; parents: number }>('SELECT board, leaders, parents FROM drill_sharing WHERE email = ?', email);
+			return row ? { board: !!row.board, leaders: !!row.leaders, parents: !!row.parents } : null;
+		},
+		async drillSharingAll() {
+			const rows = await all<{ email: string; board: number; leaders: number; parents: number }>('SELECT email, board, leaders, parents FROM drill_sharing');
+			return new Map(rows.map((row) => [row.email, { board: !!row.board, leaders: !!row.leaders, parents: !!row.parents }]));
+		},
+		async setDrillSharing(email, sharing) {
+			if (sharing.board || sharing.leaders || sharing.parents) {
+				await run(
+					`INSERT INTO drill_sharing (email, board, leaders, parents) VALUES (?, ?, ?, ?)
+					 ON CONFLICT (email) DO UPDATE SET board = excluded.board, leaders = excluded.leaders, parents = excluded.parents, updated_at = datetime('now')`,
+					email,
+					sharing.board ? 1 : 0,
+					sharing.leaders ? 1 : 0,
+					sharing.parents ? 1 : 0
+				);
+			} else {
+				await run('DELETE FROM drill_sharing WHERE email = ?', email);
+				await run('DELETE FROM drill_days WHERE email = ?', email);
+			}
+		},
+		async saveDrillDays(email, rows) {
+			for (const row of rows) {
+				await run(
+					`INSERT INTO drill_days (email, day, skill, answers, right_answers, seconds) VALUES (?, ?, ?, ?, ?, ?)
+					 ON CONFLICT (email, day, skill) DO UPDATE SET answers = excluded.answers, right_answers = excluded.right_answers, seconds = excluded.seconds`,
+					email,
+					row.day,
+					row.skill,
+					row.answers,
+					row.right,
+					row.seconds
+				);
+			}
+		},
+		async drillDaysOf(emails, since) {
+			if (!emails.length) return [];
+			const rows = await all<{ email: string; day: string; skill: string; answers: number; right_answers: number; seconds: number }>(
+				`SELECT email, day, skill, answers, right_answers, seconds FROM drill_days WHERE day >= ? AND email IN (SELECT value FROM json_each(?)) ORDER BY day, email, skill`,
+				since,
+				JSON.stringify(emails)
+			);
+			return rows.map((row) => ({ email: row.email, day: row.day, skill: row.skill, answers: row.answers, right: row.right_answers, seconds: row.seconds }));
+		},
+		async drillConsentOf(child) {
+			const [row] = await all<{ parent: string }>('SELECT parent FROM drill_parent_consent WHERE child = ?', child);
+			return row?.parent ?? null;
+		},
+		async setDrillConsent(child, parent, allowed) {
+			if (allowed) await run('INSERT INTO drill_parent_consent (child, parent) VALUES (?, ?) ON CONFLICT (child) DO UPDATE SET parent = excluded.parent', child, parent);
+			else await run('DELETE FROM drill_parent_consent WHERE child = ?', child);
+		},
 		async marksOf(email, file) {
 			const rows = await all<{ file: string; page: number; strokes: string }>(
 				`SELECT file, page, strokes FROM practice_marks WHERE email = ?${file === undefined ? '' : ' AND file = ?'} ORDER BY file, page`,

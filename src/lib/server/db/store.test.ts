@@ -170,6 +170,36 @@ describe.each([
 		expect((await store.practiceOf('b@x.org')).length).toBe(1);
 	});
 
+	it('keeps what members share from the Übebereich, and forgets it when they stop', async () => {
+		const store = make();
+		const row = (day: string, skill: string, answers: number) => ({ day, skill, answers, right: answers - 1, seconds: answers * 3 });
+		expect(await store.drillSharing('a@x.org')).toBeNull();
+		await store.setDrillSharing('a@x.org', { board: true, leaders: false, parents: true });
+		await store.setDrillSharing('b@x.org', { board: false, leaders: true, parents: false });
+		expect(await store.drillSharing('a@x.org')).toEqual({ board: true, leaders: false, parents: true });
+		expect([...(await store.drillSharingAll()).keys()].sort()).toEqual(['a@x.org', 'b@x.org']);
+
+		await store.saveDrillDays('a@x.org', [row('2026-11-10', 'notes', 10), row('2026-11-12', 'scale', 4)]);
+		// Sent again from the device: replaced, not added up.
+		await store.saveDrillDays('a@x.org', [row('2026-11-12', 'scale', 6)]);
+		await store.saveDrillDays('b@x.org', [row('2026-11-12', 'notes', 2)]);
+		expect(await store.drillDaysOf(['a@x.org'], '2026-11-11')).toEqual([{ email: 'a@x.org', ...row('2026-11-12', 'scale', 6) }]);
+		expect((await store.drillDaysOf(['a@x.org', 'b@x.org'], '2026-11-01')).map((each) => each.email)).toEqual(['a@x.org', 'a@x.org', 'b@x.org']);
+		expect(await store.drillDaysOf([], '2026-11-01')).toEqual([]);
+
+		// Sharing nothing deletes the choice and what was sent.
+		await store.setDrillSharing('a@x.org', { board: false, leaders: false, parents: false });
+		expect(await store.drillSharing('a@x.org')).toBeNull();
+		expect(await store.drillDaysOf(['a@x.org'], '2026-01-01')).toEqual([]);
+		expect((await store.drillDaysOf(['b@x.org'], '2026-01-01')).length).toBe(1);
+
+		expect(await store.drillConsentOf('kid@x.org')).toBeNull();
+		await store.setDrillConsent('kid@x.org', 'mum@x.org', true);
+		expect(await store.drillConsentOf('kid@x.org')).toBe('mum@x.org');
+		await store.setDrillConsent('kid@x.org', 'mum@x.org', false);
+		expect(await store.drillConsentOf('kid@x.org')).toBeNull();
+	});
+
 	it('keeps a member’s own marks per part and page, for that member only', async () => {
 		const store = make();
 		const line = (color: 'red' | 'blue') => [{ color, points: [0.1, 0.2, 0.3, 0.4] }];

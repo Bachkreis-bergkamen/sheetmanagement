@@ -41,6 +41,9 @@ describe('featureOfPath', () => {
 		expect(featureOfPath('/ueben')).toBe('drills');
 		expect(featureOfPath('/ueben/__data.json')).toBe('drills');
 		expect(featureOfPath('/api/ueben/runde')).toBe('drills');
+		expect(featureOfPath('/api/ueben/tage')).toBe('drills');
+		expect(featureOfPath('/api/ueben/teilen')).toBe('drills');
+		expect(featureOfPath('/ueben/stand')).toBe('drills');
 		expect(featureOfPath('/api/ueben')).toBeUndefined();
 		expect(featureOfPath('/ueben/1AbC')).toBeUndefined();
 	});

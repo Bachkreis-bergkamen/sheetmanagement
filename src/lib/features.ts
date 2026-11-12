@@ -72,7 +72,7 @@ export function featureOfPath(path: string): Feature | undefined {
 	if (/^\/kalender\/[^/]+\/musikfolge\.csv$/.test(path)) return 'musicReport';
 	if (/^\/kalender\/[^/]+\/karten(\/|$)/.test(path)) return 'tickets';
 	if (/^\/(einlass|karte|api\/karten|api\/einlass)(\/|$)/.test(path)) return 'tickets';
-	// The hub only: /ueben/<file> is the practice viewer of a part, which stays.
-	if (/^\/(ueben(\/__data\.json)?|api\/ueben\/runde)$/.test(path)) return 'drills';
+	// The hub and the leaders' overview only: /ueben/<file> is the practice viewer of a part, which stays.
+	if (/^\/(ueben(\/stand)?(\/__data\.json)?|api\/ueben\/(runde|tage|teilen))$/.test(path)) return 'drills';
 	return undefined;
 }

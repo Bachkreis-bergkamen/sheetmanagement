@@ -13,7 +13,7 @@ export const GET: RequestHandler = async ({ locals }) => {
 	if (locals.auth === 'off' || !user) redirect(303, '/anmelden');
 	const email = user.email.trim().toLowerCase();
 	const store = getStore();
-	const [access, feedback, signups, attendance, pieceNotes, rehearsalNotes, devices, reminders, optOut, tour, practiceOn, practiceDays, marks, polls] = await Promise.all([
+	const [access, feedback, signups, attendance, pieceNotes, rehearsalNotes, devices, reminders, optOut, tour, practiceOn, practiceDays, marks, polls, drillSharing, drillDays] = await Promise.all([
 		getAccessList({ force: true }),
 		getFeedback(),
 		getSignups(),
@@ -27,7 +27,9 @@ export const GET: RequestHandler = async ({ locals }) => {
 		store.practiceOn(email).catch(() => false),
 		store.practiceOf(email).catch(() => []),
 		store.marksOf(email).catch(() => []),
-		pollStore()?.answersOf(email).catch(() => []) ?? []
+		pollStore()?.answersOf(email).catch(() => []) ?? [],
+		store.drillSharing(email).catch(() => null),
+		store.drillDaysOf([email], '0000-00-00').catch(() => [])
 	]);
 	const member = access?.membersByEmail.get(email);
 	const data = myData(
@@ -46,7 +48,7 @@ export const GET: RequestHandler = async ({ locals }) => {
 		email: user.email,
 		exportedAt: new Date().toISOString(),
 		about: t.myData.explain,
-		data: { ...data, ...storedData(devices, reminders, optOut.has(email), tour, { on: practiceOn, days: practiceDays }, marks), ...pollData(polls) }
+		data: { ...data, ...storedData(devices, reminders, optOut.has(email), tour, { on: practiceOn, days: practiceDays }, marks), ...pollData(polls), ...(drillSharing ? { [t.myData.drills]: { sharing: drillSharing, days: drillDays.map(({ email: _, ...row }) => row) } } : {}) }
 	};
 	return new Response(JSON.stringify(body, null, 2), {
 		headers: {

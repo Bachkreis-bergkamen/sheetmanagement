@@ -20,6 +20,7 @@ export const en: Texts = {
 		parents: 'Parents',
 		parentMessages: 'Messages',
 		parentNotices: 'Notices to parents',
+		drillsOverview: 'Practice overview',
 		gaps: 'Missing parts',
 		naming: 'File names',
 		admin: 'Members & rights',
@@ -1599,6 +1600,7 @@ export const en: Texts = {
 		'karten.einlass': 'Check tickets at the door',
 		'kummerkasten.lesen': 'Read and answer the suggestion box (without seeing who wrote)',
 		'eltern.informieren': 'Write notices to parents',
+		'ueben.begleiten': 'See the practice of members who share it',
 		'mitglieder.verwalten': 'Manage members and rights'
 	},
 	invite: {
@@ -1902,6 +1904,7 @@ export const en: Texts = {
 	},
 	/** Everything the sheet keeps about a member, as one file (#158). */
 	myData: {
+		drills: 'Practice area (shared)',
 		title: 'My data',
 		lead: 'Everything the app keeps about you: your entry, sign-ups, attendance, reports, wishes and notes from the repertoire sheet, plus your devices for notifications, the reminders you got and your answers in date polls.',
 		download: 'Download my data',
@@ -2015,6 +2018,40 @@ export const en: Texts = {
 			save: 'Keep',
 			saved: 'Kept.',
 			last: (date: string) => `Your note from ${date}`
+		},
+		overview: {
+			days: 'Days',
+			minutes: 'Minutes',
+			right: 'right',
+			last: 'last',
+			weeksLabel: (weeks: number[]) => `Practice days over the last four weeks: ${weeks.join(', ')}`,
+			weeksCaption: 'Practice days per week, the last four weeks',
+			skillLine: (answers: number, right: string, minutes: number) => `${answers} tasks · ${right} · ${minutes} min`,
+			skills: { chord: 'Chords by ear', other: 'Other', dictation: 'Melodic dictation', mix: 'Daily round' } as Record<string, string>,
+			nothing: 'Not practised in the last four weeks.'
+		},
+		leaders: {
+			title: 'Practice overview',
+			lead: 'What members share from the practice area with their conductor and teachers: days, minutes and share right over the last four weeks.',
+			none: 'Nobody shares their practice with you yet. Members turn it on themselves in the practice area; for children, the parents agree.',
+			privacy: 'Only those who chose to share are listed. Single answers or recordings don’t exist here: they never leave the device.'
+		},
+		sharing: {
+			title: 'Practising together',
+			lead: 'Optional: share a short daily summary. Everything stays off until you turn it on.',
+			board: { title: 'Weekly board', hint: 'Who in your orchestra practised on how many days. It counts regular practice, not skill; first names only.' },
+			leaders: { title: 'Conductor and teachers', hint: 'They see your practice days, minutes and share right per drill over the last four weeks.' },
+			parents: { title: 'My parents', hint: 'Your parents see the same summary in their area.' },
+			waiting: 'The board and the conductor wait for your parents’ okay. They give it in the parents’ area.',
+			failed: 'That didn’t work. Please try again in a moment.',
+			privacy: 'Only how much and how surely you practised is shared, never single answers or what the microphone hears. Turning everything off deletes what was shared.',
+			boardTitle: 'This week',
+			challenge: (goal: number, have: number) => `Weekly challenge: practise on ${goal} days (you: ${have})`,
+			challengeMet: 'Weekly challenge done!',
+			challengeCount: (met: number, all: number) => `${met} of ${all} made it`,
+			you: (name: string) => `${name} (you)`,
+			days: (days: number) => (days === 1 ? '1 day' : `${days} days`),
+			boardHint: 'Starts again on Monday. A day counts once you practised on it and were online.'
 		},
 		question: (n: number, of: number) => `${n} / ${of}`,
 		new: 'New',
@@ -2545,6 +2582,16 @@ export const en: Texts = {
 		}
 	},
 	parents: {
+		drills: {
+			title: 'Practice area',
+			lead: 'What your child practises in the app’s practice area stays on their device. They can share a short summary with you. The weekly board and the conductor are open to children only with your okay.',
+			allowed: 'May appear on the weekly board and share with the conductor and teachers, if they turn it on themselves.',
+			notAllowed: 'Doesn’t appear on the weekly board and shares nothing with the conductor and teachers.',
+			allow: 'Allow',
+			takeBack: 'Take back',
+			failed: 'That didn’t work.',
+			notShared: (name: string) => `${name} doesn’t share the summary with you (yet). ${name} sets that in the practice area.`
+		},
 		title: 'Parents',
 		lead: (name: string) => `Hello ${name}! Here you see your children's next dates, can excuse them, reserve tickets and write to the team.`,
 		noChildren: 'No child is linked to your account yet. The admins add your children to your entry under “Members”.',
@@ -2733,6 +2780,7 @@ export const en: Texts = {
 			reminders: 'Reminders sent',
 			settings: 'Settings (emails, tour, practice time)',
 			practice: 'Practice time (days)',
+			drills: 'Shared practice summary and parents’ consent',
 			marks: 'Own marks in parts (pages)',
 			polls: 'Date polls',
 			kummer: 'Suggestion box (own messages deleted, answers without name)'

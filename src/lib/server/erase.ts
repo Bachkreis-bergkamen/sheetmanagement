@@ -58,7 +58,7 @@ async function kummerCount(email: string): Promise<number> {
 
 async function storedItems(email: string): Promise<EraseItem[]> {
 	const store = getStore();
-	const [devices, reminders, optOut, tour, practiceOn, practice, marks, polls, kummer] = await Promise.all([
+	const [devices, reminders, optOut, tour, practiceOn, practice, marks, polls, kummer, drillSharing, drillConsent] = await Promise.all([
 		store.pushOf(email),
 		store.remindersOf(email),
 		store.mailOptOuts(),
@@ -67,13 +67,16 @@ async function storedItems(email: string): Promise<EraseItem[]> {
 		store.practiceOf(email),
 		store.marksOf(email),
 		pollStore()?.countBy(email) ?? 0,
-		kummerCount(email)
+		kummerCount(email),
+		store.drillSharing(email),
+		store.drillConsentOf(email)
 	]);
 	const items: EraseItem[] = [
 		{ where: t.erase.stored.devices, count: devices.length, how: 'remove' },
 		{ where: t.erase.stored.reminders, count: reminders.length, how: 'remove' },
 		{ where: t.erase.stored.settings, count: [optOut.has(email), tour, practiceOn].filter(Boolean).length, how: 'remove' },
 		{ where: t.erase.stored.practice, count: practice.length, how: 'remove' },
+		{ where: t.erase.stored.drills, count: (drillSharing ? 1 : 0) + (drillConsent ? 1 : 0), how: 'remove' },
 		{ where: t.erase.stored.marks, count: marks.length, how: 'remove' },
 		{ where: t.erase.stored.polls, count: polls, how: 'anonymise' },
 		{ where: t.erase.stored.kummer, count: kummer, how: 'remove' }
@@ -110,6 +113,8 @@ export async function eraseMember(address: string): Promise<ErasePreview> {
 		store.deleteAccount(email),
 		store.setPracticeOn(email, false),
 		store.deletePractice(email),
+		store.setDrillSharing(email, { board: false, leaders: false, parents: false }),
+		store.setDrillConsent(email, '', false),
 		store.deleteMarks(email),
 		pollStore()?.forget(email, stand),
 		authorKey(email).then((key) => (key ? kummerStore()?.forget(email, key, stand) : undefined))
