@@ -24,7 +24,7 @@
 		toleranceFor,
 		type PulseVerdict
 	} from '#lib/practice/drills/rhythm.ts';
-	import { REFLECTION_MAX, type DrillSettings, type Reflection } from '#lib/practice/drills/progress.ts';
+	import type { DrillSettings } from '#lib/practice/drills/progress.ts';
 	import { droneMidi, IN_TUNE, isArpeggio, isMinor, judgeScale, scaleRows, scaleTempo, segment, UNEVEN, type NoteMark, type Reading } from '#lib/practice/drills/scales.ts';
 	import { listenToPitch, playArpeggio, playBar, playChord, playTone, rememberedA4, startChord, startDrone, triad, type MicProblem, type PlayedBar } from '#lib/practice/drills/sound.ts';
 	import { TUNED } from '#lib/practice/drills/together.ts';
@@ -55,7 +55,7 @@
 		oncalibrate,
 		onsetting,
 		onfinish,
-		reflect,
+		length,
 		onexit
 	}: {
 		order: string[];
@@ -79,19 +79,14 @@
 		test?: () => string | null;
 		progress?: number;
 		onfinish?: () => void;
-		/**
-		 * The daily round (#315): the note the member kept last time, shown as the round starts,
-		 * and after the round a line for what was hard today.
-		 */
-		reflect?: { last: Reflection | null; onsave: (text: string) => void };
+		/** Questions in the round, instead of the usual; the daily round's steps are shorter. */
+		length?: number;
 		onexit: () => void;
 	} = $props();
-	let reflection = $state('');
-	let reflectionSaved = $state(false);
 
 	const tx = t.drills;
 	/** Questions in a round; fewer for keeping the pulse, where each take lasts half a minute. */
-	const roundLength = $derived(order.length && order.every((id) => id.startsWith('pulse:')) ? PULSE_ROUND : ROUND);
+	const roundLength = $derived(length ?? (order.length && order.every((id) => id.startsWith('pulse:')) ? PULSE_ROUND : ROUND));
 	const day = dayNumber();
 	const a4 = rememberedA4();
 
@@ -741,9 +736,6 @@
 	{#if !finished}
 		<div class="bar" aria-hidden="true"><span style:width="{(test ? (progress ?? 0) : count / roundLength) * 100}%"></span></div>
 	{/if}
-	{#if reflect?.last && count === 1 && !finished}
-		<p class="last-note"><span class="ui-label">{tx.reflection.last(new Date(`${reflect.last.day}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }))}</span> {reflect.last.text}</p>
-	{/if}
 
 	{#if question}
 		<div class="prompt">
@@ -1061,24 +1053,6 @@
 				{#if introduced}<li>{tx.doneNew(introduced)}</li>{/if}
 				<li>{tx.mastered(masteredNow, order.length)}</li>
 			</ul>
-			{#if reflect}
-				<form
-					class="reflect"
-					onsubmit={(event) => {
-						event.preventDefault();
-						if (!reflection.trim()) return;
-						reflect.onsave(reflection);
-						reflectionSaved = true;
-					}}
-				>
-					<label for="reflection">{tx.reflection.ask}</label>
-					<div class="reflect-row">
-						<input id="reflection" type="text" maxlength={REFLECTION_MAX} bind:value={reflection} oninput={() => (reflectionSaved = false)} />
-						<button type="submit" class="btn ghost small" disabled={!reflection.trim()}>{tx.reflection.save}</button>
-					</div>
-					<small class="hint" role="status">{reflectionSaved ? tx.reflection.saved : tx.reflection.hint}</small>
-				</form>
-			{/if}
 			<div class="row">
 				<button type="button" class="btn ghost" onclick={onexit}>{tx.back}</button>
 				<button
@@ -1506,36 +1480,6 @@
 		flex-wrap: wrap;
 		justify-content: center;
 		gap: var(--space-2);
-	}
-
-	.last-note {
-		margin: 0;
-		padding: var(--space-2) var(--space-3);
-		border: 1px solid var(--hairline);
-		border-radius: var(--radius-sm, 6px);
-		background: var(--surface-2);
-		font-size: var(--text-sm);
-	}
-
-	.reflect {
-		display: grid;
-		gap: var(--space-1);
-		width: min(100%, 26rem);
-		text-align: start;
-	}
-
-	.reflect label {
-		font-weight: 600;
-	}
-
-	.reflect-row {
-		display: flex;
-		gap: var(--space-2);
-	}
-
-	.reflect-row input {
-		flex: 1;
-		min-width: 0;
 	}
 
 	.done {

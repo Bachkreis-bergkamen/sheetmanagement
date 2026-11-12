@@ -48,7 +48,9 @@
 		onreadahead,
 		onduet = () => {},
 		onpractice,
-		onexit
+		onexit,
+		length = SIGHT_ROUND,
+		onfinish
 	}: {
 		mode?: 'sight' | 'entry';
 		duet?: boolean;
@@ -63,6 +65,10 @@
 		/** Time spent on a melody, and whether it went well, for the day's practice. */
 		onpractice: (ms: number, good: boolean) => void;
 		onexit: () => void;
+		/** Melodies in the round; the daily round reads just one. */
+		length?: number;
+		/** Instead of the round's summary, for the daily round's next step. */
+		onfinish?: () => void;
 	} = $props();
 
 	const tx = t.drills;
@@ -110,7 +116,7 @@
 		change = 0;
 		now = null;
 		hidden = [];
-		if (count >= SIGHT_ROUND) {
+		if (count >= length) {
 			finishRound();
 			return;
 		}
@@ -225,6 +231,13 @@
 	}
 
 	function finishRound() {
+		if (onfinish && count >= length) {
+			stopTake();
+			stopMic?.();
+			stopMic = null;
+			onfinish();
+			return;
+		}
 		phase = 'done';
 		melody = null;
 		stopTake();
@@ -294,7 +307,7 @@
 <section class="round ui-card" aria-labelledby="sight-title">
 	<header class="top">
 		<h2 id="sight-title">{title}</h2>
-		{#if phase !== 'done'}<span class="count">{tx.question(count, SIGHT_ROUND)} · {tx.level(level.level, maxLevel)}</span>{/if}
+		{#if phase !== 'done'}<span class="count">{tx.question(count, length)} · {tx.level(level.level, maxLevel)}</span>{/if}
 		<button type="button" class="btn ghost small" onclick={onexit}>{phase === 'done' ? tx.back : tx.stop}</button>
 	</header>
 
