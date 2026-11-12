@@ -2000,6 +2000,7 @@ export const de = {
 			play: { title: 'Töne spielen', lead: 'Spiel den Ton; das Mikrofon hört, ob er stimmt.' },
 			ear: { title: 'Intervalle hören', lead: 'Zwei Töne: wie weit liegen sie auseinander?' },
 			rhythm: { title: 'Rhythmus', lead: 'Lesen, anhören, nachklopfen: ein Takt nach dem Einzählen.' },
+			pulse: { title: 'Puls halten', lead: 'Das Metronom wird leiser und verstummt; du klopfst im Tempo weiter.' },
 			entry: { title: 'Einsätze', lead: 'Pausen zählen, dem Dirigenten folgen, pünktlich einsetzen, mit Begleitung.' },
 			tune: { title: 'Im Akkord stimmen', lead: 'Ein Akkord klingt: spiel Terz, Quarte oder Quinte so, dass sie rein klingt.' },
 			sight: { title: 'Vom Blatt', lead: 'Jedes Mal eine neue kurze Melodie: kurz ansehen, einzählen, durchspielen.' },
@@ -2071,6 +2072,18 @@ export const de = {
 		calibrateNow: 'Mit dem Klick tippen …',
 		calibrateFailed: 'Das war noch nicht gleichmäßig genug. Noch einmal?',
 		recalibrate: 'neu abgleichen',
+		pulseAsk: (silent: number) => `Halte den Puls: ${silent} Takte allein`,
+		pulseLead: (heard: number, silent: number) =>
+			`Klopf Viertel mit: ${heard} Takte mit Metronom, einen, in dem es leiser wird, dann ${silent} allein. Am Ende kommt ein Klick zurück.`,
+		tapAlong: 'Mitklopfen …',
+		keepPulse: 'Allein weiter …',
+		pulseHeld: 'Puls gehalten, sehr gleichmäßig!',
+		pulseLoose: (ms: number) => `Puls gehalten, im Schnitt ${ms} ms daneben.`,
+		pulseLost: (missed: number, extra: number) =>
+			`Den Puls verloren: ${[missed ? (missed === 1 ? '1 Schlag verpasst' : `${missed} Schläge verpasst`) : '', extra ? (extra === 1 ? '1 Schlag zu viel' : `${extra} Schläge zu viel`) : ''].filter(Boolean).join(', ')}.`,
+		pulseSped: (ms: number) => `Du bist schneller geworden: am Ende ${ms} ms zu früh. Denk die Viertel ruhig weiter, auch durch die langen Noten.`,
+		pulseSlowed: (ms: number) => `Du bist langsamer geworden: am Ende ${ms} ms zu spät. Halte die Spannung bis zum nächsten Schlag.`,
+		pulseSkipped: 'Beim nächsten Mal einfach versuchen: erst mitklopfen, dann allein weiter.',
 		/** "G-Dur-Tonleiter", "a-Moll harmonisch": `key` is the key's name ("G-Dur", "a-Moll"). */
 		scaleName: (key: string, type: string): string =>
 			({ major: `${key}-Tonleiter`, harmonic: `${key} harmonisch`, melodic: `${key} melodisch`, arpMajor: `${key}-Dreiklang`, arpMinor: `${key}-Dreiklang` })[type] ?? key,
@@ -2186,6 +2199,7 @@ export const de = {
 			'Zusammenspiel: Bei den Einsätzen zählst du Pausen, während die Begleitung spielt; pünktlich einsetzen zählt so viel wie die Töne. Im Akkord stimmst du rein, nicht wie am Klavier: eine große Terz etwas tiefer, eine kleine etwas höher.',
 			'Vom Blatt: jede Melodie ist neu, denn Blattspiel lernt man an viel Unbekanntem. Zwei gute Durchgänge nacheinander heben die Stufe, zwei schwache senken sie: mehr Tonarten, Sprünge, kürzere Noten, Moll, längere Melodien.',
 			'Tonleitern gehen den Quintenzirkel entlang, Dur vor Moll, mit Dreiklängen. Sicher heißt: alle Töne getroffen, im Schnitt höchstens 15 Cent daneben. Mit „Cent erst danach zeigen“ spielst du nach Gehör gegen den Liegeton.',
+			'Puls halten: Das Metronom verstummt, du klopfst allein weiter, erst zwei Takte, später bis zu zwölf, langsam und schnell. Die Linie im Ergebnis zeigt, ob du schneller oder langsamer wirst.',
 			'Rhythmen werden schneller, sobald du sie sicher klopfst, und die Toleranz wird enger. Sicher heißt hier: gleichmäßig, im Schnitt höchstens 60 ms daneben.',
 			'Es wird nach und nach schwerer: weitere Schlüssel deines Instruments (beim Cello Bass, dann Tenor, dann Violin), Intervalle von klar verschieden bis leicht verwechselbar, Stimmen in anderen Stimmungen.'
 		] as string[],
@@ -2205,6 +2219,10 @@ export const de = {
 		clefLocked: (clef: string, before: string, have: number, need: number) => `${clef}: kommt, wenn ${need} Töne im ${before} sicher sitzen (jetzt ${have}).`,
 		newClef: (clef: string) => `Neu freigeschaltet: ${clef}!`,
 		treeOn: 'Deine Zeit in den Runden zählt auch für deinen Übebaum.',
+		treeLink: 'Dein Übebaum im Profil',
+		treeTitle: 'Übebaum',
+		treeNext: (duration: string, stage: string) => `noch ${duration} bis ${stage}`,
+		treeStart: 'Im Profil einschalten',
 		treeOff: 'Mit „Probenzeit aufzeichnen“ im Profil wächst dein Übebaum auch mit diesen Runden.',
 		reset: 'Fortschritt auf diesem Gerät löschen',
 		confirmReset: 'Deinen ganzen Übe-Fortschritt auf diesem Gerät löschen? Das lässt sich nicht rückgängig machen.',

@@ -159,3 +159,83 @@ export function calibrate(clicks: number[], taps: number[]): number | null {
 
 /** Clicks and taps of the calibration: eight beats at this tempo after a bar's count-in. */
 export const CALIBRATION = { bpm: 90, beats: 8 };
+
+/**
+ * Keeping the pulse (#300): two bars of quarters with the metronome, a bar in which it fades,
+ * then bars of silence in which the player taps on alone; one click comes back at the end, so
+ * they hear where the beat really was. Only the silent beats count. Items, "pulse:90:4", are the
+ * tempo and the bars of silence: a middle tempo and a short silence first, then longer silences
+ * at the tempos hardest to hold, slow and fast.
+ */
+export const PULSE_ORDER = ['pulse:90:2', 'pulse:72:2', 'pulse:108:2', 'pulse:90:4', 'pulse:63:4', 'pulse:120:4', 'pulse:84:8', 'pulse:60:8', 'pulse:132:8', 'pulse:76:12'];
+
+export const PULSE = {
+	/** Bars with the metronome, then the bar it fades in. */
+	heard: 2,
+	fading: 1
+};
+
+/** The tempo and the bars of silence of a pulse item; null if it isn't one. */
+export function pulseOf(id: string): { bpm: number; silent: number } | null {
+	const match = /^pulse:(\d+):(\d+)$/.exec(id);
+	return match ? { bpm: Number(match[1]), silent: Number(match[2]) } : null;
+}
+
+/** How loud each beat's click is, counted from the count-in's first: full, fading over a bar, silent, and the one that comes back. */
+export function pulseLoudness(beat: number, silent: number, countIn = 4): number {
+	const heard = countIn + PULSE.heard * 4;
+	if (beat < heard) return 1;
+	const fade = beat - heard;
+	if (fade < PULSE.fading * 4) return [0.7, 0.45, 0.25, 0.1][fade] ?? 0;
+	return beat === heard + PULSE.fading * 4 + silent * 4 ? 1 : 0;
+}
+
+/** The first silent beat, counted from the first beat after the count-in. */
+export const firstSilent = () => (PULSE.heard + PULSE.fading) * 4;
+
+export interface PulseVerdict extends TapVerdict {
+	/** Change of the deviation per bar, from a straight line through the taps: negative speeds up. */
+	drift: number;
+	/** Where that line ends at the last silent beat, in ms: how far off the player came out. */
+	end: number;
+}
+
+/**
+ * Taps (ms from the first beat after the count-in, corrected for the device) against the silent
+ * beats. Each beat's window is wider than for a rhythm (up to 30 % of a beat, at most 180 ms), as
+ * a pulse held alone may wander a little and still be held; out of it, it's lost. Right when
+ * every silent beat but at most one was tapped and nothing extra.
+ */
+export function judgePulse(bpm: number, silent: number, taps: number[]): PulseVerdict {
+	const beat = beatMs(bpm);
+	const from = firstSilent();
+	const expected = Array.from({ length: silent * 4 }, (_, i) => (from + i) * beat);
+	const window = Math.min(180, beat * 0.3);
+	// Taps along with the metronome before, and after the click comes back, aren't judged.
+	const inSilence = taps.filter((tap) => tap > expected[0] - beat / 2 && tap < expected[expected.length - 1] + beat / 2);
+	const verdict = judgeTaps(expected, inSilence, window);
+	const missed = verdict.deviations.filter((deviation) => deviation === null).length;
+	// A straight line through the deviations: its slope is the drift, its end where the player came out.
+	const points = verdict.deviations.flatMap((deviation, i) => (deviation === null ? [] : [[i, deviation] as const]));
+	let slope = 0;
+	let intercept = verdict.tendency;
+	if (points.length >= 2) {
+		const meanX = points.reduce((sum, [x]) => sum + x, 0) / points.length;
+		const meanY = points.reduce((sum, [, y]) => sum + y, 0) / points.length;
+		const spread = points.reduce((sum, [x]) => sum + (x - meanX) ** 2, 0);
+		slope = spread ? points.reduce((sum, [x, y]) => sum + (x - meanX) * (y - meanY), 0) / spread : 0;
+		intercept = meanY - slope * meanX;
+	}
+	return {
+		...verdict,
+		correct: missed <= 1 && !verdict.extra.length && points.length > 0,
+		drift: slope * 4,
+		end: intercept + slope * (expected.length - 1)
+	};
+}
+
+/** Takes in a round of keeping the pulse: each lasts up to half a minute. */
+export const PULSE_ROUND = 6;
+
+/** How far off the end may come out before the feedback says the player sped up or slowed down. */
+export const DRIFTED = 50;

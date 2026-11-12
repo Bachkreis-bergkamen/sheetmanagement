@@ -157,7 +157,8 @@ export async function playBar({
 	beats,
 	notes = [],
 	meter = 4,
-	voices = []
+	voices = [],
+	loudness
 }: {
 	bpm: number;
 	countIn: number;
@@ -167,6 +168,8 @@ export async function playBar({
 	meter?: number;
 	/** A second voice to play along with: each `frequency` from `at` ms after the first beat for `seconds`. */
 	voices?: { frequency: number; at: number; seconds: number }[];
+	/** Each click's loudness by its beat (count-in included), 0 to 1, as loud as the count-in at 1: a metronome that fades out. */
+	loudness?: (beat: number) => number;
 }): Promise<PlayedBar | null> {
 	try {
 		output ??= new AudioContext();
@@ -178,7 +181,8 @@ export async function playBar({
 		const nodes: AudioScheduledSourceNode[] = [];
 		for (let i = 0; i < countIn + beats; i++) {
 			const counting = i < countIn;
-			strike(audio, first + i * beat, i % meter === 0 ? 1760 : 1320, counting ? 0.32 : 0.12, 0.04, nodes);
+			const volume = loudness ? 0.32 * loudness(i) : counting ? 0.32 : 0.12;
+			if (volume > 0) strike(audio, first + i * beat, i % meter === 0 ? 1760 : 1320, volume, 0.04, nodes);
 		}
 		for (const note of notes) strike(audio, downbeat + note / 1000, 660, 0.4, 0.12, nodes);
 		for (const voice of voices) sustain(audio, downbeat + voice.at / 1000, voice.frequency, voice.seconds, nodes);

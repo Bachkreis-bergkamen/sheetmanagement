@@ -1979,6 +1979,7 @@ export const en: Texts = {
 			play: { title: 'Play the note', lead: 'Play the note; the microphone hears if it’s right.' },
 			ear: { title: 'Hear intervals', lead: 'Two notes: how far apart are they?' },
 			rhythm: { title: 'Rhythm', lead: 'Read, listen, tap it back: one bar after a count-in.' },
+			pulse: { title: 'Keep the pulse', lead: 'The metronome fades and stops; you keep tapping in tempo.' },
 			entry: { title: 'Entries', lead: 'Count the rests, follow the conductor, come in on time, with accompaniment.' },
 			tune: { title: 'Tuning in a chord', lead: 'A chord sounds: play the third, fourth or fifth so it sounds pure.' },
 			sight: { title: 'Sight-reading', lead: 'A new short melody every time: a quick look, count in, play it through.' },
@@ -2049,6 +2050,18 @@ export const en: Texts = {
 		calibrateNow: 'Tap with the click …',
 		calibrateFailed: 'That wasn’t steady enough yet. Once more?',
 		recalibrate: 'check again',
+		pulseAsk: (silent: number) => `Keep the pulse: ${silent} bars alone`,
+		pulseLead: (heard: number, silent: number) =>
+			`Tap quarters along: ${heard} bars with the metronome, one in which it fades, then ${silent} alone. One click comes back at the end.`,
+		tapAlong: 'Tap along …',
+		keepPulse: 'On your own …',
+		pulseHeld: 'Pulse kept, very even!',
+		pulseLoose: (ms: number) => `Pulse kept, ${ms} ms off on average.`,
+		pulseLost: (missed: number, extra: number) =>
+			`Lost the pulse: ${[missed ? (missed === 1 ? '1 beat missed' : `${missed} beats missed`) : '', extra ? (extra === 1 ? '1 tap too many' : `${extra} taps too many`) : ''].filter(Boolean).join(', ')}.`,
+		pulseSped: (ms: number) => `You sped up: ${ms} ms early by the end. Keep thinking the quarters, through long notes too.`,
+		pulseSlowed: (ms: number) => `You slowed down: ${ms} ms late by the end. Keep the energy up to the next beat.`,
+		pulseSkipped: 'Just give it a go next time: tap along first, then on your own.',
 		scaleName: (key: string, type: string): string =>
 			({
 				major: `${key} scale`,
@@ -2168,6 +2181,7 @@ export const en: Texts = {
 			'Playing together: for entries you count rests while the accompaniment plays; coming in on time counts as much as the notes. In a chord you tune pure, not as on the piano: a major third a little lower, a minor one a little higher.',
 			'Sight-reading: every melody is new, because sight-reading is learnt from a lot of the unknown. Two good takes in a row raise the level, two weak ones lower it: more keys, leaps, shorter notes, minor, longer melodies.',
 			'Scales go round the circle of fifths, major before minor, with arpeggios. Secure means every note in place, 15 cents off at most on average. With “Show cents only afterwards” you play by ear against the drone.',
+			'Keep the pulse: the metronome stops and you tap on alone, two bars at first, later up to twelve, slow and fast. The line in the result shows whether you speed up or slow down.',
 			'Rhythms get faster once you tap them securely, and the tolerance tighter. Secure here means even: 60 ms off at most on average.',
 			'It gets harder step by step: more of your instrument’s clefs (cello: bass, then tenor, then treble), intervals from distinct to easily confused, parts in other keys.'
 		],
@@ -2185,6 +2199,10 @@ export const en: Texts = {
 		clefLocked: (clef: string, before: string, have: number, need: number) => `${clef}: comes when ${need} notes in the ${before} are secure (now ${have}).`,
 		newClef: (clef: string) => `Unlocked: ${clef}!`,
 		treeOn: 'Your time in these rounds also counts for your practice tree.',
+		treeLink: 'Your practice tree in your profile',
+		treeTitle: 'Practice tree',
+		treeNext: (duration: string, stage: string) => `${duration} to go to ${stage}`,
+		treeStart: 'Turn it on in your profile',
 		treeOff: 'Turn on “Record practice time” in your profile and your practice tree grows with these rounds too.',
 		reset: 'Delete progress on this device',
 		confirmReset: 'Delete all your practice progress on this device? This can’t be undone.',

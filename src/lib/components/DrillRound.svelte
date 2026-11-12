@@ -5,7 +5,23 @@
 	import { profile, type ProfileId } from '#lib/practice/drills/instruments.ts';
 	import { NoteJudge, type Verdict } from '#lib/practice/drills/judge.ts';
 	import { dayNumber, isMastered, median, pickNext, type States } from '#lib/practice/drills/scheduler.ts';
-	import { beatMs, calibrate, CALIBRATION, judgeTaps, LEANING, onsets, tempoFor, toleranceFor } from '#lib/practice/drills/rhythm.ts';
+	import {
+		beatMs,
+		calibrate,
+		CALIBRATION,
+		DRIFTED,
+		firstSilent,
+		judgePulse,
+		judgeTaps,
+		LEANING,
+		onsets,
+		PULSE,
+		PULSE_ROUND,
+		pulseLoudness,
+		tempoFor,
+		toleranceFor,
+		type PulseVerdict
+	} from '#lib/practice/drills/rhythm.ts';
 	import type { DrillSettings } from '#lib/practice/drills/progress.ts';
 	import { droneMidi, IN_TUNE, isArpeggio, isMinor, judgeScale, scaleTempo, segment, UNEVEN, type NoteMark, type Reading } from '#lib/practice/drills/scales.ts';
 	import { listenToPitch, playArpeggio, playBar, playChord, playTone, rememberedA4, startChord, startDrone, triad, type MicProblem, type PlayedBar } from '#lib/practice/drills/sound.ts';
@@ -64,6 +80,8 @@
 	} = $props();
 
 	const tx = t.drills;
+	/** Questions in a round; fewer for keeping the pulse, where each take lasts half a minute. */
+	const roundLength = $derived(order.length && order.every((id) => id.startsWith('pulse:')) ? PULSE_ROUND : ROUND);
 	const day = dayNumber();
 	const a4 = rememberedA4();
 
@@ -87,7 +105,8 @@
 	let judge: NoteJudge | null = null;
 
 	// Rhythm: the bar playing, the taps into it, and what's shown while it plays.
-	type Phase = 'idle' | 'example' | 'count' | 'tap' | 'calibrate';
+	/** 'alone': keeping the pulse once the metronome has gone quiet. */
+	type Phase = 'idle' | 'example' | 'count' | 'tap' | 'alone' | 'calibrate';
 	let phase = $state<Phase>('idle');
 	/** The beat lit while a bar plays: -4 to -1 counting in, 0 to 3 in the bar. */
 	let beat = $state<number | null>(null);
@@ -114,6 +133,9 @@
 	// Tuning into a chord: the chord held, and the note's cents from pure as it's played.
 	let stopChord: (() => void) | null = null;
 	let liveCents = $state<number | null>(null);
+
+	/** Keeping the pulse: how the silent beats went, for the chart. */
+	let pulseResult = $state<PulseVerdict | null>(null);
 
 	/** Measuring the device's delay, before the first rhythm or when asked. */
 	let calibrating = $state(false);
@@ -143,6 +165,7 @@
 			if (q.harmonic) playChord(notes);
 			else playArpeggio(notes, 0.7);
 		} else if (q.kind === 'rhythm') hearRhythm(q);
+		else if (q.kind === 'pulse') playBar({ bpm: q.bpm, countIn: 4, beats: 0 });
 		else if (q.kind === 'tune') playChord([...q.tune.held.map((ratio) => frequencyOf(q.tune.rootMidi) * ratio), frequencyOf(q.tune.rootMidi) * 2 ** ((q.tune.targetMidi - q.tune.rootMidi + q.tune.pure / 100) / 12)]);
 		else if (q.kind === 'scale') playArpeggio(q.item.midis.map(frequencyOf), isArpeggio(q.item.type) ? 0.4 : 0.32);
 		else if (q.kind === 'trans') playTone(frequencyOf(midiOf(q.pitch) + (q.part ? q.part.semitones : profile(q.instrument).transposition)));
@@ -156,13 +179,14 @@
 		chosen = null;
 		rhythmMarks = [];
 		tapMarks = [];
+		pulseResult = null;
 		calibrating = false;
 		calibrationFailed = false;
 		stopTake();
 		liveMarks = [];
 		holdChord(null);
 		liveCents = null;
-		if (!test && count >= ROUND) {
+		if (!test && count >= roundLength) {
 			finish();
 			return;
 		}
@@ -189,6 +213,10 @@
 		if (asked.kind === 'tune' && listening) holdChord(asked);
 		// Sound before symbol: an interval is heard first, and its notes shown only after the answer.
 		if (asked.kind === 'ear') sound(asked);
+		if (asked.kind === 'pulse') {
+			bpm = asked.bpm;
+			calibrating = tapOffset === undefined;
+		}
 		if (asked.kind === 'rhythm') {
 			const box = states[asked.id]?.box;
 			bpm = tempoFor(box);
@@ -245,10 +273,10 @@
 		judge = null;
 		feedback = { correct, text: correct ? (text || (fluent ? tx.right : tx.rightSlow)) : text, tip };
 		// A rhythm tapped right was just heard; a wrong one is played as it should be.
-		if (withSound && (question.kind !== 'rhythm' || !correct)) sound(question);
+		if (withSound && question.kind !== 'pulse' && (question.kind !== 'rhythm' || !correct)) sound(question);
 		// Right: on by itself, a little longer when it was a new one to look at, or taps to see;
 		// not after a scale, whose notes and cents take a moment to read.
-		if (correct && question.kind !== 'scale') autoNext = setTimeout(next, question.kind === 'rhythm' ? 1800 : isNew ? 1600 : 800);
+		if (correct && question.kind !== 'scale' && question.kind !== 'pulse') autoNext = setTimeout(next, question.kind === 'rhythm' ? 1800 : isNew ? 1600 : 800);
 	}
 
 	function stopBar() {
@@ -324,6 +352,50 @@
 		if (verdict.correct) answer(true, off <= FLUENT_MS.rhythm ? tx.inTime : tx.rhythmLoose(off), leaning, off);
 		else if (!relative.length) answer(false, tx.noTaps, undefined, off);
 		else answer(false, tx.rhythmWrong(missed, verdict.extra.length), leaning, off);
+	}
+
+	/**
+	 * Keeping the pulse: a count-in, two bars with the metronome, a bar in which it fades, then
+	 * bars alone; one click comes back at the end. The beats light up only while they're heard.
+	 */
+	async function tapPulse() {
+		if (question?.kind !== 'pulse' || feedback) return;
+		const q = question;
+		stopBar();
+		taps = [];
+		tapped = 0;
+		phase = 'count';
+		const length = beatMs(q.bpm);
+		const beats = firstSilent() + q.silent * 4 + 1;
+		const played = await playBar({ bpm: q.bpm, countIn: 4, beats, loudness: (i) => pulseLoudness(i, q.silent) });
+		if (!played) {
+			phase = 'idle';
+			return;
+		}
+		if (phase !== 'count') return played.stop();
+		bar = played;
+		const at = (time: number) => Math.max(0, played.start + time - performance.now());
+		for (let i = -4; i < beats; i++) {
+			if (pulseLoudness(i + 4, q.silent) >= 0.25) barTimers.push(setTimeout(() => (beat = i), at(i * length)));
+			else barTimers.push(setTimeout(() => (beat = null), at(i * length)));
+		}
+		barTimers.push(setTimeout(() => phase === 'count' && (phase = 'tap'), at(-length / 2)));
+		barTimers.push(setTimeout(() => phase === 'tap' && (phase = 'alone'), at((PULSE.heard * 4 + 2) * length)));
+		// Judged half a beat after the click that comes back.
+		barTimers.push(setTimeout(() => judgePulseTake(q, played.start), at((beats - 1) * length + length / 2)));
+	}
+
+	function judgePulseTake(q: Extract<Question, { kind: 'pulse' }>, start: number) {
+		const relative = taps.map((time) => time - start - (tapOffset ?? 0));
+		const verdict = judgePulse(q.bpm, q.silent, relative);
+		stopBar();
+		pulseResult = verdict;
+		const missed = verdict.deviations.filter((deviation) => deviation === null).length;
+		const off = Number.isFinite(verdict.meanOff) ? Math.round(verdict.meanOff) : 999;
+		const drift = Math.abs(verdict.end) >= DRIFTED ? (verdict.end < 0 ? tx.pulseSped(Math.round(-verdict.end)) : tx.pulseSlowed(Math.round(verdict.end))) : undefined;
+		if (verdict.correct) answer(true, off <= FLUENT_MS.pulse ? tx.pulseHeld : tx.pulseLoose(off), drift, off);
+		else if (!verdict.deviations.some((deviation) => deviation !== null)) answer(false, tx.noTaps, undefined, off);
+		else answer(false, tx.pulseLost(missed, verdict.extra.length), drift, off);
 	}
 
 	/** The scale's name: "G-Dur-Tonleiter", "a-Moll harmonisch", "D-Dur-Dreiklang". */
@@ -445,7 +517,7 @@
 
 	/** A tap, timed by the event itself (the clock `playBar` reports on), not when it's handled. */
 	function tap(time: number) {
-		if (phase !== 'count' && phase !== 'tap' && phase !== 'calibrate') return;
+		if (phase !== 'count' && phase !== 'tap' && phase !== 'alone' && phase !== 'calibrate') return;
 		taps.push(time);
 		tapped++;
 	}
@@ -573,6 +645,9 @@
 		else if (question.kind === 'rhythm') {
 			stopBar();
 			answer(false, tx.rhythmShown, undefined, 999);
+		} else if (question.kind === 'pulse') {
+			stopBar();
+			answer(false, tx.pulseSkipped, undefined, 999);
 		} else if (question.kind === 'scale') {
 			stopTake();
 			stopBar();
@@ -586,10 +661,13 @@
 	function onkeydown(event: KeyboardEvent) {
 		if (event.metaKey || event.ctrlKey || event.altKey || finished) return;
 		// Rhythm: the space bar taps, or starts the count-in.
-		if (question?.kind === 'rhythm' && !feedback && event.key === ' ') {
+		if ((question?.kind === 'rhythm' || question?.kind === 'pulse') && !feedback && event.key === ' ') {
 			event.preventDefault();
 			if (event.repeat) return;
-			if (phase === 'idle' && !calibrating) tapRhythm();
+			if (phase === 'idle' && !calibrating) {
+				if (question.kind === 'pulse') tapPulse();
+				else tapRhythm();
+			}
 			else tap(event.timeStamp);
 			return;
 		}
@@ -626,11 +704,11 @@
 <section class="round ui-card" aria-labelledby="round-title">
 	<header class="top">
 		<h2 id="round-title">{title}</h2>
-		{#if !finished && !test}<span class="count" aria-label="{count} / {ROUND}">{tx.question(count, ROUND)}</span>{/if}
+		{#if !finished && !test}<span class="count" aria-label="{count} / {roundLength}">{tx.question(count, roundLength)}</span>{/if}
 		<button type="button" class="btn ghost small" onclick={onexit}>{finished ? tx.back : tx.stop}</button>
 	</header>
 	{#if !finished}
-		<div class="bar" aria-hidden="true"><span style:width="{(test ? (progress ?? 0) : count / ROUND) * 100}%"></span></div>
+		<div class="bar" aria-hidden="true"><span style:width="{(test ? (progress ?? 0) : count / roundLength) * 100}%"></span></div>
 	{/if}
 
 	{#if question}
@@ -642,6 +720,7 @@
 				{:else if question.kind === 'ear'}{tx.whichInterval(question.harmonic)}
 				{:else if question.kind === 'trans'}{tx.transQuestion(partLabel(question))}
 				{:else if question.kind === 'rhythm'}{calibrating ? tx.calibrateTitle : tx.tapThis}
+				{:else if question.kind === 'pulse'}{calibrating ? tx.calibrateTitle : tx.pulseAsk(question.silent)}
 				{:else if question.kind === 'scale'}{scaleName(question)}
 				{:else if question.kind === 'tune'}{tx.tuneAsk(tx.tuneRoles[question.tune.role])}
 				{:else}{tx.playThis}{/if}
@@ -666,6 +745,34 @@
 					label={scaleName(question)}
 				/>
 				<p class="hint">{tx.upAndDown}</p>
+			{:else if question.kind === 'pulse'}
+				{#if calibrating}
+					<p class="hint calibrate">{tx.calibrateLead}</p>
+				{:else}
+					<p class="tempo-big"><TempoMark bpm={question.bpm} /></p>
+					<p class="hint calibrate">{tx.pulseLead(PULSE.heard, question.silent)}</p>
+					{#if pulseResult}
+						{@const n = pulseResult.deviations.length}
+						{@const window = Math.min(180, beatMs(question.bpm) * 0.3)}
+						{@const xAt = (i: number) => 14 + (i * 272) / Math.max(1, n - 1)}
+						{@const yAt = (ms: number) => 45 + Math.max(-38, Math.min(38, (ms / window) * 30))}
+						{@const startAt = pulseResult.end - (pulseResult.drift / 4) * (n - 1)}
+						<svg class="drift" viewBox="0 0 300 92" role="img" aria-label={feedback?.text ?? ''}>
+							<rect x="6" y="15" width="288" height="60" rx="4" class="band" />
+							<line x1="6" x2="294" y1="45" y2="45" class="axis" />
+							<text x="296" y="12" text-anchor="end" class="label">{tx.timing.early}</text>
+							<text x="296" y="88" text-anchor="end" class="label">{tx.timing.late}</text>
+							<line x1={xAt(0)} x2={xAt(n - 1)} y1={yAt(startAt)} y2={yAt(pulseResult.end)} class="trend" />
+							{#each pulseResult.deviations as deviation, i (i)}
+								{#if deviation === null}
+									<path d="M{xAt(i) - 4} 41 l8 8 m0 -8 l-8 8" class="missed" />
+								{:else}
+									<circle cx={xAt(i)} cy={yAt(deviation)} r="4" class="point" class:far={Math.abs(deviation) > window * 0.6} />
+								{/if}
+							{/each}
+						</svg>
+					{/if}
+				{/if}
 			{:else if question.kind === 'rhythm'}
 				{#if calibrating}
 					<p class="hint calibrate">{tx.calibrateLead}</p>
@@ -819,7 +926,8 @@
 				{/if}
 				{#if micProblem}<p class="msg error">{micProblem === 'insecure' ? t.practice.tuner.insecure : t.practice.tuner.noMic}</p>{/if}
 			</div>
-		{:else if question.kind === 'rhythm'}
+		{:else if question.kind === 'rhythm' || question.kind === 'pulse'}
+			{@const pulse = question.kind === 'pulse'}
 			<div class="tapping">
 				<ol class="beats" aria-hidden="true">
 					{#each [0, 1, 2, 3] as each (each)}
@@ -829,11 +937,12 @@
 				<p class="status" role="status">
 					{#if phase === 'example'}{tx.example}
 					{:else if phase === 'count'}{tx.countIn}
-					{:else if phase === 'tap'}{tx.tapNow}
+					{:else if phase === 'tap'}{pulse ? tx.tapAlong : tx.tapNow}
+					{:else if phase === 'alone'}{tx.keepPulse}
 					{:else if phase === 'calibrate'}{beat !== null && beat < 0 ? tx.countIn : tx.calibrateNow}
 					{:else if calibrationFailed}{tx.calibrateFailed}{/if}
 				</p>
-				{#if phase === 'count' || phase === 'tap' || phase === 'calibrate'}
+				{#if phase === 'count' || phase === 'tap' || phase === 'alone' || phase === 'calibrate'}
 					<button
 						type="button"
 						class="pad"
@@ -848,6 +957,8 @@
 					<div class="row">
 						{#if calibrating}
 							<button type="button" class="btn" onclick={startCalibration}>{tx.calibrateStart}</button>
+						{:else if q.kind === 'pulse'}
+							<button type="button" class="btn" onclick={tapPulse}>{tx.tapStart}</button>
 						{:else}
 							<button type="button" class="btn ghost" disabled={phase === 'example'} onclick={() => hearRhythm(q)}>{tx.listen}</button>
 							<button type="button" class="btn" onclick={tapRhythm}>{tx.tapStart}</button>
@@ -873,7 +984,7 @@
 				{#if feedback.tip}<p class="hint">{feedback.tip}</p>{/if}
 				<div class="row">
 					<button type="button" class="btn ghost small" onclick={() => question && sound(question)}
-						>{question.kind === 'keys' || question.kind === 'tune' ? tx.replayChord : question.kind === 'ear' || question.kind === 'rhythm' || question.kind === 'scale' ? tx.listen : tx.replay}</button
+						>{question.kind === 'keys' || question.kind === 'tune' ? tx.replayChord : question.kind === 'ear' || question.kind === 'rhythm' || question.kind === 'pulse' || question.kind === 'scale' ? tx.listen : tx.replay}</button
 					>
 					<button type="button" class="btn" onclick={next}>{tx.next}</button>
 				</div>
@@ -908,7 +1019,7 @@
 		</div>
 	{/if}
 	{#if question?.kind === 'notes'}<p class="hint keys">{tx.keyboard}</p>{/if}
-	{#if question?.kind === 'rhythm' && !calibrating}
+	{#if (question?.kind === 'rhythm' || question?.kind === 'pulse') && !calibrating}
 		<p class="hint keys">
 			{tx.keyboardRhythm}
 			{#if tapOffset !== undefined && phase === 'idle' && !feedback}
@@ -1151,6 +1262,49 @@
 		margin-left: var(--space-2);
 		color: var(--text);
 		font-variant-numeric: tabular-nums;
+	}
+
+	.tempo-big {
+		font-size: var(--text-lg);
+	}
+
+	.drift {
+		width: min(100%, 420px);
+		color: var(--text-muted);
+	}
+
+	.drift .band {
+		fill: color-mix(in oklab, var(--ok) 12%, transparent);
+	}
+
+	.drift .axis {
+		stroke: var(--ok);
+		stroke-width: 1.5;
+	}
+
+	.drift .label {
+		fill: currentColor;
+		font-size: 8px;
+	}
+
+	.drift .trend {
+		stroke: var(--accent);
+		stroke-width: 1.5;
+		stroke-dasharray: 4 3;
+	}
+
+	.drift .point {
+		fill: var(--ok);
+	}
+
+	.drift .point.far {
+		fill: var(--warn);
+	}
+
+	.drift .missed {
+		fill: none;
+		stroke: var(--danger);
+		stroke-width: 2;
 	}
 
 	.tapping {

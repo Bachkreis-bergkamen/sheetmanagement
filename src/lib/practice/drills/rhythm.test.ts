@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BAR, calibrate, judgeTaps, onsets, parsePattern, patternOf, PATTERNS, RHYTHM_ORDER, rhythmId, tempoFor, toleranceFor } from './rhythm.ts';
+import { BAR, calibrate, DRIFTED, firstSilent, judgePulse, judgeTaps, PULSE_ORDER, pulseLoudness, pulseOf, onsets, parsePattern, patternOf, PATTERNS, RHYTHM_ORDER, rhythmId, tempoFor, toleranceFor } from './rhythm.ts';
 
 describe('patterns', () => {
 	it('are each one bar of 4/4, none twice', () => {
@@ -95,5 +95,52 @@ describe('calibrate', () => {
 
 	it('ignores taps far from any click', () => {
 		expect(calibrate(clicks, [...clicks.map((click) => click + 50), 333])).toBe(50);
+	});
+});
+
+describe('keeping the pulse', () => {
+	const beat = 500;
+	const silentBeats = (silent: number, at: (i: number) => number) => Array.from({ length: silent * 4 }, (_, i) => (firstSilent() + i) * beat + at(i));
+
+	it('reads its items', () => {
+		for (const id of PULSE_ORDER) expect(pulseOf(id)).not.toBeNull();
+		expect(pulseOf('pulse:90:4')).toEqual({ bpm: 90, silent: 4 });
+		expect(pulseOf('rhythm:4-4-4-4')).toBeNull();
+	});
+
+	it('fades the metronome out over a bar and brings back one click', () => {
+		const loud = Array.from({ length: 4 + 12 + 8 + 2 }, (_, i) => pulseLoudness(i, 2));
+		expect(loud.slice(0, 12)).toEqual(Array(12).fill(1));
+		expect(loud.slice(12, 16)).toEqual([0.7, 0.45, 0.25, 0.1]);
+		expect(loud.slice(16, 24)).toEqual(Array(8).fill(0));
+		expect(loud[24]).toBe(1);
+		expect(loud[25]).toBe(0);
+	});
+
+	it('takes an even pulse as held, ignoring taps along with the metronome', () => {
+		const along = [0, 500, 1000, 1500, 5500];
+		const verdict = judgePulse(120, 2, [...along, ...silentBeats(2, (i) => (i % 2 ? 15 : -15))]);
+		expect(verdict.correct).toBe(true);
+		expect(verdict.meanOff).toBe(15);
+		expect(Math.abs(verdict.end)).toBeLessThan(DRIFTED);
+	});
+
+	it('sees a player speeding up', () => {
+		const verdict = judgePulse(120, 4, silentBeats(4, (i) => -8 * i));
+		expect(verdict.correct).toBe(true);
+		expect(verdict.drift).toBeCloseTo(-32);
+		expect(verdict.end).toBeCloseTo(-120);
+	});
+
+	it('loses the pulse once it wanders out of the window', () => {
+		const verdict = judgePulse(120, 4, silentBeats(4, (i) => 12 * i));
+		expect(verdict.correct).toBe(false);
+		expect(verdict.deviations.filter((deviation) => deviation === null).length).toBeGreaterThan(1);
+	});
+
+	it('forgives one missed beat, not two', () => {
+		expect(judgePulse(120, 2, silentBeats(2, () => 0).filter((_, i) => i !== 3)).correct).toBe(true);
+		expect(judgePulse(120, 2, silentBeats(2, () => 0).filter((_, i) => i !== 3 && i !== 5)).correct).toBe(false);
+		expect(judgePulse(120, 2, []).correct).toBe(false);
 	});
 });

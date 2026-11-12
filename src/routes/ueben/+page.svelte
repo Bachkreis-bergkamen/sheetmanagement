@@ -5,6 +5,8 @@
 	import DrillStaff from '#lib/components/DrillStaff.svelte';
 	import Icon, { type IconName } from '#lib/components/Icon.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
+	import PracticeTree from '#lib/components/PracticeTree.svelte';
+	import { treeStage, type TreeStage } from '#lib/practice/practice.ts';
 	import RhythmStaff from '#lib/components/RhythmStaff.svelte';
 	import SightRound from '#lib/components/SightRound.svelte';
 	import SightStaff from '#lib/components/SightStaff.svelte';
@@ -12,7 +14,7 @@
 	import { EAR_ORDER, FLUENT_MS, interleave, KEY_ORDER, kindOf, notesOrder, playOrder, transOrder } from '#lib/practice/drills/decks.ts';
 	import { isProfileId, PROFILE_IDS, profile, profileFor, type ProfileId } from '#lib/practice/drills/instruments.ts';
 	import { clefLadder, UNLOCK_AT } from '#lib/practice/drills/levels.ts';
-	import { RHYTHM_ORDER } from '#lib/practice/drills/rhythm.ts';
+	import { PULSE_ORDER, RHYTHM_ORDER } from '#lib/practice/drills/rhythm.ts';
 	import { scaleOrder } from '#lib/practice/drills/scales.ts';
 	import { firstLevel, makeMelody, MAX_LEVEL, seeded, type SightLevel } from '#lib/practice/drills/sight.ts';
 	import { makeEntry, MAX_ENTRY_LEVEL, tuneOrder } from '#lib/practice/drills/together.ts';
@@ -57,7 +59,7 @@
 		saveDrills(data.account, drills).then((ok) => (saved = ok));
 	}
 
-	type Kind = 'mix' | 'notes' | 'keys' | 'ear' | 'rhythm' | 'play' | 'scale' | 'sight' | 'entry' | 'tune' | 'trans';
+	type Kind = 'mix' | 'notes' | 'keys' | 'ear' | 'rhythm' | 'pulse' | 'play' | 'scale' | 'sight' | 'entry' | 'tune' | 'trans';
 	const orders = $derived.by<Record<Kind, string[]>>(() => {
 		const notes = interleave(...clefs.map(notesOrder));
 		return {
@@ -66,6 +68,7 @@
 			keys: KEY_ORDER,
 			ear: EAR_ORDER,
 			rhythm: RHYTHM_ORDER,
+			pulse: PULSE_ORDER,
 			play: interleave(...clefs.map((clef) => playOrder(instrument, clef))),
 			scale: scaleOrder(instrument),
 			// Sight-reading and entries have no items: every melody is new.
@@ -134,6 +137,7 @@
 			// Counted, or practice time turned off meanwhile: either way nothing more to send.
 			if (response.ok || response.status === 409) {
 				drills.unsent = Math.max(0, drills.unsent - seconds);
+				if (response.ok) sent += seconds;
 				persist();
 			}
 		} catch {
@@ -183,6 +187,16 @@
 		sendTime();
 	}
 
+	/**
+	 * The practice tree as it stands: the total from the server, with what this visit has sent
+	 * since and what's still waiting to be sent, so it grows as the member practises.
+	 */
+	let sent = $state(0);
+	const tree = $derived(treeStage((data.treeSeconds ?? 0) + sent + (data.practising ? drills.unsent : 0)));
+	const nextTree = $derived(treeStage(tree.next));
+	const treeName = (stage: TreeStage) => (stage.kind === 'tree' ? t.practice.tree.tree(stage.age) : t.practice.tree[stage.kind]);
+	const treeLeft = $derived(Math.max(0, tree.next - ((data.treeSeconds ?? 0) + sent + (data.practising ? drills.unsent : 0))));
+
 	async function reset() {
 		if (!confirm(tx.confirmReset)) return;
 		await clearDrills(data.account);
@@ -195,6 +209,7 @@
 		{ kind: 'keys', icon: 'tag' },
 		{ kind: 'ear', icon: 'headphones' },
 		{ kind: 'rhythm', icon: 'activity' },
+		{ kind: 'pulse', icon: 'clock' },
 		{ kind: 'play', icon: 'gauge' },
 		{ kind: 'scale', icon: 'music' },
 		{ kind: 'sight', icon: 'eye' },
@@ -209,6 +224,7 @@
 		keys: { fifths: -3 },
 		ear: { notes: [pitchOf('E4'), pitchOf('B4')] },
 		rhythm: {},
+		pulse: {},
 		sight: {},
 		entry: {},
 		tune: { notes: [pitchOf('C4'), pitchOf('E4'), pitchOf('G4')], together: true },
@@ -323,24 +339,44 @@
 		{/if}
 
 		<section class="ui-card setup" aria-label={tx.instrument}>
-			<div class="fields">
-				<label class="field">
-					{tx.instrument}
-					<select value={instrument} onchange={(event) => setting({ instrument: event.currentTarget.value as ProfileId, clef: undefined })}>
-						{#each PROFILE_IDS as id (id)}<option value={id}>{tx.instruments[id]}</option>{/each}
-					</select>
-				</label>
-				<label class="field">
-					{tx.clef}
-					<select value={chosenClef ?? ''} onchange={(event) => setting({ clef: (event.currentTarget.value || undefined) as Clef | undefined })}>
-						<option value="">{tx.clefAuto(clefs.map((clef) => tx.clefs[clef]).join(', '))}</option>
-						{#each CLEFS as each (each)}<option value={each}>{tx.clefs[each]}</option>{/each}
-					</select>
-				</label>
-				<label class="check">
-					<input type="checkbox" checked={sound} onchange={(event) => setting({ sound: event.currentTarget.checked })} />
-					{tx.sound}
-				</label>
+			<div class="top">
+				<div class="fields">
+					<label class="field">
+						{tx.instrument}
+						<select value={instrument} onchange={(event) => setting({ instrument: event.currentTarget.value as ProfileId, clef: undefined })}>
+							{#each PROFILE_IDS as id (id)}<option value={id}>{tx.instruments[id]}</option>{/each}
+						</select>
+					</label>
+					<label class="field">
+						{tx.clef}
+						<select value={chosenClef ?? ''} onchange={(event) => setting({ clef: (event.currentTarget.value || undefined) as Clef | undefined })}>
+							<option value="">{tx.clefAuto(clefs.map((clef) => tx.clefs[clef]).join(', '))}</option>
+							{#each CLEFS as each (each)}<option value={each}>{tx.clefs[each]}</option>{/each}
+						</select>
+					</label>
+					<label class="check">
+						<input type="checkbox" checked={sound} onchange={(event) => setting({ sound: event.currentTarget.checked })} />
+						{tx.sound}
+					</label>
+				</div>
+				{#if data.practising !== null}
+					<!-- The practice tree, to the tree on the profile. -->
+					<a class="tree-link" href="/profil#probenzeit" aria-label={tx.treeLink}>
+						<span class="tree-picture"><PracticeTree stage={tree} /></span>
+						<span class="tree-text">
+							<span class="ui-label">{tx.treeTitle}</span>
+							{#if data.practising}
+								<strong>{treeName(tree)}</strong>
+								<span class="tree-bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(tree.progress * 100)}>
+									<span style:width="{tree.progress * 100}%"></span>
+								</span>
+								<small>{tx.treeNext(t.practice.duration(treeLeft), treeName(nextTree))}</small>
+							{:else}
+								<strong>{tx.treeStart}</strong>
+							{/if}
+						</span>
+					</a>
+				{/if}
 			</div>
 			{#if steps.length && !chosenClef}
 				<ol class="ladder" aria-label={tx.ladder}>
@@ -382,6 +418,8 @@
 					<div class="preview" aria-hidden="true">
 						{#if kind === 'rhythm'}
 							<RhythmStaff pattern="4 2 2 6 2" label="" />
+						{:else if kind === 'pulse'}
+							<RhythmStaff pattern="4 4 4 4" label="" />
 						{:else if kind === 'sight' && sightPreview}
 							<SightStaff melody={sightPreview} preview label="" />
 						{:else if kind === 'entry' && entryPreview}
@@ -447,6 +485,66 @@
 		display: grid;
 		gap: var(--space-3);
 		padding: var(--space-4);
+	}
+
+	.top {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: var(--space-3) var(--space-4);
+	}
+
+	.top > .fields {
+		flex: 1 1 22rem;
+	}
+
+	.tree-link {
+		flex: none;
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		padding: var(--space-2) var(--space-3);
+		border: 1px solid var(--hairline);
+		border-radius: var(--radius-control);
+		color: inherit;
+		text-decoration: none;
+		transition: border-color 0.15s;
+	}
+
+	.tree-link:hover {
+		border-color: var(--accent);
+	}
+
+	.tree-picture {
+		display: block;
+		width: 80px;
+	}
+
+	.tree-text {
+		display: grid;
+		gap: 2px;
+		min-width: 9rem;
+	}
+
+	.tree-text small {
+		color: var(--text-muted);
+		font-size: var(--text-2xs);
+	}
+
+	.tree-bar {
+		display: block;
+		height: 6px;
+		border-radius: var(--radius-pill);
+		background: var(--surface-2);
+		overflow: hidden;
+	}
+
+	.tree-bar span {
+		display: block;
+		height: 100%;
+		background: var(--ok);
+		transition: width 0.3s;
 	}
 
 	.fields {
