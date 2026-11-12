@@ -3,6 +3,7 @@
 	import { enhance } from '$app/forms';
 	import { FormState } from '#lib/forms.svelte.ts';
 	import { t } from '#lib/i18n/index.ts';
+	import { CHOSEN_LISTS, DEFAULT_LISTS, QUESTION_TYPES } from '#lib/trips/lists.ts';
 	import { TRIP_KINDS, type Trip } from '#lib/trips/trips.ts';
 	import Icon from './Icon.svelte';
 
@@ -13,12 +14,21 @@
 		action,
 		submit,
 		error
-	}: { trip?: Pick<Trip, 'title' | 'kind' | 'firstDay' | 'lastDay' | 'orchestras' | 'organisers' | 'stops' | 'note' | 'signupUntil' | 'cap'>; orchestras: string[]; action: string; submit: string; error?: string } = $props();
+	}: {
+		trip?: Pick<Trip, 'title' | 'kind' | 'firstDay' | 'lastDay' | 'orchestras' | 'organisers' | 'stops' | 'note' | 'signupUntil' | 'cap' | 'lists' | 'questions' | 'pictureSearch' | 'noPicture'>;
+		orchestras: string[];
+		action: string;
+		submit: string;
+		error?: string;
+	} = $props();
 
 	const saving = new FormState();
 	let next = 0;
 	// The places, edited here until saved: the trip's as they were when the form opened, or one empty row.
 	let stops = $state(untrack(() => (trip?.stops.length ? trip.stops : [{ place: '', from: '', until: '' }]).map((stop) => ({ ...stop, key: next++ }))));
+	// The trip's own questions, the same way; a new row has no id until it's saved.
+	let questions = $state(untrack(() => (trip?.questions ?? []).map((question) => ({ ...question, optionsText: question.options.join(', '), key: next++ }))));
+	const lists = $derived(trip?.lists ?? DEFAULT_LISTS);
 </script>
 
 <form method="POST" {action} use:enhance={saving.submit()}>
@@ -83,6 +93,48 @@
 	</label>
 	<p class="hint" id="organisers-hint">{t.trips.fields.organisersHint}</p>
 	<label class="field">{t.trips.fields.note}<textarea name="note" maxlength="2000" rows="3">{trip?.note ?? ''}</textarea></label>
+
+	<fieldset class="chips">
+		<legend>{t.trips.fields.lists}</legend>
+		<p class="hint">{t.trips.fields.listsHint}</p>
+		{#each CHOSEN_LISTS as kind (kind)}
+			<label class="chip"><input type="checkbox" name="list" value={kind} checked={lists.includes(kind)} /><span>{t.trips.lists.kinds[kind]}</span></label>
+		{/each}
+	</fieldset>
+
+	<fieldset class="stops">
+		<legend>{t.trips.fields.questions}</legend>
+		<p class="hint">{t.trips.fields.questionsHint}</p>
+		{#each questions as question, i (question.key)}
+			<div class="question">
+				<input type="hidden" name="questionId" value={question.id ?? ''} />
+				<label class="field text"><span class:sr-only={i > 0}>{t.trips.fields.questionText}</span><input name="questionText" maxlength="500" bind:value={question.text} /></label>
+				<label class="field">
+					<span class:sr-only={i > 0}>{t.trips.fields.questionType}</span>
+					<select name="questionType" bind:value={question.type}>
+						{#each QUESTION_TYPES as type (type)}<option value={type}>{t.trips.fields.questionTypes[type]}</option>{/each}
+					</select>
+				</label>
+				<label class="field options" class:hidden={question.type !== 'auswahl'}>
+					<span class:sr-only={i > 0}>{t.trips.fields.questionOptions}</span>
+					<input name="questionOptions" maxlength="500" placeholder={t.trips.fields.questionOptionsHint} bind:value={question.optionsText} />
+				</label>
+				<button type="button" class="remove" aria-label={t.trips.fields.removeQuestion} title={t.trips.fields.removeQuestion} onclick={() => questions.splice(i, 1)}>
+					<Icon name="x" size={16} />
+				</button>
+			</div>
+		{/each}
+		<button type="button" class="add" onclick={() => questions.push({ id: '', text: '', type: 'text', options: [], optionsText: '', key: next++ })}><Icon name="plus" size={16} />{t.trips.fields.addQuestion}</button>
+	</fieldset>
+
+	<fieldset class="stops">
+		<legend>{t.trips.fields.picture}</legend>
+		<p class="hint">{t.trips.fields.pictureHint}</p>
+		<div class="row">
+			<label class="field">{t.trips.fields.pictureSearch}<input name="pictureSearch" maxlength="200" value={trip?.pictureSearch ?? ''} autocomplete="off" /></label>
+		</div>
+		<label class="inline"><input type="checkbox" name="noPicture" checked={trip?.noPicture} />{t.trips.fields.noPicture}</label>
+	</fieldset>
 	{#if error}<p class="msg error" role="alert">{error}</p>{/if}
 	<div>
 		<button class="btn" disabled={saving.busy}><Icon name="suitcase" size={16} />{submit}</button>
@@ -220,6 +272,32 @@
 		font-weight: 600;
 	}
 
+	.question {
+		display: grid;
+		grid-template-columns: minmax(180px, 4fr) minmax(120px, 2fr) minmax(140px, 3fr) 40px;
+		align-items: end;
+		gap: var(--space-2);
+	}
+
+	/* Kept in the form, so the rows line up, but only shown for a choice. */
+	.question .hidden {
+		visibility: hidden;
+	}
+
+	.inline {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		font-size: var(--text-sm);
+		cursor: pointer;
+	}
+
+	.inline input {
+		width: 18px;
+		height: 18px;
+		accent-color: var(--accent);
+	}
+
 	/* On a phone: the place on its own line, the days and the remove button below. */
 	@media (max-width: 720px) {
 		.stop {
@@ -230,6 +308,33 @@
 
 		.stop .field:first-child {
 			grid-column: 1 / -1;
+		}
+
+		.question {
+			grid-template-columns: 1fr 40px;
+			padding-bottom: var(--space-2);
+			border-bottom: 1px solid var(--hairline);
+		}
+
+		.question .text {
+			grid-column: 1 / -1;
+		}
+
+		.question .options {
+			grid-column: 1 / -1;
+			grid-row: 3;
+		}
+
+		.question .hidden {
+			display: none;
+		}
+
+		.question .field :global(.sr-only) {
+			position: static;
+			width: auto;
+			height: auto;
+			margin: 0;
+			clip-path: none;
 		}
 
 		.stop .field :global(.sr-only) {

@@ -82,17 +82,20 @@ export const legal = {
 				]
 			},
 			{
-				heading: 'Concert tours and rehearsal trips',
-				paragraphs: [
-					'If the orchestra plans trips in the app: when you sign up for a trip, the app saves your name, your email address, what you come along as, whether you arrive later or leave early, your note to the organisers and when you signed up, in a database at Cloudflare (D1), not in the Google sheet. For young members it also saves which parent confirmed the sign-up.',
-					'Who comes along (name and role) is seen by everyone signed up for the trip and by the parents of children signed up. Your note, the waiting list and those who declined are seen only by the trip’s organisers. Please put no health details into the note; a separate list with explicit consent is coming for that. The legal basis is Art. 6(1)(b) GDPR (the club’s trips). Sign-ups are deleted with the trip, at once with “Delete member”, and are part of “Download my data”.'
-				]
-			},
-			{
 				heading: 'Attendance at rehearsals',
 				paragraphs: [
 					"After a rehearsal, people with the right “Take attendance” (e.g. conductor and organisers) can enter who was there. Only the date, name, email address and whether you were present are saved, in the “Attendance” tab of the orchestra's Google sheet. From this the app shows how many rehearsals before a concert you attended.",
 					'Only you and the people with this right see it, not the other members. The legal basis is Art. 6(1)(b) GDPR (the club’s rehearsals). The entries are deleted when you leave or ask for it.'
+				]
+			},
+			{
+				heading: 'Concert tours and rehearsal trips',
+				paragraphs: [
+					'If the orchestra plans trips in the app: when you sign up for a trip, the app saves your name, your email address, what you come along as, whether you arrive later or leave early, your note to the organisers and when you signed up, in a database at Cloudflare (D1), not in the Google sheet. For young members it also saves which parent confirmed the sign-up.',
+					'Who comes along (name and role) is seen by everyone signed up for the trip and by the parents of children signed up. Your note, the waiting list and those who declined are seen only by the trip’s organisers. Please put no health details into the note; there is a separate list with explicit consent for that. The legal basis is Art. 6(1)(b) GDPR (the club’s trips). Sign-ups are deleted with the trip, at once with “Delete member”, and are part of “Download my data”.',
+					'For a trip the organisers can set up lists: the instruments you take along (with owner, value, insurance and, if you like, serial number, for the insurer and customs), diet, allergies and medication, room and bus wishes, an emergency contact, whether you have a valid ID (only yes or no, no numbers), consents (photos, travelling alone, for young members free time without a carer) and the trip’s own questions. Each list says who sees it when you fill it in: instruments, wishes, ID and questions only the organisers; diet, emergency contact and consents also the carers on the trip. The kitchen gets numbers without names; names only for severe allergies and special notes. Parents give the consents for young members.',
+					'Allergies and medication are health data (Art. 9 GDPR). The app stores them only with your explicit consent, given anew for each trip and revocable at any time (Art. 9(2)(a) GDPR). For the other lists the legal basis is Art. 6(1)(b) GDPR. All lists of a trip are deleted four weeks after it ends; the trip, its plan and the sign-ups stay. Only what you tick with “Keep for the next trip” stays saved for you until you untick it, health details never without that tick. Your instruments stay saved until you remove them. Everything is part of “Download my data” and is deleted with “Delete member”.',
+					'The app can show a photo of each trip’s place, from Wikimedia Commons. The app fetches and serves it itself; your browser doesn’t ask Wikimedia, so Wikimedia doesn’t learn your address.'
 				]
 			},
 			{

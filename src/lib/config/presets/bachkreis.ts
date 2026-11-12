@@ -296,6 +296,8 @@ export const bachkreis: OrchestraConfig = {
 		}
 	],
 	orchestras: ['EO', 'A', 'B'],
+	// The grown-ups play in the EO; A and B are the young players (trips, #334).
+	adultOrchestras: ['EO'],
 	splitSections: ['Geige'],
 
 	// No sourceUrl: many members are kids and teens, and the repository leads to a personal profile.

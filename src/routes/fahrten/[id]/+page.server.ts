@@ -6,14 +6,18 @@ import { runInBackground } from '#lib/server/env.ts';
 import { getLibrary } from '#lib/server/library.ts';
 import { today } from '#lib/server/members.ts';
 import { notify } from '#lib/server/push/index.ts';
-import { childrenIn, eventsInWindow, openTrip, planEventOf } from '#lib/server/trips.ts';
+import { ensurePicture } from '#lib/server/trip-picture.ts';
+import { listPerson } from '#lib/server/trip-lists.ts';
+import { childrenIn, eventsInWindow, openTrip, planEventOf, youngOnTrips } from '#lib/server/trips.ts';
 import type { TripStore } from '#lib/server/trips-store.ts';
 import {
 	isActive,
 	isInvited,
+	localDay,
 	movesUp,
 	overview,
 	placeFor,
+	selfRoles,
 	signedUp,
 	signupFromForm,
 	signupOpen,
@@ -23,11 +27,15 @@ import {
 	type Participant,
 	type Trip
 } from '#lib/trips/trips.ts';
+import { isCarer, listProgress, listsFor } from '#lib/trips/lists.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /** A trip (#334): what it is, your sign-up, your child's, and for organisers who comes and its dates. */
 export const load: PageServerLoad = async ({ locals, params, url }) => {
-	const { trip, participants, viewer, list, organises, inside } = await openTrip(locals, params.id);
+	const opened = await openTrip(locals, params.id);
+	const { participants, viewer, list, organises, inside, store } = opened;
+	// Looked up once per place; a trip from before the pictures gets one on its first visit.
+	const trip = await ensurePicture(store, opened.trip);
 	const day = today();
 	const children = childrenIn(list);
 	const mine = participants.find((p) => p.email === viewer.email) ?? null;
@@ -46,7 +54,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const shown = (p: Participant) => ({
 		email: p.email,
 		name: p.name,
-		role: p.role,
+		roles: p.roles,
 		arrival: p.arrival,
 		departure: p.departure,
 		// Notes, and whose parents still have to confirm, are for the organisers only.
@@ -54,6 +62,18 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		...(organises ? { note: p.note } : {})
 	});
 	const invited = (list?.members ?? []).filter((member) => member.status !== 'inaktiv' && !isAdminOnly(member) && isInvited(trip, member));
+
+	// The lists (step 2): how far one's own and one's children's are, and for those who read them, everyone's.
+	const entries = await store.lists(trip.id).catch(() => []);
+	const listsOf = (email: string, roles: Participant['roles']) => {
+		const due = listsFor(trip, roles);
+		return { filled: due.filter((kind) => entries.some((entry) => entry.email === email && entry.kind === kind)).length, of: due.length };
+	};
+	const carer = isCarer(participants, viewer.email);
+	const people = [null, ...viewer.children.map((_, i) => String(i + 1))].flatMap((fuer) => {
+		const person = listPerson(opened, fuer);
+		return person ? [{ person, fuer }] : [];
+	});
 
 	return {
 		trip: {
@@ -68,13 +88,24 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 			organiserNames: names(trip.organisers),
 			note: trip.note,
 			cap: trip.cap,
-			signupUntil: trip.signupUntil
+			signupUntil: trip.signupUntil,
+			lists: trip.lists,
+			questions: trip.questions,
+			pictureSearch: trip.pictureSearch,
+			noPicture: trip.noPicture,
+			picture: trip.picture && !trip.noPicture ? { title: trip.picture.title, artist: trip.picture.artist, license: trip.picture.license, page: trip.picture.page } : null
 		},
+		myLists: people.map(({ person, fuer }) => ({ name: person.name, fuer, ...listsOf(person.email, person.participant.roles) })).filter((one) => one.of > 0),
+		listProgress: organises || carer ? listProgress(trip, participants, entries, children) : null,
 		organises,
 		inside,
 		open: signupOpen(trip, day),
 		full: trip.cap !== undefined && signedUp(participants).length >= trip.cap,
 		canJoin: !viewer.adminOnly,
+		// The roles to pick from: young members only as Musiker·in.
+		roles: selfRoles(youngOnTrips(list, viewer.email)),
+		// Young members come for the whole trip.
+		young: youngOnTrips(list, viewer.email),
 		mine: mine && {
 			...mine,
 			waitPlace: mine.status === 'warteliste' ? waiting.findIndex((p) => p.email === mine.email) + 1 : 0,
@@ -87,7 +118,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 				email,
 				name: list?.membersByEmail.get(email)?.name ?? email,
 				status: child?.status ?? null,
-				confirmedAt: child?.parentConfirmedAt?.slice(0, 10) ?? null
+				confirmedAt: child?.parentConfirmedAt ? localDay(child.parentConfirmedAt, config.timeZone) : null
 			};
 		}),
 		attached,
@@ -113,12 +144,12 @@ const now = () => new Date().toISOString();
 
 export const actions: Actions = {
 	signup: async ({ locals, params, request }) => {
-		const { store, trip, participants, viewer } = await openTrip(locals, params.id);
+		const { store, trip, participants, viewer, list } = await openTrip(locals, params.id);
 		if (viewer.adminOnly) return fail(403, { error: t.trips.signup.noAdmin });
 		const own = participants.find((p) => p.email === viewer.email);
 		// After the deadline only the organisers change a sign-up.
 		if (!signupOpen(trip, today())) return fail(409, { error: t.trips.signup.problems.closed });
-		const parsed = signupFromForm(await request.formData(), trip);
+		const parsed = signupFromForm(await request.formData(), trip, { minor: youngOnTrips(list, viewer.email) });
 		if ('problem' in parsed) return fail(400, { error: t.trips.signup.problems[parsed.problem] });
 		const status = placeFor(trip, participants, viewer.email);
 		// Signing up again after a no, or for the first time: the waiting list counts from now.
@@ -147,7 +178,7 @@ export const actions: Actions = {
 		if (!signupOpen(trip, today())) return fail(409, { error: t.trips.signup.problems.closed });
 		const own = participants.find((p) => p.email === viewer.email);
 		await store.saveParticipant({
-			...(own ?? { tripId: trip.id, email: viewer.email, role: 'musiker' as const }),
+			...(own ?? { tripId: trip.id, email: viewer.email, roles: ['musiker' as const] }),
 			name: viewer.name,
 			status: 'abgemeldet',
 			signedUpAt: now(),
@@ -186,6 +217,8 @@ export const actions: Actions = {
 		await store.update(trip.id, result.trip);
 		// More places now: the waiting list moves up.
 		await fillPlaces(store, { ...trip, ...result.trip });
+		// Another place, another picture.
+		await ensurePicture(store, { ...trip, ...result.trip });
 		return { edited: true };
 	},
 

@@ -9,6 +9,8 @@ import {
 	placeFor,
 	planByDay,
 	planItemFromForm,
+	selfRoles,
+	isYoung,
 	signupFromForm,
 	signupOpen,
 	slugFor,
@@ -40,6 +42,8 @@ const trip: Trip = {
 		{ place: 'Rom', from: '2027-05-03', until: '2027-05-04' }
 	],
 	cap: 2,
+	lists: ['instrumente', 'ernaehrung', 'notfall', 'einverstaendnis'],
+	questions: [],
 	eventIds: [],
 	createdBy: 'orga@x.org',
 	createdAt: '2026-11-01T00:00:00Z'
@@ -49,7 +53,7 @@ const person = (email: string, status: Participant['status'], signedUpAt: string
 	tripId: 't1',
 	email,
 	name: email.split('@')[0],
-	role: 'musiker',
+	roles: ['musiker'],
 	status,
 	signedUpAt,
 	...extra
@@ -78,9 +82,17 @@ describe('tripFromForm', () => {
 				['stopUntil', ''],
 				['cap', '40'],
 				['signupUntil', '2027-03-31'],
-				['organisers', 'Tim@X.org, nonsense; ida@x.org']
+				['organisers', 'Tim@X.org, nonsense; ida@x.org'],
+				['list', 'notfall'],
+				['list', 'ernaehrung'],
+				['list', 'unbekannt'],
+				['questionId', ''],
+				['questionText', 'Notenständer?'],
+				['questionType', 'janein'],
+				['questionOptions', ''],
+				['pictureSearch', 'Dom von Florenz']
 			]),
-			{ orchestras: ['A', 'B'] }
+			{ orchestras: ['A', 'B'], newId: () => 'q1' }
 		);
 		expect(result).toEqual({
 			trip: {
@@ -94,6 +106,9 @@ describe('tripFromForm', () => {
 					{ place: 'Florenz', from: '2027-05-01', until: '2027-05-02' },
 					{ place: 'Rom', from: '2027-05-03', until: '2027-05-04' }
 				],
+				lists: ['ernaehrung', 'notfall'],
+				questions: [{ id: 'q1', text: 'Notenständer?', type: 'janein', options: [] }],
+				pictureSearch: 'Dom von Florenz',
 				signupUntil: '2027-03-31',
 				cap: 40
 			}
@@ -186,8 +201,8 @@ describe('places and the waiting list', () => {
 
 	it('counts for the organisers who comes, who waits for a parent and who has not answered', () => {
 		const participants = [
-			person('mia@x.org', 'angemeldet', '1', { role: 'musiker' }),
-			person('tim@x.org', 'angemeldet', '2', { role: 'betreuer' }),
+			person('mia@x.org', 'angemeldet', '1', { roles: ['musiker'] }),
+			person('tim@x.org', 'angemeldet', '2', { roles: ['betreuer', 'musiker'] }),
 			person('jo@x.org', 'warteliste', '3'),
 			person('lea@x.org', 'abgemeldet', '4')
 		];
@@ -200,18 +215,44 @@ describe('places and the waiting list', () => {
 			new Set(['mia@x.org'])
 		);
 		expect(result).toMatchObject({ signedUp: 2, waiting: 1, cancelled: 1, unanswered: ['Paul'], awaitingParent: ['mia'] });
-		expect(result.byRole).toMatchObject({ musiker: 1, betreuer: 1, fahrer: 0 });
+		// Tim plays and looks after the group: he counts in both.
+		expect(result.byRole).toMatchObject({ musiker: 2, betreuer: 1, fahrer: 0 });
 	});
 });
 
 describe('signupFromForm', () => {
 	it('keeps only arrival and departure that differ from the trip, within it', () => {
-		expect(signupFromForm(form([['role', 'betreuer'], ['arrival', '2027-05-01'], ['departure', '2027-05-03'], ['note', ' vegetarisch ']]), trip)).toEqual({
-			role: 'betreuer',
+		expect(signupFromForm(form([['role', 'dirigent'], ['role', 'betreuer'], ['role', 'musiker'], ['arrival', '2027-05-01'], ['departure', '2027-05-03'], ['note', ' vegetarisch ']]), trip)).toEqual({
+			roles: ['musiker', 'betreuer', 'dirigent'],
 			departure: '2027-05-03',
 			note: 'vegetarisch'
 		});
 		expect(signupFromForm(form([['role', 'koch']]), trip)).toEqual({ problem: 'role' });
+		expect(signupFromForm(form([['role', 'musiker'], ['role', 'koch']]), trip)).toEqual({ problem: 'role' });
+		expect(signupFromForm(form([]), trip)).toEqual({ problem: 'role' });
+	});
+
+	it('lets young members come along as Musiker·in only (#299)', () => {
+		expect(signupFromForm(form([['role', 'musiker'], ['role', 'betreuer']]), trip, { minor: true })).toEqual({ problem: 'young' });
+		expect(signupFromForm(form([['role', 'dirigent']]), trip, { minor: true })).toEqual({ problem: 'young' });
+		expect(signupFromForm(form([['role', 'musiker']]), trip, { minor: true })).toEqual({ roles: ['musiker'] });
+		expect(selfRoles(true)).toEqual(['musiker']);
+		expect(signupFromForm(form([['role', 'musiker'], ['arrival', '2027-05-02']]), trip, { minor: true })).toEqual({ problem: 'young-days' });
+		expect(signupFromForm(form([['role', 'musiker'], ['departure', '2027-05-03']]), trip, { minor: true })).toEqual({ problem: 'young-days' });
+		// The trip's own days say nothing more.
+		expect(signupFromForm(form([['role', 'musiker'], ['arrival', '2027-05-01'], ['departure', '2027-05-04']]), trip, { minor: true })).toEqual({ roles: ['musiker'] });
+	});
+
+	it('counts someone’s child as young, and a member of none of the adult orchestras', () => {
+		const children = new Set(['kid@x.org']);
+		expect(isYoung({ email: 'kid@x.org', orchestras: ['EO'] }, children, ['EO'])).toBe(true);
+		expect(isYoung({ email: 'a@x.org', orchestras: ['A'] }, children, ['EO'])).toBe(true);
+		expect(isYoung({ email: 'e@x.org', orchestras: ['A', 'eo'] }, children, ['EO'])).toBe(false);
+		// Parents and helpers play in no orchestra.
+		expect(isYoung({ email: 'p@x.org', orchestras: [] }, children, ['EO'])).toBe(false);
+		// Without adult orchestras, only children count.
+		expect(isYoung({ email: 'a@x.org', orchestras: ['A'] }, children)).toBe(false);
+		expect(selfRoles(false)).toContain('betreuer');
 		expect(signupFromForm(form([['role', 'gast'], ['arrival', '2027-05-09']]), trip)).toEqual({ problem: 'days' });
 		expect(signupFromForm(form([['role', 'gast'], ['arrival', '2027-05-03'], ['departure', '2027-05-02']]), trip)).toEqual({ problem: 'days' });
 	});

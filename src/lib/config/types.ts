@@ -167,6 +167,12 @@ export interface OrchestraConfig {
 	 */
 	splitSections?: string[];
 	/**
+	 * The orchestras of grown-ups ("EO"). On trips (#334), members of none of them count as young,
+	 * like members with a parent account: they come along as Musiker·in only, for the whole trip.
+	 * Without it, only members with a parent account count as young.
+	 */
+	adultOrchestras?: string[];
+	/**
 	 * Genres offered when editing a piece, together with the ones already in the sheet.
 	 * Suggestions from Wikidata or the year are only made in these words.
 	 */

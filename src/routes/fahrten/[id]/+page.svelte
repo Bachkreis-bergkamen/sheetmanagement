@@ -23,9 +23,22 @@
 <a class="back" href="/fahrten"><Icon name="back" size={16} />{t.trips.all}</a>
 
 <header class="head">
-	<p class="over">{t.trips.kinds[trip.kind]}</p>
-	<h1>{trip.title}</h1>
-	<p class="when">{formatDays(trip.firstDay, trip.lastDay, config.locale)}</p>
+	{#if trip.picture}
+		<!-- A sight of the place, from Wikimedia Commons, served by the app itself. -->
+		<figure class="hero">
+			<img src="/fahrten/{trip.id}/bild" alt={t.trips.picture.alt(trip.picture.title)} />
+			<div class="overlay">
+				<p class="over">{t.trips.kinds[trip.kind]}</p>
+				<h1>{trip.title}</h1>
+				<p class="when">{formatDays(trip.firstDay, trip.lastDay, config.locale)}</p>
+			</div>
+			<figcaption><a href={trip.picture.page} target="_blank" rel="noopener noreferrer">{trip.picture.title} · {t.trips.picture.credit(trip.picture.artist, trip.picture.license)}</a></figcaption>
+		</figure>
+	{:else}
+		<p class="over">{t.trips.kinds[trip.kind]}</p>
+		<h1>{trip.title}</h1>
+		<p class="when">{formatDays(trip.firstDay, trip.lastDay, config.locale)}</p>
+	{/if}
 	{#if trip.stops.length}
 		<ul class="stops">
 			{#each trip.stops as stop (stop.place + stop.from)}
@@ -52,6 +65,35 @@
 	</a>
 {/if}
 
+<!-- The lists (step 2): your own and your children's, and for those who read them, everyone's. -->
+{#each data.myLists as lists (lists.fuer)}
+	<a class="ui-card plan-link" href="/fahrten/{trip.id}/listen{lists.fuer ? `?fuer=${lists.fuer}` : ''}">
+		<span class="badge" class:todo={lists.filled < lists.of}><Icon name="list" size={22} /></span>
+		<span class="body">
+			<strong>{lists.fuer ? t.trips.lists.titleFor(lists.name) : t.trips.lists.yours}</strong>
+			<span class="muted">{t.trips.lists.progress(lists.filled, lists.of)}</span>
+		</span>
+		<Icon name="chevron" size={16} />
+	</a>
+{/each}
+{#if data.listProgress?.length}
+	{@const missing = data.listProgress.reduce((sum, one) => sum + one.of - one.filled, 0)}
+	<a class="ui-card plan-link" href="/fahrten/{trip.id}/auswertung">
+		<span class="badge"><Icon name="table" size={22} /></span>
+		<span class="body">
+			<strong>{t.trips.lists.evaluate}</strong>
+			<span class="muted">{t.trips.lists.evaluateLead}</span>
+			<span class="mini">
+				{#each data.listProgress as one (one.kind)}
+					<span class="tag" class:warn={one.filled < one.of}>{t.trips.lists.kinds[one.kind]} {one.filled}/{one.of}</span>
+				{/each}
+			</span>
+			{#if !missing}<span class="muted">{t.trips.lists.overview.complete}</span>{/if}
+		</span>
+		<Icon name="chevron" size={16} />
+	</a>
+{/if}
+
 <!-- Your own sign-up: not for admin or parent logins, which never come along themselves. -->
 {#if data.canJoin}
 	<section class="ui-card section">
@@ -70,18 +112,25 @@
 		{:else}
 			{#if data.full && !going}<p class="msg info">{t.trips.signup.full}</p>{/if}
 			<form method="POST" action="?/signup" class="signup" use:enhance={saving.submit()}>
-				<label class="field">
-					{t.trips.signup.role}
-					<select name="role">
-						{#each TRIP_ROLES as role (role)}
-							<option value={role} selected={(data.mine?.role ?? 'musiker') === role}>{t.trips.roles[role]}</option>
-						{/each}
-					</select>
-				</label>
+				<!-- One or more: a parent can come along as Begleitperson and play in the orchestra too.
+				     Young members come as Musiker·in only, so they get no choice. -->
+				{#if data.roles.length === 1}
+					<input type="hidden" name="role" value={data.roles[0]} />
+				{:else}
+				<fieldset class="roles-pick">
+					<legend>{t.trips.signup.role}</legend>
+					<p class="hint">{t.trips.signup.roleHint}</p>
+					{#each data.roles as role (role)}
+						<label class="chip"><input type="checkbox" name="role" value={role} checked={(data.mine?.roles ?? ['musiker']).includes(role)} /><span>{t.trips.roles[role]}</span></label>
+					{/each}
+				</fieldset>
+				{/if}
+				{#if !data.young}
 				<div class="row">
 					<label class="field">{t.trips.signup.arrival}<input type="date" name="arrival" min={trip.firstDay} max={trip.lastDay} value={going ? (data.mine?.arrival ?? '') : ''} /></label>
 					<label class="field">{t.trips.signup.departure}<input type="date" name="departure" min={trip.firstDay} max={trip.lastDay} value={going ? (data.mine?.departure ?? '') : ''} /></label>
 				</div>
+				{/if}
 				<label class="field">
 					{t.trips.signup.note}
 					<textarea name="note" rows="2" maxlength="2000" aria-describedby="note-hint">{going ? (data.mine?.note ?? '') : ''}</textarea>
@@ -198,7 +247,7 @@
 					<li>
 						<span class="name">{person.name}</span>
 						<span class="muted">
-							{t.trips.roles[person.role]}
+							{person.roles.map((role) => t.trips.roles[role]).join(', ')}
 							{#if person.arrival}· {t.trips.participants.arrives(day(person.arrival))}{/if}
 							{#if person.departure}· {t.trips.participants.leaves(day(person.departure))}{/if}
 						</span>
@@ -277,6 +326,62 @@
 		margin-bottom: var(--space-5);
 	}
 
+	.hero {
+		position: relative;
+		margin: 0 0 var(--space-2);
+		overflow: hidden;
+		border-radius: var(--radius-l);
+		background: var(--surface-2);
+		aspect-ratio: 16 / 7;
+		min-height: 200px;
+	}
+
+	.hero img {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	/* The title on the photo, on a shade that keeps it readable on any picture. */
+	.hero .overlay {
+		position: absolute;
+		inset: auto 0 0;
+		display: grid;
+		gap: var(--space-1);
+		padding: var(--space-6) var(--space-4) var(--space-5);
+		background: linear-gradient(to top, rgb(0 0 0 / 0.72), rgb(0 0 0 / 0.35) 60%, transparent);
+		color: #fff;
+	}
+
+	.hero .over {
+		color: #fff;
+		opacity: 0.9;
+	}
+
+	.hero h1 {
+		color: #fff;
+		text-shadow: 0 1px 12px rgb(0 0 0 / 0.35);
+	}
+
+	.hero figcaption {
+		position: absolute;
+		top: var(--space-2);
+		right: var(--space-2);
+		max-width: calc(100% - 2 * var(--space-2));
+		padding: 2px var(--space-2);
+		overflow: hidden;
+		border-radius: var(--radius-pill);
+		background: rgb(0 0 0 / 0.45);
+		font-size: var(--text-2xs);
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.hero figcaption a {
+		color: #fff;
+	}
+
 	.over {
 		color: var(--accent);
 		font-size: var(--text-xs);
@@ -352,6 +457,19 @@
 		display: grid;
 		flex: 1;
 		gap: 2px;
+		min-width: 0;
+	}
+
+	.mini {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-1);
+		margin-top: var(--space-1);
+	}
+
+	.badge.todo {
+		background: color-mix(in oklab, var(--warn) 15%, transparent);
+		color: var(--warn);
 	}
 
 	.badge {
@@ -379,6 +497,63 @@
 	.signup {
 		display: grid;
 		gap: var(--space-3);
+	}
+
+	.roles-pick {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-2);
+		margin: 0;
+		padding: 0;
+		border: 0;
+	}
+
+	.roles-pick legend {
+		margin-bottom: var(--space-1);
+		color: var(--text-muted);
+		font-size: var(--text-xs);
+		font-weight: 600;
+	}
+
+	.roles-pick .hint {
+		width: 100%;
+		margin: 0;
+	}
+
+	.chip {
+		position: relative;
+		cursor: pointer;
+	}
+
+	.chip input {
+		position: absolute;
+		inset: 0;
+		margin: 0;
+		opacity: 0;
+		cursor: pointer;
+	}
+
+	.chip span {
+		display: inline-flex;
+		align-items: center;
+		height: 36px;
+		padding: 0 var(--space-3);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-pill);
+		background: var(--bg);
+		font-size: var(--text-sm);
+		font-weight: 600;
+	}
+
+	.chip input:checked + span {
+		border-color: var(--accent);
+		background: var(--accent-soft);
+		color: var(--accent);
+	}
+
+	.chip input:focus-visible + span {
+		outline: 2px solid var(--accent);
+		outline-offset: 1px;
 	}
 
 	.row {

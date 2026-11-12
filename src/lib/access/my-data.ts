@@ -4,6 +4,7 @@ import { t } from '#lib/i18n/index.ts';
 import { LAYOUT, normalize, type Table, type TabKey } from '#lib/repertoire/sheet.ts';
 import type { Poll, PollResponse } from '#lib/polls/polls.ts';
 import type { Participant, Trip } from '#lib/trips/trips.ts';
+import type { Instrument, KeptList, ListEntry } from '#lib/trips/lists.ts';
 import type { PageMarks, PracticeDay, PushDevice, SentReminder, TourOutcome } from '#lib/server/db/types.ts';
 
 /**
@@ -140,7 +141,7 @@ export function tripData(entries: { trip: Trip; participant: Participant }[]): M
 	const rows = entries.map(({ trip, participant }) => ({
 		[t.myData.trip]: trip.title,
 		[t.myData.tripDays]: `${trip.firstDay}–${trip.lastDay}`,
-		[t.myData.tripRole]: t.trips.roles[participant.role],
+		[t.myData.tripRole]: participant.roles.map((role) => t.trips.roles[role]).join(', '),
 		[t.myData.tripStatus]: t.myData.tripStatuses[participant.status],
 		[t.myData.tripArrival]: participant.arrival ?? '',
 		[t.myData.tripDeparture]: participant.departure ?? '',
@@ -148,6 +149,34 @@ export function tripData(entries: { trip: Trip; participant: Participant }[]): M
 		[t.myData.tripSignedUpAt]: participant.signedUpAt
 	}));
 	return rows.length ? { [t.myData.trips]: rows } : {};
+}
+
+/**
+ * The member's trip lists (#334, step 2): what they filled in for each trip, what they keep for
+ * the next one, and their instruments. As stored, with the trip's name added.
+ */
+export function tripListData(lists: ListEntry[], kept: KeptList[], instruments: Instrument[], trips: Pick<Trip, 'id' | 'title'>[]): MyData {
+	const title = new Map(trips.map((trip) => [trip.id, trip.title]));
+	const f = t.trips.lists.instruments;
+	return {
+		...(lists.length
+			? { [t.myData.tripLists]: lists.map((entry) => ({ [t.myData.trip]: title.get(entry.tripId) ?? entry.tripId, [t.myData.tripList]: t.trips.lists.kinds[entry.kind], [t.myData.tripAnswers]: JSON.stringify(entry.data), [t.myData.tripSavedAt]: entry.savedAt })) }
+			: {}),
+		...(kept.length ? { [t.myData.tripKept]: kept.map((list) => ({ [t.myData.tripList]: t.trips.lists.kinds[list.kind], [t.myData.tripAnswers]: JSON.stringify(list.data), [t.myData.tripSavedAt]: list.savedAt })) } : {}),
+		...(instruments.length
+			? {
+					[t.myData.tripInstruments]: instruments.map((instrument) => ({
+						[f.name]: instrument.name,
+						[f.owner]: f.owners[instrument.owner],
+						[f.value]: instrument.value === undefined ? '' : String(instrument.value),
+						[f.insurance]: f.insurances[instrument.insurance],
+						[f.serial]: instrument.serial ?? '',
+						[f.bulky]: instrument.bulky ? t.trips.lists.yes : t.trips.lists.no,
+						[f.confirmedAt]: instrument.confirmedAt ?? ''
+					}))
+				}
+			: {})
+	};
 }
 
 /** A file name without characters that trouble file systems: "meine-daten-mia-example-org.json". */

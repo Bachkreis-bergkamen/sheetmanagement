@@ -1,3 +1,5 @@
+import { chosenLists, questionsFromForm, type ListKind, type Question } from './lists.ts';
+
 /**
  * Konzertfahrten and Probenfahrten (#334): trips of several days, with sign-up, participants
  * and a plan per day. Kept in D1, not in the sheet: who comes along and their notes are
@@ -50,19 +52,47 @@ export interface Trip {
 	signupUntil?: string;
 	/** How many may come; more go on the waiting list. Without one, no limit. */
 	cap?: number;
+	/** The lists participants fill in (see lists.ts); "fragen" comes with the questions. */
+	lists: ListKind[];
+	/** The organisers' own questions for this trip. */
+	questions: Question[];
+	/** What to look up for the trip's picture; without it, the first place. */
+	pictureSearch?: string;
+	/** No picture at all. */
+	noPicture?: boolean;
+	/** The picture found for it, from Wikimedia Commons; see server/trip-picture.ts. */
+	picture?: TripPicture;
+	/** What the picture was looked up for, so a changed place looks again; null: looked, nothing found. */
+	pictureFor?: string;
 	/** Calendar events that belong to the trip: its concerts and rehearsals. */
 	eventIds: string[];
 	createdBy: string;
 	createdAt: string;
 }
 
-export type NewTrip = Omit<Trip, 'id' | 'slug' | 'createdBy' | 'createdAt' | 'eventIds'>;
+/** A sight of the place, from Wikimedia Commons, with what its licence asks to say. */
+export interface TripPicture {
+	/** The scaled image on upload.wikimedia.org; the app serves it from its own address. */
+	url: string;
+	/** The file's page on Commons, for the credit. */
+	page: string;
+	/** What it shows: the Wikidata item's name, "Kölner Dom". */
+	title: string;
+	artist?: string;
+	license?: string;
+	/** The place's coordinates, for a map of the route later. */
+	lat?: number;
+	lon?: number;
+}
+
+export type NewTrip = Omit<Trip, 'id' | 'slug' | 'createdBy' | 'createdAt' | 'eventIds' | 'picture' | 'pictureFor'>;
 
 export interface Participant {
 	tripId: string;
 	email: string;
 	name: string;
-	role: TripRole;
+	/** What they come along as; one person can be Betreuer·in, Musiker·in and Dirigent·in at once. Never empty. */
+	roles: TripRole[];
 	status: ParticipantStatus;
 	/** A later first day than the trip's, for someone who comes later. */
 	arrival?: string;
@@ -118,13 +148,13 @@ const text = (form: FormData, name: string) =>
 		.replace(/[ \t]+/g, ' ');
 const isDay = (value: string) => DAY.test(value) && !Number.isNaN(Date.parse(value));
 
-export type TripProblem = 'title' | 'kind' | 'days' | 'order' | 'stop' | 'cap' | 'deadline' | 'too-long';
+export type TripProblem = 'title' | 'kind' | 'days' | 'order' | 'stop' | 'cap' | 'deadline' | 'questions' | 'too-long';
 
 /**
  * The trip from its form: name, kind, days, orchestras, stops (rows of place, from, until),
  * sign-up deadline and cap. Every orchestra ticked is the same as none, as for notices.
  */
-export function tripFromForm(form: FormData, { orchestras }: { orchestras: string[] }): { trip: NewTrip } | { problem: TripProblem } {
+export function tripFromForm(form: FormData, { orchestras, newId = () => crypto.randomUUID().slice(0, 8) }: { orchestras: string[]; newId?: () => string }): { trip: NewTrip } | { problem: TripProblem } {
 	const title = text(form, 'title');
 	const kind = text(form, 'kind') as TripKind;
 	const firstDay = text(form, 'firstDay');
@@ -165,6 +195,10 @@ export function tripFromForm(form: FormData, { orchestras }: { orchestras: strin
 	const ticked = new Set(form.getAll('orchestra').map(String));
 	const chosen = orchestras.filter((name) => ticked.has(name));
 	const organisers = [...new Set(String(form.get('organisers') ?? '').split(/[\s,;]+/).map((email) => email.trim().toLowerCase()).filter((email) => email.includes('@')))];
+	const questions = questionsFromForm(form, newId);
+	if (!questions) return { problem: 'questions' };
+	const pictureSearch = text(form, 'pictureSearch');
+	if (pictureSearch.length > PLACE_MAX) return { problem: 'too-long' };
 
 	return {
 		trip: {
@@ -175,6 +209,10 @@ export function tripFromForm(form: FormData, { orchestras }: { orchestras: strin
 			orchestras: chosen.length === orchestras.length ? [] : chosen,
 			organisers,
 			stops,
+			lists: chosenLists(form),
+			questions,
+			...(pictureSearch ? { pictureSearch } : {}),
+			...(form.get('noPicture') ? { noPicture: true } : {}),
 			...(note ? { note } : {}),
 			...(signupUntil ? { signupUntil } : {}),
 			...(cap ? { cap } : {})
@@ -284,23 +322,47 @@ export function movesUp(trip: Pick<Trip, 'cap'>, participants: Participant[]): P
 /** Whether a young player's sign-up still waits for a parent (#299). */
 export const waitsForParent = (participant: Participant, isChild: boolean) => isChild && isActive(participant) && !participant.parentConfirmedBy;
 
-export type ParticipantProblem = 'role' | 'days' | 'too-long';
+export type ParticipantProblem = 'role' | 'young' | 'young-days' | 'days' | 'too-long';
 
-/** Someone's sign-up from its form: role, maybe a later arrival or earlier departure, a note. */
+/**
+ * Whether a member counts as young on trips: someone's child (#299), or, where the orchestra
+ * names its adult orchestras, someone who plays in none of them. A member without orchestras
+ * (a parent, a helper) counts as grown-up.
+ */
+export function isYoung(member: { email: string; orchestras: string[] }, children: Set<string>, adultOrchestras: string[] = []): boolean {
+	if (children.has(member.email)) return true;
+	if (!adultOrchestras.length || !member.orchestras.length) return false;
+	const adult = new Set(adultOrchestras.map((name) => name.toLowerCase()));
+	return !member.orchestras.some((name) => adult.has(name.toLowerCase()));
+}
+
+/**
+ * The roles someone can pick for themself. Young members (#299) come along to play and be
+ * looked after: Musiker·in, nothing else.
+ */
+export const selfRoles = (minor: boolean): TripRole[] => (minor ? ['musiker'] : [...TRIP_ROLES]);
+
+/** Someone's sign-up from its form: one role or more, maybe a later arrival or earlier departure, a note. */
 export function signupFromForm(
 	form: FormData,
-	trip: Pick<Trip, 'firstDay' | 'lastDay'>
-): { role: TripRole; arrival?: string; departure?: string; note?: string } | { problem: ParticipantProblem } {
-	const role = text(form, 'role') as TripRole;
-	if (!TRIP_ROLES.includes(role)) return { problem: 'role' };
+	trip: Pick<Trip, 'firstDay' | 'lastDay'>,
+	{ minor = false }: { minor?: boolean } = {}
+): { roles: TripRole[]; arrival?: string; departure?: string; note?: string } | { problem: ParticipantProblem } {
+	const ticked = new Set(form.getAll('role').map(String));
+	// In the list's order, whatever order the form sent them in.
+	const roles = TRIP_ROLES.filter((role) => ticked.has(role));
+	if (!roles.length || [...ticked].some((role) => !(TRIP_ROLES as readonly string[]).includes(role))) return { problem: 'role' };
+	if (roles.some((role) => !selfRoles(minor).includes(role))) return { problem: 'young' };
 	const arrival = text(form, 'arrival');
 	const departure = text(form, 'departure');
 	const note = String(form.get('note') ?? '').trim();
 	for (const day of [arrival, departure]) if (day && (!isDay(day) || day < trip.firstDay || day > trip.lastDay)) return { problem: 'days' };
+	// Young members come for the whole trip: arriving later or leaving early is for grown-ups.
+	if (minor && ((arrival && arrival !== trip.firstDay) || (departure && departure !== trip.lastDay))) return { problem: 'young-days' };
 	if (arrival && departure && departure < arrival) return { problem: 'days' };
 	if (note.length > NOTE_MAX) return { problem: 'too-long' };
 	return {
-		role,
+		roles,
 		// The trip's own first and last day say nothing more.
 		...(arrival && arrival !== trip.firstDay ? { arrival } : {}),
 		...(departure && departure !== trip.lastDay ? { departure } : {}),
@@ -400,7 +462,8 @@ export function overview(participants: Participant[], invited: { email: string; 
 		signedUp: signedUp(participants).length,
 		waiting: waitingList(participants).length,
 		cancelled: participants.filter((p) => p.status === 'abgemeldet').length,
-		byRole: Object.fromEntries(TRIP_ROLES.map((role) => [role, signedUp(participants).filter((p) => p.role === role).length])) as Record<TripRole, number>,
+		/** Someone with several roles counts in each of them. */
+		byRole: Object.fromEntries(TRIP_ROLES.map((role) => [role, signedUp(participants).filter((p) => p.roles.includes(role)).length])) as Record<TripRole, number>,
 		/** Members the trip is for who haven't signed up or said no. */
 		unanswered: invited.filter((member) => !answered.has(member.email)).map((member) => member.name),
 		/** Young players whose parents haven't confirmed yet. */
@@ -418,6 +481,9 @@ export function formatDays(first: string, last: string, locale: string): string 
 	const format = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 	return first === last ? format.format(utc(first)) : format.formatRange(utc(first), utc(last));
 }
+
+/** The day a moment falls on in the orchestra's time zone: "2026-11-13" for just after midnight there. */
+export const localDay = (iso: string, timeZone: string) => new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone }).format(new Date(iso));
 
 /** "Sa., 1. Mai": a day of the plan. */
 export const formatWeekday = (day: string, locale: string) =>

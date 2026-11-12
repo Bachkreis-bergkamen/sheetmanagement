@@ -26,6 +26,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 			firstDay: trip.firstDay,
 			lastDay: trip.lastDay,
 			places: trip.stops.map((stop) => stop.place),
+			// The sight of the place, shown small in the list; the trip's page looks it up.
+			picture: !!trip.picture && !trip.noPicture,
 			cap: trip.cap,
 			signupUntil: trip.signupUntil,
 			signedUp: signedUp(participants).length,

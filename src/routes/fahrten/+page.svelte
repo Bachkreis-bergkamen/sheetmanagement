@@ -32,7 +32,11 @@
 			{#each trips as trip (trip.id)}
 				<li>
 					<a class="trip" href="/fahrten/{trip.id}">
-						<span class="badge" class:done={trip.past}><Icon name="suitcase" size={20} /></span>
+						{#if trip.picture}
+							<img class="thumb" class:done={trip.past} src="/fahrten/{trip.id}/bild" alt="" loading="lazy" />
+						{:else}
+							<span class="badge" class:done={trip.past}><Icon name="suitcase" size={20} /></span>
+						{/if}
 						<span class="body">
 							<span class="title">{trip.title}</span>
 							<span class="when">{formatDays(trip.firstDay, trip.lastDay, config.locale)}</span>
@@ -122,6 +126,21 @@
 		border-radius: var(--radius-control);
 		background: var(--accent-soft);
 		color: var(--accent);
+	}
+
+	/* The sight of the place; the name beside it says what it is. */
+	.thumb {
+		flex: none;
+		width: 64px;
+		height: 48px;
+		border-radius: var(--radius-control);
+		background: var(--surface-2);
+		object-fit: cover;
+	}
+
+	.thumb.done {
+		filter: grayscale(0.7);
+		opacity: 0.8;
 	}
 
 	.badge.done {
