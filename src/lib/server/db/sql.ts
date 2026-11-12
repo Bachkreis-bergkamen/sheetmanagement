@@ -260,6 +260,20 @@ export function sqlStore(db: D1): Store {
 			if (allowed) await run('INSERT INTO drill_parent_consent (child, parent) VALUES (?, ?) ON CONFLICT (child) DO UPDATE SET parent = excluded.parent', child, parent);
 			else await run('DELETE FROM drill_parent_consent WHERE child = ?', child);
 		},
+		async drillUnlocksOf(email) {
+			const rows = await all<{ card: string }>('SELECT card FROM drill_unlocks WHERE email = ? ORDER BY card', email);
+			return rows.map((row) => row.card);
+		},
+		async drillUnlocksAll() {
+			const rows = await all<{ email: string; card: string }>('SELECT email, card FROM drill_unlocks ORDER BY email, card');
+			const result = new Map<string, string[]>();
+			for (const row of rows) result.set(row.email, [...(result.get(row.email) ?? []), row.card]);
+			return result;
+		},
+		async setDrillUnlocks(email, cards, by) {
+			await run('DELETE FROM drill_unlocks WHERE email = ?', email);
+			for (const card of new Set(cards)) await run('INSERT INTO drill_unlocks (email, card, granted_by) VALUES (?, ?, ?)', email, card, by);
+		},
 		async marksOf(email, file) {
 			const rows = await all<{ file: string; page: number; strokes: string }>(
 				`SELECT file, page, strokes FROM practice_marks WHERE email = ?${file === undefined ? '' : ' AND file = ?'} ORDER BY file, page`,

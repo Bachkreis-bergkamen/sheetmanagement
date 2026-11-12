@@ -29,6 +29,8 @@ import { getAccessList, getInstrumentGroups } from '#lib/server/repertoire.ts';
 import { appendRecords, deleteRows, ensureColumns, readTab, refreshAfterWrite, SheetLayoutError, updateRecord } from '#lib/server/sheet-writes.ts';
 import { requireSetting } from '#lib/server/services.ts';
 import { getStore } from '#lib/server/db/index.ts';
+import { STAGES } from '#lib/practice/drills/progression.ts';
+import { isOn } from '#lib/server/env.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -48,6 +50,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	}
 	const ready = !!(list?.tables.members && list.tables.rights && list.tables.requests);
 	return {
+		// Drills opened for members by hand (#327), when the Übebereich is on.
+		drillUnlocks: isOn('drills') ? Object.fromEntries(await getStore().drillUnlocksAll().catch(() => new Map<string, string[]>())) : null,
 		invites: await invites(auth, url.origin),
 		inviteDays: INVITE_DAYS,
 		state: ready ? ('ready' as const) : ('not-set-up' as const),
@@ -365,6 +369,19 @@ export const actions: Actions = {
 	},
 
 	/** A role's description and rights; a new name adds the role to "Gruppen". */
+	/** Opens drills of the Übebereich for a member (#327), or closes those opened before; none clears them. */
+	drillUnlocks: async ({ request, locals }) => {
+		requireRight(locals, 'mitglieder.verwalten');
+		const data = await request.formData();
+		const email = normalizeEmail(field(data, 'email'));
+		const list = await getAccessList();
+		if (!list?.membersByEmail.has(email)) return fail(400, { message: t.admin.drillUnlockNoMember });
+		const known = new Set<string>(STAGES.flat());
+		const cards = data.getAll('card').map(String).filter((card) => known.has(card));
+		await getStore().setDrillUnlocks(email, cards, normalizeEmail(locals.access.user?.email ?? ''));
+		return { saved: true, message: cards.length ? t.admin.drillUnlockSaved(cards.length) : t.admin.drillUnlockCleared };
+	},
+
 	setRole: ({ request, locals }) =>
 		change(locals, async () => {
 			const data = await request.formData();

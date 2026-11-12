@@ -14,6 +14,7 @@
 	import RoleChoices from '#lib/components/RoleChoices.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import Title from '#lib/components/Title.svelte';
+	import { STAGES } from '#lib/practice/drills/progression.ts';
 
 	let { data, form } = $props();
 	/** Disables the buttons while a change is saved, and keeps the scroll position. */
@@ -23,6 +24,20 @@
 	/** Emails are shortened unless asked for; the edit form always shows the full one. */
 	let showEmails = $state(false);
 	const mail = (email: string) => (showEmails ? email : maskEmail(email));
+
+	/** Unlocking drills (#327): the member chosen, and the drills ticked (theirs to start with). */
+	const DRILL_STAGES = STAGES;
+	let unlockFor = $state('');
+	let unlockCards = $state<string[]>([]);
+	function chooseUnlock(email: string) {
+		unlockFor = email;
+		unlockCards = [...(data.drillUnlocks?.[email] ?? [])];
+	}
+	const unlockedMembers = $derived(
+		Object.entries(data.drillUnlocks ?? {})
+			.map(([email, cards]) => ({ email, name: data.members?.find((member) => member.email === email)?.name ?? email, cards }))
+			.sort((a, b) => a.name.localeCompare(b.name))
+	);
 
 	/** The member whose edit form is open. */
 	let editing = $state<string | null>(null);
@@ -431,6 +446,54 @@
 				<div class="wide"><button class="btn" disabled={saving.busy}><Icon name="plus" size={16} />{t.admin.add}</button></div>
 			</form>
 		</details>
+
+		{#if data.drillUnlocks}
+			<details class="ui-card add drill-unlock">
+				<summary><Icon name="sparkle" size={16} />{t.admin.drillUnlock}</summary>
+				<p class="meta">{t.admin.drillUnlockLead}</p>
+				<form class="grid" method="POST" action="?/drillUnlocks" use:enhance={submit}>
+					<label class="field wide">
+						{t.admin.drillUnlockMember}
+						<select name="email" required value={unlockFor} onchange={(event) => chooseUnlock(event.currentTarget.value)}>
+							<option value="" disabled>{t.admin.drillUnlockChoose}</option>
+							{#each [...data.members].sort((a, b) => a.name.localeCompare(b.name)) as member (member.email)}
+								<option value={member.email}>{member.name || member.email}{member.instrument ? ` · ${member.instrument}` : ''}</option>
+							{/each}
+						</select>
+					</label>
+					{#if unlockFor}
+						<label class="check wide all">
+							<input
+								type="checkbox"
+								checked={unlockCards.length === DRILL_STAGES.flat().length}
+								onchange={(event) => (unlockCards = event.currentTarget.checked ? [...DRILL_STAGES.flat()] : [])}
+							/>
+							{t.admin.drillUnlockAll}
+						</label>
+						{#each DRILL_STAGES as stage, i (i)}
+							<fieldset class="wide stage">
+								<legend>{t.drills.stages[i]}</legend>
+								{#each stage as card (card)}
+									<label class="check"><input type="checkbox" name="card" value={card} bind:group={unlockCards} />{t.drills.kinds[card].title}</label>
+								{/each}
+							</fieldset>
+						{/each}
+						<div class="wide"><button class="btn" disabled={saving.busy}>{t.admin.drillUnlockSave}</button></div>
+					{/if}
+				</form>
+				{#if unlockedMembers.length}
+					<h3 class="ui-label">{t.admin.drillUnlockCurrent}</h3>
+					<ul class="unlocked">
+						{#each unlockedMembers as entry (entry.email)}
+							<li>
+								<button type="button" class="link" onclick={() => chooseUnlock(entry.email)}>{entry.name}</button>:
+								{DRILL_STAGES.flat().filter((card) => entry.cards.includes(card)).map((card) => t.drills.kinds[card].title).join(', ')}
+							</li>
+						{/each}
+					</ul>
+				{/if}
+			</details>
+		{/if}
 	</section>
 
 	<!-- Set up once, rarely changed: folded, one line each. -->
@@ -1328,5 +1391,43 @@
 	.add-form h4 {
 		margin: 0;
 		font-size: var(--text-md);
+	}
+
+	.drill-unlock .stage {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-1) var(--space-3);
+		margin: 0;
+		padding: var(--space-2) 0 0;
+		border: 0;
+		border-top: 1px solid var(--hairline);
+	}
+
+	.drill-unlock .stage legend {
+		padding: 0;
+		color: var(--text-muted);
+		font-size: var(--text-sm);
+	}
+
+	.drill-unlock .check {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-1);
+	}
+
+	.drill-unlock .unlocked {
+		margin: 0;
+		padding-left: var(--space-4);
+		font-size: var(--text-sm);
+	}
+
+	.drill-unlock .link {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: var(--accent);
+		font: inherit;
+		text-decoration: underline;
+		cursor: pointer;
 	}
 </style>

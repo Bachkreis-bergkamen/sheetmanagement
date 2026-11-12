@@ -160,6 +160,12 @@ export interface Store {
 	drillConsentOf(child: string): Promise<string | null>;
 	/** A parent allows (or, with false, takes back) their child's sharing beyond the family. */
 	setDrillConsent(child: string, parent: string, allowed: boolean): Promise<void>;
+	/** The drills an administrator opened for a member (#327). */
+	drillUnlocksOf(email: string): Promise<string[]>;
+	/** Every member with drills opened by an administrator, for the admin page. */
+	drillUnlocksAll(): Promise<Map<string, string[]>>;
+	/** Replaces the drills opened for a member; none forgets them. */
+	setDrillUnlocks(email: string, cards: string[], by: string): Promise<void>;
 
 	/** A member's own marks in one part, or in all parts without `file`; by page. */
 	marksOf(email: string, file?: string): Promise<PageMarks[]>;
