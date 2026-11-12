@@ -82,6 +82,11 @@ export interface Library {
 	/** Newest first. */
 	concerts: LibraryConcert[];
 	concertsById: Map<string, LibraryConcert>;
+	/**
+	 * The concert other rows (notes, wishes, part assignments) name with this text: "Anlass",
+	 * or "Anlass (21.12.1957)" when several concerts have that name (concert-ref.ts).
+	 */
+	concertByName: (text: string) => LibraryConcert | undefined;
 	/** Choirs and orchestras from the "Ensembles" tab. */
 	ensembles: Ensemble[];
 	/** Today in the orchestra's time zone, e.g. "2026-10-18". */
@@ -246,6 +251,10 @@ function buildLibrary(
 		piecesByName,
 		concerts,
 		concertsById,
+		concertByName: (text) => {
+			const row = sheet?.concertNames.get(text);
+			return row ? bySheetKey.get(row.key) : undefined;
+		},
 		ensembles: sheet?.ensembles ?? [],
 		today
 	};

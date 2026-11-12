@@ -115,7 +115,8 @@ export const actions: Actions = {
 		values.orchestra = form.getAll('orchestra').map(String).join(', ');
 		const date = String(form.get('date') ?? '').trim();
 		const today = eventDay({ start: new Date().toISOString(), allDay: false }, config.timeZone);
-		if (values.type === 'konzert' && /^\d{4}-\d{2}-\d{2}$/.test(date) && date < today && locals.access.rights.has('archiv.bearbeiten')) {
+		// "1957-12-21", or only "1957-12" or "1957" when no one knows the day (DateField sends these).
+		if (values.type === 'konzert' && /^\d{4}(-\d{2}(-\d{2})?)?$/.test(date) && date < today.slice(0, date.length) && locals.access.rights.has('archiv.bearbeiten')) {
 			const field = (name: string) => String(form.get(name) ?? '').trim().slice(0, 200);
 			const refused = await addPastConcert(locals, {
 				title: field('title'),

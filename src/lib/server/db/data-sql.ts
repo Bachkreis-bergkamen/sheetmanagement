@@ -1,5 +1,5 @@
 import type { TabKey } from '#lib/repertoire/sheet.ts';
-import { constraintError, DataCheckError, decode, encode, LinkIndex, SCHEMA, sqlColumns, TAB_ORDER, type SqlRow } from './schema.ts';
+import { constraintError, DataCheckError, decode, encode, LinkIndex, namedRowsOf, SCHEMA, sqlColumns, TAB_ORDER, type SqlRow } from './schema.ts';
 import type { D1, D1Statement } from './sql.ts';
 import type { DataRow, Store } from './types.ts';
 
@@ -83,8 +83,9 @@ export function sqlData(db: D1, schema: () => Promise<unknown>): DataMethods {
 			const rows = await rowsOf(withTargets(present));
 			const byId = new Map([...rows].map(([tab, list]) => [tab, new Map(list.map((row) => [Number(row.id), row]))]));
 			const target = (tab: TabKey, id: number) => byId.get(tab)?.get(id);
+			const named = namedRowsOf(byId);
 			return Object.fromEntries(
-				present.map((tab) => [tab, (rows.get(tab) ?? []).map((row): DataRow => ({ id: Number(row.id), rev: Number(row.rev), cells: decode(tab, row, target) }))])
+				present.map((tab) => [tab, (rows.get(tab) ?? []).map((row): DataRow => ({ id: Number(row.id), rev: Number(row.rev), cells: decode(tab, row, target, named) }))])
 			);
 		},
 		async addDataTab(tab) {

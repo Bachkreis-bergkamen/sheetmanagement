@@ -7,7 +7,6 @@ import { t } from '#lib/i18n/index.ts';
 import { instrumentLabel } from '#lib/music/instrument-label.ts';
 import { formatInstrument, parseInstruments, playableInstruments, PART_NUMBERS } from '#lib/music/my-parts.ts';
 import { assignmentsOf, checkAssignment, forMember, type PartAssignment } from '#lib/music/part-assignments.ts';
-import { normalize } from '#lib/repertoire/sheet.ts';
 import { formText } from './feedback.ts';
 import { getLibrary, isPastConcert, type Library, type LibraryConcert, type LibraryPiece } from './library.ts';
 import { today } from './members.ts';
@@ -32,7 +31,7 @@ function assignConcerts(library: Library, piece: LibraryPiece) {
 		.filter((concert) => concert.sheet && !isPastConcert(concert, library.today))
 		.reverse()
 		.sort((a, b) => Number(piece.playedAt.includes(b.id)) - Number(piece.playedAt.includes(a.id)))
-		.map((concert) => ({ value: concert.sheet!.title, label: concert.label ? `${concert.title} · ${concert.label.long}` : concert.title }));
+		.map((concert) => ({ value: concert.sheet!.ref, label: concert.label ? `${concert.title} · ${concert.label.long}` : concert.title }));
 }
 
 /** Who can be named: every playable instrument, and the active members by name. */
@@ -61,15 +60,14 @@ export function comingConcerts(library: Library, piece: LibraryPiece): string[] 
 	return piece.playedAt
 		.map((id) => library.concertsById.get(id))
 		.filter((concert): concert is LibraryConcert => !!concert?.sheet && !isPastConcert(concert, library.today))
-		.map((concert) => concert.sheet!.title);
+		.map((concert) => concert.sheet!.ref);
 }
 
 /** The piece's assignments, including those for every piece, and the form for who may change them. */
 export function assignmentEditor(library: Library, piece: LibraryPiece, assignments: PartAssignment[], access: AccessList | null, locals: App.Locals) {
-	const concerts = new Map(library.concerts.flatMap((concert) => (concert.sheet ? [[normalize(concert.sheet.title), concert] as const] : [])));
 	const shown = assignmentsOf(assignments, piece.sheet?.title ?? piece.title)
 		.map((assignment) => {
-			const concert = assignment.concert ? concerts.get(normalize(assignment.concert)) : undefined;
+			const concert = assignment.concert ? library.concertByName(assignment.concert) : undefined;
 			return {
 				id: assignment.id,
 				who: whoLabel(assignment.who, access),

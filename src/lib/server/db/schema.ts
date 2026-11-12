@@ -1,4 +1,6 @@
 import { normalizeEmail } from '#lib/access/access.ts';
+import { concertKey, ConcertNames } from '#lib/repertoire/concert-ref.ts';
+import { parseFuzzyDate } from '#lib/repertoire/dates.ts';
 import { LAYOUT, normalize, type TabKey } from '#lib/repertoire/sheet.ts';
 
 /**
@@ -38,6 +40,12 @@ export interface TableSpec {
 	emails?: string[];
 	/** Columns compared exactly: ids. Everything else is compared like the app compares names. */
 	exact?: string[];
+	/**
+	 * A name that is only unique with a day (#330): its compared value holds both, so the
+	 * Weihnachtskonzert 1957 and 1958 may share a name. Links still name it by text, with the
+	 * date in brackets where the name is shared (concert-ref.ts).
+	 */
+	nameAndDay?: { name: string; day: string };
 }
 
 export const SCHEMA: Record<TabKey, TableSpec> = {
@@ -47,7 +55,8 @@ export const SCHEMA: Record<TabKey, TableSpec> = {
 		links: { sameProgramAs: { tab: 'concerts', by: 'title' } },
 		unique: [['title'], ['eventId']],
 		required: [['title', 'eventId']],
-		exact: ['eventId']
+		exact: ['eventId'],
+		nameAndDay: { name: 'title', day: 'date' }
 	},
 	program: { table: 'program_items', links: { concert: { tab: 'concerts', by: 'title', required: true }, piece: { tab: 'pieces', by: 'title' } } },
 	members: { table: 'members', unique: [['email']], required: [['email']], emails: ['email'] },
@@ -185,7 +194,10 @@ export function encode(tab: TabKey, cells: Record<string, string>, resolve: Reso
 			// A link that matches nothing keeps its name, as the sheet did.
 			row[snake(column)] = id === undefined ? value || null : null;
 		} else row[snake(column)] = value || null;
-		if (keyed(tab).includes(column)) row[`${snake(column)}_key`] = matchKey(tab, column, value);
+		if (keyed(tab).includes(column)) {
+			const both = spec.nameAndDay?.name === column;
+			row[`${snake(column)}_key`] = both && value ? concertKey(value, (cells[spec.nameAndDay!.day] ?? '').trim()) : matchKey(tab, column, value);
+		}
 	}
 	for (const anyOf of spec.required ?? []) {
 		if (!anyOf.some((column) => cells[column]?.trim())) throw new DataCheckError('required', tab, anyOf[0], '');
@@ -193,14 +205,67 @@ export function encode(tab: TabKey, cells: Record<string, string>, resolve: Reso
 	return row;
 }
 
+/**
+ * Rows with a name only unique with a day (nameAndDay), by id: the text that names each, and
+ * the row a text names. "Weihnachtskonzert (21.12.1957)" when another has the name too.
+ */
+export class NamedRows {
+	private readonly entries = new Map<number, { id: number; title: string; date: ReturnType<typeof parseFuzzyDate> }>();
+	private names?: ConcertNames<{ id: number; title: string; date: ReturnType<typeof parseFuzzyDate> }>;
+
+	constructor(
+		private readonly spec: NonNullable<TableSpec['nameAndDay']>,
+		rows: Iterable<[number, SqlRow]> = []
+	) {
+		for (const [id, row] of rows) this.add(id, row);
+	}
+
+	add(id: number, row: SqlRow) {
+		const title = String(row[snake(this.spec.name)] ?? '').trim();
+		if (!title || this.entries.has(id)) return;
+		this.entries.set(id, { id, title, date: parseFuzzyDate(String(row[snake(this.spec.day)] ?? '')) });
+		this.names = undefined;
+	}
+
+	private get all() {
+		return (this.names ??= new ConcertNames(this.entries.values()));
+	}
+
+	text(id: number): string | undefined {
+		const entry = this.entries.get(id);
+		return entry && this.all.ref(entry);
+	}
+
+	resolve(text: string): number | undefined {
+		return this.all.get(text)?.id;
+	}
+}
+
+/** Link texts for rows of tabs whose names need their day: by tab. */
+export function namedRowsOf(byId: Map<TabKey, Map<number, SqlRow>>): Map<TabKey, NamedRows> {
+	const named = new Map<TabKey, NamedRows>();
+	for (const [tab, rows] of byId) {
+		const spec = SCHEMA[tab]?.nameAndDay;
+		if (spec) named.set(tab, new NamedRows(spec, rows));
+	}
+	return named;
+}
+
 /** A stored row as cells; a link as the text of the row it points to. */
-export function decode(tab: TabKey, row: SqlRow, target: (tab: TabKey, id: number) => SqlRow | undefined): Record<string, string> {
+export function decode(
+	tab: TabKey,
+	row: SqlRow,
+	target: (tab: TabKey, id: number) => SqlRow | undefined,
+	named: Map<TabKey, NamedRows> = new Map()
+): Record<string, string> {
 	const spec = SCHEMA[tab];
 	const cells: Record<string, string> = {};
 	for (const column of columnsOf(tab)) {
 		const link = spec.links?.[column];
 		const id = link ? row[`${snake(column)}_id`] : null;
-		const value = link && typeof id === 'number' ? target(link.tab, id)?.[snake(link.by)] : row[snake(column)];
+		const byName = link && SCHEMA[link.tab].nameAndDay?.name === link.by ? named.get(link.tab) : undefined;
+		const value =
+			link && typeof id === 'number' ? ((byName ? byName.text(id) : undefined) ?? target(link.tab, id)?.[snake(link.by)]) : row[snake(column)];
 		if (value !== null && value !== undefined && value !== '') cells[column] = String(value);
 	}
 	return cells;
@@ -221,8 +286,15 @@ export function uniqueValues(tab: TabKey, row: SqlRow): { set: string[]; value: 
 /** Lookups by link target, for resolve(): built from rows already stored or being imported. */
 export class LinkIndex {
 	private readonly maps = new Map<string, Map<string, number>>();
+	private readonly named = new Map<TabKey, NamedRows>();
 
 	add(tab: TabKey, id: number, row: SqlRow) {
+		const spec = SCHEMA[tab].nameAndDay;
+		if (spec) {
+			const named = this.named.get(tab) ?? new NamedRows(spec);
+			named.add(id, row);
+			this.named.set(tab, named);
+		}
 		for (const column of columnsOf(tab)) {
 			const name = `${tab}.${column}`;
 			if (!LINK_TARGETS.has(name)) continue;
@@ -236,6 +308,8 @@ export class LinkIndex {
 	}
 
 	resolve: Resolve = (tab, by, text) => {
+		// "Weihnachtskonzert" or "Weihnachtskonzert (21.12.1957)": a shared name alone names none.
+		if (SCHEMA[tab].nameAndDay?.name === by) return this.named.get(tab)?.resolve(text);
 		const key = matchKey(tab, by, text);
 		return key ? this.maps.get(`${tab}.${by}`)?.get(key) : undefined;
 	};

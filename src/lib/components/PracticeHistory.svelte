@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { config } from '#lib/config/index.ts';
 	import { t } from '#lib/i18n/index.ts';
 	import type { HistoryDay } from '#lib/practice/drills/progress.ts';
 
@@ -16,7 +17,7 @@
 	const percent = (share: number | null) => (share === null ? '–' : `${Math.round(share * 100)} %`);
 	const number = (value: number | null) => (value === null ? '–' : new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(value));
 	const dateOf = (day: string, style: 'short' | 'weekday') =>
-		new Date(`${day}T12:00:00`).toLocaleDateString(undefined, style === 'short' ? { day: 'numeric', month: 'short' } : { weekday: 'narrow' });
+		new Date(`${day}T12:00:00`).toLocaleDateString(config.locale, style === 'short' ? { day: 'numeric', month: 'short' } : { weekday: 'narrow' });
 
 	const practised = $derived(days.filter((day) => day.answers > 0));
 	const overall = $derived.by(() => {

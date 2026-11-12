@@ -222,7 +222,7 @@ describe('linkSources and planSync', () => {
 		expect(links.eventByConcert.get('event-herbst')).toBe('event-herbst');
 	});
 
-	it('plans rows for new folders and confirmed concerts, with unique names', () => {
+	it('plans rows for new folders and confirmed concerts: piece names unique, concert names per day', () => {
 		const repertoire = buildRepertoire(sample());
 		const links = linkSources(repertoire, drive, calendar, 'Europe/Berlin');
 		const plan = planSync(repertoire, links, drive, calendar, { timeZone: 'Europe/Berlin', orchestra: 'EO' });
@@ -232,8 +232,28 @@ describe('linkSources and planSync', () => {
 		]);
 		expect(plan.concerts).toEqual([
 			{ date: '2026-12-20', title: 'Weihnachtskonzert 2026', location: 'Kirche', orchestra: 'EO', eventId: 'event-weihnacht' },
-			{ date: '2026-12-21', title: 'Weihnachtskonzert 2026 (21.12.)', location: '', orchestra: 'EO', eventId: 'event-weihnacht-2' }
+			{ date: '2026-12-21', title: 'Weihnachtskonzert 2026', location: '', orchestra: 'EO', eventId: 'event-weihnacht-2' }
 		]);
+	});
+
+	it('numbers a concert name only on the same day', () => {
+		const repertoire = buildRepertoire(sample());
+		const twice = [calendar[1], { ...calendar[1], id: 'event-weihnacht-3' }];
+		const plan = planSync(repertoire, linkSources(repertoire, [], twice, 'Europe/Berlin'), [], twice, { timeZone: 'Europe/Berlin' });
+		expect(plan.concerts.map((row) => row.title)).toEqual(['Weihnachtskonzert 2026', 'Weihnachtskonzert 2026 (2)']);
+	});
+
+	it('takes one name for concerts on several days; programme rows name them with the date', () => {
+		const values = sample();
+		values.concerts.push(['1957-12-21', 'Weihnachtskonzert', '', 'EO', ''], ['21.12.1958', 'Weihnachtskonzert', '', 'EO', ''], ['1958-12-21', 'Weihnachtskonzert', '', 'EO', '']);
+		values.program.push(['Weihnachtskonzert (21.12.1957)', '1', 'Sleigh Ride', ''], ['Weihnachtskonzert (1958-12-21)', '1', 'Sleigh Ride', ''], ['Weihnachtskonzert', '1', 'Sleigh Ride', '']);
+		const result = buildRepertoire(values);
+		const christmas = result.concerts.filter((concert) => concert.title === 'Weihnachtskonzert');
+		expect(christmas.map((concert) => [concert.key, concert.ref, concert.program.length])).toEqual([
+			['s-weihnachtskonzert', 'Weihnachtskonzert (21.12.1957)', 1],
+			['s-weihnachtskonzert-1958-12-21', 'Weihnachtskonzert (21.12.1958)', 1]
+		]);
+		expect(result.problems.map((p) => p.kind)).toEqual(expect.arrayContaining(['duplicate-concert', 'ambiguous-concert']));
 	});
 
 	it('writes rows in the sheet\'s column order', () => {

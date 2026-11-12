@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { config } from '#lib/config/index.ts';
 	import { t } from '#lib/i18n/index.ts';
 	import Icon from '#lib/components/Icon.svelte';
 	import { REFLECTION_MAX, type Reflection } from '#lib/practice/drills/progress.ts';
@@ -33,7 +34,7 @@
 
 	let reflection = $state('');
 	let saved = $state(false);
-	const dateOf = (day: string) => new Date(`${day}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+	const dateOf = (day: string) => new Date(`${day}T12:00:00`).toLocaleDateString(config.locale, { day: 'numeric', month: 'short' });
 </script>
 
 <ol class="steps" aria-label={tx.title}>

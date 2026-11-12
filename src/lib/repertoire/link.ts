@@ -1,3 +1,4 @@
+import { concertKey } from './concert-ref.ts';
 import { eventDay, fuzzyDateKey } from './dates.ts';
 import { normalize, type Repertoire, type SheetConcert, type SheetPiece } from './sheet.ts';
 
@@ -101,7 +102,7 @@ function claim(candidates: string[], taken: Set<string>): string {
 
 /**
  * Rows to append for Drive folders and confirmed calendar concerts the sheet doesn't
- * have yet. Names are made unique, since programme rows refer to them by name.
+ * have yet. Piece names are made unique, since programme rows refer to pieces by name.
  */
 export function planSync(
 	repertoire: Repertoire,
@@ -123,18 +124,21 @@ export function planSync(
 			driveFolderId: piece.id
 		}));
 
-	const concertTitles = new Set(repertoire.concertsByTitle.keys());
+	// A concert is its name and its day: a name may come again on another day, not on the same one.
+	const days = new Set(repertoire.concerts.map((concert) => concertKey(concert.title, concert.date ?? concert.dateText)));
 	const concerts: ConcertRow[] = calendarConcerts
 		.filter((event) => !event.tentative && !links.concertByEvent.has(event.id))
 		.map((event) => {
 			const day = eventDay(event, timeZone);
-			const [year, month, date] = day.split('-');
 			const title = /\b(1[89]|20)\d\d\b/.test(event.displayTitle)
 				? event.displayTitle
-				: `${event.displayTitle} ${year}`;
+				: `${event.displayTitle} ${day.slice(0, 4)}`;
+			let free = title;
+			for (let n = 2; days.has(concertKey(free, day)); n++) free = `${title} (${n})`;
+			days.add(concertKey(free, day));
 			return {
 				date: day,
-				title: claim([title, `${title} (${date}.${month}.)`], concertTitles),
+				title: free,
 				location: event.location ?? '',
 				orchestra: orchestra ?? '',
 				eventId: event.id

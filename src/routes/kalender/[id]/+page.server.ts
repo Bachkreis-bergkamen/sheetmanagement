@@ -18,8 +18,8 @@ import { joinList, splitList } from '#lib/repertoire/lists.ts';
 import { eventFormValues, newEventFromForm, orchestraTitle, ORCHESTRA_PROPERTY } from '#lib/events/new-event.ts';
 import { calendarWriteEnabled } from '#lib/server/services.ts';
 import { calendarRange, changeCalendarEvent, setEventOrchestras } from '#lib/server/schedule.ts';
-import { eventDay } from '#lib/repertoire/dates.ts';
-import { getAccessList, getAttendance, getFeedback, getLoans, getMusicConfig, getRehearsalNotes, getRehearsalPlan, getSignups } from '#lib/server/repertoire.ts';
+import { eventDay, fuzzyDateKey } from '#lib/repertoire/dates.ts';
+import { getAccessList, getAttendance, getFeedback, getLoans, getMusicConfig, getRehearsalNotes, getRehearsalPlan, getRepertoire, getSignups } from '#lib/server/repertoire.ts';
 import { checkRehearsalNote, isEmptyNote, type RehearsalNote } from '#lib/notes/rehearsal-notes.ts';
 import { requireRight } from '#lib/server/auth/index.ts';
 import { publicDetails, publishedIds, readDetails, setPublicDetails, setPublished } from '#lib/server/public-concerts.ts';
@@ -30,7 +30,8 @@ import { reportGaps } from '#lib/repertoire/music-report.ts';
 import { loansOf } from '#lib/loans/loans.ts';
 import { attendanceSummary } from '#lib/attendance/attendance.ts';
 import type { RehearsalPlan } from '#lib/rehearsals/plan.ts';
-import { normalize } from '#lib/repertoire/sheet.ts';
+import { findConcertRow, normalize } from '#lib/repertoire/sheet.ts';
+import { concertVersion, editArchiveConcert } from '#lib/server/archive.ts';
 import type { ShownEvent } from '#lib/events/schedule.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -252,6 +253,20 @@ async function check(concert: LibraryConcert | undefined, event: ShownEvent | un
 	return items.length ? items : null;
 }
 
+/** The archive concert's form (#330), for those who keep the archive: its row as it is now. */
+async function archiveEdit(concert: LibraryConcert, locals: App.Locals) {
+	const sheet = concert.sheet;
+	if (!sheet || !locals.access.rights.has('archiv.bearbeiten')) return null;
+	const repertoire = await getRepertoire();
+	const row = repertoire.ok ? findConcertRow(repertoire.repertoire.tables.concerts, sheet) : undefined;
+	if (!row) return null;
+	return {
+		values: { title: sheet.title, date: sheet.date ? fuzzyDateKey(sheet.date) : sheet.dateText, location: sheet.location ?? '', orchestra: sheet.orchestra ?? '' },
+		version: concertVersion(row),
+		orchestras: config.orchestras
+	};
+}
+
 async function openWishes(concertTitle: string) {
 	if (!isOn('wishes')) return 0;
 	const wishes = (await getFeedback())?.wishes ?? [];
@@ -358,7 +373,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		sharedFrom: concert?.sharedFrom,
 		sharedWith: concert?.sharedWith ?? [],
 		// For planners: open piece wishes for this concert or any time, shown in the editor.
-		suggestions: locals.access.rights.has('programme.bearbeiten') && concert?.sheet ? await openWishes(concert.sheet.title) : 0,
+		suggestions: locals.access.rights.has('programme.bearbeiten') && concert?.sheet ? await openWishes(concert.sheet.ref) : 0,
 		check: locals.access.rights.has('programme.bearbeiten') ? await check(concert, event, library, await getRehearsalPlan()) : null,
 		// How the Drive sync after saving in the editor went.
 		driveAuto: showDrive ? url.searchParams.get('drive') : null,
@@ -388,7 +403,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 
 	if (!event) {
 		const { title, label, dateText, location, orchestra } = concert!;
-		return { kind: 'archive' as const, archive: { title, label, dateText, location, orchestra }, mapUrl: mapUrl(location), program };
+		return { kind: 'archive' as const, archive: { title, label, dateText, location, orchestra }, archiveEdit: await archiveEdit(concert!, locals), mapUrl: mapUrl(location), program };
 	}
 
 	const lookup = (id: string) => (schedule.ok ? schedule.byId.get(id) : undefined);
@@ -522,6 +537,9 @@ async function signupChange(locals: App.Locals, id: string, work: (event: { id: 
 }
 
 export const actions: Actions = {
+	/** An archive concert's name, day, place and orchestras (#330). */
+	editArchive: async ({ request, locals, params }) => editArchiveConcert(locals, params.id, await request.formData()),
+
 	/** One click: Zusage, Vielleicht or Absage; instrument and comment stay as they were. */
 	answer: async ({ request, locals, params }) => {
 		const data = await request.formData();

@@ -11,7 +11,7 @@ import { getFeedback, getRepertoire } from '#lib/server/repertoire.ts';
 import { planWishes } from '#lib/server/feedback.ts';
 import { programSuggestions } from '#lib/repertoire/suggestions.ts';
 import { appendRecords, deleteRows, readTab, refreshAfterWrite, SheetLayoutError, updateRecord } from '#lib/server/sheet-writes.ts';
-import { normalize } from '#lib/repertoire/sheet.ts';
+import { findConcertRow, programConcert, type SheetConcert } from '#lib/repertoire/sheet.ts';
 import { joinList } from '#lib/repertoire/lists.ts';
 import { t } from '#lib/i18n/index.ts';
 import { currentProgramAvailable, isCurrentConcert, syncCurrentProgram } from '#lib/server/current-program.ts';
@@ -52,7 +52,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		guests: withGuests(scope.orchestra, concert.partners),
 		/** Who plays in this tab, guests by their full name: "EO", "Kammerchor Unna". */
 		scopeNames: performerNames(scope.orchestra, concert.partners),
-		version: programVersion(repertoire.repertoire.tables.program, sheet.title, scope),
+		version: programVersion(repertoire.repertoire.tables.program, programConcert(repertoire.repertoire, sheet), scope),
 		entries: own.map(({ entry, item }) => ({
 			piece: entry.pieceName,
 			notes: entry.notes ?? '',
@@ -65,7 +65,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 			...(entry.publisher ? { publisher: entry.publisher } : {}),
 			...(entry.duration ? { durationText: formatDuration(entry.duration) } : {})
 		})),
-		suggestions: suggestions(library, concert.id, sheet.title, isOn('wishes') ? (feedback?.wishes ?? []) : []),
+		suggestions: suggestions(library, concert.id, sheet.ref, isOn('wishes') ? (feedback?.wishes ?? []) : []),
 		sharedFrom: concert.sharedFrom,
 		sharedWith: concert.sharedWith,
 		shareOptions: shareOptions(library, concert.id),
@@ -89,7 +89,7 @@ function shareOptions(library: Library, concertId: string) {
 		.filter((other) => other.id !== concertId && other.sheet?.title && other.program.length && !other.sharedFrom)
 		.sort((a, b) => distance(a.dateKey) - distance(b.dateKey))
 		.slice(0, 30)
-		.map((other) => ({ name: other.sheet!.title, title: other.title, label: other.label?.long ?? other.dateText ?? '', count: other.program.length }));
+		.map((other) => ({ name: other.sheet!.ref, title: other.title, label: other.label?.long ?? other.dateText ?? '', count: other.program.length }));
 }
 
 /** Wishes for this concert or any time, and pieces not played for long, ready to add (#91, #108). */
@@ -131,11 +131,18 @@ function suggestions(library: Library, concertId: string, concertTitle: string, 
 }
 
 /** Clears "Programm wie" on the concert's row, so its own rows count. */
-async function clearShare(title: string) {
+async function clearShare(concert: SheetConcert) {
 	const concerts = await readTab('concerts');
 	if (concerts.indexes.sameProgramAs === undefined) return;
-	const rows = concerts.rows.filter((row) => normalize(row.values.title) === normalize(title) && row.values.sameProgramAs);
-	for (const row of rows) await updateRecord('concerts', concerts, row.row, { sameProgramAs: '' });
+	const row = findConcertRow(concerts, concert);
+	if (row?.values.sameProgramAs) await updateRecord('concerts', concerts, row.row, { sameProgramAs: '' });
+}
+
+/** The sheet as read for the library, for finding a concert's rows by the names they use. */
+async function sheetConcert(sheet: SheetConcert) {
+	const repertoire = await getRepertoire();
+	if (!repertoire.ok) throw new Error('The sheet could not be read.');
+	return programConcert(repertoire.repertoire, sheet);
 }
 
 /**
@@ -180,16 +187,16 @@ export const actions: Actions = {
 		const scope = scopeOf(concert, String(data.get('orchestra') ?? ''));
 
 		try {
-			const table = await readTab('program');
-			if (programVersion(table, sheet.title, scope) !== String(data.get('version'))) {
+			const [table, named] = await Promise.all([readTab('program'), sheetConcert(sheet)]);
+			if (programVersion(table, named, scope) !== String(data.get('version'))) {
 				return fail(409, { message: t.editor.conflict });
 			}
-			const plan = planProgramSave(table, sheet.title, entries, scope);
+			const plan = planProgramSave(table, named, entries, scope);
 			// New rows first: if deleting the old ones fails, nothing is lost, only doubled.
 			await appendRecords('program', table, plan.append);
 			await deleteRows('program', table, plan.remove);
 			// A concert that played another one's programme now has its own.
-			if (sheet.sameProgramAs) await clearShare(sheet.title);
+			if (sheet.sameProgramAs) await clearShare(sheet);
 			// Wishes taken into the programme become "geplant"; the programme counts even if this fails.
 			const wishIds = String(data.get('wishes') ?? '').split(',').map((id) => id.trim()).filter(Boolean).slice(0, 50);
 			await planWishes(wishIds).catch((cause) => console.error('Marking wishes as planned failed:', cause));
@@ -213,22 +220,24 @@ export const actions: Actions = {
 		const concert = library.concertsById.get(params.id);
 		const sheet = concert?.sheet;
 		if (!concert || !sheet) return fail(409, { message: t.editor.notInSheet });
-		const source = library.concerts.find((other) => other.sheet && normalize(other.sheet.title) === normalize(String(data.get('source') ?? '')));
+		const repertoire = await getRepertoire();
+		const picked = repertoire.ok ? repertoire.repertoire.concertNames.get(String(data.get('source') ?? '')) : undefined;
+		const source = picked && library.concerts.find((other) => other.sheet?.key === picked.key);
 		if (!source?.sheet || source.sheet.key === sheet.key || !source.program.length) {
 			return fail(400, { message: t.editor.shareUnknown });
 		}
 
 		try {
-			const [table, concerts] = await Promise.all([readTab('program'), readTab('concerts')]);
+			const [table, concerts, named] = await Promise.all([readTab('program'), readTab('concerts'), sheetConcert(sheet)]);
 			// The version the editor showed: of the orchestra it had open.
-			if (programVersion(table, sheet.title, scopeOf(concert, String(data.get('orchestra') ?? ''))) !== String(data.get('version'))) {
+			if (programVersion(table, named, scopeOf(concert, String(data.get('orchestra') ?? ''))) !== String(data.get('version'))) {
 				return fail(409, { message: t.editor.conflict });
 			}
-			const row = concerts.rows.find((r) => normalize(r.values.title) === normalize(sheet.title));
+			const row = findConcertRow(concerts, sheet);
 			if (!row) return fail(409, { message: t.editor.notInSheet });
 			// The column first: if that fails, the old programme is still there.
-			await updateRecord('concerts', concerts, row.row, { sameProgramAs: source.sheet.title });
-			await deleteRows('program', table, planProgramSave(table, sheet.title, []).remove);
+			await updateRecord('concerts', concerts, row.row, { sameProgramAs: source.sheet.ref });
+			await deleteRows('program', table, planProgramSave(table, named, []).remove);
 			await refreshAfterWrite();
 		} catch (cause) {
 			if (cause instanceof SheetLayoutError) return fail(409, { message: t.editor.shareNeedsSetup });

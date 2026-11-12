@@ -342,6 +342,32 @@ describe.each([
 		expect(data.concerts![1].cells.sameProgramAs).toBe('Herbstkonzert 2026');
 	});
 
+	it('keeps concerts of one name apart by their day, and names them with it (#330)', async () => {
+		const store = make();
+		await store.importData(
+			sheet({
+				pieces: [{ title: 'Moldau' }],
+				concerts: [
+					{ title: 'Weihnachtskonzert', date: '21.12.1957' },
+					{ title: 'Weihnachtskonzert', date: '1958-12-20' },
+					{ title: 'weihnachtskonzert', date: '1957-12-21' }
+				],
+				program: [
+					{ concert: 'Weihnachtskonzert (20.12.1958)', position: '1', piece: 'Moldau' },
+					{ concert: 'Weihnachtskonzert', position: '1', piece: 'Moldau' }
+				]
+			}),
+			['pieces', 'concerts', 'program']
+		);
+		const data = await store.readData();
+		// The third is the first again on the same day; the bare name names neither.
+		expect(data.concerts!.map((row) => row.cells.date)).toEqual(['21.12.1957', '1958-12-20']);
+		expect(data.program!.map((row) => row.cells.concert)).toEqual(['Weihnachtskonzert (20.12.1958)']);
+		await expect(store.appendData('concerts', [{ title: 'Weihnachtskonzert', date: '1958-12-20' }])).rejects.toMatchObject({ kind: 'unique' });
+		await store.appendData('program', [{ concert: 'Weihnachtskonzert (21.12.1957)', position: '1', piece: 'Moldau' }]);
+		expect((await store.readData(['program'])).program!.map((row) => row.cells.concert)).toEqual(['Weihnachtskonzert (20.12.1958)', 'Weihnachtskonzert (21.12.1957)']);
+	});
+
 	it('refuses what breaks a link or check, and then changes nothing', async () => {
 		const store = make();
 		await store.importData(sample(), ['pieces', 'concerts', 'program']);

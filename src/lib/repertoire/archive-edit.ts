@@ -1,5 +1,5 @@
 import { bare, distance, searchText } from '#lib/music/text.ts';
-import { parseFuzzyDate } from './dates.ts';
+import { checkConcert } from './concert-edit.ts';
 import { normalize, type ColumnKey, type Table } from './sheet.ts';
 
 /**
@@ -21,27 +21,23 @@ export interface NewPiece {
 	catalogue: string;
 }
 
-export type ArchiveProblem = 'title-missing' | 'title-taken' | 'bad-date';
+export type ArchiveProblem = 'title-missing' | 'title-taken' | 'day-taken' | 'bad-date';
 
 const trimmed = <T extends object>(values: T): T =>
 	Object.fromEntries(Object.entries(values).map(([key, value]) => [key, String(value).trim()])) as T;
 
-/** Programme rows refer to concerts by "Anlass", and to pieces by title: both must be unique. */
+/** Programme rows refer to pieces by title: it must be unique. */
 const taken = (table: Table<string>, title: string) => {
 	const wanted = normalize(title);
 	return table.rows.some((row) => normalize(row.values.title ?? '') === wanted);
 };
 
+/** A past concert for the archive: refused only for the same name on the same day (concert-edit.ts). */
 export function checkNewConcert(
 	input: NewConcert,
 	concerts: Table<ColumnKey<'concerts'> & string>
 ): { values: NewConcert } | { problem: ArchiveProblem } {
-	const values = trimmed(input);
-	if (!values.title) return { problem: 'title-missing' };
-	// "1957", "1957-12", "21.12.1957" … or empty when nobody knows.
-	if (values.date && !parseFuzzyDate(values.date)) return { problem: 'bad-date' };
-	if (taken(concerts, values.title)) return { problem: 'title-taken' };
-	return { values };
+	return checkConcert(input, concerts);
 }
 
 export function checkNewPiece(
