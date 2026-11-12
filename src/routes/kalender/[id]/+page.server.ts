@@ -22,6 +22,7 @@ import { eventDay, fuzzyDateKey } from '#lib/repertoire/dates.ts';
 import { getAccessList, getAttendance, getFeedback, getLoans, getMusicConfig, getRehearsalNotes, getRehearsalPlan, getRepertoire, getSignups } from '#lib/server/repertoire.ts';
 import { checkRehearsalNote, isEmptyNote, type RehearsalNote } from '#lib/notes/rehearsal-notes.ts';
 import { requireRight } from '#lib/server/auth/index.ts';
+import { tripLink } from '#lib/server/trips.ts';
 import { publicDetails, publishedIds, readDetails, setPublicDetails, setPublished } from '#lib/server/public-concerts.ts';
 import { appendRecords, deleteRows, ensureTab, readTab, refreshAfterWrite, SheetLayoutError, updateRecord, withSheetLock } from '#lib/server/sheet-writes.ts';
 import { formatDay } from '#lib/events/format.ts';
@@ -469,6 +470,8 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 					: undefined
 		},
 		concert: event.concertId ? lookup(event.concertId) : undefined,
+		// The Konzert- or Probenfahrt this date belongs to (#334).
+		trip: await tripLink(locals, event.id),
 		// Whose rehearsal it is, changed here by those who plan dates (several orchestras only).
 		orchestras:
 			event.type !== 'konzert' && config.orchestras.length > 1

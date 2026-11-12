@@ -59,6 +59,8 @@ export function navGroups({ auth, rights, features = ALL_ON, polls = false, pare
 				items: [
 					{ href: '/eltern', label: t.nav.parents, icon: 'users', primary: true },
 					{ href: '/eltern/nachrichten', label: t.nav.parentMessages, icon: 'mail', primary: true },
+					// Their child's trips (#334, #299): to confirm the sign-up and see the plan.
+					...(features.trips ? [{ href: '/fahrten', label: t.nav.trips, icon: 'suitcase' as const }] : []),
 					{ href: '/profil', label: t.nav.profile, icon: 'user', primary: true }
 				]
 			}
@@ -87,6 +89,8 @@ export function navGroups({ auth, rights, features = ALL_ON, polls = false, pare
 					? [
 							...(features.wishes ? [{ href: '/wuensche', label: t.nav.wishes, icon: 'bulb' as const }] : []),
 							...(polls ? [{ href: '/termine', label: t.nav.polls, icon: 'poll' as const }] : []),
+							// Konzert- and Probenfahrten (#334): sign up, and the plan of each day.
+							...(features.trips ? [{ href: '/fahrten', label: t.nav.trips, icon: 'suitcase' as const }] : []),
 							// The parents' area, for a member whose children play too.
 							...(parent === 'also' ? [{ href: '/eltern', label: t.nav.parents, icon: 'users' as const }] : []),
 							// Anonymous messages to the Leitung, and its inbox for those who read it.

@@ -82,6 +82,13 @@ export const legal = {
 				]
 			},
 			{
+				heading: 'Concert tours and rehearsal trips',
+				paragraphs: [
+					'If the orchestra plans trips in the app: when you sign up for a trip, the app saves your name, your email address, what you come along as, whether you arrive later or leave early, your note to the organisers and when you signed up, in a database at Cloudflare (D1), not in the Google sheet. For young members it also saves which parent confirmed the sign-up.',
+					'Who comes along (name and role) is seen by everyone signed up for the trip and by the parents of children signed up. Your note, the waiting list and those who declined are seen only by the trip’s organisers. Please put no health details into the note; a separate list with explicit consent is coming for that. The legal basis is Art. 6(1)(b) GDPR (the club’s trips). Sign-ups are deleted with the trip, at once with “Delete member”, and are part of “Download my data”.'
+				]
+			},
+			{
 				heading: 'Attendance at rehearsals',
 				paragraphs: [
 					"After a rehearsal, people with the right “Take attendance” (e.g. conductor and organisers) can enter who was there. Only the date, name, email address and whether you were present are saved, in the “Attendance” tab of the orchestra's Google sheet. From this the app shows how many rehearsals before a concert you attended.",

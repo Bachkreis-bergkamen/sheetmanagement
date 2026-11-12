@@ -10,7 +10,7 @@ describe('navGroups', () => {
 	it('shows members their music, the archive, wishes and their profile', () => {
 		expect(hrefs('on', ['ansehen'])).toEqual({
 			musik: ['/meine-noten', '/kalender', '/stuecke', '/ueben', '/chronik'],
-			mitmachen: ['/wuensche', '/kummerkasten', '/profil']
+			mitmachen: ['/wuensche', '/fahrten', '/kummerkasten', '/profil']
 		});
 	});
 
@@ -154,7 +154,7 @@ describe('parents', () => {
 	it('gives a parent account its own area and nothing else', () => {
 		const groups = navGroups({ auth: 'on', rights: [], parent: 'only' });
 		expect(groups.map((group) => group.key)).toEqual(['eltern']);
-		expect(primaryNav(groups).map((item) => item.href)).toEqual(['/eltern', '/eltern/nachrichten', '/profil']);
+		expect(primaryNav(groups).map((item) => item.href)).toEqual(['/eltern', '/eltern/nachrichten', '/fahrten', '/profil']);
 	});
 
 	it('adds the area for a member whose children play too', () => {

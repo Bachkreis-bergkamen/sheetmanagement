@@ -18,6 +18,8 @@ export const RIGHTS = [
 	'eltern.informieren',
 	// The Übebereich summaries members share with their conductor and teachers (#300).
 	'ueben.begleiten',
+	// Konzert- and Probenfahrten (#334): plan trips, see who comes, edit the plan of each day.
+	'fahrten.bearbeiten',
 	'mitglieder.verwalten'
 ] as const;
 export type Right = (typeof RIGHTS)[number];
@@ -381,7 +383,7 @@ export const isAdminOnly = (member: Pick<Member, 'status'> | undefined) => membe
  */
 export function parentMayOpen(path: string): boolean {
 	const under = (base: string) => path === base || path.startsWith(base + '/');
-	return ['/eltern', '/profil', '/kummerkasten', '/karte', '/demo', '/api/seitenaufruf', '/api/push', '/api/fehler', '/api/warm'].some(under);
+	return ['/eltern', '/profil', '/kummerkasten', '/fahrten', '/karte', '/demo', '/api/seitenaufruf', '/api/push', '/api/fehler', '/api/warm'].some(under);
 }
 
 /** Members who count for a concert's instrumentation: active ones in its orchestra. */

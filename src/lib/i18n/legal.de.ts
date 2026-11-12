@@ -101,6 +101,13 @@ export const legal = {
 				]
 			},
 			{
+				heading: 'Konzert- und Probenfahrten',
+				paragraphs: [
+					'Falls das Orchester Fahrten in der App plant: Wenn du dich zu einer Fahrt anmeldest, speichert die App deinen Namen, deine E-Mail-Adresse, als was du mitfährst, ob du später ankommst oder früher abfährst, deinen Hinweis an die Organisation und wann du dich angemeldet hast, in einer Datenbank bei Cloudflare (D1), nicht in der Google-Tabelle. Bei jungen Mitgliedern speichert sie auch, welcher Elternteil die Anmeldung bestätigt hat.',
+					'Wer mitfährt (Name und Rolle), sehen alle, die zur Fahrt angemeldet sind, und die Eltern angemeldeter Kinder. Deinen Hinweis, die Warteliste und Absagen sieht nur die Organisation der Fahrt. Bitte schreib in den Hinweis keine Gesundheitsangaben; dafür kommt eine eigene Liste mit ausdrücklicher Einwilligung. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO (Fahrten des Vereins). Die Anmeldungen werden mit der Fahrt gelöscht, bei „Mitglied löschen“ sofort, und stehen in „Meine Daten herunterladen“.'
+				]
+			},
+			{
 				heading: 'Hinweise und Probennotizen',
 				paragraphs: [
 					'Wer Programme plant, kann zu Stücken Hinweise aus den Proben (z. B. Sprünge oder Striche) und nach einer Probe eine Notiz eintragen, was geprobt wurde. Gespeichert werden der Text, der Name der Person, die ihn geschrieben hat, und das Datum, in den Blättern „Hinweise“ und „Probennotizen“ der Google-Tabelle des Orchesters. Alle Mitglieder sehen sie. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO (Probenbetrieb des Vereins).'

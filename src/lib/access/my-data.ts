@@ -3,6 +3,7 @@ import { parseVotes, submitterEmail } from '#lib/feedback/feedback.ts';
 import { t } from '#lib/i18n/index.ts';
 import { LAYOUT, normalize, type Table, type TabKey } from '#lib/repertoire/sheet.ts';
 import type { Poll, PollResponse } from '#lib/polls/polls.ts';
+import type { Participant, Trip } from '#lib/trips/trips.ts';
 import type { PageMarks, PracticeDay, PushDevice, SentReminder, TourOutcome } from '#lib/server/db/types.ts';
 
 /**
@@ -132,6 +133,21 @@ export function pollData(answers: { poll: Poll; response: PollResponse }[]): MyD
 			}))
 	);
 	return rows.length ? { [t.myData.polls]: rows } : {};
+}
+
+/** The member's sign-ups for trips (#334): which trip, as what, and what they told the organisers. */
+export function tripData(entries: { trip: Trip; participant: Participant }[]): MyData {
+	const rows = entries.map(({ trip, participant }) => ({
+		[t.myData.trip]: trip.title,
+		[t.myData.tripDays]: `${trip.firstDay}–${trip.lastDay}`,
+		[t.myData.tripRole]: t.trips.roles[participant.role],
+		[t.myData.tripStatus]: t.myData.tripStatuses[participant.status],
+		[t.myData.tripArrival]: participant.arrival ?? '',
+		[t.myData.tripDeparture]: participant.departure ?? '',
+		[t.myData.tripNote]: participant.note ?? '',
+		[t.myData.tripSignedUpAt]: participant.signedUpAt
+	}));
+	return rows.length ? { [t.myData.trips]: rows } : {};
 }
 
 /** A file name without characters that trouble file systems: "meine-daten-mia-example-org.json". */

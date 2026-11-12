@@ -8,6 +8,7 @@ import { DEMO_ADMIN, DEMO_MEMBER } from '#lib/server/demo/data.ts';
 import { getStore } from '#lib/server/db/index.ts';
 import { isDemo } from '#lib/server/env.ts';
 import { resetDemoPolls } from '#lib/server/polls.ts';
+import { resetDemoTrips } from '#lib/server/trips.ts';
 import { resetDemoKummer } from '#lib/server/kummer.ts';
 import { resetDemoParentNotices } from '#lib/server/parent-notices.ts';
 import { getArchiveIndex } from '#lib/server/services.ts';
@@ -25,6 +26,7 @@ export const POST: RequestHandler = async ({ request, cookies, url }) => {
 	if (data.has('zuruecksetzen')) {
 		resetDemo();
 		resetDemoPolls();
+		resetDemoTrips();
 		resetDemoKummer();
 		resetDemoParentNotices();
 		// Both demo users are new again: the tour is offered once more, and their practice time and
