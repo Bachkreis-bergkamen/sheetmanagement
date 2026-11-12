@@ -1,4 +1,4 @@
-import { getStore } from './db/index.ts';
+import { readState, recordIn, sortedByKey, stringsIn, writeState } from './app-state.ts';
 import { isPastConcert, type Library, type LibraryConcert } from './library.ts';
 import type { FeedEvent } from '#lib/events/ical.ts';
 import { safeLink } from '#lib/links.ts';
@@ -87,43 +87,26 @@ const DETAILS_KEY = 'public-concert-details';
 const TEXT_MAX = 2000;
 const NOTE_MAX = 200;
 
-export async function publishedIds(): Promise<Set<string>> {
-	const stored = await getStore()
-		.getState(KEY)
-		.catch(() => null);
-	try {
-		const ids = stored ? (JSON.parse(stored) as unknown) : [];
-		return new Set(Array.isArray(ids) ? ids.filter((id): id is string => typeof id === 'string') : []);
-	} catch {
-		return new Set();
-	}
-}
+const storedIds = () => readState(KEY, (value) => new Set(stringsIn(value)));
+const storedDetails = () => readState(DETAILS_KEY, (value) => new Map(Object.entries(recordIn<PublicDetails>(value))));
+
+export const publishedIds = (): Promise<Set<string>> => storedIds().catch(() => new Set<string>());
 
 export async function setPublished(id: string, published: boolean): Promise<void> {
-	const ids = await publishedIds();
+	const ids = await storedIds();
 	if (published) ids.add(id);
 	else ids.delete(id);
-	await getStore().setState(KEY, JSON.stringify([...ids].sort()));
+	await writeState(KEY, [...ids].sort());
 }
 
-export async function publicDetails(): Promise<Map<string, PublicDetails>> {
-	const stored = await getStore()
-		.getState(DETAILS_KEY)
-		.catch(() => null);
-	try {
-		const all = stored ? (JSON.parse(stored) as unknown) : {};
-		return new Map(all && typeof all === 'object' && !Array.isArray(all) ? Object.entries(all as Record<string, PublicDetails>) : []);
-	} catch {
-		return new Map();
-	}
-}
+export const publicDetails = (): Promise<Map<string, PublicDetails>> => storedDetails().catch(() => new Map<string, PublicDetails>());
 
 /** Saves a concert's details; empty details remove the entry. Kept when the concert is withdrawn. */
 export async function setPublicDetails(id: string, details: PublicDetails): Promise<void> {
-	const all = await publicDetails();
+	const all = await storedDetails();
 	if (Object.keys(details).length) all.set(id, details);
 	else all.delete(id);
-	await getStore().setState(DETAILS_KEY, JSON.stringify(Object.fromEntries([...all].sort(([a], [b]) => a.localeCompare(b)))));
+	await writeState(DETAILS_KEY, sortedByKey(all));
 }
 
 const field = (form: FormData, name: string, max: number) => String(form.get(name) ?? '').trim().slice(0, max) || undefined;

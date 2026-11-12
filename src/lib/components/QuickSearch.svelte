@@ -22,6 +22,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { t } from '#lib/i18n/index.ts';
+	import { readLocalJson, writeLocalJson } from '#lib/local-storage.ts';
 	import { searchText } from '#lib/music/text.ts';
 	import { findPiece } from '#lib/music/piece-search.ts';
 	import type { NavGroup } from '#lib/nav.ts';
@@ -57,11 +58,8 @@
 		if (open && !dialog.open) {
 			query = '';
 			active = 0;
-			try {
-				recent = JSON.parse(localStorage.getItem(RECENT) ?? '[]');
-			} catch {
-				recent = [];
-			}
+			const kept = readLocalJson(RECENT);
+			recent = Array.isArray(kept) ? kept : [];
 			dialog.showModal();
 			input?.focus();
 			loading = !data;
@@ -147,11 +145,7 @@
 		// Pieces and concerts are remembered for next time; pages are always listed anyway.
 		if (!hit.more && !pages.some((page) => page.href === hit.href)) {
 			const next = [hit, ...recent.filter((other) => other.href !== hit.href)].slice(0, 4);
-			try {
-				localStorage.setItem(RECENT, JSON.stringify(next));
-			} catch {
-				// Private mode: nothing is remembered.
-			}
+			writeLocalJson(RECENT, next);
 		}
 		open = false;
 		goto(hit.href);

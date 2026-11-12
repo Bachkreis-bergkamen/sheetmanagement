@@ -1,9 +1,6 @@
-import { authConfig } from './auth/index.ts';
-import { getStore } from './db/index.ts';
-import { isDemo } from './env.ts';
+import { connectableAuth, connectedAccount } from './connected-account.ts';
 import { GoogleClient } from './google/client.ts';
 import { accessToken } from './mail/gmail.ts';
-import { open, seal } from './mail/index.ts';
 
 /**
  * The Google account new uploads belong to (#193). A service account has no storage of its
@@ -25,63 +22,40 @@ interface Stored extends DriveAccount {
 	refreshToken: string;
 }
 
-const KEY = 'drive-account';
-
-function auth() {
-	const config = authConfig();
-	return config.mode === 'on' && config.google && !config.problems.length && !isDemo() ? config : null;
-}
-
-let cached: { at: number; value: Stored | null } | undefined;
+const account = connectedAccount<Stored>('drive-account');
 let client: { refreshToken: string; client: GoogleClient } | undefined;
-
-async function stored(): Promise<Stored | null> {
-	const config = auth();
-	if (!config) return null;
-	if (cached && Date.now() - cached.at < 60_000) return cached.value;
-	const sealed = await getStore()
-		.getState(KEY)
-		.catch(() => null);
-	const value = sealed ? await open<Stored>(sealed, config.sessionSecret) : null;
-	cached = { at: Date.now(), value };
-	return value;
-}
 
 /** The connected account, without its token; null while none is connected. */
 export async function driveAccount(): Promise<DriveAccount | null> {
-	const account = await stored();
-	return account ? { email: account.email, connectedAt: account.connectedAt } : null;
+	const stored = await account.read();
+	return stored ? { email: stored.email, connectedAt: stored.connectedAt } : null;
 }
 
 /** Whether accounts can be connected here at all: needs Google sign-in, and not in the demo. */
-export const canConnectDrive = () => !!auth();
+export const canConnectDrive = () => !!connectableAuth();
 
-export async function connectDrive(account: Stored): Promise<void> {
-	const config = auth();
-	if (!config) throw new Error('Sign-in is not set up');
-	await getStore().setState(KEY, await seal(account, config.sessionSecret));
-	cached = undefined;
+export async function connectDrive(stored: Stored): Promise<void> {
+	await account.save(stored);
 	client = undefined;
 }
 
 export async function disconnectDrive(): Promise<void> {
-	await getStore().setState(KEY, '');
-	cached = undefined;
+	await account.clear();
 	client = undefined;
 }
 
 /** A Google client acting as the connected account; null while none is connected. */
 export async function driveAccountClient(): Promise<GoogleClient | null> {
-	const config = auth();
-	const account = await stored();
-	if (!config || !account) return null;
-	if (client?.refreshToken !== account.refreshToken) {
+	const config = connectableAuth();
+	const stored = await account.read();
+	if (!config || !stored) return null;
+	if (client?.refreshToken !== stored.refreshToken) {
 		let token: { token: string; expiresAt: number } | undefined;
 		client = {
-			refreshToken: account.refreshToken,
+			refreshToken: stored.refreshToken,
 			client: new GoogleClient({
 				async getToken({ forceRefresh = false } = {}) {
-					if (forceRefresh || !token || token.expiresAt - 120_000 < Date.now()) token = await accessToken(config, account.refreshToken);
+					if (forceRefresh || !token || token.expiresAt - 120_000 < Date.now()) token = await accessToken(config, stored.refreshToken);
 					return token.token;
 				}
 			})

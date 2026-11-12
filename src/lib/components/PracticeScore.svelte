@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { t } from '#lib/i18n/index.ts';
+	import { readLocalJson, writeLocalJson } from '#lib/local-storage.ts';
 	import type { OpenScore } from '#lib/music/score-reader.ts';
 	import { MARK_COLORS, MARK_SYMBOLS, MAX_PAGE_POINTS, MAX_STROKES, markLines, onPage, pagePoints, shouldIgnoreTouch, strokePath, SYMBOL_SIZE, symbolLines, thinPoints, type MarkColor, type MarkSymbol, type Stroke } from '#lib/practice/marks.ts';
 	import { keepPage, keptPages, mergeMarks, sendPending } from '#lib/offline/marks.ts';
@@ -701,14 +702,10 @@
 	const SNAP = 16;
 	type Spot = { x: number; y: number };
 	function readSpots(): Record<string, Spot> {
-		try {
-			const value = JSON.parse(localStorage.getItem(SPOTS_KEY) ?? '{}');
-			return value && typeof value === 'object' ? value : {};
-		} catch {
-			return {};
-		}
+		const value = readLocalJson(SPOTS_KEY);
+		return value && typeof value === 'object' ? (value as Record<string, Spot>) : {};
 	}
-	let spots = $state<Record<string, Spot>>(typeof localStorage === 'undefined' ? {} : readSpots());
+	let spots = $state<Record<string, Spot>>(readSpots());
 	let windowWidth = $state(0);
 	let windowHeight = $state(0);
 	let areaWidth = $state(0);
@@ -726,12 +723,9 @@
 	});
 	const spot = $derived(spots[layout] && areaWidth ? clamp(spots[layout]) : null);
 
+	/** Without storage the tools stay put until the page is left. */
 	function saveSpots() {
-		try {
-			localStorage.setItem(SPOTS_KEY, JSON.stringify(spots));
-		} catch {
-			// Private mode or full storage: the tools stay put until the page is left.
-		}
+		writeLocalJson(SPOTS_KEY, spots);
 	}
 	function place(next: Spot | null, save: boolean) {
 		const { [layout]: _, ...rest } = spots;

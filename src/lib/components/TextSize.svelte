@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { t } from '#lib/i18n/index.ts';
+	import { writeLocal } from '#lib/local-storage.ts';
 	import Segmented from './Segmented.svelte';
 
 	/**
@@ -28,12 +29,8 @@
 		const root = document.documentElement;
 		if (next === 'normal') delete root.dataset.textSize;
 		else root.dataset.textSize = next;
-		try {
-			if (next === 'normal') localStorage.removeItem('text-size');
-			else localStorage.setItem('text-size', next);
-		} catch {
-			// Storage can be blocked; the choice then lasts for this visit only.
-		}
+		// Without storage the choice lasts for this visit only.
+		writeLocal('text-size', next === 'normal' ? null : next);
 	}
 </script>
 

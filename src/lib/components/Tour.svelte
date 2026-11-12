@@ -4,6 +4,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { t } from '#lib/i18n/index.ts';
+	import { readLocal, writeLocal } from '#lib/local-storage.ts';
 	import { placeCard, shouldOffer, TOUR_STORAGE_KEY, tourSteps, type Box, type TourOutcome, type TourStep } from '#lib/tour/tour.ts';
 	import { tour } from '#lib/tour/state.svelte.ts';
 	import Icon, { type IconName } from './Icon.svelte';
@@ -60,11 +61,8 @@
 	let stored = $state<string | null>(null);
 	let mounted = $state(false);
 	$effect(() => {
-		try {
-			stored = localStorage.getItem(TOUR_STORAGE_KEY);
-		} catch {
-			// Storage can be blocked; then it's offered on each visit until finished on the server.
-		}
+		// Without storage it's offered on each visit until finished on the server.
+		stored = readLocal(TOUR_STORAGE_KEY) ?? null;
 		mounted = true;
 	});
 
@@ -229,12 +227,8 @@
 			fetch('/profil?/tour', { method: 'POST', body, headers: { accept: 'application/json', 'x-sveltekit-action': 'true' } }).catch(() => {});
 		}
 		if (!account || status === 'local') {
-			try {
-				localStorage.setItem(TOUR_STORAGE_KEY, outcome);
-				stored = outcome;
-			} catch {
-				// Then it's offered again next time.
-			}
+			// Without storage it's offered again next time.
+			if (writeLocal(TOUR_STORAGE_KEY, outcome)) stored = outcome;
 		}
 	}
 

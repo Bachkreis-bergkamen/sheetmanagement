@@ -1,3 +1,4 @@
+import { readLocalJson } from '#lib/local-storage.ts';
 import { detectPitch, DRONE_HARMONICS } from '#lib/practice/audio.ts';
 
 /**
@@ -129,12 +130,8 @@ export async function listenToPitch(onReading: (frequency: number | null, time: 
 
 /** The concert A the tuner was last set to in this browser, 440 Hz if none. */
 export function rememberedA4(): number {
-	try {
-		const a4 = JSON.parse(localStorage.getItem('tuner') ?? '{}').a4;
-		return a4 >= 415 && a4 <= 466 ? a4 : 440;
-	} catch {
-		return 440;
-	}
+	const a4 = (readLocalJson('tuner') as { a4?: unknown } | null | undefined)?.a4;
+	return typeof a4 === 'number' && a4 >= 415 && a4 <= 466 ? a4 : 440;
 }
 
 /** A short percussive sound at `time` on the audio clock: a click for the beat, a lower "tock" for a rhythm's note. */

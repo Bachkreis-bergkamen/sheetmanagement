@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { t } from '#lib/i18n/index.ts';
+	import { writeLocal } from '#lib/local-storage.ts';
 	import Segmented from './Segmented.svelte';
 
 	/** System, light or dark as one segmented control; shown in the menu and on the profile. */
@@ -45,12 +46,8 @@
 			set(next);
 			setTimeout(() => root.classList.remove('theme-fade'), 400);
 		}
-		try {
-			if (next === 'system') localStorage.removeItem('theme');
-			else localStorage.setItem('theme', next);
-		} catch {
-			// Storage can be blocked; the choice then lasts for this visit only.
-		}
+		// Without storage the choice lasts for this visit only.
+		writeLocal('theme', next === 'system' ? null : next);
 	}
 </script>
 

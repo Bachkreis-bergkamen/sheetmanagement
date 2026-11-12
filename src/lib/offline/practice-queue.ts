@@ -5,6 +5,7 @@
  * report sent when the page closes can still write it.
  */
 import { MAX_QUEUED_SECONDS } from '#lib/practice/practice.ts';
+import { readLocalJson, writeLocal } from '#lib/local-storage.ts';
 
 /** Per account, so time kept on a shared device never counts for the next one who signs in there. */
 const keyOf = (account: string) => `practice-pending:${account.toLowerCase()}`;
@@ -29,22 +30,14 @@ export function outcome(status: number): 'sent' | 'refused' | 'retry' {
 }
 
 function read(account: string): PracticeQueue {
-	try {
-		const parsed = JSON.parse(localStorage.getItem(keyOf(account)) ?? '{}') as unknown;
-		if (!parsed || typeof parsed !== 'object') return {};
-		return Object.fromEntries(Object.entries(parsed).filter((entry): entry is [string, number] => typeof entry[1] === 'number' && entry[1] > 0));
-	} catch {
-		return {};
-	}
+	const parsed = readLocalJson(keyOf(account));
+	if (!parsed || typeof parsed !== 'object') return {};
+	return Object.fromEntries(Object.entries(parsed).filter((entry): entry is [string, number] => typeof entry[1] === 'number' && entry[1] > 0));
 }
 
+/** Without storage the time is lost, as before. */
 function write(account: string, queue: PracticeQueue) {
-	try {
-		if (Object.keys(queue).length) localStorage.setItem(keyOf(account), JSON.stringify(queue));
-		else localStorage.removeItem(keyOf(account));
-	} catch {
-		// Storage blocked: the time is lost, as before.
-	}
+	writeLocal(keyOf(account), Object.keys(queue).length ? JSON.stringify(queue) : null);
 }
 
 /** Keeps seconds for a part on the device until they can be sent. */
