@@ -2,6 +2,8 @@
 
 Running Sheetmanagement costs nothing: Cloudflare's free plan and Google's free APIs are enough for an orchestra.
 
+**Free or Workers Paid?** The app is written for the free plan: heavy work runs in the browser or in small steps of the cron job, so requests stay under its 10 ms CPU limit. Workers Paid ($5 a month) raises that limit to 30 s by default and lifts the daily caps on KV writes and Workers Logs. It's worth it once `/einstellungen/status` or the Workers Logs show Error 1102 (CPU limit exceeded), or for a large archive. Nothing in `wrangler.toml` has to change when you switch.
+
 ## 1. Deploy the app
 
 1. Create a free [Cloudflare account](https://dash.cloudflare.com/sign-up).
@@ -12,7 +14,7 @@ For the English interface: `APP_LANGUAGE=en pnpm run deploy`, or `APP_LANGUAGE=e
 
 ## 2. Connect Google
 
-Follow [docs/setup-google.md](https://github.com/lgreil/sheetmanagement/blob/main/docs/setup-google.md) (about 15 minutes, free): a service account for Drive, Calendar and Sheets, and Google sign-in. Values are stored as Cloudflare secrets, e.g. `pnpm wrangler secret put ORCHESTRA_NAME`. All of them are listed in [`.dev.vars.example`](https://github.com/lgreil/sheetmanagement/blob/main/.dev.vars.example).
+Follow [docs/setup-google.md](https://github.com/Bachkreis-bergkamen/sheetmanagement/blob/main/docs/setup-google.md) (about 15 minutes, free): a service account for Drive, Calendar and Sheets, and Google sign-in. Values are stored as Cloudflare secrets, e.g. `pnpm wrangler secret put ORCHESTRA_NAME`. All of them are listed in [`.dev.vars.example`](https://github.com/Bachkreis-bergkamen/sheetmanagement/blob/main/.dev.vars.example).
 
 ## 3. Check and prepare
 
@@ -49,7 +51,7 @@ A Cron Trigger (every 10 minutes) runs whatever is due: filling caches, reminder
 
 ## Email (optional)
 
-An admin connects the orchestra's Google account on `/einstellungen/status` (Gmail, scope `gmail.send` only). Members without a Google account then get a sign-in link by email, and members without notifications get their reminders by email, with one-click answers. See "Email" in [docs/setup-google.md](https://github.com/lgreil/sheetmanagement/blob/main/docs/setup-google.md#email).
+An admin connects the orchestra's Google account on `/einstellungen/status` (Gmail, scope `gmail.send` only). Members without a Google account then get a sign-in link by email, and members without notifications get their reminders by email, with one-click answers. See "Email" in [docs/setup-google.md](https://github.com/Bachkreis-bergkamen/sheetmanagement/blob/main/docs/setup-google.md#email).
 
 ## Automatic deploys from GitHub
 

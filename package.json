@@ -1,9 +1,9 @@
 {
 	"name": "sheetmanagement",
-	"version": "0.15.0",
+	"version": "0.16.0",
 	"private": true,
 	"license": "MIT",
-	"repository": "github:lgreil/sheetmanagement",
+	"repository": "github:Bachkreis-bergkamen/sheetmanagement",
 	"type": "module",
 	"description": "Sheet music and concert overview for orchestras, built on Google Drive, Google Calendar and Google Sheets.",
 	"scripts": {
