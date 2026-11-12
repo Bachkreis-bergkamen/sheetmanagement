@@ -185,6 +185,7 @@
 				fittedSize = target;
 				base = own;
 				slot!.replaceChildren(canvas);
+				if (turned) turnLeaf();
 				// A new page starts at its top; a sharper drawing of the same page stays where it is.
 				if (turned && scrolls) stage?.scrollTo({ top: 0, left: 0 });
 				// The neighbours, ready for the next turn.
@@ -198,10 +199,69 @@
 		})();
 	});
 
+	/**
+	 * The page being turned away: a copy of it with its marks, laid over the new page and turned
+	 * like a leaf (forward from the right edge, back from the left), quick enough not to hold up a
+	 * page turn mid-piece. Not while zoomed, and not for those who'd rather have no motion.
+	 */
+	let leaf: { ghost: HTMLElement; forward: boolean } | null = null;
+	let leafing: Animation | null = null;
+
+	function liftLeaf(forward: boolean) {
+		leaf = null;
+		if (!sheet || zoom > 1 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+		const old = slot?.querySelector('canvas');
+		if (!old || !old.width) return;
+		const ghost = document.createElement('div');
+		ghost.className = 'leaf';
+		const copy = document.createElement('canvas');
+		copy.width = old.width;
+		copy.height = old.height;
+		copy.getContext('2d')?.drawImage(old, 0, 0);
+		ghost.append(copy);
+		const drawnMarks = sheet.querySelector('svg.marks');
+		if (drawnMarks) ghost.append(drawnMarks.cloneNode(true));
+		ghost.append(Object.assign(document.createElement('div'), { className: 'shade' }));
+		leaf = { ghost, forward };
+	}
+
+	function turnLeaf() {
+		const lifted = leaf;
+		leaf = null;
+		leafing?.finish();
+		if (!lifted || !sheet) return;
+		const { ghost, forward } = lifted;
+		ghost.style.transformOrigin = forward ? 'left center' : 'right center';
+		sheet.append(ghost);
+		const angle = forward ? -95 : 95;
+		const timing = { duration: 340, easing: 'cubic-bezier(0.45, 0, 0.75, 0.6)', fill: 'forwards' as const };
+		const turning = ghost.animate(
+			[
+				{ transform: 'perspective(1800px) rotateY(0deg)', boxShadow: '0 0 0 rgba(0,0,0,0)' },
+				{ transform: `perspective(1800px) rotateY(${angle * 0.5}deg)`, boxShadow: `${forward ? '-' : ''}18px 0 30px rgba(0,0,0,0.18)`, offset: 0.45 },
+				{ transform: `perspective(1800px) rotateY(${angle}deg)`, boxShadow: '0 0 0 rgba(0,0,0,0)' }
+			],
+			timing
+		);
+		ghost.querySelector('.shade')?.animate(
+			[{ opacity: 0 }, { opacity: 1 }],
+			{ ...timing, easing: 'ease-in' }
+		);
+		leafing = turning;
+		const done = () => {
+			ghost.remove();
+			if (leafing === turning) leafing = null;
+		};
+		turning.onfinish = done;
+		turning.oncancel = done;
+	}
+
 	function turn(step: number) {
 		const next = Math.min(pages, Math.max(1, page + step));
 		if (next !== page) {
 			finishStroke();
+			flushSync();
+			liftLeaf(next > page);
 			page = next;
 		} else if (onpast && pages && Math.abs(step) === 1) onpast(step as 1 | -1);
 	}
@@ -1000,6 +1060,10 @@
 		{/if}
 		<div
 			class="sheet"
+			class:before={page > 1}
+			class:before2={page > 2}
+			class:after={page < pages}
+			class:after2={page < pages - 1}
 			bind:this={sheet}
 			style:width={size ? `${size.width}px` : undefined}
 			style:height={size ? `${size.height}px` : undefined}
@@ -1434,8 +1498,64 @@
 		box-shadow: 0 0 0 1px var(--hairline);
 	}
 
+	/*
+	 * The pages before and after, as the edges of sheets lying under this one, a little to the
+	 * left and right: two edges where there are two or more pages that way, one for just one.
+	 */
+	.sheet {
+		--edge: 0 0 0 1px var(--hairline);
+		--before: 0 0 transparent;
+		--after: 0 0 transparent;
+		box-shadow: var(--edge), var(--before), var(--after);
+	}
+
 	.full .sheet {
-		box-shadow: none;
+		--edge: 0 0 transparent;
+	}
+
+	.sheet {
+		--under: #f3f2ee;
+		--under-edge: rgba(0, 0, 0, 0.2);
+	}
+
+	.sheet.before {
+		--before: -8px 0 0 -4px var(--under), -8px 0 0 -3px var(--under-edge);
+	}
+
+	.sheet.before2 {
+		--before: -8px 0 0 -4px var(--under), -8px 0 0 -3px var(--under-edge), -15px 0 0 -8px var(--under), -15px 0 0 -7px var(--under-edge);
+	}
+
+	.sheet.after {
+		--after: 8px 0 0 -4px var(--under), 8px 0 0 -3px var(--under-edge);
+	}
+
+	.sheet.after2 {
+		--after: 8px 0 0 -4px var(--under), 8px 0 0 -3px var(--under-edge), 15px 0 0 -8px var(--under), 15px 0 0 -7px var(--under-edge);
+	}
+
+	/* A page turned away: laid over the new page and turned like a leaf (see turnLeaf). */
+	.sheet :global(.leaf) {
+		position: absolute;
+		inset: 0;
+		z-index: 2;
+		background: #fff;
+		pointer-events: none;
+		backface-visibility: hidden;
+		will-change: transform;
+	}
+
+	.sheet :global(.leaf canvas) {
+		display: block;
+		width: 100%;
+		height: 100%;
+	}
+
+	.sheet :global(.leaf .shade) {
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(to right, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.04) 40%, rgba(0, 0, 0, 0.22));
+		opacity: 0;
 	}
 
 	/* Stretched while a pinch is under way, until the page is drawn at the new size. */

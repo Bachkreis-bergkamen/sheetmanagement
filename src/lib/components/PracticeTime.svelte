@@ -41,6 +41,8 @@
 	});
 	/** Under each bar: the weekday, or in a month every 7th day's number. */
 	const label = (day: string, i: number) => (view === 'week' ? weekday.format(dayDate(day)) : i % 7 === 0 ? String(Number(day.slice(8))) : '');
+	/** The bars' room in pixels, under the 140px of the chart less the labels; for the minutes inside. */
+	const BAR_HEIGHT = 120;
 	const stageName = (s: TreeStage) => (s.kind === 'tree' ? t.practice.tree.tree(s.age) : t.practice.tree[s.kind]);
 </script>
 
@@ -99,7 +101,10 @@
 			<div class="bars" class:month={view === 'month'} style:grid-template-columns="repeat({period.days.length}, 1fr)">
 				{#each period.days as day, i (day.day)}
 					<div class="bar" title={t.practice.perDay(longDay.format(dayDate(day.day)), t.practice.duration(day.seconds))}>
-						<span class="fill" class:today={day.day === today} class:future={day.day > today} style:height="{(day.seconds / highest) * 100}%"></span>
+						<span class="fill" class:today={day.day === today} class:future={day.day > today} style:height="{(day.seconds / highest) * 100}%">
+							<!-- The minutes inside the bar, where it's tall enough for them (and wide enough, see the style). -->
+							{#if day.seconds >= 60 && (day.seconds / highest) * BAR_HEIGHT >= 18}<span class="minutes" aria-hidden="true">{Math.round(day.seconds / 60)}<span class="unit">&nbsp;min</span></span>{/if}
+						</span>
 						<small>{label(day.day, i)}</small>
 					</div>
 				{/each}
@@ -271,12 +276,56 @@
 		background: color-mix(in oklab, var(--ok) 70%, transparent);
 	}
 
+	.bar {
+		container-type: inline-size;
+	}
+
+	.fill {
+		display: flex;
+		align-items: flex-start;
+		justify-content: center;
+		overflow: hidden;
+	}
+
+	.minutes {
+		display: none;
+		padding-top: 3px;
+		/* Contrast on the 70 % green: dark ink in light mode, white in dark mode (axe, both ≥ 4.5). */
+		color: light-dark(var(--text), #fff);
+		font-size: var(--text-2xs);
+		font-weight: 700;
+		font-variant-numeric: tabular-nums;
+		line-height: 1;
+		white-space: nowrap;
+	}
+
+	.unit {
+		display: none;
+	}
+
+	/* The number where the bar is wide enough for it, "min" with it where there's room for that too. */
+	@container (min-width: 1.8em) {
+		.minutes {
+			display: block;
+		}
+	}
+
+	@container (min-width: 4.5em) {
+		.unit {
+			display: inline;
+		}
+	}
+
 	.month .fill {
 		border-radius: var(--radius-hair) var(--radius-hair) var(--radius-hair) var(--radius-hair);
 	}
 
 	.fill.today {
 		background: var(--ok);
+	}
+
+	.fill.today .minutes {
+		color: var(--surface);
 	}
 
 	.fill.future {
