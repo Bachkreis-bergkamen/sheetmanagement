@@ -55,7 +55,9 @@
 			</span>
 		{/if}
 	</div>
-	<table class="sr-only">
+	<!-- In a box of its own: a table's caption sits outside the table, so hiding the table leaves it showing. -->
+	<div class="sr-only">
+	<table>
 		<caption>{tx.label}</caption>
 		<thead>
 			<tr><th scope="col">{tx.day}</th><th scope="col">{tx.minutes}</th><th scope="col">{tx.right}</th><th scope="col">{tx.pace}</th></tr>
@@ -66,6 +68,7 @@
 			{/each}
 		</tbody>
 	</table>
+	</div>
 </figure>
 
 <style>
