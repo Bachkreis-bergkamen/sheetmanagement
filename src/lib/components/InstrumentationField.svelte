@@ -116,6 +116,44 @@
 		if (!voice) return;
 		voice.held = { ...voice.held, [part]: (voice.held[part] ?? []).filter((h) => h !== held) };
 	}
+	/** The other number of the part that already holds this instrument: one plays it, so a tap moves it. */
+	const heldElsewhere = (n: string, part: number, h: string) =>
+		partsOf(chosen(n)!).find((other) => other !== part && (chosen(n)?.held[other] ?? []).includes(h));
+	/** A tile in the tray tapped: in or out of this part, moved from another number or from on its own. */
+	function toggleHeld(n: string, part: number, h: string) {
+		const voice = chosen(n);
+		if (!voice) return;
+		if ((voice.held[part] ?? []).includes(h)) return unhold(n, part, h);
+		const other = heldElsewhere(n, part, h);
+		if (other !== undefined) unhold(n, other, h);
+		if (loose(n, part).includes(h)) moveInto(n, part, h);
+		else hold(n, part, h);
+	}
+
+	/** The part whose tray is open ("Percussion:1"), its search, and its folded rare instruments. */
+	let tray = $state<string | null>(null);
+	let trayQuery = $state('');
+	let trayAll = $state(false);
+	function openTray(key: string) {
+		tray = tray === key ? null : key;
+		trayQuery = '';
+		trayAll = false;
+	}
+	/** How many of what a part may hold its tray offers before "N weitere": the first in the config's order. */
+	const TRAY_USUAL = 10;
+	/**
+	 * What a part may hold, for its tray: what it holds and what's chosen on its own first, then the
+	 * usual ones (the config lists them first); the rest folded away until asked for or searched.
+	 */
+	function trayList(n: string, part: number): { shown: string[]; folded: number } {
+		const options = holdable(n).filter((h) => h !== n);
+		if (trayQuery.trim()) return { shown: searchInstruments(options, trayQuery, info, common), folded: 0 };
+		const held = chosen(n)?.held[part] ?? [];
+		const first = (h: string) => held.includes(h) || loose(n, part).includes(h) || heldElsewhere(n, part, h) !== undefined;
+		const rest = options.filter((h) => !first(h));
+		if (trayAll || rest.length <= TRAY_USUAL + 2) return { shown: [...options.filter(first), ...rest], folded: 0 };
+		return { shown: [...options.filter(first), ...rest.slice(0, TRAY_USUAL)], folded: rest.length - TRAY_USUAL };
+	}
 
 	// ---------- The panel ----------
 
@@ -240,6 +278,7 @@
 									{#each partsOf(voice) as part (part)}
 										{@const held = voice.held[part] ?? []}
 										{@const where = `${instrumentLabel(n)}${part ? ` ${ROMAN[part]}` : ''}`}
+										{@const key = `${n}:${part}`}
 										<div
 											class="held"
 											class:target={canHoldDragged(n)}
@@ -261,26 +300,19 @@
 												over = null;
 											}}
 										>
-											<span class="which">{part ? `${ROMAN[part]}:` : t.instruments.holds}</span>
+											<span class="which" class:roman={!!part}>{part ? ROMAN[part] : t.instruments.holds}</span>
 											{#each held as h (h)}
 												<span class="chip small">
+													<InstrumentGlyph glyph={glyphOf(h)} size={14} />
 													{instrumentLabel(h)}
 													<button type="button" class="drop" aria-label={t.instruments.removeNamed(instrumentLabel(h))} onclick={() => unhold(n, part, h)}><Icon name="x" size={12} /></button>
 												</span>
 											{/each}
-											<select
-												class="add-held"
-												aria-label={t.instruments.addHeld}
-												onchange={(event) => {
-													hold(n, part, event.currentTarget.value);
-													event.currentTarget.value = '';
-												}}
-											>
-												<option value="">{t.instruments.addHeld}</option>
-												{#each holdable(n).filter((h) => !held.includes(h)) as h (h)}<option value={h}>{instrumentLabel(h)}</option>{/each}
-											</select>
+											<button type="button" class="add-held" aria-expanded={tray === key} aria-controls="{uid}-tray-{key}" onclick={() => openTray(key)}>
+												<Icon name={tray === key ? 'check' : 'plus'} size={12} />{tray === key ? t.instruments.done : t.instruments.addHeld}
+											</button>
 											<!-- What's chosen on its own and could be played from this part, one tap to move it in. -->
-											{#if loose(n, part).length}
+											{#if tray !== key && loose(n, part).length}
 												<span class="suggest">
 													<span class="which">{t.instruments.suggestHeld}</span>
 													{#each loose(n, part) as h (h)}
@@ -289,6 +321,41 @@
 														</button>
 													{/each}
 												</span>
+											{/if}
+											<!-- The tray: every instrument this part may hold as a tile, tapped on and off. -->
+											{#if tray === key}
+												{@const list = trayList(n, part)}
+												<div class="tray" id="{uid}-tray-{key}" role="group" aria-label={t.instruments.heldPick(where)}>
+													{#if holdable(n).length > 8}
+														<label class="search small">
+															<Icon name="search" size={14} />
+															<input bind:value={trayQuery} type="search" placeholder={t.instruments.heldSearch} aria-label={t.instruments.heldSearch} autocomplete="off" />
+														</label>
+													{/if}
+													<div class="tiles">
+														{#each list.shown as h (h)}
+															{@const on = held.includes(h)}
+															{@const other = heldElsewhere(n, part, h)}
+															{@const alone = !on && loose(n, part).includes(h)}
+															<button
+																type="button"
+																class="tile"
+																aria-pressed={on}
+																title={other !== undefined ? t.instruments.heldIn(instrumentLabel(h), `${instrumentLabel(n)} ${ROMAN[other]}`) : alone ? t.instruments.moveInto(instrumentLabel(h), where) : undefined}
+																onclick={() => toggleHeld(n, part, h)}
+															>
+																<InstrumentGlyph glyph={glyphOf(h)} size={22} />
+																<span class="tile-name">{instrumentLabel(h)}</span>
+																{#if other !== undefined}<span class="badge">{ROMAN[other] || '–'}</span>{:else if alone}<span class="badge">{t.instruments.heldAlone}</span>{/if}
+															</button>
+														{:else}
+															<p class="none">{t.instruments.none(trayQuery.trim())}</p>
+														{/each}
+													</div>
+													{#if list.folded}
+														<button type="button" class="more" onclick={() => (trayAll = true)}><Icon name="plus" size={14} />{t.instruments.moreIn(list.folded)}</button>
+													{/if}
+												</div>
 											{/if}
 										</div>
 									{/each}
@@ -725,10 +792,141 @@
 		background: var(--surface);
 	}
 
+	.which.roman {
+		display: grid;
+		place-items: center;
+		min-width: 28px;
+		height: 28px;
+		border-radius: var(--radius-s);
+		background: var(--surface);
+		color: var(--accent);
+	}
+
+	.chip.small :global(svg) {
+		flex: none;
+	}
+
 	.add-held {
-		min-height: 30px;
-		max-width: 12rem;
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		min-height: 28px;
+		padding: 0 10px 0 8px;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-pill);
+		background: var(--surface);
+		color: var(--text);
+		font: inherit;
 		font-size: var(--text-xs);
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.add-held:hover {
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+
+	.add-held[aria-expanded='true'] {
+		border-color: var(--accent);
+		background: var(--accent);
+		color: var(--accent-contrast);
+	}
+
+	/* The tray under a part: its instruments as tiles, on a card of their own. */
+	.tray {
+		display: grid;
+		flex-basis: 100%;
+		gap: var(--space-2);
+		margin-top: 2px;
+		padding: var(--space-3);
+		border-radius: var(--radius-control);
+		background: var(--surface);
+		box-shadow: inset 0 0 0 1px var(--hairline);
+		animation: tray-in 0.18s var(--ease);
+	}
+
+	@keyframes tray-in {
+		from {
+			translate: 0 -4px;
+			opacity: 0;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.tray {
+			animation: none;
+		}
+	}
+
+	.search.small {
+		height: 36px;
+		margin: 0;
+	}
+
+	.search.small input {
+		font-size: max(16px, var(--text-sm));
+	}
+
+	.tiles {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+		gap: 6px;
+	}
+
+	.tile {
+		position: relative;
+		display: grid;
+		justify-items: center;
+		align-content: center;
+		gap: 4px;
+		min-height: 68px;
+		padding: var(--space-2) 6px;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-control);
+		background: var(--surface);
+		color: var(--text-muted);
+		font: inherit;
+		cursor: pointer;
+		transition:
+			background var(--fast) var(--ease),
+			border-color var(--fast) var(--ease);
+	}
+
+	.tile:hover {
+		border-color: var(--accent);
+	}
+
+	.tile[aria-pressed='true'] {
+		border-color: var(--accent);
+		background: var(--accent-soft);
+		color: var(--accent);
+	}
+
+	.tile-name {
+		color: var(--text);
+		font-size: var(--text-xs);
+		font-weight: 600;
+		line-height: 1.2;
+		text-align: center;
+		overflow-wrap: anywhere;
+	}
+
+	.tile[aria-pressed='true'] .tile-name {
+		font-weight: 700;
+	}
+
+	/* Where it is now: another number of the part, or on its own. */
+	.badge {
+		position: absolute;
+		top: 4px;
+		right: 4px;
+		padding: 0 5px;
+		border-radius: var(--radius-pill);
+		background: var(--surface-2);
+		color: var(--text-muted);
+		font-size: var(--text-2xs);
+		font-weight: 700;
 	}
 
 	.more {

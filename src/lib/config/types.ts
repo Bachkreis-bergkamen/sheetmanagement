@@ -156,6 +156,12 @@ export interface OrchestraConfig {
 	 */
 	sharedParts?: Record<string, string[]>;
 	/**
+	 * Groups a player of a generic part (Schlagwerk, Percussion) ticks in their profile instead of
+	 * every instrument: { Trommeln: ["Snare Drum", "Bass Drum"], Stabspiele: [...] }. Kept as
+	 * "Schlagwerk (Trommeln, Stabspiele ohne Marimba)"; then only those instruments' parts reach them.
+	 */
+	instrumentSets?: Record<string, string[]>;
+	/**
 	 * Instruments whose parts count apart under "Wer kommt?" ("Geige I", "Geige II"); every other
 	 * instrument is one line however many parts it has ("Cello"), unless the viewer splits them.
 	 */

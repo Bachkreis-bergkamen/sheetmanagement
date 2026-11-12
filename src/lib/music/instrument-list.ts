@@ -14,8 +14,8 @@ export const fold = (text: string) =>
 		.normalize('NFD')
 		.replace(/\p{M}/gu, '');
 
-/** More rare instruments than this in a family that has usual ones, and they are folded away. */
-const UNFOLDED = 4;
+/** More rare instruments than this in a family, and they are folded away: one alone stays, a button for it saves nothing. */
+const UNFOLDED = 1;
 
 /** The words an instrument is found by: its label, its name, its other spellings. */
 export function searchWords(name: string, info: Map<string, Instrument>): string[] {
@@ -48,11 +48,11 @@ export function searchInstruments(names: string[], query: string, info: Map<stri
 
 /**
  * A family's instruments split into those shown and those behind "N more": the rare ones are
- * folded only when the family has usual ones and more than a few rare ones (the percussion);
- * a chosen one is always shown.
+ * folded when there are more than a few (the percussion), and a family with no usual one at all
+ * (the choir's voices) folds entirely behind its heading; a chosen one is always shown.
  */
 export function foldFamily(names: string[], common: Set<string>, chosen: (name: string) => boolean): { shown: string[]; folded: string[] } {
 	const rare = names.filter((name) => !common.has(name) && !chosen(name));
-	if (rare.length <= UNFOLDED || rare.length === names.length) return { shown: names, folded: [] };
+	if (rare.length <= UNFOLDED) return { shown: names, folded: [] };
 	return { shown: names.filter((name) => !rare.includes(name)), folded: rare };
 }

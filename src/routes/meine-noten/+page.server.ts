@@ -148,7 +148,7 @@ export const actions: Actions = {
 	save: async ({ request, cookies, locals, url }) => {
 		const choices = choicesFromForm(await request.formData(), CHOICES);
 		if (!choices.length) return fail(400, { message: t.myParts.pickInstrument });
-		const text = formatInstruments(choices);
+		const text = formatInstruments(choices, config);
 		cookies.set(COOKIE, text, { path: '/', httpOnly: true, sameSite: 'lax', maxAge: YEAR, secure: url.protocol === 'https:' });
 
 		// Members listed in "Mitglieder" get it saved there too, so it follows them to other devices.

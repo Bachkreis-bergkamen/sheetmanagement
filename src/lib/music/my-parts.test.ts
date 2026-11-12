@@ -6,13 +6,16 @@ import {
 	coverage,
 	formatInstrument,
 	formatInstruments,
+	foldIntoSets,
+	formatPlays,
 	matchParts,
 	mergedFileName,
 	parseInstrument,
 	parseInstruments,
 	playableInstruments,
 	playedParts,
-	programInstruments
+	programInstruments,
+	setsFor
 } from './my-parts.ts';
 import { createInstrumentMatcher, parsePartName } from './part-name.ts';
 import type { Part } from './types.ts';
@@ -227,5 +230,78 @@ describe('mergedFileName', () => {
 		expect(mergedFileName('Herbstkonzert', 'Violoncello')).toBe('herbstkonzert-komplett-violoncello.pdf');
 		expect(mergedFileName('1. Weihnachtskonzert 2026', 'Flöte II')).toBe('1-weihnachtskonzert-2026-komplett-floete-ii.pdf');
 		expect(mergedFileName('Konzert', 'Alt-Saxophon')).toBe('konzert-komplett-alt-saxophon.pdf');
+	});
+});
+
+describe('a percussionist’s setup', () => {
+	const sets = config.instrumentSets!;
+	const parts = [
+		part('Fame - Schlagwerk.pdf'),
+		part('Fame - Percussion.pdf'),
+		part('Fame - Percussion I: Triangel & Becken.pdf'),
+		part('Fame - Percussion II: Glockenspiel.pdf'),
+		part('Fame - Snare Drum.pdf'),
+		part('Fame - Triangel.pdf'),
+		part('Fame - Marimba.pdf'),
+		part('Fame - Crash Cymbal.pdf'),
+		part('Fame - Pauke.pdf')
+	];
+	const got = (text: string) => {
+		const { own, shared } = matchParts(parts, parseInstruments(text, config)[0], config);
+		return labels([...own, ...shared]).sort();
+	};
+
+	it('names only real instruments in its sets', () => {
+		const names = new Set(config.instruments.map((instrument) => instrument.name));
+		expect(Object.values(sets).flat().filter((name) => !names.has(name))).toEqual([]);
+	});
+
+	it('reads sets, "ohne" and single instruments, and writes them back as briefly', () => {
+		const [choice] = parseInstruments('Schlagwerk (Trommeln, Stabspiele ohne Marimba & Vibraphon, Kuhglocke)', config);
+		expect(choice.instrument).toBe('Schlagwerk');
+		expect(choice.plays).toEqual([...sets.Trommeln, ...sets.Stabspiele.filter((name) => name !== 'Marimba' && name !== 'Vibraphon'), 'Kuhglocke']);
+		expect(formatPlays(choice.plays!, config)).toBe('Trommeln, Stabspiele ohne Marimba & Vibraphon, Kuhglocke');
+		expect(formatInstruments([choice, { instrument: 'Pauke', numbers: [] }], config)).toBe(
+			'Schlagwerk (Trommeln, Stabspiele ohne Marimba & Vibraphon, Kuhglocke), Pauke'
+		);
+		// The short label stays short.
+		expect(formatInstruments([choice])).toBe('Schlagwerk');
+	});
+
+	it('keeps the commas of a setup apart from the next instrument', () => {
+		expect(parseInstruments('Schlagwerk (Trommeln, Pauken), Klavier', config).map((choice) => choice.instrument)).toEqual(['Schlagwerk', 'Klavier']);
+	});
+
+	it('gives a plain percussionist every part, as before', () => {
+		expect(got('Schlagwerk')).toEqual(labels(parts).sort().filter((label) => label !== 'Pauke'));
+	});
+
+	it('gives a setup only the parts of what is played', () => {
+		expect(got('Schlagwerk (Trommeln, Kleinpercussion)')).toEqual(['Percussion', 'Percussion I: Triangel & Becken', 'Schlagwerk', 'Snare Drum', 'Triangel']);
+		expect(got('Schlagwerk (Stabspiele, Pauken)')).toEqual(['Marimba', 'Pauke', 'Percussion', 'Percussion II: Glockenspiel', 'Schlagwerk']);
+		expect(got('Schlagwerk (Stabspiele ohne Marimba)')).not.toContain('Marimba');
+	});
+
+	it('reads a setup from the profile form', () => {
+		const data = new FormData();
+		data.append('instrument', 'Schlagwerk');
+		for (const name of ['Snare Drum', 'Pauke', 'Unbekannt']) data.append('plays', `0:${name}`);
+		expect(choicesFromForm(data, playableInstruments(config))).toEqual([{ instrument: 'Schlagwerk', numbers: [], plays: ['Snare Drum', 'Pauke'] }]);
+	});
+
+	it('folds what the sets hold into the percussion, as the profile picks it now', () => {
+		const fold = (text: string) => formatInstruments(foldIntoSets(parseInstruments(text, config), config), config);
+		expect(fold('Pauke, Marimba, Geige')).toBe('Schlagwerk (Pauken, Marimba), Geige');
+		expect(fold('Mallet Percussion')).toBe('Schlagwerk (Mallet Percussion)');
+		expect(fold('Schlagwerk (Trommeln), Pauke')).toBe('Schlagwerk (Trommeln, Pauken)');
+		// Every percussion part already: nothing to add.
+		expect(fold('Schlagwerk, Pauke')).toBe('Schlagwerk');
+		expect(fold('Geige II')).toBe('Geige II');
+	});
+
+	it('offers the percussion sets to percussionists only', () => {
+		expect(setsFor('Schlagwerk', config).map((set) => set.name)).toEqual(expect.arrayContaining(['Stabspiele', 'Pauken']));
+		expect(setsFor('Geige', config)).toEqual([]);
+		expect(setsFor('Chor', config)).toEqual([]);
 	});
 });
