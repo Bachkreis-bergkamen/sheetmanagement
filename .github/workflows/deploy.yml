@@ -1,13 +1,13 @@
-# Deploys to Cloudflare Workers after every push to main, then checks the live site,
-# and then the public demo (English, sample data) as a second Worker.
+# Deploys to Cloudflare Workers, then checks the live site, and then the public demo (English,
+# sample data) as a second Worker. CI (ci.yml) calls this after a push to main has passed its
+# checks, unit tests and end-to-end tests; "Run workflow" deploys main by hand.
 # Needs two repository secrets: CLOUDFLARE_API_TOKEN (template "Edit Cloudflare Workers")
 # and CLOUDFLARE_ACCOUNT_ID. The app's own settings stay Cloudflare secrets; they're
 # not needed here. The worker name comes from wrangler.toml.
 name: Deploy
 
 on:
-  push:
-    branches: [main]
+  workflow_call:
   workflow_dispatch:
 
 permissions:
@@ -35,9 +35,11 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
-      # Cheap insurance: never deploy a commit that doesn't pass.
-      - run: pnpm check
-      - run: pnpm test
+      # From CI the commit has just passed these; a deploy by hand checks them here.
+      - if: github.event_name == 'workflow_dispatch'
+        run: pnpm check
+      - if: github.event_name == 'workflow_dispatch'
+        run: pnpm test
       - run: pnpm build
 
       - name: Deploy

@@ -1,4 +1,5 @@
-# Type-check, test and build every pull request and every push to main.
+# Type-check, test and build every pull request and every push to main; after a push to main
+# that passes, deploy it (deploy.yml).
 # Branch protection on main requires the "Check, test and build" and "End-to-end tests (demo)" jobs.
 name: CI
 
@@ -10,9 +11,11 @@ on:
 permissions:
   contents: read
 
+# A newer push to a pull request cancels the older run; on main the runs queue instead, so a
+# deploy that has started always finishes.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   check:
@@ -32,27 +35,67 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
+      # The whole unit suite every time: it takes well under a minute, and `vitest --changed`
+      # only follows imports, so it would miss a changed fixture or sample data.
       - run: pnpm test
       - run: pnpm build
 
+  # A pull request runs the specs its changes can reach (.github/scripts/e2e-specs.mjs); a push to
+  # main runs them all, for whatever that map misses. The job always runs, so the required check
+  # reports even when a pull request needs no spec (a docs change, say).
   e2e:
     name: End-to-end tests (demo)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
+        with:
+          # The pull request's changes are measured from where it branched off its base.
+          fetch-depth: 0
+
+      - name: Choose the specs
+        id: specs
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.base_ref }}
+        run: |
+          specs=all
+          if [ "$EVENT" = pull_request ]; then
+            # If the diff fails, the whole suite runs.
+            if changed=$(git diff --name-only --no-renames "origin/$BASE...HEAD"); then
+              specs=$(printf '%s\n' "$changed" | E2E_BASE="origin/$BASE" node .github/scripts/e2e-specs.mjs)
+            fi
+          fi
+          echo "specs=$specs" >> "$GITHUB_OUTPUT"
+          {
+            echo "### End-to-end specs"
+            case "$specs" in
+              all) echo "The whole suite." ;;
+              '') echo "None: nothing in this change reaches a page the specs open." ;;
+              *) printf -- '- `%s`\n' $specs ;;
+            esac
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Specs: ${specs:-none}"
 
       - uses: pnpm/action-setup@v6
+        if: steps.specs.outputs.specs != ''
 
       - uses: actions/setup-node@v7
+        if: steps.specs.outputs.specs != ''
         with:
           node-version: 24
           cache: pnpm
 
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
+      - if: steps.specs.outputs.specs != ''
+        run: pnpm install --frozen-lockfile
+      - if: steps.specs.outputs.specs != ''
+        run: pnpm exec playwright install --with-deps chromium
       # Starts the demo itself (playwright.config.ts): sample data, no Google account.
-      - run: pnpm test:e2e
+      - if: steps.specs.outputs.specs != ''
+        env:
+          SPECS: ${{ steps.specs.outputs.specs }}
+        run: |
+          if [ "$SPECS" = all ]; then pnpm test:e2e; else pnpm test:e2e $SPECS; fi
 
       # What the failing page looked like: screenshots and traces.
       - uses: actions/upload-artifact@v7
@@ -63,3 +106,11 @@ jobs:
             playwright-report
             test-results
           retention-days: 14
+
+  # Only a commit that passed everything above goes live, without checking it a second time.
+  deploy:
+    name: Deploy
+    needs: [check, e2e]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/deploy.yml
+    secrets: inherit
