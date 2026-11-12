@@ -13,7 +13,7 @@
 	import SightRound from '#lib/components/SightRound.svelte';
 	import SightStaff from '#lib/components/SightStaff.svelte';
 	import Title from '#lib/components/Title.svelte';
-	import { EAR_ORDER, FLUENT_MS, interleave, KEY_ORDER, kindOf, notesOrder, playOrder, transOrder } from '#lib/practice/drills/decks.ts';
+	import { EAR_DECK, EAR_ORDER, FLUENT_MS, interleave, KEY_ORDER, kindOf, notesOrder, playOrder, transOrder } from '#lib/practice/drills/decks.ts';
 	import { isProfileId, PROFILE_IDS, profile, profileFor, type ProfileId } from '#lib/practice/drills/instruments.ts';
 	import { clefLadder, UNLOCK_AT } from '#lib/practice/drills/levels.ts';
 	import { PULSE_ORDER, RHYTHM_ORDER } from '#lib/practice/drills/rhythm.ts';
@@ -23,7 +23,8 @@
 	import { makeEntry, MAX_ENTRY_LEVEL, tuneOrder } from '#lib/practice/drills/together.ts';
 	import { makePlacement, nextProbe, placementResult, progress as placementProgress, recordProbe, type Placement, type PlacementResult } from '#lib/practice/drills/placement.ts';
 	import { badgeProgress, badgesFor, newBadges, type Badge, type BadgeGroup } from '#lib/practice/drills/badges.ts';
-	import { addAnswer, DAILY_GOAL_MINUTES, dayKey, emptyData, MAX_UNSENT, streak, type DrillData } from '#lib/practice/drills/progress.ts';
+	import { addAnswer, DAILY_GOAL_MINUTES, dayKey, emptyData, history, MAX_UNSENT, REFLECTION_MAX, streak, type DrillData } from '#lib/practice/drills/progress.ts';
+	import PracticeHistory from '#lib/components/PracticeHistory.svelte';
 	import { dayNumber, record, summary } from '#lib/practice/drills/scheduler.ts';
 	import { clearDrills, loadDrills, saveDrills } from '#lib/practice/drills/store.ts';
 	import { alterInKey, CLEFS, pitchAt, type Clef, type Pitch } from '#lib/practice/drills/theory.ts';
@@ -75,10 +76,10 @@
 	const orders = $derived.by<Record<Kind, string[]>>(() => {
 		const notes = interleave(...clefs.map(notesOrder));
 		return {
-			mix: interleave(notes, KEY_ORDER, EAR_ORDER),
+			mix: interleave(notes, KEY_ORDER, EAR_DECK),
 			notes,
 			keys: KEY_ORDER,
-			ear: EAR_ORDER,
+			ear: EAR_DECK,
 			rhythm: RHYTHM_ORDER,
 			pulse: PULSE_ORDER,
 			play: interleave(...clefs.map((clef) => playOrder(instrument, clef))),
@@ -218,6 +219,8 @@
 		}
 	}
 
+	/** The last two weeks, for the member's own view of how it's going. */
+	const lastDays = $derived(history(drills.days));
 	const todayMinutes = $derived(Math.floor((drills.days[dayKey()]?.ms ?? 0) / 60_000));
 	const days = $derived(streak(drills.days));
 
@@ -291,6 +294,8 @@
 				return bx.sight(kind.level);
 			case 'streak':
 				return bx.streak(kind.days);
+			case 'scales':
+				return bx.scales(kind.octaves);
 			default:
 				return bx[kind.type];
 		}
@@ -439,6 +444,15 @@
 		{onanswer}
 		oncalibrate={(tapOffset) => setting({ tapOffset })}
 		onsetting={setting}
+		reflect={playing === 'mix'
+			? {
+					last: drills.reflection ?? null,
+					onsave: (text) => {
+						drills.reflection = { day: dayKey(), text: text.trim().slice(0, REFLECTION_MAX) };
+						persist();
+					}
+				}
+			: undefined}
 		onexit={exit}
 	/>
 {:else}
@@ -538,6 +552,7 @@
 					</p>
 				</div>
 			</div>
+			{#if lastDays.some((day) => day.answers > 0)}<PracticeHistory days={lastDays} goal={DAILY_GOAL_MINUTES} />{/if}
 
 			<ol class="strip" aria-label={tx.stagesLabel}>
 				{#each stageList as stage (stage.number)}
