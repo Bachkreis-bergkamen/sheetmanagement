@@ -2220,6 +2220,25 @@ export const de = {
 		newClef: (clef: string) => `Neu freigeschaltet: ${clef}!`,
 		treeOn: 'Deine Zeit in den Runden zählt auch für deinen Übebaum.',
 		treeLink: 'Dein Übebaum im Profil',
+		stages: ['Grundlagen', 'Hören und Halten', 'Lesen und Spielen', 'Zusammenspiel'] as string[],
+		stageOpen: (open: number, of: number) => (open === of ? 'alles offen' : `${open} von ${of} offen`),
+		lockedUntil: 'Kommt, wenn du so weit bist:',
+		locked: 'Noch gesperrt',
+		need: (of: string, count: number, have: number) =>
+			of === 'sightLevel'
+				? `Vom Blatt Stufe ${count} (jetzt ${Math.max(1, have)})`
+				: `${count} ${{ notes: 'Noten sicher lesen', keys: 'Tonarten sicher', rhythm: 'Rhythmen sicher', play: 'Töne sicher gespielt', ear: 'Intervalle sicher' }[of] ?? of} (jetzt ${have})`,
+		newDrills: (names: string[]) => `Neu freigeschaltet: ${names.join(', ')}!`,
+		chosen: (instrument: string) => `Eingestellt: ${instrument}`,
+		chosenLead: (clefs: string) =>
+			`Das ist dein Instrument laut Mitgliederliste. Geübt wird im ${clefs}; weitere Schlüssel deines Instruments kommen dazu, sobald du so weit bist.`,
+		chosenOthers: (others: string) => `Du spielst auch ${others}: unter „ändern“ kannst du umstellen.`,
+		chosenNone: 'Geübt wird im Violinschlüssel',
+		chosenNoneLead: 'In der Mitgliederliste steht kein Instrument, das die Übungen kennen. Unter „ändern“ wählst du deines.',
+		chosenOk: 'Passt',
+		change: 'ändern',
+		changeHint: 'Den Schlüssel wählt die Übung selbst, nach deinem Instrument und wie weit du bist. Nur selten nötig, ihn festzulegen.',
+		auto: 'automatisch',
 		treeTitle: 'Übebaum',
 		treeNext: (duration: string, stage: string) => `noch ${duration} bis ${stage}`,
 		treeStart: 'Im Profil einschalten',

@@ -2200,6 +2200,25 @@ export const en: Texts = {
 		newClef: (clef: string) => `Unlocked: ${clef}!`,
 		treeOn: 'Your time in these rounds also counts for your practice tree.',
 		treeLink: 'Your practice tree in your profile',
+		stages: ['Basics', 'Hearing and holding', 'Reading and playing', 'Playing together'],
+		stageOpen: (open: number, of: number) => (open === of ? 'all open' : `${open} of ${of} open`),
+		lockedUntil: 'Opens when you’re ready:',
+		locked: 'Still locked',
+		need: (of: string, count: number, have: number) =>
+			of === 'sightLevel'
+				? `Sight-reading level ${count} (now ${Math.max(1, have)})`
+				: `${count} ${{ notes: 'notes read securely', keys: 'keys secure', rhythm: 'rhythms secure', play: 'notes played securely', ear: 'intervals secure' }[of] ?? of} (now ${have})`,
+		newDrills: (names: string[]) => `Newly unlocked: ${names.join(', ')}!`,
+		chosen: (instrument: string) => `Set to ${instrument}`,
+		chosenLead: (clefs: string) =>
+			`That’s your instrument in the members’ list. You practise in ${clefs}; your instrument’s further clefs come in once you’re ready.`,
+		chosenOthers: (others: string) => `You also play ${others}: switch under “change”.`,
+		chosenNone: 'Practising in treble clef',
+		chosenNoneLead: 'The members’ list has no instrument the exercises know. Choose yours under “change”.',
+		chosenOk: 'Fine',
+		change: 'change',
+		changeHint: 'The exercises choose the clef themselves, by your instrument and how far you are. Setting it by hand is rarely needed.',
+		auto: 'automatic',
 		treeTitle: 'Practice tree',
 		treeNext: (duration: string, stage: string) => `${duration} to go to ${stage}`,
 		treeStart: 'Turn it on in your profile',

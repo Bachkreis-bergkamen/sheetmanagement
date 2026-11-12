@@ -34,6 +34,8 @@ export interface DrillSettings {
 	duet?: boolean;
 	/** The placement test: the day it was taken, or "skipped" when the member started from the beginning. */
 	placed?: string;
+	/** The instrument the member was told was chosen for them, so it's said once. */
+	announced?: string;
 }
 
 /** Levels per instrument read back, anything malformed dropped. */
@@ -55,6 +57,11 @@ export interface DrillData {
 	settings: DrillSettings;
 	/** Clefs opened on the ladder (#300); they stay open. */
 	opened: Clef[];
+	/**
+	 * Drills opened by progression (#300); they stay open. Undefined in progress kept before
+	 * progression came in, so the drills used then can be opened for good.
+	 */
+	unlocked?: string[];
 	/** Seconds of practice not yet counted for the practice tree (offline, or the request failed). */
 	unsent: number;
 }
@@ -82,6 +89,7 @@ export function readData(value: unknown): DrillData {
 		if (raw.settings.sight !== undefined) data.settings.sight = readLevels(raw.settings.sight, MAX_LEVEL);
 		if (raw.settings.entry !== undefined) data.settings.entry = readLevels(raw.settings.entry, MAX_ENTRY_LEVEL);
 	}
+	if (Array.isArray(raw.unlocked)) data.unlocked = raw.unlocked.filter((card): card is string => typeof card === 'string');
 	if (Array.isArray(raw.opened)) data.opened = raw.opened.filter((clef): clef is Clef => (CLEFS as readonly string[]).includes(clef));
 	if (Number.isFinite(raw.unsent) && raw.unsent! > 0) data.unsent = Math.min(MAX_UNSENT, Math.round(raw.unsent!));
 	return data;

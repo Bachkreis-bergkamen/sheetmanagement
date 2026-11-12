@@ -16,6 +16,7 @@
 	import { clefLadder, UNLOCK_AT } from '#lib/practice/drills/levels.ts';
 	import { PULSE_ORDER, RHYTHM_ORDER } from '#lib/practice/drills/rhythm.ts';
 	import { scaleOrder } from '#lib/practice/drills/scales.ts';
+	import { knownOf, newlyOpen, progression, STAGES, type DrillCard } from '#lib/practice/drills/progression.ts';
 	import { firstLevel, makeMelody, MAX_LEVEL, seeded, type SightLevel } from '#lib/practice/drills/sight.ts';
 	import { makeEntry, MAX_ENTRY_LEVEL, tuneOrder } from '#lib/practice/drills/together.ts';
 	import { makePlacement, nextProbe, placementResult, progress as placementProgress, recordProbe, type Placement, type PlacementResult } from '#lib/practice/drills/placement.ts';
@@ -37,7 +38,14 @@
 		const loaded = await loadDrills(data.account);
 		drills = loaded.data;
 		saved = loaded.saved;
+		// Progress from before progression: the drills practised then stay open.
+		if (!drills.unlocked) {
+			drills.unlocked = STAGES.flat().filter((card) =>
+				card === 'sight' || card === 'entry' ? !!drills.settings[card] && !drills.settings.placed : Object.keys(drills.items).some((id) => cardOf(id) === card)
+			);
+		}
 		ready = true;
+		syncUnlocks();
 		sendTime();
 	});
 
@@ -82,6 +90,37 @@
 	const day = dayNumber();
 	const standing = (order: string[]) => summary(order, drills.items, day, (id) => FLUENT_MS[kindOf(id)]);
 
+	/** The drill card an item belongs to. */
+	const cardOf = (id: string): DrillCard | null => {
+		const kind = kindOf(id) as string;
+		return (STAGES.flat() as string[]).includes(kind) ? (kind as DrillCard) : null;
+	};
+
+	/** Which drills are open (#300): each once what it builds on is known; once open, for good. */
+	const cards = $derived(
+		progression(
+			{
+				notes: knownOf(orders.notes, drills.items),
+				keys: knownOf(KEY_ORDER, drills.items),
+				rhythm: knownOf(RHYTHM_ORDER, drills.items),
+				play: knownOf(orders.play, drills.items),
+				ear: knownOf(EAR_ORDER, drills.items),
+				sightLevel: drills.settings.sight?.[instrument]?.level ?? 1
+			},
+			drills.unlocked ?? [],
+			() => false
+		)
+	);
+
+	/** Drills just opened are kept open. */
+	function syncUnlocks() {
+		const fresh = newlyOpen(drills.unlocked ?? [], cards);
+		if (fresh.length) {
+			drills.unlocked = [...(drills.unlocked ?? []), ...fresh];
+			persist();
+		}
+	}
+
 	let playing = $state<Kind | null>(null);
 	// A round or the overview starts at the top, where the staff is.
 	$effect(() => {
@@ -89,17 +128,29 @@
 		window.scrollTo({ top: 0 });
 	});
 
-	/** A clef that opened during the last round, to celebrate. */
+	/** A clef, and drills, that opened during the last round or the placement test, to celebrate. */
 	let unlocked = $state<Clef | null>(null);
+	let freshCards = $state<DrillCard[]>([]);
 	let openBefore: Clef[] = [];
-	function start(kind: Kind) {
+	let cardsBefore: string[] = [];
+	function remember() {
 		openBefore = ladder.filter((step) => step.open).map((step) => step.clef);
+		cardsBefore = [...(drills.unlocked ?? [])];
 		unlocked = null;
+		freshCards = [];
+	}
+	function announce() {
+		unlocked = ladder.find((step) => step.open && !openBefore.includes(step.clef))?.clef ?? null;
+		syncUnlocks();
+		freshCards = newlyOpen(cardsBefore, cards).filter((card) => kinds.some((each) => each.kind === card));
+	}
+	function start(kind: Kind) {
+		remember();
 		playing = kind;
 	}
 	function exit() {
 		playing = null;
-		unlocked = ladder.find((step) => step.open && !openBefore.includes(step.clef))?.clef ?? null;
+		announce();
 		sendTime();
 	}
 
@@ -118,6 +169,7 @@
 		// Time for the practice tree, kept until sent; a question left open counts a minute at most.
 		if (data.practising) drills.unsent = Math.min(MAX_UNSENT, drills.unsent + Math.min(ms, 60_000) / 1000);
 		persist();
+		syncUnlocks();
 	}
 
 	/**
@@ -157,6 +209,7 @@
 	const offerPlacement = $derived(ready && !Object.keys(drills.items).length && !drills.settings.placed);
 
 	function startPlacement() {
+		remember();
 		placement = makePlacement(prof);
 		testProgress = 0;
 		placed = null;
@@ -184,6 +237,7 @@
 		placed = result;
 		testing = false;
 		placement = null;
+		announce();
 		sendTime();
 	}
 
@@ -200,8 +254,19 @@
 	async function reset() {
 		if (!confirm(tx.confirmReset)) return;
 		await clearDrills(data.account);
-		drills = emptyData();
+		drills = { ...emptyData(), unlocked: [] };
+		syncUnlocks();
 	}
+
+	/**
+	 * The instrument chosen for the member (their first in the members' list) is said once, with
+	 * their other instruments, and changing it is a small option, not the first thing on the page.
+	 */
+	const others = $derived(
+		[...new Set(data.instruments.map(profileFor).filter((id): id is ProfileId => !!id))].filter((id) => id !== instrument)
+	);
+	const announceInstrument = $derived(ready && !drills.settings.instrument && drills.settings.announced !== instrument);
+	let changing = $state(false);
 
 	const KINDS: { kind: Kind; icon: IconName }[] = [
 		{ kind: 'mix', icon: 'sparkle' },
@@ -309,6 +374,32 @@
 {:else}
 	<div class="hub">
 		{#if unlocked}<p class="msg ok unlocked" role="status"><Icon name="sparkle" size={18} />{tx.newClef(tx.clefs[unlocked])}</p>{/if}
+		{#if freshCards.length}
+			<p class="msg ok unlocked" role="status">
+				<Icon name="sparkle" size={18} />{tx.newDrills(freshCards.map((card) => tx.kinds[card].title))}
+			</p>
+		{/if}
+
+		{#if announceInstrument}
+			<section class="ui-card chosen" aria-labelledby="chosen-title">
+				<h2 id="chosen-title"><Icon name="music" size={18} />{own === 'treble' ? tx.chosenNone : tx.chosen(tx.instruments[instrument])}</h2>
+				<p class="lead">
+					{own === 'treble' ? tx.chosenNoneLead : tx.chosenLead(clefs.map((clef) => tx.clefs[clef]).join(', '))}
+					{#if others.length}{' '}{tx.chosenOthers(others.map((id) => tx.instruments[id]).join(', '))}{/if}
+				</p>
+				<div class="row">
+					<button type="button" class="btn" onclick={() => setting({ announced: instrument })}>{tx.chosenOk}</button>
+					<button
+						type="button"
+						class="btn ghost"
+						onclick={() => {
+							setting({ announced: instrument });
+							changing = true;
+						}}>{tx.change}</button
+					>
+				</div>
+			</section>
+		{/if}
 
 		{#if offerPlacement}
 			<section class="ui-card placement" aria-labelledby="placement-title">
@@ -340,24 +431,38 @@
 
 		<section class="ui-card setup" aria-label={tx.instrument}>
 			<div class="top">
-				<div class="fields">
-					<label class="field">
-						{tx.instrument}
-						<select value={instrument} onchange={(event) => setting({ instrument: event.currentTarget.value as ProfileId, clef: undefined })}>
-							{#each PROFILE_IDS as id (id)}<option value={id}>{tx.instruments[id]}</option>{/each}
-						</select>
-					</label>
-					<label class="field">
-						{tx.clef}
-						<select value={chosenClef ?? ''} onchange={(event) => setting({ clef: (event.currentTarget.value || undefined) as Clef | undefined })}>
-							<option value="">{tx.clefAuto(clefs.map((clef) => tx.clefs[clef]).join(', '))}</option>
-							{#each CLEFS as each (each)}<option value={each}>{tx.clefs[each]}</option>{/each}
-						</select>
-					</label>
-					<label class="check">
-						<input type="checkbox" checked={sound} onchange={(event) => setting({ sound: event.currentTarget.checked })} />
-						{tx.sound}
-					</label>
+				<div class="current">
+					<p class="playing">
+						<Icon name="music" size={18} />
+						<strong>{tx.instruments[instrument]}</strong>
+						<span class="muted">· {clefs.map((clef) => tx.clefs[clef]).join(', ')}{chosenClef ? '' : ` (${tx.auto})`}</span>
+						<button type="button" class="link" aria-expanded={changing} onclick={() => (changing = !changing)}>{tx.change}</button>
+					</p>
+					{#if changing}
+						<div class="fields">
+							<label class="field">
+								{tx.instrument}
+								<select
+									value={instrument}
+									onchange={(event) => setting({ instrument: event.currentTarget.value as ProfileId, clef: undefined, announced: event.currentTarget.value })}
+								>
+									{#each PROFILE_IDS as id (id)}<option value={id}>{tx.instruments[id]}</option>{/each}
+								</select>
+							</label>
+							<label class="field">
+								{tx.clef}
+								<select value={chosenClef ?? ''} onchange={(event) => setting({ clef: (event.currentTarget.value || undefined) as Clef | undefined })}>
+									<option value="">{tx.clefAuto(clefs.map((clef) => tx.clefs[clef]).join(', '))}</option>
+									{#each CLEFS as each (each)}<option value={each}>{tx.clefs[each]}</option>{/each}
+								</select>
+							</label>
+							<label class="check">
+								<input type="checkbox" checked={sound} onchange={(event) => setting({ sound: event.currentTarget.checked })} />
+								{tx.sound}
+							</label>
+						</div>
+						<p class="hint">{tx.changeHint}</p>
+					{/if}
 				</div>
 				{#if data.practising !== null}
 					<!-- The practice tree, to the tree on the profile. -->
@@ -410,50 +515,81 @@
 			{/if}
 		</section>
 
-		<ul class="kinds">
-			{#each kinds as { kind, icon } (kind)}
-				{@const order = orders[kind]}
-				{@const stand = standing(order)}
-				<li class="ui-card kind">
-					<div class="preview" aria-hidden="true">
-						{#if kind === 'rhythm'}
-							<RhythmStaff pattern="4 2 2 6 2" label="" />
-						{:else if kind === 'pulse'}
-							<RhythmStaff pattern="4 4 4 4" label="" />
-						{:else if kind === 'sight' && sightPreview}
-							<SightStaff melody={sightPreview} preview label="" />
-						{:else if kind === 'entry' && entryPreview}
-							<SightStaff melody={entryPreview} preview label="" />
-						{:else}
-							<DrillStaff
-								clef={kind === 'trans' || kind === 'scale' ? 'treble' : clefs[0]}
-								fifths={PREVIEW[kind].fifths ?? 0}
-								notes={PREVIEW[kind].notes}
-								together={PREVIEW[kind].together}
-								spacing={kind === 'scale' ? 30 : 46}
-								label=""
-							/>
-						{/if}
-					</div>
-					<h2><Icon name={icon} size={18} />{tx.kinds[kind].title}</h2>
-					<p class="lead">{tx.kinds[kind].lead}</p>
-					{#if kind === 'sight' || kind === 'entry'}
-						{@const [at, of] = kind === 'sight' ? [sightLevel.level, MAX_LEVEL] : [entryLevel.level, MAX_ENTRY_LEVEL]}
-						<p class="hint">{tx.level(at, of)}</p>
-						<div class="meter" aria-hidden="true"><span style:width="{(at / of) * 100}%"></span></div>
-						<button type="button" class="btn" disabled={!ready} onclick={() => start(kind)}>{tx.start}</button>
-					{:else if !order.length}
-						<p class="hint">{tx.noPlay}</p>
-					{:else}
-						<p class="hint">
-							{#if !ready}…{:else if stand.seen}{tx.mastered(stand.mastered, stand.total)}{#if stand.due}{' '}· {tx.due(stand.due)}{/if}{#if stand.known}{' '}· {tx.known(stand.known)}{/if}{:else}{tx.fresh}{/if}
-						</p>
-						<div class="meter" aria-hidden="true"><span style:width="{(stand.mastered / stand.total) * 100}%"></span></div>
-						<button type="button" class="btn" disabled={!ready} onclick={() => start(kind)}>{tx.start}</button>
-					{/if}
-				</li>
-			{/each}
-		</ul>
+		{#each STAGES as stage, number (number)}
+			{@const shown = kinds.filter(({ kind }) => (stage as string[]).includes(kind))}
+			{@const openCount = shown.filter(({ kind }) => cards[kind as DrillCard].open).length}
+			{#if shown.length}
+				<section class="stage" class:closed={!openCount} aria-labelledby="stage-{number}">
+					<h2 class="stage-title" id="stage-{number}">
+						<span class="step">{number + 1}</span>{tx.stages[number]}
+						<small>{tx.stageOpen(openCount, shown.length)}</small>
+					</h2>
+					<ul class="kinds">
+						{#each shown as { kind, icon } (kind)}
+							{@const order = orders[kind]}
+							{@const stand = standing(order)}
+							{@const card = cards[kind as DrillCard]}
+							<li class="ui-card kind" class:locked={!card.open}>
+								{#if !card.open}
+									<!-- A big padlock in the top half of the card, where the picture would be: still locked. -->
+									<span class="padlock" role="img" aria-label={tx.locked}><Icon name="lock" size={120} /></span>
+								{:else}
+								<div class="preview" aria-hidden="true">
+									{#if kind === 'rhythm'}
+										<RhythmStaff pattern="4 2 2 6 2" label="" />
+									{:else if kind === 'pulse'}
+										<RhythmStaff pattern="4 4 4 4" label="" />
+									{:else if kind === 'sight' && sightPreview}
+										<SightStaff melody={sightPreview} preview label="" />
+									{:else if kind === 'entry' && entryPreview}
+										<SightStaff melody={entryPreview} preview label="" />
+									{:else}
+										<DrillStaff
+											clef={kind === 'trans' || kind === 'scale' ? 'treble' : clefs[0]}
+											fifths={PREVIEW[kind].fifths ?? 0}
+											notes={PREVIEW[kind].notes}
+											together={PREVIEW[kind].together}
+											spacing={kind === 'scale' ? 30 : 46}
+											label=""
+										/>
+									{/if}
+								</div>
+								{/if}
+								<h3>
+									<Icon name={icon} size={18} />{tx.kinds[kind].title}
+									{#if card.open && number > 0 && !stand.seen && !(kind === 'sight' && drills.settings.sight?.[instrument]) && !(kind === 'entry' && drills.settings.entry?.[instrument])}<span class="new">{tx.new}</span>{/if}
+								</h3>
+								<p class="lead">{tx.kinds[kind].lead}</p>
+								{#if !card.open}
+									<p class="hint">{tx.lockedUntil}</p>
+									<ul class="needs">
+										{#each card.needs as need (need.of)}
+											<li>
+												<span>{tx.need(need.of, need.count, need.have)}</span>
+												<span class="meter" aria-hidden="true"><span style:width="{(need.have / need.count) * 100}%"></span></span>
+											</li>
+										{/each}
+									</ul>
+								{:else if kind === 'sight' || kind === 'entry'}
+									{@const [at, of] = kind === 'sight' ? [sightLevel.level, MAX_LEVEL] : [entryLevel.level, MAX_ENTRY_LEVEL]}
+									<p class="hint">{tx.level(at, of)}</p>
+									<div class="meter" aria-hidden="true"><span style:width="{(at / of) * 100}%"></span></div>
+									<button type="button" class="btn" disabled={!ready} onclick={() => start(kind)}>{tx.start}</button>
+								{:else if !order.length}
+									<p class="hint">{tx.noPlay}</p>
+								{:else}
+									<p class="hint">
+										{#if !ready}…{:else if stand.seen}{tx.mastered(stand.mastered, stand.total)}{#if stand.due}{' '}· {tx.due(stand.due)}{/if}{#if stand.known}{' '}· {tx.known(stand.known)}{/if}{:else}{tx.fresh}{/if}
+									</p>
+									<div class="meter" aria-hidden="true"><span style:width="{(stand.mastered / stand.total) * 100}%"></span></div>
+									<button type="button" class="btn" disabled={!ready} onclick={() => start(kind)}>{tx.start}</button>
+								{/if}
+							</li>
+						{/each}
+					</ul>
+				</section>
+			{/if}
+		{/each}
 
 		<details class="ui-card how">
 			<summary>{tx.how}</summary>
@@ -493,10 +629,6 @@
 		align-items: flex-start;
 		justify-content: space-between;
 		gap: var(--space-3) var(--space-4);
-	}
-
-	.top > .fields {
-		flex: 1 1 22rem;
 	}
 
 	.tree-link {
@@ -651,7 +783,143 @@
 		opacity: 0.7;
 	}
 
-	.kind h2 {
+	.chosen {
+		display: grid;
+		gap: var(--space-3);
+		padding: var(--space-4);
+		border-left: 3px solid var(--accent);
+	}
+
+	.chosen h2 {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		font-size: var(--text-lg);
+	}
+
+	.current {
+		display: grid;
+		flex: 1 1 22rem;
+		gap: var(--space-3);
+		align-content: start;
+	}
+
+	.playing {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-2);
+	}
+
+	.muted {
+		color: var(--text-muted);
+	}
+
+	.link {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: var(--accent);
+		font: inherit;
+		font-size: var(--text-sm);
+		text-decoration: underline;
+		cursor: pointer;
+	}
+
+	.stage {
+		display: grid;
+		gap: var(--space-3);
+	}
+
+	.stage-title {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		font-size: var(--text-lg);
+	}
+
+	.stage-title small {
+		margin-left: auto;
+		color: var(--text-muted);
+		font-size: var(--text-sm);
+		font-weight: 500;
+	}
+
+	.step {
+		display: grid;
+		place-items: center;
+		width: 26px;
+		height: 26px;
+		border-radius: 50%;
+		background: var(--accent);
+		color: var(--on-accent, #fff);
+		font-size: var(--text-sm);
+	}
+
+	.stage.closed .step {
+		background: var(--surface-2);
+		color: var(--text-muted);
+	}
+
+	.kind.locked {
+		background: var(--surface-2);
+	}
+
+	.kind.locked .preview,
+	.kind.locked .lead {
+		opacity: 0.55;
+	}
+
+	.kind.locked h3 {
+		color: var(--text-muted);
+	}
+
+	.padlock {
+		display: grid;
+		place-items: center;
+		min-height: 170px;
+		margin: calc(-1 * var(--space-4)) calc(-1 * var(--space-4)) 0;
+		border-radius: inherit;
+		border-bottom-left-radius: 0;
+		border-bottom-right-radius: 0;
+		background: color-mix(in oklab, var(--hairline) 45%, var(--surface-2));
+		color: var(--text-muted);
+	}
+
+	.padlock :global(svg) {
+		width: min(55%, 140px);
+		height: auto;
+	}
+
+	.needs {
+		display: grid;
+		gap: var(--space-2);
+		padding: 0;
+		list-style: none;
+		font-size: var(--text-sm);
+	}
+
+	.needs li {
+		display: grid;
+		gap: 4px;
+	}
+
+	.needs .meter {
+		background: var(--hairline);
+	}
+
+	.new {
+		padding: 1px var(--space-2);
+		border-radius: var(--radius-pill);
+		background: var(--accent-soft);
+		color: var(--accent);
+		font-size: var(--text-2xs);
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+	}
+
+	.kind h3 {
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
