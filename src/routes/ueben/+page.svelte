@@ -26,6 +26,7 @@
 	import { addAnswer, DAILY_GOAL_MINUTES, dayKey, emptyData, history, MAX_UNSENT, REFLECTION_MAX, streak, type DrillData } from '#lib/practice/drills/progress.ts';
 	import PracticeHistory from '#lib/components/PracticeHistory.svelte';
 	import DrillSharing from '#lib/components/DrillSharing.svelte';
+	import DailyRound from '#lib/components/DailyRound.svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { sharesAny, summaryRows, type Sharing } from '#lib/practice/drills/sharing.ts';
 	import { dayNumber, record, summary } from '#lib/practice/drills/scheduler.ts';
@@ -172,7 +173,40 @@
 	function start(kind: Kind) {
 		remember();
 		playing = kind;
+		if (kind === 'mix') {
+			dailySteps = dailyPlan();
+			daily = dailySteps[0];
+			dailyFrom = drills.days[dayKey()]?.ms ?? 0;
+		}
 	}
+
+	/**
+	 * The daily round (#315): about ten minutes made of what's due. A scale to warm up over a
+	 * drone, once scales are open; the notes, keys and intervals due for review; one new melody at
+	 * sight, once sight-reading is open; and a line for what was hard. Short, mixed and regular,
+	 * as spacing research suggests.
+	 */
+	type DailyStep = 'warmup' | 'review' | 'sight' | 'done';
+	let daily = $state<DailyStep>('review');
+	let dailySteps = $state<DailyStep[]>(['review', 'done']);
+	let dailyFrom = 0;
+	/** Questions in the review step: with a warm-up and a melody around it, fewer than a full round. */
+	const DAILY_REVIEW = 12;
+	const dailyPlan = (): DailyStep[] => [
+		...(cards.scale.open && warmupScale ? (['warmup'] as const) : []),
+		'review',
+		...(cards.sight.open ? (['sight'] as const) : []),
+		'done'
+	];
+	/** The scale to warm up with: the one most overdue among those met, else the next new one. */
+	const warmupScale = $derived(
+		orders.scale.filter((id) => drills.items[id]).sort((a, b) => drills.items[a].due - drills.items[b].due)[0] ?? orders.scale[0] ?? null
+	);
+	function nextDaily() {
+		daily = dailySteps[dailySteps.indexOf(daily) + 1] ?? 'done';
+		sendDays();
+	}
+	const dailyMinutes = $derived(Math.max(0, Math.round(((drills.days[dayKey()]?.ms ?? 0) - dailyFrom) / 60_000)));
 	function exit() {
 		playing = null;
 		announce();
@@ -466,6 +500,54 @@
 		onpractice={(ms, good) => practised(good, ms, entry ? 'entry' : 'sight')}
 		onexit={exit}
 	/>
+{:else if playing === 'mix'}
+	<DailyRound
+		steps={dailySteps}
+		step={daily}
+		last={drills.reflection ?? null}
+		minutes={dailyMinutes}
+		onsave={(text) => {
+			drills.reflection = { day: dayKey(), text: text.trim().slice(0, REFLECTION_MAX) };
+			persist();
+		}}
+		onexit={exit}
+		onskip={nextDaily}
+	>
+		{#key daily}
+			{#if daily === 'sight'}
+				<SightRound
+					{instrument}
+					{clefs}
+					level={drills.settings.sight?.[instrument]}
+					readAhead={!!drills.settings.readAhead}
+					title={tx.daily.steps.sight}
+					length={1}
+					onlevel={(state) => setting({ sight: { ...drills.settings.sight, [instrument]: state } })}
+					onreadahead={(readAhead) => setting({ readAhead })}
+					onpractice={(ms, good) => practised(good, ms, 'sight')}
+					onfinish={nextDaily}
+					onexit={exit}
+				/>
+			{:else}
+				<DrillRound
+					order={daily === 'warmup' && warmupScale ? [warmupScale] : orders.mix}
+					length={daily === 'warmup' ? 1 : DAILY_REVIEW}
+					{clefs}
+					{instrument}
+					states={drills.items}
+					{sound}
+					title={tx.daily.steps[daily]}
+					tapOffset={drills.settings.tapOffset}
+					settings={daily === 'warmup' ? { ...drills.settings, drone: drills.settings.drone && drills.settings.drone !== 'off' ? drills.settings.drone : 'tonic' } : drills.settings}
+					{onanswer}
+					oncalibrate={(tapOffset) => setting({ tapOffset })}
+					onsetting={setting}
+					onfinish={nextDaily}
+					onexit={exit}
+				/>
+			{/if}
+		{/key}
+	</DailyRound>
 {:else if playing}
 	<DrillRound
 		order={orders[playing]}
@@ -479,15 +561,6 @@
 		{onanswer}
 		oncalibrate={(tapOffset) => setting({ tapOffset })}
 		onsetting={setting}
-		reflect={playing === 'mix'
-			? {
-					last: drills.reflection ?? null,
-					onsave: (text) => {
-						drills.reflection = { day: dayKey(), text: text.trim().slice(0, REFLECTION_MAX) };
-						persist();
-					}
-				}
-			: undefined}
 		onexit={exit}
 	/>
 {:else}

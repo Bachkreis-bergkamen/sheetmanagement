@@ -1997,7 +1997,7 @@ export const de = {
 			bass: 'Anderes, im Bassschlüssel'
 		},
 		kinds: {
-			mix: { title: 'Tagesrunde', lead: 'Noten und Tonarten gemischt, was heute dran ist.' },
+			mix: { title: 'Tagesrunde', lead: 'Rund zehn Minuten: einspielen, wiederholen, was dran ist, eine neue Melodie vom Blatt.' },
 			notes: { title: 'Noten lesen', lead: 'Welcher Ton ist das? So schnell, wie du sicher bist.' },
 			keys: { title: 'Tonarten', lead: 'Welche Tonart hat diese Vorzeichnung?' },
 			play: { title: 'Töne spielen', lead: 'Spiel den Ton; das Mikrofon hört, ob er stimmt.' },
@@ -2056,6 +2056,13 @@ export const de = {
 			lead: 'Was Mitglieder aus dem Übebereich mit Dirigat und Lehrkräften teilen: Übetage, Minuten und Trefferquote der letzten vier Wochen.',
 			none: 'Noch teilt niemand seinen Übestand mit dir. Mitglieder schalten das selbst im Übebereich ein; bei Kindern stimmen die Eltern zu.',
 			privacy: 'Hier steht nur, wer es selbst freigegeben hat. Einzelne Antworten oder Aufnahmen gibt es nicht: Sie verlassen das Gerät nie.'
+		},
+		daily: {
+			title: 'Schritte der Tagesrunde',
+			steps: { warmup: 'Einspielen', review: 'Wiederholen', sight: 'Vom Blatt', done: 'Fertig' } as Record<string, string>,
+			done: 'Tagesrunde geschafft',
+			skip: 'Schritt überspringen',
+			doneLead: (minutes: number) => (minutes < 1 ? 'Kurz und regelmäßig wirkt am meisten.' : `${minutes} Min. heute in dieser Runde. Kurz und regelmäßig wirkt am meisten.`)
 		},
 		sharing: {
 			title: 'Gemeinsam üben',
@@ -2298,7 +2305,7 @@ export const de = {
 		} as Record<string, string>,
 		treeLink: 'Dein Übebaum im Profil',
 		stages: ['Grundlagen', 'Hören und Halten', 'Lesen und Spielen', 'Zusammenspiel'] as string[],
-		stageOpen: (open: number, of: number) => (open === of ? 'alles offen' : `${open} von ${of} offen`),
+		stageOpen: (open: number, of: number) => (open === of ? 'alles freigeschaltet' : `${open} von ${of} freigeschaltet`),
 		stagesLabel: 'Deine Stufen',
 		progress: 'Dein Stand',
 		lockedUntil: 'Kommt, wenn du so weit bist:',

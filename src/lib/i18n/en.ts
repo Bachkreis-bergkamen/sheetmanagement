@@ -1976,7 +1976,7 @@ export const en: Texts = {
 			bass: 'Other, in bass clef'
 		},
 		kinds: {
-			mix: { title: 'Daily round', lead: 'Notes and keys mixed, whatever is due today.' },
+			mix: { title: 'Daily round', lead: 'About ten minutes: warm up, review what’s due, one new melody at sight.' },
 			notes: { title: 'Note reading', lead: 'Which note is it? As fast as you’re sure.' },
 			keys: { title: 'Keys', lead: 'Which key has this key signature?' },
 			play: { title: 'Play the note', lead: 'Play the note; the microphone hears if it’s right.' },
@@ -2035,6 +2035,13 @@ export const en: Texts = {
 			lead: 'What members share from the practice area with their conductor and teachers: days, minutes and share right over the last four weeks.',
 			none: 'Nobody shares their practice with you yet. Members turn it on themselves in the practice area; for children, the parents agree.',
 			privacy: 'Only those who chose to share are listed. Single answers or recordings don’t exist here: they never leave the device.'
+		},
+		daily: {
+			title: 'Steps of the daily round',
+			steps: { warmup: 'Warm up', review: 'Review', sight: 'At sight', done: 'Done' } as Record<string, string>,
+			done: 'Daily round done',
+			skip: 'Skip this step',
+			doneLead: (minutes: number) => (minutes < 1 ? 'Short and regular works best.' : `${minutes} min in this round today. Short and regular works best.`)
 		},
 		sharing: {
 			title: 'Practising together',
@@ -2272,7 +2279,7 @@ export const en: Texts = {
 			augmented: 'two major thirds'
 		} as Record<string, string>,
 		stages: ['Basics', 'Hearing and holding', 'Reading and playing', 'Playing together'],
-		stageOpen: (open: number, of: number) => (open === of ? 'all open' : `${open} of ${of} open`),
+		stageOpen: (open: number, of: number) => (open === of ? 'all unlocked' : `${open} of ${of} unlocked`),
 		stagesLabel: 'Your stages',
 		progress: 'Your progress',
 		lockedUntil: 'Opens when you’re ready:',
