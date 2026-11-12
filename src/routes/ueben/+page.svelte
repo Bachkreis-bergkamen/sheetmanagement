@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { t } from '#lib/i18n/index.ts';
+	import BadgeMedal from '#lib/components/BadgeMedal.svelte';
 	import Conductor from '#lib/components/Conductor.svelte';
 	import DrillRound from '#lib/components/DrillRound.svelte';
 	import DrillStaff from '#lib/components/DrillStaff.svelte';
@@ -444,7 +445,12 @@
 	<div class="hub">
 		{#if unlocked}<p class="msg ok unlocked" role="status"><Icon name="sparkle" size={18} />{tx.newClef(tx.clefs[unlocked])}</p>{/if}
 		{#if freshBadges.length}
-			<p class="msg ok unlocked" role="status"><Icon name="sparkle" size={18} />{bx.earned(freshBadges.map(badgeName))}</p>
+			<section class="ui-card celebrate" role="status">
+				<div class="celebrate-medals">
+					{#each freshBadges as badge (badge.id)}<BadgeMedal {badge} earned fresh size={64} />{/each}
+				</div>
+				<p>{bx.earned(freshBadges.map(badgeName))}</p>
+			</section>
 		{/if}
 		{#if freshCards.length}
 			<p class="msg ok unlocked" role="status">
@@ -686,7 +692,7 @@
 								{@const day = drills.badges?.[badge.id]}
 								{@const have = day ? badge.need : badgeProgress(badge, drills, instrument, days)}
 								<li class="badge" class:earned={!!day} class:fresh={freshBadges.includes(badge)}>
-									<span class="medal" aria-hidden="true"><Icon name={day ? 'check' : 'lock'} size={16} /></span>
+									<BadgeMedal {badge} earned={!!day} progress={have} fresh={freshBadges.includes(badge)} size={52} />
 									<span class="badge-text">
 										<strong>{badgeName(badge)}</strong>
 										<span class="hint">{day ? bx.since(dateOf(day)) : bx.progress(have, badge.need)}</span>
@@ -1274,7 +1280,7 @@
 
 	.badge {
 		display: flex;
-		align-items: flex-start;
+		align-items: center;
 		gap: var(--space-3);
 		padding: var(--space-2) var(--space-3);
 		border: 1px solid var(--hairline);
@@ -1297,24 +1303,25 @@
 		margin-top: var(--space-1);
 	}
 
-	.medal {
-		display: grid;
-		flex: none;
-		place-items: center;
-		width: 32px;
-		height: 32px;
-		border-radius: 50%;
-		background: var(--surface-2);
-		color: var(--text-muted);
-	}
-
 	.badge.earned {
 		border-color: color-mix(in oklab, var(--ok) 45%, var(--hairline));
+		background: color-mix(in oklab, var(--ok) 5%, var(--surface));
 	}
 
-	.badge.earned .medal {
-		background: var(--ok);
-		color: var(--surface);
+	.celebrate {
+		display: grid;
+		justify-items: center;
+		gap: var(--space-2);
+		padding: var(--space-4);
+		text-align: center;
+		font-weight: 600;
+	}
+
+	.celebrate-medals {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: var(--space-3);
 	}
 
 	.badge:not(.earned) strong {
@@ -1324,6 +1331,16 @@
 
 	.badge.fresh {
 		box-shadow: 0 0 0 2px var(--ok);
+	}
+
+	@media (prefers-reduced-motion: no-preference) {
+		.badge.earned:hover :global(.medal) {
+			transform: rotate(-6deg) scale(1.06);
+		}
+
+		.badge :global(.medal) {
+			transition: transform 0.25s ease;
+		}
 	}
 
 	.how summary {
