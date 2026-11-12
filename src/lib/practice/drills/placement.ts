@@ -1,6 +1,6 @@
 import { EAR_ORDER, FLUENT_MS, KEY_ORDER, kindOf, notesOrder } from './decks.ts';
 import type { InstrumentProfile } from './instruments.ts';
-import { median, type ItemState, type States } from './scheduler.ts';
+import { MASTERED_BOX, median, type ItemState, type States } from './scheduler.ts';
 import { MAX_LEVEL } from './sight.ts';
 import type { Clef } from './theory.ts';
 import { MAX_ENTRY_LEVEL } from './together.ts';
@@ -8,10 +8,13 @@ import { MAX_ENTRY_LEVEL } from './together.ts';
 /**
  * The placement test (#300): a few minutes on first use, so an experienced player doesn't start
  * at middle C and C major. Each skill's items are cut into bands of growing difficulty, in the
- * order they're learnt; the test climbs them, a few probes a band. A band whose probes all come
- * right and fast is known, and the next is tried; the first one that isn't ends that skill.
+ * order they're learnt; the test climbs them, a few probes a band. A band whose probes come right
+ * and fast (one slip allowed, made up by an extra probe) is known, and the next is tried; the
+ * first one that isn't ends that skill.
  * Known items are then put on the schedule as known but to be checked soon, so a lucky guess
- * shows up within days; nothing is marked mastered by the test alone.
+ * shows up within days. Whoever knows every band of every skill is a professional: everything
+ * opens at once and counts as mastered, the drills the test doesn't ask included, so they start
+ * at the top rather than climbing through what they've known for years.
  */
 
 export type PlacementSkill = { kind: 'notes'; clef: Clef } | { kind: 'keys' } | { kind: 'ear' };
@@ -88,17 +91,20 @@ export function nextProbe(placement: Placement, random: () => number = Math.rand
 	return null;
 }
 
-/** An answer to the probe asked; moves the test on. */
+/**
+ * An answer to the probe asked; moves the test on. One slip in a band (a wrong tap, a slow first
+ * look, a note the microphone misheard) costs an extra probe, not the whole skill; a second ends it.
+ */
 export function recordProbe(placement: Placement, id: string, correct: boolean, ms: number) {
 	const part = placement.parts[placement.at];
 	if (!part || part.done) return;
 	part.asked.push({ id, correct, ms });
 	const band = current(part);
-	const wrong = band.filter((answer) => !fast(answer)).length;
-	if (wrong) {
+	const slips = band.filter((answer) => !fast(answer)).length;
+	if (slips >= 2) {
 		// Not known right and fast: this skill starts here.
 		part.done = true;
-	} else if (band.length >= Math.min(part.probes, part.bands[part.passed].length)) {
+	} else if (band.length >= Math.min(part.probes + slips, part.bands[part.passed].length)) {
 		part.passed++;
 		if (part.passed >= part.bands.length) part.done = true;
 	}
@@ -120,6 +126,16 @@ export interface PlacementResult {
 	skills: { skill: PlacementSkill; passed: number; bands: number }[];
 	sightLevel: number;
 	entryLevel: number;
+	/** Every band of every skill known: open everything, all of it mastered. */
+	expert: boolean;
+}
+
+/**
+ * An item a professional knows: mastered, back for a check only now and then, spread out over
+ * the next weeks so the checks don't all fall on one day.
+ */
+export function masteredState(day: number, ms: number, random: () => number = Math.random): ItemState {
+	return { box: MASTERED_BOX, due: day + 4 + Math.floor(random() * 12), seen: 1, right: 1, times: [ms] };
 }
 
 /**
@@ -131,15 +147,17 @@ export interface PlacementResult {
 export function placementResult(placement: Placement, day: number, random: () => number = Math.random): PlacementResult {
 	const states: States = {};
 	const opened: Clef[] = [];
+	const expert = placement.parts.every((part) => part.passed >= part.bands.length);
 	for (const part of placement.parts) {
 		const times = part.asked.filter(fast).map((answer) => Math.round(answer.ms));
 		const typical = times.length ? Math.round(median(times)) : FLUENT_MS[part.skill.kind];
 		for (const id of part.bands.slice(0, part.passed).flat()) {
-			const state: ItemState = { box: 3, due: day + 1 + Math.floor(random() * 4), seen: 1, right: 1, times: [typical] };
+			const state: ItemState = expert ? masteredState(day, typical, random) : { box: 3, due: day + 1 + Math.floor(random() * 4), seen: 1, right: 1, times: [typical] };
 			states[id] = state;
 		}
 		if (part.skill.kind === 'notes' && part.passed >= 2) opened.push(part.skill.clef);
 	}
+	if (expert) return { states, opened, skills: skillsOf(placement), sightLevel: MAX_LEVEL, entryLevel: MAX_ENTRY_LEVEL, expert };
 	const passed = (kind: PlacementSkill['kind']) => Math.max(0, ...placement.parts.filter((part) => part.skill.kind === kind).map((part) => part.passed));
 	const keys = passed('keys');
 	const notes = passed('notes');
@@ -149,8 +167,11 @@ export function placementResult(placement: Placement, day: number, random: () =>
 	return {
 		states,
 		opened,
-		skills: placement.parts.map((part) => ({ skill: part.skill, passed: part.passed, bands: part.bands.length })),
+		skills: skillsOf(placement),
 		sightLevel,
-		entryLevel: Math.min(MAX_ENTRY_LEVEL, Math.max(1, sightLevel - 1))
+		entryLevel: Math.min(MAX_ENTRY_LEVEL, Math.max(1, sightLevel - 1)),
+		expert
 	};
 }
+
+const skillsOf = (placement: Placement) => placement.parts.map((part) => ({ skill: part.skill, passed: part.passed, bands: part.bands.length }));

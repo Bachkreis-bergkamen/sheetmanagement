@@ -1648,6 +1648,17 @@ export const en: Texts = {
 		unavailable: 'Invitations need the database (D1), because new members sign in with a password.'
 	},
 	admin: {
+		drillUnlock: 'Unlock exercises',
+		drillUnlockLead:
+			'Opens exercises in the practice area for a member without them working their way up: for professionals, say. Progress stays on the member’s device; this only sets which exercises are open.',
+		drillUnlockMember: 'Member',
+		drillUnlockChoose: 'Choose a member …',
+		drillUnlockAll: 'All',
+		drillUnlockSave: 'Save',
+		drillUnlockSaved: (count: number) => (count === 1 ? '1 exercise unlocked.' : `${count} exercises unlocked.`),
+		drillUnlockCleared: 'Unlocks removed.',
+		drillUnlockNoMember: 'There is no such member.',
+		drillUnlockCurrent: 'Already unlocked',
 		setupSections: 'Setup',
 		title: 'Admin',
 		lead: 'Approve members and give rights.',
@@ -2130,7 +2141,7 @@ export const en: Texts = {
 		recalibrate: 'check again',
 		pulseAsk: (silent: number) => `Keep the pulse: ${silent} bars alone`,
 		pulseLead: (heard: number, silent: number) =>
-			`Tap quarters along: ${heard} bars with the metronome, one in which it fades, then ${silent} alone. One click comes back at the end.`,
+			`Tap quarters along: ${heard === 1 ? 'one bar' : `${heard} bars`} with the metronome, one in which it fades, then ${silent} alone. One click comes back at the end.`,
 		tapAlong: 'Tap along …',
 		keepPulse: 'On your own …',
 		pulseHeld: 'Pulse kept, very even!',
@@ -2205,7 +2216,7 @@ export const en: Texts = {
 			title: 'Placement',
 			offer: 'Been playing a while?',
 			offerLead:
-				'A short test (about three minutes) finds out what you already know well: notes in your clefs, keys, intervals. That isn’t practised as new, just checked briefly over the next few days.',
+				'A short test (about three minutes) finds out what you already know well: reading notes, keys, intervals. That isn’t practised as new, just checked briefly over the next few days.',
 			start: 'Take the test',
 			skip: 'Start from the beginning',
 			done: 'Placement done',
@@ -2251,7 +2262,7 @@ export const en: Texts = {
 		noPlay: 'There’s no playing exercise for this instrument yet.',
 		how: 'How it works',
 		howItems: [
-			'Short rounds of 20 questions. What you got wrong comes back in the same round.',
+			'Short rounds of 8 questions. What you got wrong comes back in the same round.',
 			'What you know well comes back after days, then weeks. That’s how it sticks.',
 			'New items come in when most answers are right. When it’s hard going, familiar ones are mixed in.',
 			'Secure means right and fast: when sight-reading there’s no time to count lines.',
@@ -2262,7 +2273,7 @@ export const en: Texts = {
 			'Scales go round the circle of fifths, major before minor, with arpeggios. Secure means every note in place, 15 cents off at most on average. With “Show cents only afterwards” you play by ear against the drone.',
 			'Keep the pulse: the metronome stops and you tap on alone, two bars at first, later up to twelve, slow and fast. The line in the result shows whether you speed up or slow down.',
 			'Rhythms get faster once you tap them securely, and the tolerance tighter. Secure here means even: 60 ms off at most on average.',
-			'It gets harder step by step: more of your instrument’s clefs (cello: bass, then tenor, then treble), intervals from distinct to easily confused, parts in other keys.'
+			'It gets harder step by step: on instruments with several clefs, the further ones (cello: bass, then tenor, then treble; trumpet or violin keep their one), intervals from distinct to easily confused, parts in other keys.'
 		],
 		intervals: ['unison', 'minor second', 'major second', 'minor third', 'major third', 'perfect fourth', 'tritone', 'perfect fifth', 'minor sixth', 'major sixth', 'minor seventh', 'major seventh', 'octave'],
 		whichInterval: (harmonic: boolean) => (harmonic ? 'Which interval, played together?' : 'Which interval?'),
@@ -2332,14 +2343,18 @@ export const en: Texts = {
 			dictation: 'Melodies by ear'
 		},
 		chosen: (instrument: string) => `Set to ${instrument}`,
-		chosenLead: (clefs: string) =>
-			`That’s your instrument in the members’ list. You practise in ${clefs}; your instrument’s further clefs come in once you’re ready.`,
+		/** `more`: the instrument reads further clefs, opened one by one; most read only one. */
+		chosenLead: (clefs: string, more: boolean) =>
+			`That’s your instrument in the members’ list. You practise in ${clefs}${more ? '; your instrument’s further clefs come in once you’re ready' : ''}.`,
 		chosenOthers: (others: string) => `You also play ${others}: switch under “change”.`,
 		chosenNone: 'Practising in treble clef',
 		chosenNoneLead: 'The members’ list has no instrument the exercises know. Choose yours under “change”.',
 		chosenOk: 'Fine',
 		change: 'change',
-		changeHint: 'The exercises choose the clef themselves, by your instrument and how far you are. Setting it by hand is rarely needed.',
+		changeHint: (more: boolean) =>
+			more
+				? 'The exercises choose the clef themselves, by your instrument and how far you are. Setting it by hand is rarely needed.'
+				: 'The exercises use your instrument’s clef. Set one only to learn to read another.',
 		auto: 'automatic',
 		treeTitle: 'Practice tree',
 		treeNext: (duration: string, stage: string) => `${duration} to go to ${stage}`,
@@ -2412,6 +2427,8 @@ export const en: Texts = {
 			zoomReset: 'Back to 100 %',
 			fullscreen: 'Full screen',
 			exitFullscreen: 'Exit full screen',
+			showControls: 'Show toolbar',
+			hideControls: 'Hide toolbar',
 			turnHint: 'Turn pages by tapping the left or right edge, with the arrow keys or a page-turn pedal.',
 			tools: 'Tools',
 			closeTools: 'Close tools',

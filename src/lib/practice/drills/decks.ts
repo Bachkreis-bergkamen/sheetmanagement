@@ -38,8 +38,8 @@ export const DRILL_KINDS: readonly DrillKind[] = ['notes', 'keys', 'play', 'ear'
  */
 export const FLUENT_MS: Record<DrillKind, number> = { notes: 2500, keys: 5000, play: 4000, ear: 5000, chord: 5000, dict: 8000, trans: 5000, rhythm: 60, pulse: 45, scale: 15, tune: 8 };
 
-/** Questions per round: a few minutes, short enough to fit anywhere. */
-export const ROUND = 20;
+/** Questions per round: a couple of minutes, short enough to fit anywhere. */
+export const ROUND = 8;
 
 /** How far above and below the staff note reading goes: three ledger lines. */
 const LOWEST = -6;

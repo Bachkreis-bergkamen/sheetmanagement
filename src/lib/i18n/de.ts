@@ -1667,6 +1667,17 @@ export const de = {
 		unavailable: 'Einladungen brauchen die Datenbank (D1), weil sich neue Mitglieder mit Passwort anmelden.'
 	},
 	admin: {
+		drillUnlock: 'Übungen freischalten',
+		drillUnlockLead:
+			'Öffnet Übungen im Übebereich für ein Mitglied, ohne dass es sich hocharbeiten muss: etwa für Profis. Der Fortschritt bleibt auf dem Gerät des Mitglieds; hier geht es nur darum, welche Übungen offen sind.',
+		drillUnlockMember: 'Mitglied',
+		drillUnlockChoose: 'Mitglied wählen …',
+		drillUnlockAll: 'Alle',
+		drillUnlockSave: 'Speichern',
+		drillUnlockSaved: (count: number) => (count === 1 ? '1 Übung freigeschaltet.' : `${count} Übungen freigeschaltet.`),
+		drillUnlockCleared: 'Freischaltungen entfernt.',
+		drillUnlockNoMember: 'Dieses Mitglied gibt es nicht.',
+		drillUnlockCurrent: 'Schon freigeschaltet',
 		setupSections: 'Einrichtung',
 		title: 'Verwaltung',
 		lead: 'Mitglieder freischalten und Rechte vergeben.',
@@ -2152,7 +2163,7 @@ export const de = {
 		recalibrate: 'neu abgleichen',
 		pulseAsk: (silent: number) => `Halte den Puls: ${silent} Takte allein`,
 		pulseLead: (heard: number, silent: number) =>
-			`Klopf Viertel mit: ${heard} Takte mit Metronom, einen, in dem es leiser wird, dann ${silent} allein. Am Ende kommt ein Klick zurück.`,
+			`Klopf Viertel mit: ${heard === 1 ? 'ein Takt' : `${heard} Takte`} mit Metronom, einen, in dem es leiser wird, dann ${silent} allein. Am Ende kommt ein Klick zurück.`,
 		tapAlong: 'Mitklopfen …',
 		keepPulse: 'Allein weiter …',
 		pulseHeld: 'Puls gehalten, sehr gleichmäßig!',
@@ -2229,7 +2240,7 @@ export const de = {
 			title: 'Einstufung',
 			offer: 'Spielst du schon länger?',
 			offerLead:
-				'Ein kurzer Test (etwa drei Minuten) findet heraus, was du schon sicher kannst: Noten in deinen Schlüsseln, Tonarten, Intervalle. Das wird dann nicht neu geübt, nur in den nächsten Tagen kurz geprüft.',
+				'Ein kurzer Test (etwa drei Minuten) findet heraus, was du schon sicher kannst: Noten lesen, Tonarten, Intervalle. Das wird dann nicht neu geübt, nur in den nächsten Tagen kurz geprüft.',
 			start: 'Test machen',
 			skip: 'Von vorne anfangen',
 			done: 'Einstufung fertig',
@@ -2275,7 +2286,7 @@ export const de = {
 		noPlay: 'Für dieses Instrument gibt es noch keine Spielübung.',
 		how: 'So funktioniert es',
 		howItems: [
-			'Kurze Runden mit 20 Fragen. Was du falsch hattest, kommt in derselben Runde wieder.',
+			'Kurze Runden mit 8 Fragen. Was du falsch hattest, kommt in derselben Runde wieder.',
 			'Was du sicher weißt, kommt erst nach Tagen wieder, dann nach Wochen. So bleibt es im Gedächtnis.',
 			'Neues kommt dazu, wenn die meisten Antworten stimmen. Läuft es zäh, mischt die Übung Bekanntes ein.',
 			'Sicher heißt richtig und schnell: Beim Vom-Blatt-Spielen ist keine Zeit zum Abzählen.',
@@ -2286,7 +2297,7 @@ export const de = {
 			'Tonleitern gehen den Quintenzirkel entlang, Dur vor Moll, mit Dreiklängen. Sicher heißt: alle Töne getroffen, im Schnitt höchstens 15 Cent daneben. Mit „Cent erst danach zeigen“ spielst du nach Gehör gegen den Liegeton.',
 			'Puls halten: Das Metronom verstummt, du klopfst allein weiter, erst zwei Takte, später bis zu zwölf, langsam und schnell. Die Linie im Ergebnis zeigt, ob du schneller oder langsamer wirst.',
 			'Rhythmen werden schneller, sobald du sie sicher klopfst, und die Toleranz wird enger. Sicher heißt hier: gleichmäßig, im Schnitt höchstens 60 ms daneben.',
-			'Es wird nach und nach schwerer: weitere Schlüssel deines Instruments (beim Cello Bass, dann Tenor, dann Violin), Intervalle von klar verschieden bis leicht verwechselbar, Stimmen in anderen Stimmungen.'
+			'Es wird nach und nach schwerer: bei Instrumenten mit mehreren Schlüsseln die weiteren (beim Cello Bass, dann Tenor, dann Violin; Trompete oder Geige bleiben bei ihrem einen), Intervalle von klar verschieden bis leicht verwechselbar, Stimmen in anderen Stimmungen.'
 		] as string[],
 		/** Intervals by their size in semitones. */
 		intervals: ['Prime', 'kleine Sekunde', 'große Sekunde', 'kleine Terz', 'große Terz', 'Quarte', 'Tritonus', 'Quinte', 'kleine Sexte', 'große Sexte', 'kleine Septime', 'große Septime', 'Oktave'] as string[],
@@ -2358,14 +2369,18 @@ export const de = {
 			dictation: 'Melodien nachgehört'
 		},
 		chosen: (instrument: string) => `Eingestellt: ${instrument}`,
-		chosenLead: (clefs: string) =>
-			`Das ist dein Instrument laut Mitgliederliste. Geübt wird im ${clefs}; weitere Schlüssel deines Instruments kommen dazu, sobald du so weit bist.`,
+		/** `more`: the instrument reads further clefs, opened one by one; most read only one. */
+		chosenLead: (clefs: string, more: boolean) =>
+			`Das ist dein Instrument laut Mitgliederliste. Geübt wird im ${clefs}${more ? '; weitere Schlüssel deines Instruments kommen dazu, sobald du so weit bist' : ''}.`,
 		chosenOthers: (others: string) => `Du spielst auch ${others}: unter „ändern“ kannst du umstellen.`,
 		chosenNone: 'Geübt wird im Violinschlüssel',
 		chosenNoneLead: 'In der Mitgliederliste steht kein Instrument, das die Übungen kennen. Unter „ändern“ wählst du deines.',
 		chosenOk: 'Passt',
 		change: 'ändern',
-		changeHint: 'Den Schlüssel wählt die Übung selbst, nach deinem Instrument und wie weit du bist. Nur selten nötig, ihn festzulegen.',
+		changeHint: (more: boolean) =>
+			more
+				? 'Den Schlüssel wählt die Übung selbst, nach deinem Instrument und wie weit du bist. Nur selten nötig, ihn festzulegen.'
+				: 'Den Schlüssel wählt die Übung nach deinem Instrument. Festlegen nur, wenn du einen anderen lesen lernen willst.',
 		auto: 'automatisch',
 		treeTitle: 'Übebaum',
 		treeNext: (duration: string, stage: string) => `noch ${duration} bis ${stage}`,
@@ -2449,6 +2464,8 @@ export const de = {
 			zoomReset: 'Zurück auf 100 %',
 			fullscreen: 'Vollbild',
 			exitFullscreen: 'Vollbild beenden',
+			showControls: 'Leiste zeigen',
+			hideControls: 'Leiste ausblenden',
 			turnHint: 'Blättern: an den linken oder rechten Rand tippen, mit den Pfeiltasten oder einem Blätterpedal.',
 			tools: 'Werkzeuge',
 			closeTools: 'Werkzeuge schließen',

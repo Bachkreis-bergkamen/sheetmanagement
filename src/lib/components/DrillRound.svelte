@@ -110,6 +110,8 @@
 	let listening = $state(false);
 	let micProblem = $state<MicProblem | null>(null);
 	let judge: NoteJudge | null = null;
+	/** The note the microphone hears now, kept so the next question's judge knows it's left over. */
+	let sounding: number | null = null;
 
 	// Rhythm: the bar playing, the taps into it, and what's shown while it plays.
 	/** 'alone': keeping the pulse once the metronome has gone quiet. */
@@ -221,10 +223,10 @@
 		shownAt = performance.now();
 		judge =
 			asked.kind === 'play'
-				? new NoteJudge(asked.midi, { a4 })
+				? new NoteJudge(asked.midi, { a4, carried: sounding })
 				: asked.kind === 'tune'
 					? // Held a while, as tuning takes a moment of listening; a wrong note needs holding too.
-						new NoteJudge(asked.tune.targetMidi, { a4, holdMs: 1600, wrongMs: 1000 })
+						new NoteJudge(asked.tune.targetMidi, { a4, holdMs: 1600, wrongMs: 1000, carried: sounding })
 					: null;
 		// With the microphone already on, the next chord sounds straight away.
 		if (asked.kind === 'tune' && listening) holdChord(asked);
@@ -240,7 +242,7 @@
 			tolerance = toleranceFor(box, beatMs(bpm));
 			calibrating = tapOffset === undefined;
 			// A rhythm being learnt is heard before it's tapped; a known one is read.
-			if (!calibrating && (box === undefined || box <= 1)) hearRhythm(asked);
+			if (!calibrating && (box === undefined || box <= 1)) hearRhythm(asked, true);
 		}
 	}
 
@@ -314,21 +316,43 @@
 		barTimers.push(setTimeout(done, at(beats * length + tail)));
 	}
 
-	/** The rhythm as it should sound, after a bar's count-in. */
-	async function hearRhythm(q: Extract<Question, { kind: 'rhythm' }>) {
+	/**
+	 * The rhythm as it should sound, after a bar's count-in. With `thenTap`, the player's bar follows
+	 * straight on, as call and response: no second count-in, no button to press.
+	 */
+	async function hearRhythm(q: Extract<Question, { kind: 'rhythm' }>, thenTap = false) {
 		stopBar();
 		phase = 'example';
-		const played = await playBar({ bpm, countIn: countInBeats(q.meter), beats: q.meter, meter: q.meter, notes: onsets(q.events, beatMs(bpm), q.meter) });
+		const length = beatMs(bpm);
+		const countIn = countInBeats(q.meter);
+		const played = await playBar({ bpm, countIn, beats: q.meter * (thenTap ? 2 : 1), meter: q.meter, notes: onsets(q.events, length, q.meter) });
 		if (!played || phase !== 'example') {
 			played?.stop();
 			if (!played) phase = 'idle';
 			return;
 		}
 		bar = played;
-		followBar(played, countInBeats(q.meter), q.meter, () => {
-			beat = null;
-			phase = 'idle';
-		});
+		if (!thenTap) {
+			followBar(played, countIn, q.meter, () => {
+				beat = null;
+				phase = 'idle';
+			});
+			return;
+		}
+		followBar(played, countIn, q.meter, () => {});
+		const answerStart = played.start + q.meter * length;
+		barTimers.push(
+			setTimeout(
+				() => {
+					if (phase !== 'example') return;
+					taps = [];
+					tapped = 0;
+					phase = 'tap';
+					followBar({ ...played, start: answerStart }, 0, q.meter, () => judgeRhythm(q, answerStart), Math.min(tolerance, length / 2) + 40);
+				},
+				Math.max(0, answerStart - length / 2 - performance.now())
+			)
+		);
 	}
 
 	/** Count in a bar, then take the taps for one bar and judge them. */
@@ -574,7 +598,7 @@
 				oncalibrate(offset);
 				calibrating = false;
 				shownAt = performance.now();
-				if (question?.kind === 'rhythm' && (states[question.id]?.box ?? 0) <= 1) hearRhythm(question);
+				if (question?.kind === 'rhythm' && (states[question.id]?.box ?? 0) <= 1) hearRhythm(question, true);
 			},
 			length / 2
 		);
@@ -651,6 +675,7 @@
 					if (chordHeard(q, midi) && midi !== q.tune.targetMidi) return;
 					if (midi === q.tune.targetMidi && !feedback) liveCents = Math.round((semitones - midi) * 100 - q.tune.pure);
 				}
+				sounding = frequency ? Math.round(69 + 12 * Math.log2(frequency / a4)) : null;
 				const verdict = judge?.push(frequency, time);
 				if (!verdict) return;
 				if (q?.kind === 'tune') tuneHeard(q, verdict);

@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { EAR_ORDER, KEY_ORDER, notesOrder } from './decks.ts';
 import { profile } from './instruments.ts';
 import { makePlacement, nextProbe, placementResult, progress, recordProbe, type Placement } from './placement.ts';
-import { seeded } from './sight.ts';
+import { MASTERED_BOX } from './scheduler.ts';
+import { MAX_LEVEL, seeded } from './sight.ts';
+import { MAX_ENTRY_LEVEL } from './together.ts';
 
 /** Answer the test as a player who knows `known` items, right and fast; everything else wrong. */
 function take(placement: Placement, known: (id: string) => boolean, slow = () => false) {
@@ -20,7 +22,8 @@ describe('the placement test', () => {
 	it('ends soon for a beginner, having asked a little of each skill', () => {
 		const placement = makePlacement(profile('violin'));
 		const asked = take(placement, () => false);
-		expect(asked.map((id) => id.split(':')[0])).toEqual(['notes', 'keys', 'ear']);
+		// Two wrong answers a skill: one slip is forgiven, the second ends it.
+		expect(asked.map((id) => id.split(':')[0])).toEqual(['notes', 'notes', 'keys', 'keys', 'ear', 'ear']);
 		const result = placementResult(placement, 100, seeded(2));
 		expect(result.states).toEqual({});
 		expect(result.sightLevel).toBe(1);
@@ -34,9 +37,31 @@ describe('the placement test', () => {
 		// About 3 probes per band: well under fifty questions.
 		expect(asked.length).toBeLessThan(50);
 		const result = placementResult(placement, 100, seeded(2));
-		for (const id of [...notesOrder('treble'), ...KEY_ORDER, ...EAR_ORDER]) expect(result.states[id], id).toMatchObject({ box: 3, seen: 1 });
-		expect(result.sightLevel).toBe(7);
+		// A professional: everything mastered, back for a check only in the weeks to come; the top levels.
+		expect(result.expert).toBe(true);
+		for (const id of [...notesOrder('treble'), ...KEY_ORDER, ...EAR_ORDER]) {
+			expect(result.states[id], id).toMatchObject({ box: MASTERED_BOX, seen: 1 });
+			expect(result.states[id].due, id).toBeGreaterThanOrEqual(104);
+		}
+		expect(result.sightLevel).toBe(MAX_LEVEL);
+		expect(result.entryLevel).toBe(MAX_ENTRY_LEVEL);
 		expect(result.opened).toEqual(['treble']);
+	});
+
+	it('opens every clef of a professional cellist, and only then counts them as expert', () => {
+		const pro = makePlacement(profile('cello'));
+		take(pro, () => true);
+		const result = placementResult(pro, 100, seeded(2));
+		expect(result.expert).toBe(true);
+		expect(result.opened.sort()).toEqual([...profile('cello').clefs].filter((clef) => profile('cello').range[clef]).sort());
+
+		// One skill short of the top: known, but not a professional.
+		const good = makePlacement(profile('cello'));
+		const someKeys = new Set(KEY_ORDER.slice(0, 10));
+		take(good, (id) => !id.startsWith('key') || someKeys.has(id));
+		const placed = placementResult(good, 100, seeded(2));
+		expect(placed.expert).toBe(false);
+		expect(Object.values(placed.states).every((state) => state.box === 3)).toBe(true);
 	});
 
 	it('stops a skill at the first band not known', () => {
@@ -71,8 +96,10 @@ describe('the placement test', () => {
 	});
 
 	it('spreads the known items over the next days, never today', () => {
+		// Strong, but the hardest intervals not yet: not a professional, so checked within days.
 		const placement = makePlacement(profile('flute'));
-		take(placement, () => true);
+		const hardest = new Set(EAR_ORDER.slice(18));
+		take(placement, (id) => !hardest.has(id));
 		const due = Object.values(placementResult(placement, 100, seeded(3)).states).map((state) => state.due);
 		expect(Math.min(...due)).toBeGreaterThanOrEqual(101);
 		expect(Math.max(...due)).toBeLessThanOrEqual(104);
@@ -84,5 +111,22 @@ describe('the placement test', () => {
 		const landmarks = new Set(notesOrder('treble').slice(0, 5));
 		take(placement, (id) => !id.startsWith('notes') || landmarks.has(id));
 		expect(placementResult(placement, 100).sightLevel).toBe(2);
+	});
+
+	it('forgives one slip in a band, made up by an extra probe, but not two', () => {
+		const once = makePlacement(profile('violin'));
+		let slipped = false;
+		take(once, (id) => {
+			if (!id.startsWith('notes:') || slipped) return true;
+			slipped = true;
+			return false;
+		});
+		expect(once.parts[0].passed).toBe(once.parts[0].bands.length);
+		expect(once.parts[0].asked.length).toBe(once.parts[0].bands.reduce((sum, band) => sum + Math.min(3, band.length), 0) + 1);
+
+		const twice = makePlacement(profile('violin'));
+		let slips = 0;
+		take(twice, (id) => !(id.startsWith('notes:') && slips++ < 2));
+		expect(twice.parts[0].passed).toBe(0);
 	});
 });
