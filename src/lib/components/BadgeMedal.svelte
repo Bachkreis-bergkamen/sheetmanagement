@@ -26,6 +26,8 @@
 		kind.type === 'ledger' ||
 			(kind.type === 'keys' && kind.set === 'minor') ||
 			(kind.type === 'ear' && kind.harmonic) ||
+			kind.type === 'chords' ||
+			(kind.type === 'scales' && kind.octaves === 3) ||
 			(kind.type === 'trans' && kind.parts) ||
 			(kind.type === 'sight' && kind.level >= 8) ||
 			kind.type === 'entry' ||
@@ -145,6 +147,18 @@
 			<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.4">
 				<path d="M-9 -6 A8 8 0 0 0 -9 6" opacity="0.9" />
 				<path d="M-13 -9 A12 12 0 0 0 -13 9" opacity="0.55" />
+			</g>
+		{:else if kind.type === 'chords'}
+			<!-- A triad stacked on one stem, with the sound waves of the ear badges. -->
+			<g fill="currentColor">
+				<ellipse cx="3" cy="9" rx="3.8" ry="2.7" transform="rotate(-20 3 9)" />
+				<ellipse cx="3" cy="2" rx="3.8" ry="2.7" transform="rotate(-20 3 2)" />
+				<ellipse cx="3" cy="-5" rx="3.8" ry="2.7" transform="rotate(-20 3 -5)" />
+				<rect x="6.2" y="-16" width="1.3" height="24.5" />
+			</g>
+			<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.4">
+				<path d="M-8 -5 A8 8 0 0 0 -8 7" opacity="0.9" />
+				<path d="M-12 -8 A12 12 0 0 0 -12 10" opacity="0.55" />
 			</g>
 		{:else if kind.type === 'rhythm'}
 			<g fill="currentColor">

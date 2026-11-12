@@ -3,7 +3,7 @@
 	import { barLength, beatLength, countInBeats, markedTempo } from '#lib/practice/drills/meters.ts';
 	import { t } from '#lib/i18n/index.ts';
 	import { noteFrequency } from '#lib/practice/audio.ts';
-	import { FLUENT_MS, kindOf, questionFor, ROUND, type Question } from '#lib/practice/drills/decks.ts';
+	import { FLUENT_MS, kindOf, questionFor, ROUND, type ChordQuality, type Question } from '#lib/practice/drills/decks.ts';
 	import { profile, type ProfileId } from '#lib/practice/drills/instruments.ts';
 	import { NoteJudge, type Verdict } from '#lib/practice/drills/judge.ts';
 	import { dayNumber, isMastered, median, pickNext, type States } from '#lib/practice/drills/scheduler.ts';
@@ -24,8 +24,8 @@
 		toleranceFor,
 		type PulseVerdict
 	} from '#lib/practice/drills/rhythm.ts';
-	import type { DrillSettings } from '#lib/practice/drills/progress.ts';
-	import { droneMidi, IN_TUNE, isArpeggio, isMinor, judgeScale, scaleTempo, segment, UNEVEN, type NoteMark, type Reading } from '#lib/practice/drills/scales.ts';
+	import { REFLECTION_MAX, type DrillSettings, type Reflection } from '#lib/practice/drills/progress.ts';
+	import { droneMidi, IN_TUNE, isArpeggio, isMinor, judgeScale, scaleRows, scaleTempo, segment, UNEVEN, type NoteMark, type Reading } from '#lib/practice/drills/scales.ts';
 	import { listenToPitch, playArpeggio, playBar, playChord, playTone, rememberedA4, startChord, startDrone, triad, type MicProblem, type PlayedBar } from '#lib/practice/drills/sound.ts';
 	import { TUNED } from '#lib/practice/drills/together.ts';
 	import { midiOf, tonic, type Clef } from '#lib/practice/drills/theory.ts';
@@ -55,6 +55,7 @@
 		oncalibrate,
 		onsetting,
 		onfinish,
+		reflect,
 		onexit
 	}: {
 		order: string[];
@@ -78,8 +79,15 @@
 		test?: () => string | null;
 		progress?: number;
 		onfinish?: () => void;
+		/**
+		 * The daily round (#315): the note the member kept last time, shown as the round starts,
+		 * and after the round a line for what was hard today.
+		 */
+		reflect?: { last: Reflection | null; onsave: (text: string) => void };
 		onexit: () => void;
 	} = $props();
+	let reflection = $state('');
+	let reflectionSaved = $state(false);
 
 	const tx = t.drills;
 	/** Questions in a round; fewer for keeping the pulse, where each take lasts half a minute. */
@@ -97,6 +105,7 @@
 	let shownAt = 0;
 	let feedback = $state<{ correct: boolean; text: string; tip?: string } | null>(null);
 	let chosen = $state<number | null>(null);
+	let chosenChord = $state<ChordQuality | null>(null);
 	let finished = $state(false);
 	let autoNext: ReturnType<typeof setTimeout> | undefined;
 
@@ -168,6 +177,11 @@
 			const notes = [midiOf(q.low), midiOf(q.low) + q.semitones].map(frequencyOf);
 			if (q.harmonic) playChord(notes);
 			else playArpeggio(notes, 0.7);
+		} else if (q.kind === 'chord') {
+			// Broken first, then together: the third is easier to hear on its own.
+			const notes = q.pitches.map((pitch) => frequencyOf(midiOf(pitch)));
+			playArpeggio(notes, 0.45);
+			setTimeout(() => playChord(notes), 1600);
 		} else if (q.kind === 'rhythm') hearRhythm(q);
 		else if (q.kind === 'pulse') playBar({ bpm: q.bpm, countIn: 4, beats: 0 });
 		else if (q.kind === 'tune') playChord([...q.tune.held.map((ratio) => frequencyOf(q.tune.rootMidi) * ratio), frequencyOf(q.tune.rootMidi) * 2 ** ((q.tune.targetMidi - q.tune.rootMidi + q.tune.pure / 100) / 12)]);
@@ -181,6 +195,7 @@
 		stopBar();
 		feedback = null;
 		chosen = null;
+		chosenChord = null;
 		rhythmMarks = [];
 		tapMarks = [];
 		pulseResult = null;
@@ -216,7 +231,7 @@
 		// With the microphone already on, the next chord sounds straight away.
 		if (asked.kind === 'tune' && listening) holdChord(asked);
 		// Sound before symbol: an interval is heard first, and its notes shown only after the answer.
-		if (asked.kind === 'ear') sound(asked);
+		if (asked.kind === 'ear' || asked.kind === 'chord') sound(asked);
 		if (asked.kind === 'pulse') {
 			bpm = asked.bpm;
 			calibrating = tapOffset === undefined;
@@ -405,7 +420,7 @@
 	}
 
 	/** The scale's name: "G-Dur-Tonleiter", "a-Moll harmonisch", "D-Dur-Dreiklang". */
-	const scaleName = (q: Extract<Question, { kind: 'scale' }>) => tx.scaleName(keyLabel(q.item.fifths, isMinor(q.item.type) ? 'minor' : 'major'), q.item.type);
+	const scaleName = (q: Extract<Question, { kind: 'scale' }>) => tx.scaleName(keyLabel(q.item.fifths, isMinor(q.item.type) ? 'minor' : 'major'), q.item.type, q.item.octaves);
 	const scaleTempoNow = $derived(question?.kind === 'scale' ? scaleTempo(states[question.id]?.box) : 60);
 
 	/** Notes probably the drone through the speaker, not the player: its pitch class. */
@@ -596,6 +611,14 @@
 		answer(semitones === right, semitones === right ? '' : tx.intervalWas(tx.intervals[right], right));
 	}
 
+	/** A chord answered by its quality, or null for "don't know". */
+	function answerChord(quality: ChordQuality | null) {
+		if (question?.kind !== 'chord' || feedback) return;
+		chosenChord = quality;
+		const right = question.quality;
+		answer(quality === right, quality === right ? '' : tx.chordWas(tx.chordQualities[right], tx.chordHow[right]));
+	}
+
 	/** A note answered by its pitch class (any spelling counts), or null; a wrong one comes with how to transpose. */
 	function answerPitch(pitchClass: number | null) {
 		if (question?.kind !== 'trans' || feedback) return;
@@ -647,6 +670,7 @@
 		if (question.kind === 'notes') answerNote(null);
 		else if (question.kind === 'keys') answerKey(null);
 		else if (question.kind === 'ear') answerInterval(null);
+		else if (question.kind === 'chord') answerChord(null);
 		else if (question.kind === 'trans') answerPitch(null);
 		else if (question.kind === 'rhythm') {
 			stopBar();
@@ -685,10 +709,11 @@
 		if (question?.kind === 'notes') {
 			const step = tx.letterKeys.indexOf(event.key.toLowerCase());
 			if (step >= 0) answerNote(step);
-		} else if (question?.kind === 'keys' || question?.kind === 'ear') {
+		} else if (question?.kind === 'keys' || question?.kind === 'ear' || question?.kind === 'chord') {
 			const index = Number(event.key) - 1;
 			if (index < 0 || index >= question.options.length) return;
 			if (question.kind === 'keys') answerKey(question.options[index]);
+			else if (question.kind === 'chord') answerChord(question.options[index]);
 			else answerInterval(question.options[index]);
 		}
 	}
@@ -716,6 +741,9 @@
 	{#if !finished}
 		<div class="bar" aria-hidden="true"><span style:width="{(test ? (progress ?? 0) : count / roundLength) * 100}%"></span></div>
 	{/if}
+	{#if reflect?.last && count === 1 && !finished}
+		<p class="last-note"><span class="ui-label">{tx.reflection.last(new Date(`${reflect.last.day}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }))}</span> {reflect.last.text}</p>
+	{/if}
 
 	{#if question}
 		<div class="prompt">
@@ -724,6 +752,7 @@
 				{#if question.kind === 'notes'}{tx.whichNote}
 				{:else if question.kind === 'keys'}{tx.whichKey(question.mode)}
 				{:else if question.kind === 'ear'}{tx.whichInterval(question.harmonic)}
+				{:else if question.kind === 'chord'}{tx.whichChord}
 				{:else if question.kind === 'trans'}{tx.transQuestion(partLabel(question))}
 				{:else if question.kind === 'rhythm'}{calibrating ? tx.calibrateTitle : tx.tapThis}
 				{:else if question.kind === 'pulse'}{calibrating ? tx.calibrateTitle : tx.pulseAsk(question.silent)}
@@ -741,16 +770,20 @@
 					label={tx.tuneAsk(tx.tuneRoles[question.tune.role])}
 				/>
 			{:else if question.kind === 'scale'}
-				<DrillStaff
-					clef={question.clef}
-					fifths={question.item.fifths}
-					notes={question.item.pitches}
-					marks={scaleMarks}
-					captions={scaleCaptions}
-					spacing={28}
-					label={scaleName(question)}
-				/>
-				<p class="hint">{tx.upAndDown}</p>
+				<!-- Over more octaves a staff per two octaves' run, each in the clef it reads best in. -->
+				{@const rows = scaleRows(question.item)}
+				{#each rows as row, i (i)}
+					<DrillStaff
+						clef={row.clef}
+						fifths={question.item.fifths}
+						notes={question.item.pitches.slice(row.from, row.to)}
+						marks={scaleMarks.slice(row.from, row.to)}
+						captions={scaleCaptions.slice(row.from, row.to)}
+						spacing={28}
+						label={rows.length > 1 ? `${scaleName(question)} (${i + 1}/${rows.length})` : scaleName(question)}
+					/>
+				{/each}
+				<p class="hint">{tx.upAndDown(question.item.octaves)}</p>
 			{:else if question.kind === 'pulse'}
 				{#if calibrating}
 					<p class="hint calibrate">{tx.calibrateLead}</p>
@@ -791,6 +824,13 @@
 			{:else if question.kind === 'ear'}
 				{#if feedback}
 					<DrillStaff clef={question.clef} notes={[question.low, question.high]} together={question.harmonic} label={tx.intervals[question.semitones]} />
+				{:else}
+					{@const q = question}
+					<button type="button" class="listen" onclick={() => sound(q)}><Icon name="headphones" size={36} /><span>{tx.listen}</span></button>
+				{/if}
+			{:else if question.kind === 'chord'}
+				{#if feedback}
+					<DrillStaff clef={question.clef} notes={question.pitches} together label={tx.chordQualities[question.quality]} />
 				{:else}
 					{@const q = question}
 					<button type="button" class="listen" onclick={() => sound(q)}><Icon name="headphones" size={36} /><span>{tx.listen}</span></button>
@@ -845,6 +885,20 @@
 						class:wrong={!!feedback && chosen === semitones && q.semitones !== semitones}
 						disabled={!!feedback}
 						onclick={() => answerInterval(semitones)}><kbd>{i + 1}</kbd>{tx.intervals[semitones]}</button
+					>
+				{/each}
+			</div>
+		{:else if question.kind === 'chord'}
+			<div class="options" role="group" aria-label={tx.whichChord}>
+				{#each question.options as quality, i (quality)}
+					{@const q = question}
+					<button
+						type="button"
+						class="answer wide"
+						class:right={!!feedback && q.quality === quality}
+						class:wrong={!!feedback && chosenChord === quality && q.quality !== quality}
+						disabled={!!feedback}
+						onclick={() => answerChord(quality)}><kbd>{i + 1}</kbd>{tx.chordQualities[quality]}</button
 					>
 				{/each}
 			</div>
@@ -990,7 +1044,7 @@
 				{#if feedback.tip}<p class="hint">{feedback.tip}</p>{/if}
 				<div class="row">
 					<button type="button" class="btn ghost small" onclick={() => question && sound(question)}
-						>{question.kind === 'keys' || question.kind === 'tune' ? tx.replayChord : question.kind === 'ear' || question.kind === 'rhythm' || question.kind === 'pulse' || question.kind === 'scale' ? tx.listen : tx.replay}</button
+						>{question.kind === 'keys' || question.kind === 'tune' ? tx.replayChord : question.kind === 'ear' || question.kind === 'chord' || question.kind === 'rhythm' || question.kind === 'pulse' || question.kind === 'scale' ? tx.listen : tx.replay}</button
 					>
 					<button type="button" class="btn" onclick={next}>{tx.next}</button>
 				</div>
@@ -1007,6 +1061,24 @@
 				{#if introduced}<li>{tx.doneNew(introduced)}</li>{/if}
 				<li>{tx.mastered(masteredNow, order.length)}</li>
 			</ul>
+			{#if reflect}
+				<form
+					class="reflect"
+					onsubmit={(event) => {
+						event.preventDefault();
+						if (!reflection.trim()) return;
+						reflect.onsave(reflection);
+						reflectionSaved = true;
+					}}
+				>
+					<label for="reflection">{tx.reflection.ask}</label>
+					<div class="reflect-row">
+						<input id="reflection" type="text" maxlength={REFLECTION_MAX} bind:value={reflection} oninput={() => (reflectionSaved = false)} />
+						<button type="submit" class="btn ghost small" disabled={!reflection.trim()}>{tx.reflection.save}</button>
+					</div>
+					<small class="hint" role="status">{reflectionSaved ? tx.reflection.saved : tx.reflection.hint}</small>
+				</form>
+			{/if}
 			<div class="row">
 				<button type="button" class="btn ghost" onclick={onexit}>{tx.back}</button>
 				<button
@@ -1434,6 +1506,35 @@
 		flex-wrap: wrap;
 		justify-content: center;
 		gap: var(--space-2);
+	}
+
+	.last-note {
+		margin: 0;
+		padding: var(--space-2) var(--space-3);
+		border-left: 3px solid var(--accent);
+		background: var(--surface-2);
+		font-size: var(--text-sm);
+	}
+
+	.reflect {
+		display: grid;
+		gap: var(--space-1);
+		width: min(100%, 26rem);
+		text-align: start;
+	}
+
+	.reflect label {
+		font-weight: 600;
+	}
+
+	.reflect-row {
+		display: flex;
+		gap: var(--space-2);
+	}
+
+	.reflect-row input {
+		flex: 1;
+		min-width: 0;
 	}
 
 	.done {
