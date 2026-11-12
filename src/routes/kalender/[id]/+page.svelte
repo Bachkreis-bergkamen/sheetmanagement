@@ -22,7 +22,7 @@
 	/** The form that changes this date in the calendar, for those who plan dates. */
 	let editing = $state(false);
 	let editSaved = $state(false);
-	/** The archive concert's form (#330), for those who keep the archive. */
+	/** The archive concert's form, for those who keep the archive. */
 	let archiveEditing = $state(false);
 	const orchestraSave = new FormState();
 	const publishSave = new FormState();

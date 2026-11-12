@@ -253,7 +253,7 @@ async function check(concert: LibraryConcert | undefined, event: ShownEvent | un
 	return items.length ? items : null;
 }
 
-/** The archive concert's form (#330), for those who keep the archive: its row as it is now. */
+/** The archive concert's form, for those who keep the archive: its row as it is now. */
 async function archiveEdit(concert: LibraryConcert, locals: App.Locals) {
 	const sheet = concert.sheet;
 	if (!sheet || !locals.access.rights.has('archiv.bearbeiten')) return null;
@@ -537,7 +537,7 @@ async function signupChange(locals: App.Locals, id: string, work: (event: { id: 
 }
 
 export const actions: Actions = {
-	/** An archive concert's name, day, place and orchestras (#330). */
+	/** An archive concert's name, day, place and orchestras. */
 	editArchive: async ({ request, locals, params }) => editArchiveConcert(locals, params.id, await request.formData()),
 
 	/** One click: Zusage, Vielleicht or Absage; instrument and comment stay as they were. */

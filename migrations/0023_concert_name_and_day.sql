@@ -1,4 +1,4 @@
--- A concert is its name and its day (#330): the Weihnachtskonzert 1957 and the one 1958 may
+-- A concert is its name and its day: the Weihnachtskonzert 1957 and the one 1958 may
 -- share "Weihnachtskonzert". The unique "title_key" now holds the name and the day, as
 -- concertKey() in src/lib/repertoire/concert-ref.ts writes it: the name as compared, a unit
 -- separator, then the day as "1957-12-21", "1957-12" or "1957". Dates written another way

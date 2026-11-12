@@ -89,7 +89,7 @@ async function concertUrl(title: string, date: string) {
 }
 
 /**
- * Changes a concert of the archive (#330): name, day, place, orchestras. Rows that name it
+ * Changes a concert of the archive: name, day, place, orchestras. Rows that name it
  * (programme, notes …) follow. The form carries the version it started from; a row changed
  * meanwhile is refused instead of overwritten.
  */

@@ -41,7 +41,7 @@ export interface TableSpec {
 	/** Columns compared exactly: ids. Everything else is compared like the app compares names. */
 	exact?: string[];
 	/**
-	 * A name that is only unique with a day (#330): its compared value holds both, so the
+	 * A name that is only unique with a day: its compared value holds both, so the
 	 * Weihnachtskonzert 1957 and 1958 may share a name. Links still name it by text, with the
 	 * date in brackets where the name is shared (concert-ref.ts).
 	 */

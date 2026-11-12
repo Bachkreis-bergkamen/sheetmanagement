@@ -8,7 +8,7 @@
 	import PlaceInput from './PlaceInput.svelte';
 
 	/**
-	 * Changes a concert of the archive (#330): its row in "Konzerte". Name and day together
+	 * Changes a concert of the archive: its row in "Konzerte". Name and day together
 	 * make the concert, so a name may repeat on another day; what names it elsewhere follows.
 	 */
 	let {

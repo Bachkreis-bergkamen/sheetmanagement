@@ -6,7 +6,7 @@
 	import Icon from './Icon.svelte';
 
 	/**
-	 * A date typed the German way, "21.12.1957" (#330). The browser's own date field writes in
+	 * A date typed the German way, "21.12.1957". The browser's own date field writes in
 	 * the phone's language, MM/DD/YYYY on an English one, so 03/12 meant 12 March to it and
 	 * 3 December to us. Here the order is always day, month, year; the date is said back in
 	 * words, and the calendar button still offers the browser's picker. The form gets

@@ -342,7 +342,7 @@ describe.each([
 		expect(data.concerts![1].cells.sameProgramAs).toBe('Herbstkonzert 2026');
 	});
 
-	it('keeps concerts of one name apart by their day, and names them with it (#330)', async () => {
+	it('keeps concerts of one name apart by their day, and names them with it', async () => {
 		const store = make();
 		await store.importData(
 			sheet({
