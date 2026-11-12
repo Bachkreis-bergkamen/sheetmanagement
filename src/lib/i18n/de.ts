@@ -2001,7 +2001,7 @@ export const de = {
 			notes: { title: 'Noten lesen', lead: 'Welcher Ton ist das? So schnell, wie du sicher bist.' },
 			keys: { title: 'Tonarten', lead: 'Welche Tonart hat diese Vorzeichnung?' },
 			play: { title: 'Töne spielen', lead: 'Spiel den Ton; das Mikrofon hört, ob er stimmt.' },
-			ear: { title: 'Intervalle hören', lead: 'Zwei Töne: wie weit liegen sie auseinander? Später auch Dreiklänge: Dur, Moll, vermindert, übermäßig.' },
+			ear: { title: 'Intervalle hören', lead: 'Zwei Töne: wie weit liegen sie auseinander? Später Dreiklänge und kurze Hördiktate.' },
 			rhythm: { title: 'Rhythmus', lead: 'Lesen, anhören, nachklopfen: ein Takt nach dem Einzählen.' },
 			pulse: { title: 'Puls halten', lead: 'Das Metronom wird leiser und verstummt; du klopfst im Tempo weiter.' },
 			entry: { title: 'Einsätze', lead: 'Pausen zählen, dem Dirigenten folgen, pünktlich einsetzen, mit Begleitung.' },
@@ -2048,7 +2048,7 @@ export const de = {
 			weeksLabel: (weeks: number[]) => `Übetage der letzten vier Wochen: ${weeks.join(', ')}`,
 			weeksCaption: 'Übetage pro Woche, die letzten vier Wochen',
 			skillLine: (answers: number, right: string, minutes: number) => `${answers} Aufgaben · ${right} · ${minutes} Min.`,
-			skills: { chord: 'Dreiklänge hören', other: 'Sonstiges', dictation: 'Hördiktat', mix: 'Tagesrunde' } as Record<string, string>,
+			skills: { chord: 'Dreiklänge hören', other: 'Sonstiges', dict: 'Hördiktat', mix: 'Tagesrunde' } as Record<string, string>,
 			nothing: 'In den letzten vier Wochen nicht geübt.'
 		},
 		leaders: {
@@ -2289,6 +2289,9 @@ export const de = {
 		clefLocked: (clef: string, before: string, have: number, need: number) => `${clef}: kommt, wenn ${need} Töne im ${before} sicher sitzen (jetzt ${have}).`,
 		newClef: (clef: string) => `Neu freigeschaltet: ${clef}!`,
 		treeOn: 'Deine Zeit in den Runden zählt auch für deinen Übebaum.',
+		whichMelody: 'Welche Melodie hast du gehört?',
+		melodyLabel: (n: number) => `Melodie ${n}`,
+		melodyWas: (n: number) => `Es war Melodie ${n}. Hör noch einmal hin, wo sie sich unterscheiden.`,
 		whichChord: 'Welcher Dreiklang?',
 		chordQualities: {
 			major: 'Dur',
@@ -2336,7 +2339,8 @@ export const de = {
 			sight: (level: number) => `Vom Blatt: Stufe ${level}`,
 			entry: 'Einsätze: höchste Stufe',
 			streak: (days: number) => `${days} Tage in Folge`,
-			chords: 'Dreiklänge gehört'
+			chords: 'Dreiklänge gehört',
+			dictation: 'Melodien nachgehört'
 		},
 		chosen: (instrument: string) => `Eingestellt: ${instrument}`,
 		chosenLead: (clefs: string) =>

@@ -3,6 +3,7 @@ import { profile, type ProfileId } from './instruments.ts';
 import type { DrillData } from './progress.ts';
 import { PULSE_ORDER, RHYTHM_ORDER } from './rhythm.ts';
 import { OCTAVES, scaleOrder, type Octaves } from './scales.ts';
+import { DICTATION_ORDER } from './dictation.ts';
 import { isMastered } from './scheduler.ts';
 import { MAX_LEVEL } from './sight.ts';
 import { MAX_ENTRY_LEVEL, tuneOrder } from './together.ts';
@@ -24,6 +25,7 @@ export type BadgeKind =
 	| { type: 'keys'; set: 'sharps' | 'flats' | 'minor' }
 	| { type: 'ear'; harmonic: boolean }
 	| { type: 'chords' }
+	| { type: 'dictation' }
 	| { type: 'rhythm' }
 	| { type: 'pulse' }
 	| { type: 'play' }
@@ -66,6 +68,7 @@ export function badgesFor(instrument: ProfileId): Badge[] {
 		...items('ear:melodic', 'hear', { type: 'ear', harmonic: false }, EAR_ORDER.filter((id) => id.endsWith(':melodic'))),
 		...items('ear:harmonic', 'hear', { type: 'ear', harmonic: true }, EAR_ORDER.filter((id) => id.endsWith(':harmonic'))),
 		...items('chords', 'hear', { type: 'chords' }, CHORD_ORDER),
+		...items('dictation', 'hear', { type: 'dictation' }, DICTATION_ORDER),
 		...items('rhythm', 'hear', { type: 'rhythm' }, RHYTHM_ORDER),
 		...items('pulse', 'hear', { type: 'pulse' }, PULSE_ORDER),
 		...items(`play:${instrument}`, 'play', { type: 'play' }, clefs.flatMap((clef) => playOrder(instrument, clef))),

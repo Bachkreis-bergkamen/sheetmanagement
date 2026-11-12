@@ -101,6 +101,7 @@
 	let feedback = $state<{ correct: boolean; text: string; tip?: string } | null>(null);
 	let chosen = $state<number | null>(null);
 	let chosenChord = $state<ChordQuality | null>(null);
+	let chosenMelody = $state<number | null>(null);
 	let finished = $state(false);
 	let autoNext: ReturnType<typeof setTimeout> | undefined;
 
@@ -177,7 +178,8 @@
 			const notes = q.pitches.map((pitch) => frequencyOf(midiOf(pitch)));
 			playArpeggio(notes, 0.45);
 			setTimeout(() => playChord(notes), 1600);
-		} else if (q.kind === 'rhythm') hearRhythm(q);
+		} else if (q.kind === 'dict') playArpeggio(q.options[q.answer].map((pitch) => frequencyOf(midiOf(pitch))), 0.6);
+		else if (q.kind === 'rhythm') hearRhythm(q);
 		else if (q.kind === 'pulse') playBar({ bpm: q.bpm, countIn: 4, beats: 0 });
 		else if (q.kind === 'tune') playChord([...q.tune.held.map((ratio) => frequencyOf(q.tune.rootMidi) * ratio), frequencyOf(q.tune.rootMidi) * 2 ** ((q.tune.targetMidi - q.tune.rootMidi + q.tune.pure / 100) / 12)]);
 		else if (q.kind === 'scale') playArpeggio(q.item.midis.map(frequencyOf), isArpeggio(q.item.type) ? 0.4 : 0.32);
@@ -191,6 +193,7 @@
 		feedback = null;
 		chosen = null;
 		chosenChord = null;
+		chosenMelody = null;
 		rhythmMarks = [];
 		tapMarks = [];
 		pulseResult = null;
@@ -226,7 +229,7 @@
 		// With the microphone already on, the next chord sounds straight away.
 		if (asked.kind === 'tune' && listening) holdChord(asked);
 		// Sound before symbol: an interval is heard first, and its notes shown only after the answer.
-		if (asked.kind === 'ear' || asked.kind === 'chord') sound(asked);
+		if (asked.kind === 'ear' || asked.kind === 'chord' || asked.kind === 'dict') sound(asked);
 		if (asked.kind === 'pulse') {
 			bpm = asked.bpm;
 			calibrating = tapOffset === undefined;
@@ -614,6 +617,13 @@
 		answer(quality === right, quality === right ? '' : tx.chordWas(tx.chordQualities[right], tx.chordHow[right]));
 	}
 
+	/** A melody picked among the three written ones, or null for "don't know". */
+	function answerMelody(index: number | null) {
+		if (question?.kind !== 'dict' || feedback) return;
+		chosenMelody = index;
+		answer(index === question.answer, index === question.answer ? '' : tx.melodyWas(question.answer + 1));
+	}
+
 	/** A note answered by its pitch class (any spelling counts), or null; a wrong one comes with how to transpose. */
 	function answerPitch(pitchClass: number | null) {
 		if (question?.kind !== 'trans' || feedback) return;
@@ -666,6 +676,7 @@
 		else if (question.kind === 'keys') answerKey(null);
 		else if (question.kind === 'ear') answerInterval(null);
 		else if (question.kind === 'chord') answerChord(null);
+		else if (question.kind === 'dict') answerMelody(null);
 		else if (question.kind === 'trans') answerPitch(null);
 		else if (question.kind === 'rhythm') {
 			stopBar();
@@ -704,6 +715,9 @@
 		if (question?.kind === 'notes') {
 			const step = tx.letterKeys.indexOf(event.key.toLowerCase());
 			if (step >= 0) answerNote(step);
+		} else if (question?.kind === 'dict') {
+			const index = Number(event.key) - 1;
+			if (index >= 0 && index < question.options.length) answerMelody(index);
 		} else if (question?.kind === 'keys' || question?.kind === 'ear' || question?.kind === 'chord') {
 			const index = Number(event.key) - 1;
 			if (index < 0 || index >= question.options.length) return;
@@ -745,6 +759,7 @@
 				{:else if question.kind === 'keys'}{tx.whichKey(question.mode)}
 				{:else if question.kind === 'ear'}{tx.whichInterval(question.harmonic)}
 				{:else if question.kind === 'chord'}{tx.whichChord}
+				{:else if question.kind === 'dict'}{tx.whichMelody}
 				{:else if question.kind === 'trans'}{tx.transQuestion(partLabel(question))}
 				{:else if question.kind === 'rhythm'}{calibrating ? tx.calibrateTitle : tx.tapThis}
 				{:else if question.kind === 'pulse'}{calibrating ? tx.calibrateTitle : tx.pulseAsk(question.silent)}
@@ -820,6 +835,9 @@
 					{@const q = question}
 					<button type="button" class="listen" onclick={() => sound(q)}><Icon name="headphones" size={36} /><span>{tx.listen}</span></button>
 				{/if}
+			{:else if question.kind === 'dict'}
+				{@const q = question}
+				<button type="button" class="listen" onclick={() => sound(q)}><Icon name="headphones" size={36} /><span>{tx.listen}</span></button>
 			{:else if question.kind === 'chord'}
 				{#if feedback}
 					<DrillStaff clef={question.clef} notes={question.pitches} together label={tx.chordQualities[question.quality]} />
@@ -878,6 +896,23 @@
 						disabled={!!feedback}
 						onclick={() => answerInterval(semitones)}><kbd>{i + 1}</kbd>{tx.intervals[semitones]}</button
 					>
+				{/each}
+			</div>
+		{:else if question.kind === 'dict'}
+			<div class="melodies" role="group" aria-label={tx.whichMelody}>
+				{#each question.options as melody, i (i)}
+					{@const q = question}
+					<button
+						type="button"
+						class="answer melody"
+						class:right={!!feedback && q.answer === i}
+						class:wrong={!!feedback && chosenMelody === i && q.answer !== i}
+						disabled={!!feedback}
+						onclick={() => answerMelody(i)}
+					>
+						<kbd>{i + 1}</kbd>
+						<DrillStaff clef={q.clef} fifths={q.fifths} notes={melody} spacing={34} label={tx.melodyLabel(i + 1)} />
+					</button>
 				{/each}
 			</div>
 		{:else if question.kind === 'chord'}
@@ -1036,7 +1071,7 @@
 				{#if feedback.tip}<p class="hint">{feedback.tip}</p>{/if}
 				<div class="row">
 					<button type="button" class="btn ghost small" onclick={() => question && sound(question)}
-						>{question.kind === 'keys' || question.kind === 'tune' ? tx.replayChord : question.kind === 'ear' || question.kind === 'chord' || question.kind === 'rhythm' || question.kind === 'pulse' || question.kind === 'scale' ? tx.listen : tx.replay}</button
+						>{question.kind === 'keys' || question.kind === 'tune' ? tx.replayChord : question.kind === 'ear' || question.kind === 'chord' || question.kind === 'dict' || question.kind === 'rhythm' || question.kind === 'pulse' || question.kind === 'scale' ? tx.listen : tx.replay}</button
 					>
 					<button type="button" class="btn" onclick={next}>{tx.next}</button>
 				</div>
@@ -1480,6 +1515,30 @@
 		flex-wrap: wrap;
 		justify-content: center;
 		gap: var(--space-2);
+	}
+
+	.melodies {
+		display: grid;
+		gap: var(--space-2);
+	}
+
+	.melodies {
+		width: min(100%, 22rem);
+		margin-inline: auto;
+	}
+
+	.answer.melody {
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr);
+		gap: var(--space-2);
+		align-items: center;
+		padding: 0 var(--space-3);
+		font-size: var(--text-base);
+	}
+
+	/* Three staves to compare at a glance: small, a row each. */
+	.answer.melody :global(.staff) {
+		max-width: 12rem;
 	}
 
 	.done {

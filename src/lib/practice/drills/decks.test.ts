@@ -167,8 +167,9 @@ describe('chords', () => {
 	});
 
 	it('comes in among the intervals, the hard ones last', () => {
-		expect(EAR_DECK).toHaveLength(EAR_ORDER.length + CHORD_ORDER.length);
+		expect(EAR_DECK).toHaveLength(EAR_ORDER.length + CHORD_ORDER.length + 4);
 		expect(EAR_DECK.indexOf('chord:major')).toBe(12);
-		expect(EAR_DECK.slice(-2)).toEqual(['chord:diminished', 'chord:augmented']);
+		expect(EAR_DECK.slice(-4)).toEqual(['chord:diminished', 'chord:augmented', 'dict:4:leap', 'dict:5:leap']);
+		expect(questionFor('dict:4:step', 'bass')).toMatchObject({ kind: 'dict', clef: 'bass' });
 	});
 });

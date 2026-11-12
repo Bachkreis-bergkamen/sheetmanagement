@@ -27,6 +27,7 @@
 			(kind.type === 'keys' && kind.set === 'minor') ||
 			(kind.type === 'ear' && kind.harmonic) ||
 			kind.type === 'chords' ||
+			kind.type === 'dictation' ||
 			(kind.type === 'scales' && kind.octaves === 3) ||
 			(kind.type === 'trans' && kind.parts) ||
 			(kind.type === 'sight' && kind.level >= 8) ||
@@ -159,6 +160,17 @@
 			<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.4">
 				<path d="M-8 -5 A8 8 0 0 0 -8 7" opacity="0.9" />
 				<path d="M-12 -8 A12 12 0 0 0 -12 10" opacity="0.55" />
+			</g>
+		{:else if kind.type === 'dictation'}
+			<!-- Three notes rising, written down from what the ear hears. -->
+			<g fill="currentColor">
+				<ellipse cx="-7" cy="6" rx="3.2" ry="2.3" transform="rotate(-20 -7 6)" />
+				<ellipse cx="1" cy="1" rx="3.2" ry="2.3" transform="rotate(-20 1 1)" />
+				<ellipse cx="9" cy="-4" rx="3.2" ry="2.3" transform="rotate(-20 9 -4)" />
+			</g>
+			<line x1="-13" x2="14" y1="10" y2="10" stroke="currentColor" stroke-width="0.8" opacity="0.5" />
+			<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.4">
+				<path d="M-10 -12 A7 7 0 0 0 -10 -2" opacity="0.9" />
 			</g>
 		{:else if kind.type === 'rhythm'}
 			<g fill="currentColor">
