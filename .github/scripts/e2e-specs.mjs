@@ -230,14 +230,19 @@ function sectionAt(lines, index) {
 
 /** The files outside the texts that read a section, as `t.practice`. */
 function usersOfSection(section) {
-	const pattern = new RegExp(`\\bt\\.${section.replace(/\$/g, '\\$')}\\b`);
+	const pattern = new RegExp(`\\bt\\.${escapeRegExp(section)}\\b`);
 	return [...appSources()].filter(([file, source]) => !file.startsWith('src/lib/i18n/') && pattern.test(source)).map(([file]) => file);
 }
 
 /** The files that call an API route by its URL (`/api/ueben/…`). */
 function callersOf(segment) {
-	const pattern = new RegExp(`/api/${segment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w-])`);
+	const pattern = new RegExp(`/api/${escapeRegExp(segment)}(?![\\w-])`);
 	return [...appSources()].filter(([file, source]) => !file.startsWith('src/routes/api/') && pattern.test(source)).map(([file]) => file);
+}
+
+/** Text to match literally inside a regular expression, backslashes included. */
+function escapeRegExp(text) {
+	return text.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&');
 }
 
 /** Every file under src, mapped to the files that import it. */
