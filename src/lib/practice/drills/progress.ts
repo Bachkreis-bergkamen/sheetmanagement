@@ -14,7 +14,18 @@ export interface DayStats {
 	right: number;
 	/** Time spent answering, in milliseconds. */
 	ms: number;
+	/** The same per skill ("notes", "scale", "sight"): what a member may share as a day's summary (#300). */
+	skills?: Record<string, SkillStats>;
 }
+
+export interface SkillStats {
+	answers: number;
+	right: number;
+	ms: number;
+}
+
+/** A skill's name as kept: a drill kind or "sight", "entry", "dictation". */
+export const isSkill = (value: unknown): value is string => typeof value === 'string' && /^[a-z]{2,12}$/i.test(value);
 
 export interface DrillSettings {
 	instrument?: ProfileId;
@@ -91,7 +102,11 @@ export function readData(value: unknown): DrillData {
 		}
 	}
 	for (const [day, stats] of Object.entries(raw.days ?? {})) {
-		if (/^\d{4}-\d{2}-\d{2}$/.test(day) && stats && Number.isFinite(stats.answers)) data.days[day] = { answers: stats.answers | 0, right: stats.right | 0, ms: stats.ms | 0 };
+		if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !stats || !Number.isFinite(stats.answers)) continue;
+		const kept: DayStats = { answers: stats.answers | 0, right: stats.right | 0, ms: stats.ms | 0 };
+		const skills = Object.entries(stats.skills && typeof stats.skills === 'object' ? stats.skills : {}).filter(([skill, each]) => isSkill(skill) && each && Number.isFinite(each.answers));
+		if (skills.length) kept.skills = Object.fromEntries(skills.map(([skill, each]) => [skill, { answers: each.answers | 0, right: each.right | 0, ms: each.ms | 0 }]));
+		data.days[day] = kept;
 	}
 	if (raw.settings && typeof raw.settings === 'object') {
 		data.settings = { ...raw.settings };
@@ -121,10 +136,15 @@ export const MAX_UNSENT = 3 * 3600;
 export const dayKey = (date = new Date()) =>
 	`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
-export function addAnswer(days: Record<string, DayStats>, day: string, correct: boolean, ms: number): Record<string, DayStats> {
+export function addAnswer(days: Record<string, DayStats>, day: string, correct: boolean, ms: number, skill?: string): Record<string, DayStats> {
 	const today = days[day] ?? { answers: 0, right: 0, ms: 0 };
 	// A question left open while away doesn't count as an hour of practice.
-	return { ...days, [day]: { answers: today.answers + 1, right: today.right + (correct ? 1 : 0), ms: today.ms + Math.min(ms, 60_000) } };
+	const counted = Math.min(ms, 60_000);
+	const add = (stats: SkillStats): SkillStats => ({ answers: stats.answers + 1, right: stats.right + (correct ? 1 : 0), ms: stats.ms + counted });
+	const next: DayStats = add(today);
+	if (today.skills || skill) next.skills = { ...today.skills };
+	if (skill && next.skills) next.skills[skill] = add(today.skills?.[skill] ?? { answers: 0, right: 0, ms: 0 });
+	return { ...days, [day]: next };
 }
 
 /**

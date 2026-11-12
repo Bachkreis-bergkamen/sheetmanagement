@@ -25,6 +25,9 @@
 	import { badgeProgress, badgesFor, newBadges, type Badge, type BadgeGroup } from '#lib/practice/drills/badges.ts';
 	import { addAnswer, DAILY_GOAL_MINUTES, dayKey, emptyData, history, MAX_UNSENT, REFLECTION_MAX, streak, type DrillData } from '#lib/practice/drills/progress.ts';
 	import PracticeHistory from '#lib/components/PracticeHistory.svelte';
+	import DrillSharing from '#lib/components/DrillSharing.svelte';
+	import { invalidateAll } from '$app/navigation';
+	import { sharesAny, summaryRows, type Sharing } from '#lib/practice/drills/sharing.ts';
 	import { dayNumber, record, summary } from '#lib/practice/drills/scheduler.ts';
 	import { clearDrills, loadDrills, saveDrills } from '#lib/practice/drills/store.ts';
 	import { alterInKey, CLEFS, pitchAt, type Clef, type Pitch } from '#lib/practice/drills/theory.ts';
@@ -52,6 +55,7 @@
 		syncUnlocks();
 		syncBadges();
 		sendTime();
+		sendDays();
 	});
 
 	const instrument = $derived<ProfileId>(isProfileId(drills.settings.instrument) ? drills.settings.instrument : own);
@@ -173,17 +177,18 @@
 		playing = null;
 		announce();
 		sendTime();
+		sendDays();
 	}
 
 	/** `measure` is what counts for fluency: the time to answer, or for a rhythm how far the taps were off. */
 	function onanswer(id: string, correct: boolean, ms: number, measure = ms) {
 		drills.items[id] = record(drills.items[id], correct, measure, dayNumber(), FLUENT_MS[kindOf(id)]);
-		practised(correct, ms);
+		practised(correct, ms, kindOf(id));
 	}
 
 	/** The day's practice and the practice tree: every answer, and every melody read at sight. */
-	function practised(correct: boolean, ms: number) {
-		drills.days = addAnswer(drills.days, dayKey(), correct, ms);
+	function practised(correct: boolean, ms: number, skill: string) {
+		drills.days = addAnswer(drills.days, dayKey(), correct, ms, skill);
 		// A clef that opens stays open.
 		const opening = clefLadder(prof, drills.items, drills.opened).filter((step) => step.open && !drills.opened.includes(step.clef));
 		if (opening.length) drills.opened = [...drills.opened, ...opening.map((step) => step.clef)];
@@ -217,6 +222,35 @@
 		} catch {
 			// Offline: kept for the next time.
 		}
+	}
+
+	/**
+	 * What the member shares (#300), and the summary sent when a round ends and the page opens:
+	 * the last four weeks per day and skill, replacing what was sent before. Only while sharing.
+	 */
+	// Set here as it changes, until the next load brings the same back.
+	let sharing = $derived(data.sharing);
+	async function sendDays() {
+		if (!sharesAny(sharing?.chosen)) return;
+		try {
+			const response = await fetch('/api/ueben/tage', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ rows: summaryRows(drills.days, dayKey()) }),
+				keepalive: true
+			});
+			if (response.status === 409 && sharing) sharing = { ...sharing, chosen: null };
+		} catch {
+			// Offline: sent with the next round.
+		}
+	}
+	async function share(next: Sharing) {
+		const response = await fetch('/api/ueben/teilen', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(next) });
+		if (!response.ok) throw new Error(String(response.status));
+		sharing = await response.json();
+		await sendDays();
+		// The board shows once the member is on it.
+		await invalidateAll();
 	}
 
 	/** The last two weeks, for the member's own view of how it's going. */
@@ -263,6 +297,7 @@
 		placement = null;
 		announce();
 		sendTime();
+		sendDays();
 	}
 
 	/**
@@ -405,7 +440,7 @@
 		onanswer={(id, correct, ms) => {
 			recordProbe(test, id, correct, ms);
 			testProgress = placementProgress(test);
-			practised(correct, ms);
+			practised(correct, ms, kindOf(id));
 		}}
 		oncalibrate={() => {}}
 		onsetting={setting}
@@ -428,7 +463,7 @@
 		onlevel={(state) => setting(entry ? { entry: { ...drills.settings.entry, [instrument]: state } } : { sight: { ...drills.settings.sight, [instrument]: state } })}
 		onreadahead={(readAhead) => setting({ readAhead })}
 		onduet={(duet) => setting({ duet })}
-		onpractice={(ms, good) => practised(good, ms)}
+		onpractice={(ms, good) => practised(good, ms, entry ? 'entry' : 'sight')}
 		onexit={exit}
 	/>
 {:else if playing}
@@ -691,6 +726,10 @@
 				</section>
 			{/if}
 		{/each}
+
+		{#if ready && sharing}
+			<DrillSharing {sharing} board={data.board} onchange={share} />
+		{/if}
 
 		{#if ready}
 			<details class="ui-card badges" open={freshBadges.length > 0}>

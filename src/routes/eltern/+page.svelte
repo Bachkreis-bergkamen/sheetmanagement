@@ -7,6 +7,7 @@
 	import Icon from '#lib/components/Icon.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import Title from '#lib/components/Title.svelte';
+	import DrillOverview from '#lib/components/DrillOverview.svelte';
 
 	let { data, form } = $props();
 	const saving = new FormState();
@@ -156,6 +157,33 @@
 	</section>
 {/if}
 
+{#if data.drills.length}
+	<section class="block drills" aria-labelledby="drills">
+		<h2 id="drills">{t.parents.drills.title}</h2>
+		<p class="lead">{t.parents.drills.lead}</p>
+		{#if form?.drillError}<p class="msg error" role="alert">{form.drillError}</p>{/if}
+		{#each data.drills as child (child.email)}
+			<div class="child-drills">
+				<form class="ui-card consent" method="POST" action="?/drillConsent" use:enhance={saving.submit()}>
+					<input type="hidden" name="child" value={child.email} />
+					<input type="hidden" name="allowed" value={child.consented ? 'no' : 'yes'} />
+					<p>
+						<strong>{child.name}</strong>
+						<span>{child.consented ? t.parents.drills.allowed : t.parents.drills.notAllowed}</span>
+					</p>
+					<button class="btn ghost small" type="submit">{child.consented ? t.parents.drills.takeBack : t.parents.drills.allow}</button>
+					{#if form?.drillSaved === child.email}<span class="saved" role="status"><Icon name="check" size={14} />{t.parents.saved}</span>{/if}
+				</form>
+				{#if child.overview}
+					<DrillOverview name={child.name} overview={child.overview} />
+				{:else}
+					<p class="hint">{t.parents.drills.notShared(child.name)}</p>
+				{/if}
+			</div>
+		{/each}
+	</section>
+{/if}
+
 <section class="block">
 	<a class="ui-card write" href="/eltern/nachrichten">
 		<Icon name="mail" size={22} />
@@ -168,6 +196,35 @@
 </section>
 
 <style>
+	.drills .lead,
+	.drills .hint {
+		color: var(--text-muted);
+	}
+
+	.child-drills {
+		display: grid;
+		gap: var(--space-2);
+		margin-top: var(--space-3);
+	}
+
+	.consent {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-2) var(--space-3);
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.consent p {
+		display: grid;
+		margin: 0;
+	}
+
+	.consent p span {
+		color: var(--text-muted);
+		font-size: var(--text-sm);
+	}
+
 	.kids {
 		display: flex;
 		flex-wrap: wrap;

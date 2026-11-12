@@ -10,6 +10,8 @@ import { formText } from '#lib/server/feedback.ts';
 import { getLibrary, orchestraOf } from '#lib/server/library.ts';
 import { parentNoticeStore } from '#lib/server/parent-notices.ts';
 import { parentContext } from '#lib/server/parents.ts';
+import { childrenDrills, drillsAccessList } from '#lib/server/drills.ts';
+import { getStore } from '#lib/server/db/index.ts';
 import { getSignups } from '#lib/server/repertoire.ts';
 import { SheetLayoutError } from '#lib/server/sheet-writes.ts';
 import { saveSignup } from '#lib/server/signups.ts';
@@ -52,8 +54,13 @@ export const load: PageServerLoad = async ({ locals }) => {
 			: []
 	);
 
+	// The children's Übebereich (#300): the parent's consent, and their summary when they share it.
+	const list = isOn('drills') ? await drillsAccessList() : null;
+	const drills = list ? await childrenDrills(list, parent.email, parent.children).catch(() => []) : [];
+
 	return {
 		name: parent.name,
+		drills,
 		children: parent.children.map((child) => ({ email: child.email, name: child.name, orchestras: child.orchestras })),
 		signups: signupsOn,
 		notices: notices
@@ -91,6 +98,17 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
+	/** Lets a child appear on the Übebereich's board and to the leaders, or takes that back (#300). */
+	drillConsent: async ({ request, locals }) => {
+		const parent = await parentContext(locals);
+		if (!isOn('drills')) return fail(404, { drillError: t.error.notFound });
+		const data = await request.formData();
+		const child = parent.children.find((one) => one.email === formText(data, 'child'));
+		if (!child) return fail(400, { drillError: t.parents.drills.failed });
+		await getStore().setDrillConsent(child.email, parent.email, formText(data, 'allowed') === 'yes');
+		return { drillSaved: child.email };
+	},
+
 	/** Answers a date for one child: coming, or excused with an optional reason. */
 	answer: async ({ request, locals }) => {
 		const parent = await parentContext(locals);

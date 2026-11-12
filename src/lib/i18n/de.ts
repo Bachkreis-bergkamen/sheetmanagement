@@ -23,6 +23,7 @@ export const de = {
 		parents: 'Elternbereich',
 		parentMessages: 'Nachrichten',
 		parentNotices: 'Elternmitteilungen',
+		drillsOverview: 'Übestand',
 		gaps: 'Fehlende Stimmen',
 		naming: 'Dateinamen',
 		admin: 'Mitglieder & Rechte',
@@ -1617,6 +1618,7 @@ export const de = {
 		'karten.einlass': 'Karten am Einlass prüfen',
 		'kummerkasten.lesen': 'Kummerkasten lesen und beantworten (ohne zu sehen, wer schreibt)',
 		'eltern.informieren': 'Mitteilungen an die Eltern schreiben',
+		'ueben.begleiten': 'Übestand der Mitglieder sehen, die ihn teilen',
 		'mitglieder.verwalten': 'Mitglieder und Rechte verwalten'
 	},
 	/** Invitation links (/admin makes them, /auth/einladung/… uses them): someone new fills in their own details. */
@@ -1922,6 +1924,7 @@ export const de = {
 	},
 	/** Everything the sheet keeps about a member, as one file (#158). */
 	myData: {
+		drills: 'Übebereich (geteilt)',
 		title: 'Meine Daten',
 		lead: 'Alles, was die App über dich speichert: dein Eintrag, Zu- und Absagen, Anwesenheit, Meldungen, Wünsche und Notizen aus der Repertoire-Tabelle, dazu deine Geräte für Benachrichtigungen, die Erinnerungen, die du bekommen hast, und deine Antworten in Terminumfragen.',
 		download: 'Meine Daten herunterladen',
@@ -2036,6 +2039,40 @@ export const de = {
 			save: 'Merken',
 			saved: 'Gemerkt.',
 			last: (date: string) => `Dein Stichwort vom ${date}`
+		},
+		overview: {
+			days: 'Übetage',
+			minutes: 'Minuten',
+			right: 'richtig',
+			last: 'zuletzt',
+			weeksLabel: (weeks: number[]) => `Übetage der letzten vier Wochen: ${weeks.join(', ')}`,
+			weeksCaption: 'Übetage pro Woche, die letzten vier Wochen',
+			skillLine: (answers: number, right: string, minutes: number) => `${answers} Aufgaben · ${right} · ${minutes} Min.`,
+			skills: { chord: 'Dreiklänge hören', other: 'Sonstiges', dictation: 'Hördiktat', mix: 'Tagesrunde' } as Record<string, string>,
+			nothing: 'In den letzten vier Wochen nicht geübt.'
+		},
+		leaders: {
+			title: 'Übestand',
+			lead: 'Was Mitglieder aus dem Übebereich mit Dirigat und Lehrkräften teilen: Übetage, Minuten und Trefferquote der letzten vier Wochen.',
+			none: 'Noch teilt niemand seinen Übestand mit dir. Mitglieder schalten das selbst im Übebereich ein; bei Kindern stimmen die Eltern zu.',
+			privacy: 'Hier steht nur, wer es selbst freigegeben hat. Einzelne Antworten oder Aufnahmen gibt es nicht: Sie verlassen das Gerät nie.'
+		},
+		sharing: {
+			title: 'Gemeinsam üben',
+			lead: 'Freiwillig: Teile eine kurze Tagesübersicht. Alles bleibt aus, bis du es einschaltest.',
+			board: { title: 'Wochenwertung', hint: 'Wer in deinem Orchester an wie vielen Tagen geübt hat. Es zählt Regelmäßigkeit, nicht Können; nur Vornamen.' },
+			leaders: { title: 'Dirigat und Lehrkräfte', hint: 'Sie sehen deine Übetage, Minuten und Trefferquote pro Übung der letzten vier Wochen.' },
+			parents: { title: 'Meine Eltern', hint: 'Deine Eltern sehen dieselbe Übersicht in ihrem Bereich.' },
+			waiting: 'Wochenwertung und Dirigat warten noch auf das Okay deiner Eltern. Sie geben es im Elternbereich.',
+			failed: 'Das hat nicht geklappt. Versuch es gleich noch einmal.',
+			privacy: 'Geteilt wird nur, wie viel und wie sicher du geübt hast, nie einzelne Antworten oder was das Mikrofon hört. Alles aus löscht, was geteilt wurde.',
+			boardTitle: 'Diese Woche',
+			challenge: (goal: number, have: number) => `Wochenaufgabe: an ${goal} Tagen üben (du: ${have})`,
+			challengeMet: 'Wochenaufgabe geschafft!',
+			challengeCount: (met: number, all: number) => `${met} von ${all} haben sie geschafft`,
+			you: (name: string) => `${name} (du)`,
+			days: (days: number) => (days === 1 ? '1 Tag' : `${days} Tage`),
+			boardHint: 'Neu ab Montag. Ein Tag zählt, sobald du an ihm geübt hast und online warst.'
 		},
 		question: (n: number, of: number) => `${n} / ${of}`,
 		new: 'Neu',
@@ -2588,6 +2625,16 @@ export const de = {
 	},
 	/** The parents' area (/eltern): what a parent account sees, and the notices written for it. */
 	parents: {
+		drills: {
+			title: 'Übebereich',
+			lead: 'Was dein Kind im Übebereich der App übt, bleibt auf seinem Gerät. Es kann eine kurze Übersicht mit dir teilen. Wochenwertung und Dirigat gibt es für Kinder nur mit deinem Okay.',
+			allowed: 'Darf in der Wochenwertung erscheinen und mit Dirigat und Lehrkräften teilen, wenn es das selbst einschaltet.',
+			notAllowed: 'Erscheint nicht in der Wochenwertung und teilt nichts mit Dirigat und Lehrkräften.',
+			allow: 'Erlauben',
+			takeBack: 'Zurücknehmen',
+			failed: 'Das hat nicht geklappt.',
+			notShared: (name: string) => `${name} teilt die Übersicht (noch) nicht mit dir. Das stellt ${name} im Übebereich ein.`
+		},
 		title: 'Elternbereich',
 		lead: (name: string) => `Hallo ${name}! Hier siehst du die nächsten Termine deiner Kinder, kannst sie entschuldigen, Karten reservieren und der Leitung schreiben.`,
 		noChildren: 'Noch ist kein Kind mit deinem Konto verknüpft. Die Verwaltung trägt deine Kinder bei dir unter „Mitglieder“ ein.',
@@ -2779,6 +2826,7 @@ export const de = {
 			reminders: 'Verschickte Erinnerungen',
 			settings: 'Einstellungen (E-Mails, Tour, Übezeit)',
 			practice: 'Übezeit (Tage)',
+			drills: 'Geteilter Übestand und Zustimmung der Eltern',
 			marks: 'Eigene Eintragungen in Noten (Seiten)',
 			polls: 'Terminumfragen',
 			kummer: 'Kummerkasten (eigene Nachrichten gelöscht, Antworten ohne Namen)'

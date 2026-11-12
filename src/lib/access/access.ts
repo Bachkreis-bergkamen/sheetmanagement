@@ -16,6 +16,8 @@ export const RIGHTS = [
 	'kummerkasten.lesen',
 	// Notices to the parents of young players, shown in their area (/eltern).
 	'eltern.informieren',
+	// The Übebereich summaries members share with their conductor and teachers (#300).
+	'ueben.begleiten',
 	'mitglieder.verwalten'
 ] as const;
 export type Right = (typeof RIGHTS)[number];

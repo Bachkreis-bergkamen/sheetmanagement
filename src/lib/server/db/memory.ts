@@ -3,6 +3,7 @@ import { reminderKey, type Account, type MarkShare, type PageCount, type PageMar
 import { memoryData } from './data-memory.ts';
 import { memoryTickets } from './tickets-memory.ts';
 import { MIGRATIONS } from './sql.ts';
+import type { Sharing, SummaryRow } from '#lib/practice/drills/sharing.ts';
 
 /** Like SQLite's datetime('now'). */
 const sqlTime = (at: number) => new Date(at).toISOString().slice(0, 19).replace('T', ' ');
@@ -20,6 +21,11 @@ export function memoryStore(now = () => Date.now()): Store {
 	const practiceOptIn = new Set<string>();
 	/** Seconds by member, then by day. */
 	const practice = new Map<string, Map<string, number>>();
+	const drillSharing = new Map<string, Sharing>();
+	/** Summaries by member, then by `${day} ${skill}`. */
+	const drillDays = new Map<string, Map<string, SummaryRow>>();
+	/** Parent consent by child. */
+	const drillConsent = new Map<string, string>();
 	/** Marks by member, then by `${page} ${file}`. */
 	const marks = new Map<string, Map<string, PageMarks>>();
 	/** Offers by id; answers as `${id} ${email}`. */
@@ -124,6 +130,30 @@ export function memoryStore(now = () => Date.now()): Store {
 			[...(practice.get(email) ?? [])].map(([day, seconds]) => ({ day, seconds })).sort((a, b) => a.day.localeCompare(b.day)),
 		async deletePractice(email) {
 			practice.delete(email);
+		},
+
+		drillSharing: async (email) => (drillSharing.has(email) ? { ...drillSharing.get(email)! } : null),
+		drillSharingAll: async () => new Map([...drillSharing].map(([email, sharing]) => [email, { ...sharing }])),
+		async setDrillSharing(email, sharing) {
+			if (sharing.board || sharing.leaders || sharing.parents) drillSharing.set(email, { ...sharing });
+			else {
+				drillSharing.delete(email);
+				drillDays.delete(email);
+			}
+		},
+		async saveDrillDays(email, rows) {
+			const days = drillDays.get(email) ?? new Map<string, SummaryRow>();
+			for (const row of rows) days.set(`${row.day} ${row.skill}`, { ...row });
+			drillDays.set(email, days);
+		},
+		drillDaysOf: async (emails, since) =>
+			emails
+				.flatMap((email) => [...(drillDays.get(email)?.values() ?? [])].filter((row) => row.day >= since).map((row) => ({ email, ...row })))
+				.sort((a, b) => a.day.localeCompare(b.day) || a.email.localeCompare(b.email) || a.skill.localeCompare(b.skill)),
+		drillConsentOf: async (child) => drillConsent.get(child) ?? null,
+		async setDrillConsent(child, parent, allowed) {
+			if (allowed) drillConsent.set(child, parent);
+			else drillConsent.delete(child);
 		},
 		marksOf: async (email, file) =>
 			[...(marks.get(email)?.values() ?? [])]
