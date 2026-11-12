@@ -7,7 +7,7 @@
 
 import type { TabKey } from '#lib/repertoire/sheet.ts';
 
-export const FEATURES = ['loans', 'musicReport', 'attendance', 'signups', 'wishes', 'calendarFeed', 'offline', 'seasons', 'tickets'] as const;
+export const FEATURES = ['loans', 'musicReport', 'attendance', 'signups', 'wishes', 'calendarFeed', 'offline', 'seasons', 'tickets', 'drills'] as const;
 
 export type Feature = (typeof FEATURES)[number];
 export type Features = Record<Feature, boolean>;
@@ -32,7 +32,9 @@ const ALIASES: Record<string, Feature> = {
 	kalenderabo: 'calendarFeed',
 	jahreszeiten: 'seasons',
 	karten: 'tickets',
-	kartenverkauf: 'tickets'
+	kartenverkauf: 'tickets',
+	uebebereich: 'drills',
+	übebereich: 'drills'
 };
 
 const byName = new Map<string, Feature>([...FEATURES.map((feature) => [feature.toLowerCase(), feature] as const), ...Object.entries(ALIASES)]);
@@ -70,5 +72,7 @@ export function featureOfPath(path: string): Feature | undefined {
 	if (/^\/kalender\/[^/]+\/musikfolge\.csv$/.test(path)) return 'musicReport';
 	if (/^\/kalender\/[^/]+\/karten(\/|$)/.test(path)) return 'tickets';
 	if (/^\/(einlass|karte|api\/karten|api\/einlass)(\/|$)/.test(path)) return 'tickets';
+	// The hub only: /ueben/<file> is the practice viewer of a part, which stays.
+	if (/^\/(ueben(\/__data\.json)?|api\/ueben\/runde)$/.test(path)) return 'drills';
 	return undefined;
 }

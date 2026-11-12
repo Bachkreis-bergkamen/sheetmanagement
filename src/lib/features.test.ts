@@ -37,6 +37,12 @@ describe('featureOfPath', () => {
 		for (const path of ['/kalender/abc/karten', '/einlass/abc', '/karte/xyz', '/api/karten/abc', '/api/einlass/abc']) {
 			expect(featureOfPath(path)).toBe('tickets');
 		}
+		// The Übebereich's hub, not the practice viewer of a part below it.
+		expect(featureOfPath('/ueben')).toBe('drills');
+		expect(featureOfPath('/ueben/__data.json')).toBe('drills');
+		expect(featureOfPath('/api/ueben/runde')).toBe('drills');
+		expect(featureOfPath('/api/ueben')).toBeUndefined();
+		expect(featureOfPath('/ueben/1AbC')).toBeUndefined();
 	});
 
 	it('leaves every other page alone', () => {

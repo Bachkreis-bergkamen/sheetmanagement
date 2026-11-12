@@ -73,6 +73,8 @@ export function navGroups({ auth, rights, features = ALL_ON, polls = false, pare
 				{ href: '/meine-noten', label: t.nav.myParts, icon: 'parts', primary: true },
 				{ href: '/kalender', label: t.nav.concerts, icon: 'calendar', primary: true },
 				{ href: '/stuecke', label: t.nav.pieces, icon: 'music' },
+				// The Übebereich's drills (#300): on the device, so also with sign-in off.
+				...(features.drills ? [{ href: '/ueben', label: t.nav.drills, icon: 'note' as const }] : []),
 				{ href: '/chronik', label: t.nav.chronicle, icon: 'history' }
 			]
 		},
