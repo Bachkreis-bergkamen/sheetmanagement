@@ -1980,7 +1980,7 @@ export const en: Texts = {
 			notes: { title: 'Note reading', lead: 'Which note is it? As fast as you’re sure.' },
 			keys: { title: 'Keys', lead: 'Which key has this key signature?' },
 			play: { title: 'Play the note', lead: 'Play the note; the microphone hears if it’s right.' },
-			ear: { title: 'Hear intervals', lead: 'Two notes: how far apart are they? Later chords too: major, minor, diminished, augmented.' },
+			ear: { title: 'Hear intervals', lead: 'Two notes: how far apart are they? Later chords and short melodic dictations.' },
 			rhythm: { title: 'Rhythm', lead: 'Read, listen, tap it back: one bar after a count-in.' },
 			pulse: { title: 'Keep the pulse', lead: 'The metronome fades and stops; you keep tapping in tempo.' },
 			entry: { title: 'Entries', lead: 'Count the rests, follow the conductor, come in on time, with accompaniment.' },
@@ -2027,7 +2027,7 @@ export const en: Texts = {
 			weeksLabel: (weeks: number[]) => `Practice days over the last four weeks: ${weeks.join(', ')}`,
 			weeksCaption: 'Practice days per week, the last four weeks',
 			skillLine: (answers: number, right: string, minutes: number) => `${answers} tasks · ${right} · ${minutes} min`,
-			skills: { chord: 'Chords by ear', other: 'Other', dictation: 'Melodic dictation', mix: 'Daily round' } as Record<string, string>,
+			skills: { chord: 'Chords by ear', other: 'Other', dict: 'Melodic dictation', mix: 'Daily round' } as Record<string, string>,
 			nothing: 'Not practised in the last four weeks.'
 		},
 		leaders: {
@@ -2264,6 +2264,9 @@ export const en: Texts = {
 		newClef: (clef: string) => `Unlocked: ${clef}!`,
 		treeOn: 'Your time in these rounds also counts for your practice tree.',
 		treeLink: 'Your practice tree in your profile',
+		whichMelody: 'Which melody did you hear?',
+		melodyLabel: (n: number) => `Melody ${n}`,
+		melodyWas: (n: number) => `It was melody ${n}. Listen again for where they differ.`,
 		whichChord: 'Which chord?',
 		chordQualities: {
 			major: 'major',
@@ -2310,7 +2313,8 @@ export const en: Texts = {
 			sight: (level: number) => `Sight-reading: level ${level}`,
 			entry: 'Entries: top level',
 			streak: (days: number) => `${days} days in a row`,
-			chords: 'Chords by ear'
+			chords: 'Chords by ear',
+			dictation: 'Melodies by ear'
 		},
 		chosen: (instrument: string) => `Set to ${instrument}`,
 		chosenLead: (clefs: string) =>

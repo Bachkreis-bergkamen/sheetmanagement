@@ -2,6 +2,7 @@ import { profile, type PartKey, type ProfileId } from './instruments.ts';
 import type { DrillMeter } from './meters.ts';
 import { meterOf, parsePattern, patternOf, pulseOf, type RhythmEvent } from './rhythm.ts';
 import { scaleItem, type ScaleItem } from './scales.ts';
+import { dictationOf, DICTATION_ORDER } from './dictation.ts';
 import { tuneQuestion, type TuneQuestion } from './together.ts';
 import { diatonic, fromDiatonic, LANDMARK, midiOf, pitchAt, type Clef, type Pitch } from './theory.ts';
 
@@ -13,6 +14,7 @@ import { diatonic, fromDiatonic, LANDMARK, midiOf, pitchAt, type Clef, type Pitc
  * - "play:violin:treble:2": play that note on the violin;
  * - "ear:7:melodic": name a fifth heard one note after the other;
  * - "chord:minor": name a triad's quality, heard broken and then together;
+ * - "dict:4:step": pick the melody heard among three written ones (see dictation.ts);
  * - "trans:trumpet:2:4": a note in a trumpet part "in D" (+2), on the treble staff's middle line:
  *   which note does a B♭ trumpet play? "trans:trumpet:concert:4": which note sounds?
  * - "rhythm:4-4-r4-4": tap a bar of rhythm back (see rhythm.ts);
@@ -24,8 +26,8 @@ import { diatonic, fromDiatonic, LANDMARK, midiOf, pitchAt, type Clef, type Pitc
  * and transposing per instrument.
  */
 
-export type DrillKind = 'notes' | 'keys' | 'play' | 'ear' | 'chord' | 'trans' | 'rhythm' | 'pulse' | 'scale' | 'tune';
-export const DRILL_KINDS: readonly DrillKind[] = ['notes', 'keys', 'play', 'ear', 'chord', 'trans', 'rhythm', 'pulse', 'scale', 'tune'];
+export type DrillKind = 'notes' | 'keys' | 'play' | 'ear' | 'chord' | 'dict' | 'trans' | 'rhythm' | 'pulse' | 'scale' | 'tune';
+export const DRILL_KINDS: readonly DrillKind[] = ['notes', 'keys', 'play', 'ear', 'chord', 'dict', 'trans', 'rhythm', 'pulse', 'scale', 'tune'];
 
 /**
  * Answers up to this fast count as fluent: the item moves up and can be mastered. For rhythm
@@ -34,7 +36,7 @@ export const DRILL_KINDS: readonly DrillKind[] = ['notes', 'keys', 'play', 'ear'
  * secure means in tune. Tuning into a chord: the cents from pure. Keeping the pulse: the ms
  * off on average while alone.
  */
-export const FLUENT_MS: Record<DrillKind, number> = { notes: 2500, keys: 5000, play: 4000, ear: 5000, chord: 5000, trans: 5000, rhythm: 60, pulse: 45, scale: 15, tune: 8 };
+export const FLUENT_MS: Record<DrillKind, number> = { notes: 2500, keys: 5000, play: 4000, ear: 5000, chord: 5000, dict: 8000, trans: 5000, rhythm: 60, pulse: 45, scale: 15, tune: 8 };
 
 /** Questions per round: a few minutes, short enough to fit anywhere. */
 export const ROUND = 20;
@@ -110,9 +112,17 @@ export const CHORD_ORDER = CHORD_QUALITIES.map(chordId);
 
 /**
  * The hearing drill's items: the easier intervals melodic and harmonic, then major and minor
- * chords, the harder intervals, and diminished and augmented chords last.
+ * chords and the first short dictations, the harder intervals, then diminished and augmented
+ * chords and the longer dictations with leaps.
  */
-export const EAR_DECK: string[] = [...EAR_ORDER.slice(0, 12), ...CHORD_ORDER.slice(0, 2), ...EAR_ORDER.slice(12), ...CHORD_ORDER.slice(2)];
+export const EAR_DECK: string[] = [
+	...EAR_ORDER.slice(0, 12),
+	...CHORD_ORDER.slice(0, 2),
+	...DICTATION_ORDER.slice(0, 2),
+	...EAR_ORDER.slice(12),
+	...CHORD_ORDER.slice(2),
+	...DICTATION_ORDER.slice(2)
+];
 
 /** Letters spanned by each interval in semitones: a third spans two, the tritone is an augmented fourth. */
 const INTERVAL_STEPS = [0, 1, 1, 2, 2, 3, 3, 4, 5, 5, 6, 6, 7];
@@ -162,6 +172,7 @@ export type Question =
 	| { kind: 'play'; id: string; clef: Clef; pitch: Pitch; instrument: ProfileId; midi: number }
 	| { kind: 'ear'; id: string; clef: Clef; semitones: number; harmonic: boolean; low: Pitch; high: Pitch; options: number[] }
 	| { kind: 'chord'; id: string; clef: Clef; quality: ChordQuality; pitches: Pitch[]; options: ChordQuality[] }
+	| { kind: 'dict'; id: string; clef: Clef; fifths: number; options: Pitch[][]; answer: number }
 	| {
 			kind: 'trans';
 			id: string;
@@ -220,6 +231,10 @@ export function questionFor(id: string, clef: Clef, random: () => number = Math.
 		const natural = midiOf(fromDiatonic(upperStep));
 		const high = fromDiatonic(upperStep, midiOf(low) + semitones - natural);
 		return { kind: 'ear', id, clef, semitones, harmonic: parts[2] === 'harmonic', low, high, options: intervalOptions(semitones) };
+	}
+	if (parts[0] === 'dict') {
+		const dictation = dictationOf(id, clef, random);
+		return dictation ? { kind: 'dict', id, clef, ...dictation } : null;
 	}
 	if (parts[0] === 'chord' && parts.length === 2) {
 		const quality = parts[1] as ChordQuality;
