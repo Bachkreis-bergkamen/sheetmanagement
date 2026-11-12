@@ -569,6 +569,23 @@ export interface BesetzungVoice {
 	numbers: number[];
 	/** A soloist from the Besetzung ("Solo Geige"): out front, like one with a solo part. */
 	solo?: boolean;
+	/** What a generic part names ("Percussion 1: Triangel & Becken"). */
+	holds?: string[];
+}
+
+/**
+ * One voice per instrument: a generic part's numbers each naming their own instruments
+ * ("Percussion 1: Triangel; Percussion 2: Pauke") sit as one section, each number still titled
+ * with what it holds.
+ */
+function byInstrument(voices: BesetzungVoice[]): { voice: BesetzungVoice; parts: BesetzungVoice[] }[] {
+	const found = new Map<string, BesetzungVoice[]>();
+	for (const voice of voices) found.set(voice.instrument, [...(found.get(voice.instrument) ?? []), voice]);
+	return [...found.values()].map((parts) =>
+		parts.length === 1
+			? { voice: parts[0], parts }
+			: { voice: { instrument: parts[0].instrument, numbers: [...new Set(parts.flatMap((part) => part.numbers))].sort((a, b) => a - b) }, parts }
+	);
 }
 
 export interface FromBesetzung {
@@ -605,13 +622,15 @@ export function sectionsFromBesetzung(input: FromBesetzung): SeatingSection[] {
 	const sections: SeatingSection[] = [];
 	const add = (section: SeatingSection) => sections.push({ ...section, players: input.counts?.[section.id] ?? input.counts?.[section.instrument] ?? section.players });
 
-	for (const voice of voices) {
+	for (const { voice, parts } of byInstrument(voices)) {
 		const kind = family(voice.instrument);
-		const base = { instrument: voice.instrument, family: kind, label: abbr(voice.instrument), title: title(voice), warn: warns(voice) };
+		const base = { instrument: voice.instrument, family: kind, label: abbr(voice.instrument), title: parts.map(title).join('; '), warn: warns(voice) };
+		// Number n alone, with what its part holds.
+		const only = (n: number): BesetzungVoice => ({ ...(parts.find((part) => part.numbers.includes(n)) ?? { instrument: voice.instrument }), numbers: [n] });
 		if (voice.instrument === 'Geige' && voice.numbers.length) {
 			// First and second violins (and any third) as sections of their own.
 			for (const n of voice.numbers) {
-				const one = { instrument: 'Geige', numbers: [n] };
+				const one = only(n);
 				add({ ...base, id: `Geige:${n}`, label: `${abbr('Geige')} ${n}`, title: title(one), warn: warns(one), players: n === 1 ? strings[0] : strings[1] });
 			}
 			continue;
@@ -638,7 +657,7 @@ export function sectionsFromBesetzung(input: FromBesetzung): SeatingSection[] {
 		const chairs =
 			voice.numbers.length > 1 && players === voice.numbers.length
 				? voice.numbers.map((n) => {
-						const one = { instrument: voice.instrument, numbers: [n] };
+						const one = only(n);
 						return { warn: warns(one), title: title(one) };
 					})
 				: undefined;

@@ -36,7 +36,7 @@ const BY_NAME: [RegExp, Glyph][] = [
 	[/posaune/, 'trombone'],
 	[/tuba|bariton|euphonium/, 'tuba'],
 	[/pauke/, 'timpani'],
-	[/glockenspiel|xylophon|vibraphon|marimba|mallet/, 'mallets'],
+	[/glockenspiel|xylophon|vibraphon|marimba|mallet|röhrenglocken|crotales/, 'mallets'],
 	[/becken|tamtam|gong/, 'cymbal'],
 	[/geige|viola|violine|bratsche|cello|kontrabass|e-bass/, 'violin'],
 	[/orgel/, 'organ'],

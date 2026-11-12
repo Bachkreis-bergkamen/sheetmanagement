@@ -1167,7 +1167,22 @@ export const de = {
 		moreIn: (n: number) => `${n} weitere`,
 		holds: 'Enthält:',
 		holdsOf: (part: string) => `Instrumente in ${part}`,
-		addHeld: '+ Instrument',
+		addHeld: 'Instrumente',
+		/** The tray under a part of a generic one: what it holds, tapped on and off. */
+		heldPick: (part: string) => `Was spielt ${part}?`,
+		/** A percussionist's setup in the profile: every part, or only those of what they play. */
+		setupAll: (instrument: string) => `Alle ${instrument}-Stimmen`,
+		setupSome: 'Nur, was ich spiele',
+		setupHint: 'Du bekommst nur die Stimmen dieser Instrumente. Unter „Anpassen“ wählst du einzelne ab.',
+		setupNone: 'Nichts gewählt: du bekommst alle Stimmen.',
+		setupAdjust: 'Anpassen',
+		setupCount: (n: number, of: number) => (n === of ? 'alle' : `${n} von ${of}`),
+		setupOf: (set: string) => `Instrumente in ${set}`,
+		heldSearch: 'Instrument suchen …',
+		/** On a tile: the instrument is in another of the part's numbers, a tap moves it here. */
+		heldIn: (instrument: string, part: string) => `${instrument} ist in ${part}, hierher verschieben`,
+		/** On a tile: chosen on its own in the Besetzung, a tap moves it into this part. */
+		heldAlone: 'einzeln',
 		/** Instruments already in the Besetzung on their own that this generic part could hold. */
 		suggestHeld: 'Schon gewählt:',
 		moveInto: (instrument: string, part: string) => `${instrument} in ${part} übernehmen`,

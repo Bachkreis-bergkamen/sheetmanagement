@@ -9,7 +9,7 @@ const search = (query: string) => searchInstruments(names, query, info, common);
 
 describe('searchInstruments', () => {
 	it('puts the usual instruments first, not the many small percussion ones', () => {
-		expect(search('b').slice(0, 1)).toEqual(['Viola']);
+		expect(search('b').slice(0, 2)).toEqual(['Bassklarinette', 'Viola']);
 		const k = search('k');
 		expect(k.indexOf('Kontrabass')).toBeLessThan(k.indexOf('Kuhglocke'));
 		expect(k.indexOf('Klarinette')).toBeLessThan(k.indexOf('Snare Drum'));
@@ -34,12 +34,19 @@ describe('foldFamily', () => {
 
 	it('folds the rare percussion away, but not what is chosen', () => {
 		const { shown, folded } = foldFamily(family('schlagwerk'), common, (name) => name === 'Triangel');
-		expect(shown).toEqual(['Pauke', 'Schlagwerk', 'Triangel']);
+		expect([...shown].sort()).toEqual(['Mallet Percussion', 'Pauke', 'Schlagwerk', 'Triangel']);
 		expect(folded).toContain('Marimba');
 	});
 
-	it('leaves small families and those without usual instruments as they are', () => {
-		expect(foldFamily(family('blech'), common, () => false).folded).toEqual([]);
-		expect(foldFamily(family('gesang'), common, () => false).folded).toEqual([]);
+	it('folds even two rare ones, but a single one stays; one without usual instruments folds entirely', () => {
+		expect(foldFamily(family('blech'), common, () => false).folded).toContain('Bariton');
+		expect(foldFamily(['Geige', 'E-Bass'], common, () => false).folded).toEqual([]);
+		expect(foldFamily(family('gesang'), common, () => false).shown).toEqual([]);
+		expect(foldFamily(family('gesang'), common, (name) => name === 'Chor').shown).toEqual(['Chor']);
+	});
+
+	it('shows the usual winds: bass clarinet and alto sax', () => {
+		const { shown } = foldFamily(family('holz'), common, () => false);
+		expect(shown).toEqual(expect.arrayContaining(['Bassklarinette', 'Alt-Saxophon']));
 	});
 });

@@ -34,7 +34,7 @@ export function readMemberForm(data: FormData): { values: MemberValues } | { pro
 	return {
 		values: {
 			name: text(data, 'name'),
-			instrument: formatInstruments(choicesFromForm(data, playableInstruments(config))),
+			instrument: formatInstruments(choicesFromForm(data, playableInstruments(config)), config),
 			orchestras: orchestras(data).join(', '),
 			status,
 			pausedUntil: pausedUntil ?? ''

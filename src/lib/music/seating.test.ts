@@ -137,6 +137,23 @@ describe('the seating plan', () => {
 		expect(found.find((section) => section.id === 'solo:Klavier')).toMatchObject({ players: 1, warn: true });
 	});
 
+	it('seats a generic part whose numbers name their own instruments as one section', () => {
+		const found = sectionsFromBesetzung({
+			voices: [...CHAMBER.map(voice), { instrument: 'Percussion', numbers: [1], holds: ['Triangel', 'Becken'] }, { instrument: 'Percussion', numbers: [2], holds: ['Pauke'] }],
+			missing: [],
+			familyOf: (name) => families.get(name),
+			abbr: (name) => name.slice(0, 3),
+			title: (v) => `${v.instrument} ${v.numbers.join(' & ')}: ${(v.holds ?? []).join(' & ')}`,
+			soloLabel: 'Solo'
+		});
+		const percussion = found.filter((section) => section.instrument === 'Percussion');
+		expect(percussion).toHaveLength(1);
+		expect(percussion[0]).toMatchObject({ players: 2, title: 'Percussion 1: Triangel & Becken; Percussion 2: Pauke' });
+		expect(percussion[0].chairs?.map((chair) => chair.title)).toEqual(['Percussion 1: Triangel & Becken', 'Percussion 2: Pauke']);
+		const seats = layoutSeating(found).seats.map((seat) => seat.id);
+		expect(new Set(seats).size).toBe(seats.length);
+	});
+
 	it('puts soloists beside the conductor and takes a concert’s own spot for a section', () => {
 		const solo = plan(CHAMBER, { soloists: ['Geige'] });
 		const soloist = solo.seats.find((seat) => seat.solo)!;

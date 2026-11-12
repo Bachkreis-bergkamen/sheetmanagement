@@ -7,11 +7,15 @@ const SMALL_PERCUSSION = [
 	'Agogo Bells', 'Brake Drum', 'Steel Drums'
 ];
 /** What a mallet part ("Mallet Percussion: Xylophon & Marimba") may hold. */
-const MALLETS = ['Glockenspiel', 'Xylophon', 'Marimba', 'Vibraphon'];
-/** What a generic percussion part ("Percussion I: Triangel & Becken") may hold. */
+const MALLETS = ['Glockenspiel', 'Xylophon', 'Marimba', 'Vibraphon', 'Röhrenglocken', 'Crotales'];
+/**
+ * What a generic percussion part ("Percussion I: Triangel & Becken") may hold, the usual ones of
+ * an orchestra first: the editor offers those and folds the rest away.
+ */
 const PERCUSSION_PARTS = [
-	'Snare Drum', 'Trommel', 'Bass Drum', 'Drumset', 'Becken', ...CYMBALS, 'Tamburin', 'Tamtam', ...SMALL_PERCUSSION,
-	...MALLETS, 'Mallet Percussion'
+	'Becken', 'Bass Drum', 'Snare Drum', 'Triangel', 'Tamburin', 'Glockenspiel', 'Xylophon', 'Tamtam', 'Röhrenglocken',
+	'Hängendes Becken', 'Drumset', 'Trommel', ...CYMBALS.filter((cymbal) => cymbal !== 'Hängendes Becken'),
+	...SMALL_PERCUSSION.filter((small) => small !== 'Triangel'), 'Marimba', 'Vibraphon', 'Crotales', 'Mallet Percussion'
 ];
 
 /**
@@ -53,10 +57,10 @@ export const bachkreis: OrchestraConfig = {
 		{ name: 'Englischhorn', family: 'holz', aliases: ['English Horn', 'Cor Anglais'] },
 		{ name: 'Klarinette', family: 'holz', common: true, aliases: ['Klarinetten', 'Clarinet', 'Clarinets', 'Clarinette', 'Clarinettes', 'Clarinett', 'Calarinet', 'Clari'] },
 		{ name: 'Altklarinette', family: 'holz', aliases: ['Alto Clarinet', 'Alto Clarinets', 'Alt-Klarinette', 'Alt Klarinette', 'Alto Clari'] },
-		{ name: 'Bassklarinette', family: 'holz', aliases: ['Bass Clarinet', 'Bass Clari', 'Bass Klarinette'] },
+		{ name: 'Bassklarinette', family: 'holz', common: true, aliases: ['Bass Clarinet', 'Bass Clari', 'Bass Klarinette'] },
 		{ name: 'Fagott', family: 'holz', common: true, aliases: ['Fagotte', 'Bassoon', 'Bassoons', 'Bassoonpdf', 'Basson', 'Bassons'] },
 		{ name: 'Sopran-Saxophon', family: 'holz', aliases: ['Sopransaxophon', 'Soprano Sax', 'Sopransax', 'Soprano Saxophone'] },
-		{ name: 'Alt-Saxophon', family: 'holz', aliases: ['Altsaxophon', 'Alt Sax', 'Alto Sax', 'Alto Saxophone', 'Altsax', 'Alt Saxphone', 'Alt Saxophone', 'Alt Saxophon', 'Alto Saxophon'] },
+		{ name: 'Alt-Saxophon', family: 'holz', common: true, aliases: ['Altsaxophon', 'Alt Sax', 'Alto Sax', 'Alto Saxophone', 'Altsax', 'Alt Saxphone', 'Alt Saxophone', 'Alt Saxophon', 'Alto Saxophon'] },
 		{ name: 'Tenor-Saxophon', family: 'holz', aliases: ['Tenorsaxophon', 'Tenor Sax', 'Tenor Saxophone', 'Tenorsax', 'Tenor Saxophon'] },
 		{ name: 'Bariton-Saxophon', family: 'holz', aliases: ['Baritonsaxophon', 'Bari Sax', 'Baritone Sax', 'Baritonsax', 'Bariton Sax', 'Baritone Saxophone', 'Bariton Saxophon'] },
 		{ name: 'Saxophon', family: 'holz', aliases: ['Sax', 'Saxophone', 'Saxphone'] },
@@ -119,26 +123,28 @@ export const bachkreis: OrchestraConfig = {
 		{ name: 'Steel Drums', family: 'schlagwerk', aliases: ['Steel Drum', 'Steeldrum', 'Steeldrums', 'Steel Pan', 'Steelpan', 'Steel Pans', 'Steelpans'] },
 		{
 			name: 'Mallet Percussion',
+			common: true,
 			family: 'schlagwerk',
 			aliases: ['Mallets', 'Mallet Perc', 'Stabspiele'],
-			variants: ['Röhrenglocken', 'Tubular Bells', 'Chimes', 'Crotales'],
 			// A part for several players like Percussion: "Mallet Percussion I: Xylophon & Glockenspiel".
 			holds: MALLETS
 		},
+		{ name: 'Röhrenglocken', family: 'schlagwerk', aliases: ['Röhrenglocke', 'Tubular Bells', 'Tubular Bell', 'Chimes', 'Campane', 'Campanelle tubolari'] },
+		{ name: 'Crotales', family: 'schlagwerk', aliases: ['Crotale', 'Antike Zimbeln', 'Antique Cymbals', 'Cymbales antiques'] },
 		{ name: 'Marimba', family: 'schlagwerk', aliases: ['Marimbaphon', 'Marimbafon', 'Marimbaphone'] },
 		{ name: 'Vibraphon', family: 'schlagwerk', aliases: ['Vibraphone', 'Vibrafon', 'Vibes', 'Vibraharp'] },
 		{ name: 'Glockenspiel', family: 'schlagwerk', aliases: ['Bells', 'Orchestra Bells', 'Orchestral Bells'] },
 		{ name: 'Xylophon', family: 'schlagwerk', aliases: ['Xylophone'] },
 		{ name: 'Becken', family: 'schlagwerk', aliases: ['Cymbals', 'Cymbal', 'Piatti', 'Clash Cymbals', 'Beckenpaar'] },
-		{ name: 'Bass Drum', family: 'schlagwerk', aliases: ['Große Trommel', 'Grosse Trommel', 'Gran Cassa', 'Bassdrum'] },
+		{ name: 'Bass Drum', family: 'schlagwerk', aliases: ['Große Trommel', 'Grosse Trommel', 'Gran Cassa', 'Gran Casa', 'Grancassa', 'Gran-Cassa', 'Bassdrum'] },
 		{ name: 'Trommel', family: 'schlagwerk', aliases: ['Rührtrommel', 'Marschtrommel', 'Field Drum', 'Tenor Drum'] },
 		{ name: 'Tamburin', family: 'schlagwerk', aliases: ['Tambourine'] },
 		{ name: 'Tamtam', family: 'schlagwerk', aliases: ['Tam Tam', 'Gong'] },
 
 		{ name: 'Cembalo', family: 'tasten', aliases: ['Harpsichord'] },
-		{ name: 'Klavier', family: 'tasten', aliases: ['Piano'] },
+		{ name: 'Klavier', family: 'tasten', common: true, aliases: ['Piano'] },
 		{ name: 'Orgel', family: 'tasten', aliases: ['Organ'] },
-		{ name: 'Synthesizer', family: 'tasten', aliases: ['Synth', 'Keyboard', 'Roland', 'Roland SP700', 'Roland SP 700'] },
+		{ name: 'Synthesizer', family: 'tasten', common: true, aliases: ['Synth', 'Keyboard', 'Roland', 'Roland SP700', 'Roland SP 700'] },
 		{ name: 'Harfe', family: 'tasten', aliases: ['Harp'] },
 		{ name: 'Continuo', family: 'tasten', aliases: ['Basso Continuo'] },
 
@@ -313,6 +319,8 @@ export const bachkreis: OrchestraConfig = {
 		// Marimba and vibraphone were under "Mallet Percussion" and are played by its players.
 		Marimba: ['Mallet Percussion', 'Schlagwerk', 'Percussion'],
 		Vibraphon: ['Mallet Percussion', 'Schlagwerk', 'Percussion'],
+		Röhrenglocken: ['Mallet Percussion', 'Schlagwerk', 'Percussion'],
+		Crotales: ['Mallet Percussion', 'Schlagwerk', 'Percussion'],
 		...Object.fromEntries(CYMBALS.map((name) => [name, ['Becken', 'Schlagwerk', 'Percussion']])),
 		// Choir parts: each voice sings from them.
 		Chor: ['Sopran', 'Alt', 'Tenor', 'Bassstimme', 'Gesang'],
@@ -323,5 +331,18 @@ export const bachkreis: OrchestraConfig = {
 		Klavierauszug: ['Klavier'],
 		// Most arrangements' bass guitar parts are played on the double bass.
 		'E-Bass': ['Kontrabass']
+	},
+
+	// What a percussionist ticks in their profile, not each of the 50 instruments: not everyone
+	// plays the mallets or has congas at home. "Schlagwerk (Trommeln, Stabspiele ohne Marimba)".
+	instrumentSets: {
+		Trommeln: ['Snare Drum', 'Bass Drum', 'Trommel', 'Tomtoms', 'Konzerttoms', 'Rototoms'],
+		'Becken und Gongs': ['Becken', 'Hängendes Becken', 'Crash-Becken', 'Ride-Becken', 'China-Becken', 'Hi-Hat', 'Fingerzimbeln', 'Tamtam'],
+		Kleinpercussion: ['Triangel', 'Tamburin', 'Schellen', 'Holzblock', 'Tempelblocks', 'Claves', 'Kuhglocke', 'Maracas', 'Shaker', 'Güiro', 'Agogo Bells'],
+		Effekte: ['Ratsche', 'Peitsche', 'Vibraslap', 'Flexaton', 'Regenmacher', 'Windspiel', 'Mark Tree', 'Amboss', 'Brake Drum'],
+		'Latin und Karibik': ['Bongos', 'Congas', 'Djembe', 'Steel Drums'],
+		Stabspiele: ['Glockenspiel', 'Xylophon', 'Marimba', 'Vibraphon', 'Röhrenglocken', 'Crotales', 'Mallet Percussion'],
+		Drumset: ['Drumset'],
+		Pauken: ['Pauke']
 	}
 };
