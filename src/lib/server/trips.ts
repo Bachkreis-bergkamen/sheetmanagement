@@ -87,14 +87,14 @@ export async function visibleTrips(locals: App.Locals): Promise<{ trip: Trip; pa
 	return trips.filter(({ trip, participants }) => canSeeTrip(trip, viewer, participants));
 }
 
-/** A person's trip lists, kept lists and instruments, for their data export; empty without a store. */
+/** A person's trip lists, kept lists, instruments and arrangements, for their data export; empty without a store. */
 export async function tripListsOf(email: string) {
 	const store = tripStore();
-	const none = { lists: [], kept: [], instruments: [], trips: [] };
+	const none = { lists: [], kept: [], instruments: [], trips: [], arrangements: [] };
 	if (!store) return none;
 	try {
-		const [lists, kept, instruments, trips] = await Promise.all([store.listsOf(email), store.kept(email), store.instruments([email]), store.list()]);
-		return { lists, kept, instruments, trips };
+		const [lists, kept, instruments, trips, arrangements] = await Promise.all([store.listsOf(email), store.kept(email), store.instruments([email]), store.list(), store.arrangementsOf(email)]);
+		return { lists, kept, instruments, trips, arrangements };
 	} catch (cause) {
 		console.error('Reading the trip lists for the export failed:', cause);
 		return none;
@@ -215,6 +215,26 @@ function demoTrips(): MemoryTripStore {
 			await item('p7', second, '20:00', undefined, 'Bunter Abend', 'frei');
 			await item('p8', last, '09:30', '12:00', 'Durchlauf', 'tutti', { place: 'Großer Saal' });
 			await item('p9', last, '14:00', '15:30', 'Rückfahrt', 'reise');
+			// Organising (step 3): rooms, the bus for everyone, a fee and a packing list.
+			await store.setOrganising(trip.id, {
+				rooms: [
+					{ id: 'r1', kind: 'zimmer', name: 'Zimmer 1', beds: 4 },
+					{ id: 'r2', kind: 'zimmer', name: 'Zimmer 2', beds: 2, note: 'Erdgeschoss, neben dem Betreuerzimmer' },
+					{ id: 'r3', kind: 'zimmer', name: 'Zimmer 3', beds: 2 }
+				],
+				vehicles: [
+					{ id: 'v1', name: 'Reisebus', kind: 'bus', seats: 50, legs: ['hin', 'rueck'], driver: 'Busunternehmen Müller', pickups: [{ time: '16:00', place: 'Schulhof' }] },
+					{ id: 'v2', name: 'Auto Paul', kind: 'auto', seats: 4, legs: ['hin'], pickups: [{ time: '08:00', place: 'Bahnhof Kamen' }] }
+				],
+				fee: 9000,
+				feeReduced: 6000,
+				packing: ['Noten und Bleistift', 'Instrument mit Zubehör', 'Notenständer', 'Bettwäsche oder Schlafsack', 'Handtuch', 'Etwas für den bunten Abend'].map((text, i) => ({ id: `k${i + 1}`, text }))
+			});
+			const arrange = (email: string, extra: object) => store.saveArrangement({ tripId: trip.id, email, ...extra });
+			await arrange('jonas@example.org', { room: 'r1', rides: { hin: 'v1', rueck: 'v1' }, paidOn: day(-3), packed: ['k1', 'k3'] });
+			await arrange('tim@example.org', { room: 'r2', rides: { hin: 'v1', rueck: 'v1' }, fee: 0 });
+			await arrange('bea@example.org', { rides: { hin: 'v1', rueck: 'v1' }, fee: 6000 });
+			await arrange('paul@example.org', { room: 'r1', rides: { hin: 'v2', rueck: 'v1' } });
 		});
 	// The demo member isn't signed up yet: the trip waits for their answer.
 	return store;

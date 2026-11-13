@@ -30,6 +30,7 @@ import {
 	type Trip
 } from '#lib/trips/trips.ts';
 import { isCarer, listProgress, listsFor } from '#lib/trips/lists.ts';
+import { LEGS, costs, feeOf, packedCount, stayKind } from '#lib/trips/organising.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /** A trip (#334): what it is, your sign-up, your child's, and for organisers who comes and its dates. */
@@ -80,6 +81,30 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		return person ? [{ person, fuer }] : [];
 	});
 
+	// Organising (step 3): where one sleeps and rides, what one pays, how far one's packing is.
+	const arrangements = inside ? await store.arrangements(trip.id).catch(() => []) : [];
+	const going = signedUp(participants);
+	const placesFor = ({ person, fuer }: (typeof people)[number]) => {
+		const own = arrangements.find((one) => one.email === person.email);
+		const room = trip.rooms?.find((one) => one.id === own?.room);
+		const roommates = room ? going.filter((p) => p.email !== person.email && arrangements.some((one) => one.email === p.email && one.room === room.id)).map((p) => p.name) : [];
+		const rides = LEGS.flatMap((leg) => {
+			const vehicle = trip.vehicles?.find((one) => one.id === own?.rides?.[leg] && one.legs.includes(leg));
+			return vehicle ? [{ leg, name: vehicle.name, kind: vehicle.kind, pickups: vehicle.pickups }] : [];
+		});
+		const fee = feeOf(trip, own);
+		return {
+			name: person.name,
+			fuer,
+			mine: person.participant.status === 'angemeldet',
+			room: room && { name: room.name, kind: stayKind(room), note: room.note, with: roommates },
+			rides,
+			fee: trip.fee !== undefined || own?.fee !== undefined ? { amount: fee, paidOn: own?.paidOn } : null,
+			packing: packedCount(trip.packing ?? [], own)
+		};
+	};
+	const costSummary = organises ? costs(trip, participants, arrangements) : null;
+
 	return {
 		trip: {
 			id: trip.id,
@@ -116,6 +141,20 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		},
 		myLists: people.map(({ person, fuer }) => ({ name: person.name, fuer, ...listsOf(person.email, person.participant.roles) })).filter((one) => one.of > 0),
 		listProgress: organises || carer ? listProgress(trip, participants, entries, children) : null,
+		// One's own (and one's children's) bed, rides, fee and packing; only for those holding a place.
+		arranged: people.map(placesFor).filter((one) => one.mine),
+		// The organising pages: rooms and transport also for the Betreuer·innen to read, costs for the organisers.
+		organising:
+			organises || carer
+				? {
+						placed: arrangements.filter((one) => going.some((p) => p.email === one.email) && trip.rooms?.some((room) => room.id === one.room)).length,
+						stays: trip.rooms?.length ?? 0,
+						going: going.length,
+						vehicles: trip.vehicles?.length ?? 0,
+						costs: costSummary && { unpaid: costSummary.unpaid, payers: costSummary.rows.filter((row) => row.fee > 0).length }
+					}
+				: null,
+		packingItems: trip.packing?.length ?? 0,
 		organises,
 		inside,
 		open: signupOpen(trip, day),

@@ -51,7 +51,7 @@ export const GET: RequestHandler = async ({ locals }) => {
 		email: user.email,
 		exportedAt: new Date().toISOString(),
 		about: t.myData.explain,
-		data: { ...data, ...storedData(devices, reminders, optOut.has(email), tour, { on: practiceOn, days: practiceDays }, marks), ...pollData(polls), ...tripData(trips), ...tripListData(tripLists.lists, tripLists.kept, tripLists.instruments, tripLists.trips), ...(drillSharing ? { [t.myData.drills]: { sharing: drillSharing, days: drillDays.map(({ email: _, ...row }) => row) } } : {}) }
+		data: { ...data, ...storedData(devices, reminders, optOut.has(email), tour, { on: practiceOn, days: practiceDays }, marks), ...pollData(polls), ...tripData(trips), ...tripListData(tripLists.lists, tripLists.kept, tripLists.instruments, tripLists.trips, tripLists.arrangements), ...(drillSharing ? { [t.myData.drills]: { sharing: drillSharing, days: drillDays.map(({ email: _, ...row }) => row) } } : {}) }
 	};
 	return new Response(JSON.stringify(body, null, 2), {
 		headers: {
