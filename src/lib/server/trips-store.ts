@@ -1,6 +1,7 @@
 import type { SqlDatabase } from './polls-store.ts';
 import type { Instrument, KeptList, ListEntry, ListKind } from '#lib/trips/lists.ts';
 import { DEFAULT_LISTS } from '#lib/trips/lists.ts';
+import type { Arrangement, Organising } from '#lib/trips/organising.ts';
 import type { NewTrip, Participant, PlanItem, Trip, TripPicture, TripPlace } from '#lib/trips/trips.ts';
 import { slugFor } from '#lib/trips/trips.ts';
 
@@ -20,7 +21,9 @@ export interface TripStore {
 	setEvents(id: string, eventIds: string[]): Promise<void>;
 	/** What was looked up for the trip's places: their pictures, where they are, the flags. */
 	setLookups(id: string, found: Lookups): Promise<void>;
-	/** The trip with its participants, plan and lists. */
+	/** Rooms, vehicles, the packing list or the fees (step 3); only what's given changes. */
+	setOrganising(id: string, organising: Partial<Organising>): Promise<void>;
+	/** The trip with its participants, plan, lists and arrangements. */
 	remove(id: string): Promise<void>;
 
 	/** Everyone who answered, cancelled ones too, in the order they signed up. */
@@ -53,6 +56,13 @@ export interface TripStore {
 	/** Adds or changes one; someone else's instrument isn't changed by its id. */
 	saveInstrument(instrument: Instrument): Promise<void>;
 	removeInstrument(email: string, id: string): Promise<void>;
+
+	/** Where everyone sleeps and rides, what they pay and packed (step 3). */
+	arrangements(tripId: string): Promise<Arrangement[]>;
+	/** One per person and trip: saving again replaces it. */
+	saveArrangement(arrangement: Arrangement): Promise<void>;
+	/** A person's arrangements on every trip; for their data export. */
+	arrangementsOf(email: string): Promise<Arrangement[]>;
 
 	/** A person's sign-ups with their trips; for their data export (#158). */
 	participationsOf(email: string): Promise<{ trip: Trip; participant: Participant }[]>;
@@ -124,7 +134,14 @@ const SCHEMA = [
 		email TEXT NOT NULL,
 		data TEXT NOT NULL
 	)`,
-	`CREATE INDEX IF NOT EXISTS trip_instruments_email ON trip_instruments (email)`
+	`CREATE INDEX IF NOT EXISTS trip_instruments_email ON trip_instruments (email)`,
+	`CREATE TABLE IF NOT EXISTS trip_arrangements (
+		trip_id TEXT NOT NULL,
+		email TEXT NOT NULL,
+		data TEXT NOT NULL,
+		PRIMARY KEY (trip_id, email)
+	)`,
+	`CREATE INDEX IF NOT EXISTS trip_arrangements_email ON trip_arrangements (email)`
 ];
 
 interface TripRow {
@@ -176,21 +193,49 @@ interface PlanRow {
 /** What doesn't get a column of its own: lists and the optional fields. */
 type TripData = Pick<
 	Trip,
-	'orchestras' | 'organisers' | 'stops' | 'lists' | 'questions' | 'eventIds' | 'note' | 'signupUntil' | 'cap' | 'pictureSearch' | 'noPicture' | 'pictures' | 'places' | 'flags'
+	| 'orchestras'
+	| 'organisers'
+	| 'stops'
+	| 'lists'
+	| 'questions'
+	| 'eventIds'
+	| 'note'
+	| 'signupUntil'
+	| 'cap'
+	| 'pictureSearch'
+	| 'noPicture'
+	| 'pictures'
+	| 'places'
+	| 'flags'
+	| 'rooms'
+	| 'vehicles'
+	| 'packing'
+	| 'fee'
+	| 'feeReduced'
 >;
 
 /** What the trip's form doesn't edit, and stays when it's saved. */
-type Unedited = Pick<Trip, 'eventIds' | 'pictures' | 'places' | 'flags'>;
+type Unedited = Pick<Trip, 'eventIds' | 'pictures' | 'places' | 'flags' | 'rooms' | 'vehicles' | 'packing' | 'fee' | 'feeReduced'>;
+
+/** The trip's organising (step 3) as it's stored: what's empty or unset is left out. */
+const organisingIn = ({ rooms, vehicles, packing, fee, feeReduced }: Partial<Organising>): Partial<Organising> => ({
+	...(rooms?.length ? { rooms } : {}),
+	...(vehicles?.length ? { vehicles } : {}),
+	...(packing?.length ? { packing } : {}),
+	...(fee !== undefined ? { fee } : {}),
+	...(feeReduced !== undefined ? { feeReduced } : {})
+});
 
 /** The trip's lookups with what was just found. */
 const withLookups = (trip: Trip, found: Lookups): Unedited => ({
+	...organisingIn(trip),
 	eventIds: trip.eventIds,
 	pictures: found.pictures ?? trip.pictures,
 	places: found.places ?? trip.places,
 	flags: found.flags ?? trip.flags
 });
 
-const tripData = (trip: NewTrip, { eventIds, pictures, places, flags }: Unedited): TripData => ({
+const tripData = (trip: NewTrip, { eventIds, pictures, places, flags, ...organising }: Unedited): TripData => ({
 	orchestras: trip.orchestras,
 	organisers: trip.organisers,
 	stops: trip.stops,
@@ -204,7 +249,17 @@ const tripData = (trip: NewTrip, { eventIds, pictures, places, flags }: Unedited
 	...(trip.noPicture ? { noPicture: true } : {}),
 	...(pictures ? { pictures } : {}),
 	...(places ? { places } : {}),
-	...(flags ? { flags } : {})
+	...(flags ? { flags } : {}),
+	...organisingIn(organising)
+});
+
+/** The trip's stored organising with a change: a key given as undefined clears it. */
+const withOrganising = (trip: Trip, change: Partial<Organising>): Unedited => ({
+	eventIds: trip.eventIds,
+	pictures: trip.pictures,
+	places: trip.places,
+	flags: trip.flags,
+	...organisingIn({ ...organisingIn(trip), ...change })
 });
 
 /** Trips from before the lists (#334, step 1) ask for the usual ones. */
@@ -241,6 +296,8 @@ const planData = ({ end, title, kind, place, audience, note }: PlanItem) => JSON
 
 const toList = (row: ListRow): ListEntry => ({ tripId: row.trip_id, email: row.email, kind: row.kind as ListKind, data: JSON.parse(row.data), savedAt: row.saved_at, savedBy: row.saved_by });
 const toKept = (row: KeptRow): KeptList => ({ email: row.email, kind: row.kind as ListKind, data: JSON.parse(row.data), savedAt: row.saved_at });
+const toArrangement = (row: { trip_id: string; email: string; data: string }): Arrangement => ({ ...JSON.parse(row.data), tripId: row.trip_id, email: row.email });
+const arrangementData = ({ tripId: _, email: __, ...data }: Arrangement) => JSON.stringify(data);
 const byOwner = (a: Instrument, b: Instrument) => a.email.localeCompare(b.email) || a.name.localeCompare(b.name) || a.id.localeCompare(b.id);
 const byEmail = (a: ListEntry, b: ListEntry) => a.email.localeCompare(b.email) || a.kind.localeCompare(b.kind);
 
@@ -316,8 +373,18 @@ export class SqlTripStore implements TripStore {
 			.run();
 	}
 
+	async setOrganising(id: string, organising: Partial<Organising>): Promise<void> {
+		const known = await this.get(id);
+		if (!known) return;
+		await this.db
+			.prepare('UPDATE trips SET data = ? WHERE id = ?')
+			.bind(JSON.stringify(tripData(known, withOrganising(known, organising))), id)
+			.run();
+	}
+
 	async remove(id: string): Promise<void> {
 		await this.ready();
+		await this.db.prepare('DELETE FROM trip_arrangements WHERE trip_id = ?').bind(id).run();
 		await this.db.prepare('DELETE FROM trip_plan WHERE trip_id = ?').bind(id).run();
 		await this.db.prepare('DELETE FROM trip_lists WHERE trip_id = ?').bind(id).run();
 		await this.db.prepare('DELETE FROM trip_participants WHERE trip_id = ?').bind(id).run();
@@ -345,6 +412,7 @@ export class SqlTripStore implements TripStore {
 		await this.ready();
 		await this.db.prepare('DELETE FROM trip_participants WHERE trip_id = ? AND email = ?').bind(tripId, email).run();
 		await this.db.prepare('DELETE FROM trip_lists WHERE trip_id = ? AND email = ?').bind(tripId, email).run();
+		await this.db.prepare('DELETE FROM trip_arrangements WHERE trip_id = ? AND email = ?').bind(tripId, email).run();
 	}
 
 	async plan(tripId: string): Promise<PlanItem[]> {
@@ -446,6 +514,26 @@ export class SqlTripStore implements TripStore {
 		await this.db.prepare('DELETE FROM trip_instruments WHERE id = ? AND email = ?').bind(id, email).run();
 	}
 
+	async arrangements(tripId: string): Promise<Arrangement[]> {
+		await this.ready();
+		const { results } = await this.db.prepare('SELECT * FROM trip_arrangements WHERE trip_id = ? ORDER BY email').bind(tripId).all<{ trip_id: string; email: string; data: string }>();
+		return results.map(toArrangement);
+	}
+
+	async saveArrangement(arrangement: Arrangement): Promise<void> {
+		await this.ready();
+		await this.db
+			.prepare('INSERT INTO trip_arrangements (trip_id, email, data) VALUES (?, ?, ?) ON CONFLICT (trip_id, email) DO UPDATE SET data = excluded.data')
+			.bind(arrangement.tripId, arrangement.email, arrangementData(arrangement))
+			.run();
+	}
+
+	async arrangementsOf(email: string): Promise<Arrangement[]> {
+		await this.ready();
+		const { results } = await this.db.prepare('SELECT * FROM trip_arrangements WHERE email = ? ORDER BY trip_id').bind(email).all<{ trip_id: string; email: string; data: string }>();
+		return results.map(toArrangement);
+	}
+
 	async listsOf(email: string): Promise<ListEntry[]> {
 		await this.ready();
 		const { results } = await this.db.prepare('SELECT * FROM trip_lists WHERE email = ? ORDER BY trip_id, kind').bind(email).all<ListRow>();
@@ -460,8 +548,15 @@ export class SqlTripStore implements TripStore {
 	}
 
 	async countBy(email: string): Promise<number> {
-		const [own, trips, lists, kept, instruments] = await Promise.all([this.participationsOf(email), this.list(), this.listsOf(email), this.kept(email), this.instruments([email])]);
-		return own.length + lists.length + kept.length + instruments.length + trips.filter((trip) => trip.organisers.includes(email) || trip.createdBy === email).length;
+		const [own, trips, lists, kept, instruments, arrangements] = await Promise.all([
+			this.participationsOf(email),
+			this.list(),
+			this.listsOf(email),
+			this.kept(email),
+			this.instruments([email]),
+			this.arrangementsOf(email)
+		]);
+		return own.length + lists.length + kept.length + instruments.length + arrangements.length + trips.filter((trip) => trip.organisers.includes(email) || trip.createdBy === email).length;
 	}
 
 	async forget(email: string, stand: { email: string }): Promise<void> {
@@ -470,6 +565,7 @@ export class SqlTripStore implements TripStore {
 		await this.db.prepare('DELETE FROM trip_lists WHERE email = ?').bind(email).run();
 		await this.db.prepare('DELETE FROM trip_kept WHERE email = ?').bind(email).run();
 		await this.db.prepare('DELETE FROM trip_instruments WHERE email = ?').bind(email).run();
+		await this.db.prepare('DELETE FROM trip_arrangements WHERE email = ?').bind(email).run();
 		// A parent filled in a child's list: it stays, without the parent's address.
 		await this.db.prepare('UPDATE trip_lists SET saved_by = ? WHERE saved_by = ?').bind(stand.email, email).run();
 		// Confirmed for a child: the confirmation stays, without the parent's address.
@@ -495,6 +591,7 @@ export class MemoryTripStore implements TripStore {
 	#lists: ListEntry[] = [];
 	#kept: KeptList[] = [];
 	#instruments = new Map<string, Instrument>();
+	#arrangements: Arrangement[] = [];
 	readonly #copy = <T>(value: T): T => structuredClone(value);
 
 	async list(): Promise<Trip[]> {
@@ -530,8 +627,16 @@ export class MemoryTripStore implements TripStore {
 		this.#trips.set(id, { ...structuredClone(tripData(known, withLookups(known, found))), id, title, kind, firstDay, lastDay, slug, createdBy, createdAt });
 	}
 
+	async setOrganising(id: string, organising: Partial<Organising>): Promise<void> {
+		const known = this.#trips.get(id);
+		if (!known) return;
+		const { title, kind, firstDay, lastDay, slug, createdBy, createdAt } = known;
+		this.#trips.set(id, { ...structuredClone(tripData(known, withOrganising(known, organising))), id, title, kind, firstDay, lastDay, slug, createdBy, createdAt });
+	}
+
 	async remove(id: string): Promise<void> {
 		this.#trips.delete(id);
+		this.#arrangements = this.#arrangements.filter((one) => one.tripId !== id);
 		this.#participants = this.#participants.filter((p) => p.tripId !== id);
 		this.#lists = this.#lists.filter((entry) => entry.tripId !== id);
 		for (const [key, item] of this.#plan) if (item.tripId === id) this.#plan.delete(key);
@@ -553,6 +658,7 @@ export class MemoryTripStore implements TripStore {
 	async removeParticipant(tripId: string, email: string): Promise<void> {
 		this.#participants = this.#participants.filter((p) => !(p.tripId === tripId && p.email === email));
 		this.#lists = this.#lists.filter((entry) => !(entry.tripId === tripId && entry.email === email));
+		this.#arrangements = this.#arrangements.filter((one) => !(one.tripId === tripId && one.email === email));
 	}
 
 	async plan(tripId: string): Promise<PlanItem[]> {
@@ -610,6 +716,24 @@ export class MemoryTripStore implements TripStore {
 		if (this.#instruments.get(id)?.email === email) this.#instruments.delete(id);
 	}
 
+	async arrangements(tripId: string): Promise<Arrangement[]> {
+		return this.#arrangements
+			.filter((one) => one.tripId === tripId)
+			.sort((a, b) => a.email.localeCompare(b.email))
+			.map(this.#copy);
+	}
+
+	async saveArrangement(arrangement: Arrangement): Promise<void> {
+		this.#arrangements = [...this.#arrangements.filter((one) => !(one.tripId === arrangement.tripId && one.email === arrangement.email)), JSON.parse(JSON.stringify(arrangement))];
+	}
+
+	async arrangementsOf(email: string): Promise<Arrangement[]> {
+		return this.#arrangements
+			.filter((one) => one.email === email)
+			.sort((a, b) => a.tripId.localeCompare(b.tripId))
+			.map(this.#copy);
+	}
+
 	async listsOf(email: string): Promise<ListEntry[]> {
 		return this.#lists
 			.filter((entry) => entry.email === email)
@@ -625,7 +749,11 @@ export class MemoryTripStore implements TripStore {
 	}
 
 	async countBy(email: string): Promise<number> {
-		const own = this.#lists.filter((entry) => entry.email === email).length + this.#kept.filter((list) => list.email === email).length + (await this.instruments([email])).length;
+		const own =
+			this.#lists.filter((entry) => entry.email === email).length +
+			this.#kept.filter((list) => list.email === email).length +
+			this.#arrangements.filter((one) => one.email === email).length +
+			(await this.instruments([email])).length;
 		return own + (await this.participationsOf(email)).length + [...this.#trips.values()].filter((trip) => trip.organisers.includes(email) || trip.createdBy === email).length;
 	}
 
@@ -634,6 +762,7 @@ export class MemoryTripStore implements TripStore {
 		this.#lists = this.#lists.filter((entry) => entry.email !== email);
 		this.#kept = this.#kept.filter((list) => list.email !== email);
 		for (const [id, instrument] of this.#instruments) if (instrument.email === email) this.#instruments.delete(id);
+		this.#arrangements = this.#arrangements.filter((one) => one.email !== email);
 		for (const entry of this.#lists) if (entry.savedBy === email) entry.savedBy = stand.email;
 		for (const participant of this.#participants) if (participant.parentConfirmedBy === email) participant.parentConfirmedBy = stand.email;
 		for (const trip of this.#trips.values()) {

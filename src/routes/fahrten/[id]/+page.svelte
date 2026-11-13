@@ -3,6 +3,7 @@
 	import { config } from '#lib/config/index.ts';
 	import { FormState } from '#lib/forms.svelte.ts';
 	import { t } from '#lib/i18n/index.ts';
+	import { formatEuros } from '#lib/trips/organising.ts';
 	import { formatDays, formatWeekday, tripDays, TRIP_ROLES } from '#lib/trips/trips.ts';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import Icon from '#lib/components/Icon.svelte';
@@ -14,6 +15,7 @@
 	let { data, form } = $props();
 	const saving = new FormState();
 	const trip = $derived(data.trip);
+	const o = t.trips.organising;
 	const day = (iso: string) => formatWeekday(iso, config.locale);
 	// "Di., 8. Dez.": a day to tap when arriving later or leaving early.
 	const shortDay = (iso: string) => new Intl.DateTimeFormat(config.locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${iso}T00:00:00Z`));
@@ -276,6 +278,43 @@
 			</section>
 		{/if}
 
+		<!-- What's settled for you (and your children): the bed, the rides, the fee. -->
+		{#each data.arranged.filter((one) => one.room || one.rides.length || one.fee) as one (one.fuer)}
+			<section class="ui-card section arranged">
+				{#if data.arranged.length > 1 || one.fuer}<h2>{one.name}</h2>{/if}
+				<dl>
+					{#if one.room}
+						<div>
+							<dt><Icon name={one.room.kind === 'gastfamilie' ? 'home' : 'bed'} size={16} />{o.stays.yours}</dt>
+							<dd>
+								<strong>{one.room.name}</strong>
+								{#if one.room.with.length}<span class="muted">{o.stays.with(one.room.with.join(', '))}</span>{/if}
+								{#if one.room.note}<span class="muted pre">{one.room.note}</span>{/if}
+							</dd>
+						</div>
+					{/if}
+					{#each one.rides as ride (ride.leg)}
+						<div>
+							<dt><Icon name="bus" size={16} />{o.transport.yours(o.transport.legs[ride.leg])}</dt>
+							<dd>
+								<strong>{ride.name}</strong>
+								{#each ride.pickups as pickup, i (i)}<span class="muted">{pickup.time ? `${pickup.time} ` : ''}{pickup.place}</span>{/each}
+							</dd>
+						</div>
+					{/each}
+					{#if one.fee}
+						<div>
+							<dt><Icon name="coins" size={16} />{o.costs.yours}</dt>
+							<dd>
+								<strong>{formatEuros(one.fee.amount, config.locale)}</strong>
+								{#if one.fee.amount > 0}<span class:muted={!!one.fee.paidOn} class:open={!one.fee.paidOn}>{one.fee.paidOn ? o.costs.yourPaid(day(one.fee.paidOn)) : o.costs.yourOpen}</span>{/if}
+							</dd>
+						</div>
+					{/if}
+				</dl>
+			</section>
+		{/each}
+
 		<!-- What there is to open: the plan, one's lists, and for those who read them, everyone's. -->
 		{#if data.inside || data.myLists.length || data.listProgress?.length}
 			<ul class="ui-list links">
@@ -287,6 +326,53 @@
 							<Icon name="chevron" size={16} />
 						</a>
 					</li>
+				{/if}
+				<!-- The packing list: one's own progress, or a child's. -->
+				{#if data.packingItems || data.organises}
+					{#each data.arranged.length ? data.arranged : [{ fuer: null, name: '', packing: { packed: 0, of: data.packingItems } }] as one (one.fuer)}
+						<li>
+							<a href="/fahrten/{trip.id}/packliste{one.fuer ? `?fuer=${one.fuer}` : ''}">
+								<span class="tile" class:todo={data.arranged.length > 0 && one.packing.of > 0 && one.packing.packed < one.packing.of}><Icon name="backpack" size={20} /></span>
+								<span class="body">
+									<strong>{one.fuer ? o.packing.forChild(one.name) : o.packing.title}</strong>
+									{#if data.arranged.length && one.packing.of}
+										<span class="progress">
+											<span class="bar" aria-hidden="true"><span class:full={one.packing.packed === one.packing.of} style:width="{(one.packing.packed / one.packing.of) * 100}%"></span></span>
+											<span class="muted">{o.packing.progress(one.packing.packed, one.packing.of)}</span>
+										</span>
+									{:else}
+										<span class="muted">{o.packing.linkLead(one.packing.of)}</span>
+									{/if}
+								</span>
+								<Icon name="chevron" size={16} />
+							</a>
+						</li>
+					{/each}
+				{/if}
+				{#if data.organising}
+					<li>
+						<a href="/fahrten/{trip.id}/unterkunft">
+							<span class="tile"><Icon name="bed" size={20} /></span>
+							<span class="body"><strong>{o.stays.title}</strong><span class="muted">{o.stays.linkLead(data.organising.placed, data.organising.stays ? data.organising.going : 0)}</span></span>
+							<Icon name="chevron" size={16} />
+						</a>
+					</li>
+					<li>
+						<a href="/fahrten/{trip.id}/transport">
+							<span class="tile"><Icon name="bus" size={20} /></span>
+							<span class="body"><strong>{o.transport.title}</strong><span class="muted">{o.transport.linkLead(data.organising.vehicles)}</span></span>
+							<Icon name="chevron" size={16} />
+						</a>
+					</li>
+					{#if data.organising.costs}
+						<li>
+							<a href="/fahrten/{trip.id}/kosten">
+								<span class="tile" class:todo={data.organising.costs.unpaid > 0}><Icon name="coins" size={20} /></span>
+								<span class="body"><strong>{o.costs.title}</strong><span class="muted">{o.costs.linkLead(data.organising.costs.unpaid, data.organising.costs.payers)}</span></span>
+								<Icon name="chevron" size={16} />
+							</a>
+						</li>
+					{/if}
 				{/if}
 				{#each data.myLists as lists (lists.fuer)}
 					<li>
@@ -946,6 +1032,49 @@
 		flex-wrap: wrap;
 		align-items: center;
 		gap: var(--space-2);
+	}
+
+	/* What's settled for you: label on the left, the facts beside it. */
+	.arranged dl {
+		display: grid;
+		gap: var(--space-3);
+		margin: 0;
+	}
+
+	.arranged dl div {
+		display: grid;
+		grid-template-columns: minmax(130px, 200px) 1fr;
+		gap: var(--space-1) var(--space-3);
+	}
+
+	.arranged dt {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
+		color: var(--text-muted);
+		font-size: var(--text-sm);
+		font-weight: 600;
+	}
+
+	.arranged dd {
+		display: grid;
+		gap: 2px;
+		margin: 0;
+	}
+
+	.arranged .pre {
+		white-space: pre-line;
+	}
+
+	.arranged .open {
+		color: var(--warn);
+		font-weight: 600;
+	}
+
+	@media (max-width: 520px) {
+		.arranged dl div {
+			grid-template-columns: 1fr;
+		}
 	}
 
 	/* The plan and the lists: one inset list of things to open. */

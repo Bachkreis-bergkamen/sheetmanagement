@@ -5,6 +5,7 @@ import { LAYOUT, normalize, type Table, type TabKey } from '#lib/repertoire/shee
 import type { Poll, PollResponse } from '#lib/polls/polls.ts';
 import type { Participant, Trip } from '#lib/trips/trips.ts';
 import type { Instrument, KeptList, ListEntry } from '#lib/trips/lists.ts';
+import type { Arrangement } from '#lib/trips/organising.ts';
 import type { PageMarks, PracticeDay, PushDevice, SentReminder, TourOutcome } from '#lib/server/db/types.ts';
 
 /**
@@ -155,10 +156,32 @@ export function tripData(entries: { trip: Trip; participant: Participant }[]): M
  * The member's trip lists (#334, step 2): what they filled in for each trip, what they keep for
  * the next one, and their instruments. As stored, with the trip's name added.
  */
-export function tripListData(lists: ListEntry[], kept: KeptList[], instruments: Instrument[], trips: Pick<Trip, 'id' | 'title'>[]): MyData {
+export function tripListData(
+	lists: ListEntry[],
+	kept: KeptList[],
+	instruments: Instrument[],
+	trips: Pick<Trip, 'id' | 'title' | 'rooms' | 'vehicles'>[],
+	arrangements: Arrangement[] = []
+): MyData {
 	const title = new Map(trips.map((trip) => [trip.id, trip.title]));
 	const f = t.trips.lists.instruments;
+	const o = t.trips.organising;
+	// Where they slept and rode, what they paid and packed (step 3): by name, as the trip calls them.
+	const arranged = arrangements.map((one) => {
+		const trip = trips.find((other) => other.id === one.tripId);
+		const vehicle = (id?: string) => trip?.vehicles?.find((other) => other.id === id)?.name ?? id ?? '';
+		return {
+			[t.myData.trip]: title.get(one.tripId) ?? one.tripId,
+			[o.stays.title]: trip?.rooms?.find((room) => room.id === one.room)?.name ?? one.room ?? '',
+			[o.transport.legs.hin]: vehicle(one.rides?.hin),
+			[o.transport.legs.rueck]: vehicle(one.rides?.rueck),
+			[o.costs.fee]: one.fee === undefined ? '' : String(one.fee / 100),
+			[o.costs.paidOn]: one.paidOn ?? '',
+			[o.packing.title]: String(one.packed?.length ?? 0)
+		};
+	});
 	return {
+		...(arranged.length ? { [t.myData.tripArranged]: arranged } : {}),
 		...(lists.length
 			? { [t.myData.tripLists]: lists.map((entry) => ({ [t.myData.trip]: title.get(entry.tripId) ?? entry.tripId, [t.myData.tripList]: t.trips.lists.kinds[entry.kind], [t.myData.tripAnswers]: JSON.stringify(entry.data), [t.myData.tripSavedAt]: entry.savedAt })) }
 			: {}),

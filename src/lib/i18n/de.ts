@@ -2009,6 +2009,7 @@ export const de = {
 		tripStatuses: { angemeldet: 'angemeldet', warteliste: 'Warteliste', abgemeldet: 'abgesagt' },
 		tripLists: 'Listen zu Fahrten',
 		tripKept: 'Für die nächste Fahrt gemerkt',
+		tripArranged: 'Unterkunft, Transport und Beitrag auf Fahrten',
 		tripInstruments: 'Instrumente',
 		tripList: 'Liste',
 		tripAnswers: 'Angaben',
@@ -2756,7 +2757,6 @@ export const de = {
 		signedUp: (n: number, cap?: number) => (cap ? `${n} von ${cap} Plätzen` : n === 1 ? '1 Anmeldung' : `${n} Anmeldungen`),
 		until: (date: string) => `Anmeldung bis ${date}`,
 		/** The trip's page. */
-		about: 'Die Fahrt',
 		dayCount: (n: number) => (n === 1 ? '1 Tag' : `${n} Tage`),
 		/** Above the route: how long until it starts, or which day it is. */
 		countdown: {
@@ -2866,7 +2866,6 @@ export const de = {
 			progress: (filled: number, of: number) => (filled === of ? 'Alles ausgefüllt' : `${filled} von ${of} ausgefüllt`),
 			evaluate: 'Listen auswerten',
 			evaluateLead: 'Wer noch was ausfüllen muss, die Küche, die Versicherung und jede Liste als Datei.',
-			back: 'Zur Fahrt',
 			kinds: { instrumente: 'Instrumente', ernaehrung: 'Allergien & Ernährung', wuensche: 'Wünsche', notfall: 'Notfallkontakt', dokumente: 'Reisedokumente', einverstaendnis: 'Einverständnisse', fragen: 'Fragen zur Fahrt' },
 			leads: {
 				instrumente: 'Welche Instrumente mitkommen, mit Wert und Versicherung, für die Versicherung und den Zoll. Deine Instrumente bleiben für die nächste Fahrt gespeichert.',
@@ -3031,6 +3030,125 @@ export const de = {
 			changed: (trip: string) => `Plan geändert: ${trip}`,
 			changedBody: (day: string, title: string) => `${day}: ${title}`,
 			removedBody: (day: string, title: string) => `${day}: „${title}“ entfällt`
+		},
+		/** Organising the trip (step 3): where people sleep, transport, costs, the packing list. */
+		organising: {
+			title: 'Organisation',
+			board: {
+				unplaced: 'Noch ohne Platz',
+				allPlaced: 'Alle haben einen Platz.',
+				empty: 'Noch niemand',
+				dragHint: 'Namen auf ein Zimmer oder Fahrzeug ziehen, oder über das Menü am Namen verschieben.',
+				moveTo: (name: string) => `${name} verschieben nach`,
+				nowhere: 'Kein Platz',
+				young: 'jung',
+				wish: (wish: string) => `Wunsch: ${wish}`,
+				wishMet: 'Wunsch erfüllt',
+				places: (n: number, of?: number) => (of === undefined ? `${n}` : `${n} / ${of}`),
+				readOnly: 'Du siehst die Verteilung als Betreuer·in; ändern können sie die Organisator·innen.'
+			},
+			warnings: {
+				full: (over: number) => (over === 1 ? 'Eine Person zu viel' : `${over} Personen zu viel`),
+				wish: (names: string[]) => `Wunsch nicht erfüllt: ${names.join(', ')}`,
+				young: 'Ein junges Mitglied allein mit Erwachsenen'
+			},
+			stays: {
+				title: 'Unterkunft',
+				pageTitle: (trip: string) => `Unterkunft: ${trip}`,
+				lead: 'Zimmer in der Herberge oder Gastfamilien, und wer wo schläft. Die Zimmerwünsche aus den Listen stehen an den Namen.',
+				linkLead: (placed: number, of: number) => (of ? `${placed} von ${of} untergebracht` : 'Zimmer oder Gastfamilien anlegen und verteilen'),
+				kinds: { zimmer: 'Zimmer', gastfamilie: 'Gastfamilie' },
+				room: 'Zimmer',
+				beds: (n: number) => (n === 1 ? '1 Bett' : `${n} Betten`),
+				bedsTotal: (beds: number, people: number) => `${people} Personen, ${beds} Betten`,
+				add: 'Zimmer oder Gastfamilie hinzufügen',
+				addMany: 'Mehrere Zimmer auf einmal',
+				count: 'Anzahl',
+				prefix: 'Name davor',
+				none: 'Noch keine Zimmer oder Gastfamilien.',
+				fields: { kind: 'Art', name: 'Name', nameHint: 'z. B. Zimmer 12 oder Familie Rossi', beds: 'Betten', note: 'Notiz (optional)', noteHint: 'Adresse und Telefon der Gastfamilie, Stockwerk …' },
+				yours: 'Deine Unterkunft',
+				with: (names: string) => `mit ${names}`
+			},
+			transport: {
+				title: 'Transport',
+				pageTitle: (trip: string) => `Transport: ${trip}`,
+				lead: 'Meist fährt oder fliegt die ganze Gruppe zusammen: ein Bus oder Flug, alle steigen ein. Fahrgemeinschaften und Nachzügler verteilst du per Hand.',
+				linkLead: (vehicles: number) => (vehicles ? (vehicles === 1 ? '1 Fahrzeug' : `${vehicles} Fahrzeuge`) : 'Bus oder Fahrgemeinschaften planen'),
+				legs: { hin: 'Hinfahrt', rueck: 'Rückfahrt' },
+				kinds: { bus: 'Bus', auto: 'Auto', transporter: 'Transporter', bahn: 'Bahn', flugzeug: 'Flugzeug' },
+				seats: (n: number) => (n === 1 ? '1 Platz' : `${n} Plätze`),
+				driver: 'Fahrer·in',
+				add: 'Fahrzeug hinzufügen',
+				everyone: (n: number) => (n === 1 ? 'Die eine Person ohne Platz hier einsteigen lassen' : `Alle ${n} ohne Platz hier einsteigen lassen`),
+				none: 'Für diese Richtung ist noch kein Fahrzeug geplant.',
+				elsewhere: (n: number) => (n === 1 ? 'Ein Fahrzeug fährt nur in die andere Richtung.' : `${n} Fahrzeuge fahren nur in die andere Richtung.`),
+				bulky: 'Große Instrumente',
+				bulkyLead: 'Aus den Instrumentenlisten: diese brauchen einen eigenen Platz oder Stauraum.',
+				fields: {
+					name: 'Name',
+					nameHint: 'z. B. Reisebus Müller oder Auto Tim',
+					kind: 'Art',
+					seats: 'Plätze (optional)',
+					seatsHint: 'mit Fahrer·in',
+					legs: 'Fährt',
+					driver: 'Fahrer·in (optional)',
+					pickups: 'Abfahrt und Zustiege (optional)',
+					pickupsHint: 'eine Zeile je Halt: 07:30 Schulhof, oder 09:40 Flug LH 1234 ab Düsseldorf',
+					note: 'Notiz (optional)'
+				},
+				yours: (leg: string) => `Deine ${leg}`
+			},
+			costs: {
+				title: 'Kosten',
+				pageTitle: (trip: string) => `Kosten: ${trip}`,
+				lead: 'Der Beitrag je Person und wer schon bezahlt hat. Nur zum Nachhalten: Das Geld läuft wie bisher per Überweisung. Nur die Organisation sieht diese Seite.',
+				linkLead: (open: number, of: number) => (of ? (open ? `${open} von ${of} noch offen` : 'Alle haben bezahlt') : 'Beitrag festlegen und Zahlungen abhaken'),
+				fee: 'Beitrag',
+				feeReduced: 'Ermäßigt (optional)',
+				saveFees: 'Beiträge speichern',
+				noFee: 'Noch kein Beitrag festgelegt.',
+				due: 'Insgesamt',
+				paid: 'Bezahlt',
+				open: 'Offen',
+				choices: { normal: 'Normal', ermaessigt: 'Ermäßigt', frei: 'Frei', eigen: 'Anderer Betrag' },
+				amount: 'Betrag',
+				paidOn: 'Bezahlt am',
+				isPaid: 'bezahlt',
+				save: 'Speichern',
+				nobody: 'Noch niemand angemeldet.',
+				yours: 'Dein Beitrag',
+				yourPaid: (day: string) => `bezahlt am ${day}`,
+				yourOpen: 'noch offen'
+			},
+			packing: {
+				title: 'Packliste',
+				pageTitle: (trip: string) => `Packliste: ${trip}`,
+				lead: 'Was mit muss. Abhaken, was schon im Koffer ist; das sieht nur, wer abhakt.',
+				forChild: (name: string) => `Packliste für ${name}`,
+				progress: (packed: number, of: number) => (packed === of ? 'Alles eingepackt' : `${packed} von ${of} eingepackt`),
+				linkLead: (of: number) => (of ? (of === 1 ? '1 Sache auf der Liste' : `${of} Sachen auf der Liste`) : 'Noch keine Packliste'),
+				ready: (ready: number, of: number) => `${ready} von ${of} haben alles eingepackt`,
+				empty: 'Die Organisation hat noch keine Packliste angelegt.',
+				edit: 'Packliste bearbeiten',
+				items: 'Eine Sache je Zeile',
+				suggest: 'Vorschläge einfügen',
+				save: 'Packliste speichern',
+				notGoing: 'Abhaken können alle, die mitfahren.'
+			},
+			problems: {
+				name: 'Bitte einen Namen angeben.',
+				beds: 'Bitte die Betten als Zahl von 1 bis 100 angeben.',
+				seats: 'Bitte die Plätze als Zahl angeben, oder leer lassen.',
+				legs: 'Bitte wählen, ob es hin, zurück oder beides fährt.',
+				kind: 'Bitte eine Art wählen.',
+				pickup: 'Die Zustiege bitte als eine Zeile je Halt, höchstens 10.',
+				fee: 'Bitte den Betrag in Euro angeben, z. B. 120 oder 85,50.',
+				day: 'Bitte das Datum der Zahlung angeben.',
+				'too-long': 'Das ist zu lang: Namen bis 80, Notizen bis 500 Zeichen.',
+				'too-many': 'Das sind zu viele: höchstens 200 Unterkünfte, 50 Fahrzeuge und 60 Dinge auf der Packliste.',
+				gone: 'Das hat sich inzwischen geändert. Die Seite zeigt jetzt den neuen Stand.'
+			}
 		}
 	},
 	kummer: {

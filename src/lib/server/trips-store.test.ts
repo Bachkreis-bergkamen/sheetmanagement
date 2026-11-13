@@ -178,6 +178,41 @@ for (const [name, make] of [
 			expect(after?.places?.Haltern).toEqual(haltern);
 		});
 
+		it('keeps rooms, vehicles, packing list and fees apart from the trip’s form, and one arrangement per person (#334, step 3)', async () => {
+			const store = make();
+			const trip = await store.create(weekend, 'vera@x.org');
+			await store.setOrganising(trip.id, { rooms: [{ id: 'r1', name: 'Zimmer 1', beds: 4 }], fee: 12000, feeReduced: 8000 });
+			await store.setOrganising(trip.id, { packing: [{ id: 'p1', text: 'Noten' }] });
+			await store.update(trip.id, { ...weekend, title: 'Neu' });
+			expect(await store.get(trip.id)).toMatchObject({ title: 'Neu', rooms: [{ id: 'r1', beds: 4 }], packing: [{ id: 'p1' }], fee: 12000, feeReduced: 8000 });
+			// Given as undefined: gone.
+			await store.setOrganising(trip.id, { feeReduced: undefined, rooms: [] });
+			const after = await store.get(trip.id);
+			expect(after?.feeReduced).toBeUndefined();
+			expect(after?.rooms).toBeUndefined();
+			expect(after?.fee).toBe(12000);
+
+			await store.saveArrangement({ tripId: trip.id, email: 'b@x.org', room: 'r1', packed: ['p1'] });
+			await store.saveArrangement({ tripId: trip.id, email: 'a@x.org', rides: { hin: 'v1' }, fee: 0 });
+			await store.saveArrangement({ tripId: trip.id, email: 'b@x.org', room: 'r1', paidOn: '2027-01-02' });
+			expect(await store.arrangements(trip.id)).toEqual([
+				{ tripId: trip.id, email: 'a@x.org', rides: { hin: 'v1' }, fee: 0 },
+				{ tripId: trip.id, email: 'b@x.org', room: 'r1', paidOn: '2027-01-02' }
+			]);
+			expect(await store.arrangementsOf('a@x.org')).toHaveLength(1);
+			expect(await store.countBy('a@x.org')).toBe(1);
+			// Signing up again leaves it; leaving the trip takes it along.
+			await store.saveParticipant({ tripId: trip.id, email: 'b@x.org', name: 'B', roles: ['musiker'], status: 'angemeldet', signedUpAt: '1' });
+			expect(await store.arrangements(trip.id)).toHaveLength(2);
+			await store.removeParticipant(trip.id, 'b@x.org');
+			expect((await store.arrangements(trip.id)).map((one) => one.email)).toEqual(['a@x.org']);
+			await store.forget('a@x.org', { email: 'ehemalig-1@example.invalid' });
+			expect(await store.arrangements(trip.id)).toEqual([]);
+			await store.saveArrangement({ tripId: trip.id, email: 'c@x.org', room: 'r1' });
+			await store.remove(trip.id);
+			expect(await store.arrangementsOf('c@x.org')).toEqual([]);
+		});
+
 		it('exports and forgets a person’s lists, kept lists and instruments; a parent’s name leaves the child’s list', async () => {
 			const store = make();
 			const trip = await store.create(weekend, 'vera@x.org');

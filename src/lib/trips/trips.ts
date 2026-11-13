@@ -1,4 +1,5 @@
 import { chosenLists, questionsFromForm, type ListKind, type Question } from './lists.ts';
+import type { Organising } from './organising.ts';
 
 /**
  * Konzertfahrten and Probenfahrten (#334): trips of several days, with sign-up, participants
@@ -68,6 +69,12 @@ export interface Trip {
 	flags?: Record<string, string>;
 	/** Calendar events that belong to the trip: its concerts and rehearsals. */
 	eventIds: string[];
+	/** Rooms, vehicles, the packing list and the fees (step 3, organising.ts); set on their own pages, not in the trip's form. */
+	rooms?: Organising['rooms'];
+	vehicles?: Organising['vehicles'];
+	packing?: Organising['packing'];
+	fee?: number;
+	feeReduced?: number;
 	createdBy: string;
 	createdAt: string;
 }
@@ -100,7 +107,7 @@ export interface TripPlace {
 	countryCode?: string;
 }
 
-export type NewTrip = Omit<Trip, 'id' | 'slug' | 'createdBy' | 'createdAt' | 'eventIds' | 'pictures' | 'places' | 'flags'>;
+export type NewTrip = Omit<Trip, 'id' | 'slug' | 'createdBy' | 'createdAt' | 'eventIds' | 'pictures' | 'places' | 'flags' | 'rooms' | 'vehicles' | 'packing' | 'fee' | 'feeReduced'>;
 
 export interface Participant {
 	tripId: string;
