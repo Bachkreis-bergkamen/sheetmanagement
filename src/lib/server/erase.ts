@@ -4,13 +4,14 @@ import { t } from '#lib/i18n/index.ts';
 import { LAYOUT, type Table, type TabKey } from '#lib/repertoire/sheet.ts';
 import { getStore } from './db/index.ts';
 import { pollStore } from './polls.ts';
+import { tripStore } from './trips.ts';
 import { authorKey, kummerStore } from './kummer.ts';
 import { deleteRows, readTab, SheetLayoutError, updateRecords } from './sheet-writes.ts';
 
 /**
  * "Mitglied löschen" (#158): what the app keeps about one member, first as a preview, then
  * gone in one go: their rows in the sheet (see #lib/access/erase.ts), and in D1 their
- * devices, reminders, settings, practice time and marks, and their poll answers.
+ * devices, reminders, settings, practice time and marks, their poll answers and trip sign-ups.
  */
 
 /** One line of the preview: where, how many, and whether it goes or loses the name. */
@@ -58,7 +59,7 @@ async function kummerCount(email: string): Promise<number> {
 
 async function storedItems(email: string): Promise<EraseItem[]> {
 	const store = getStore();
-	const [devices, reminders, optOut, tour, practiceOn, practice, marks, polls, kummer, drillSharing, drillConsent] = await Promise.all([
+	const [devices, reminders, optOut, tour, practiceOn, practice, marks, polls, kummer, drillSharing, drillConsent, trips] = await Promise.all([
 		store.pushOf(email),
 		store.remindersOf(email),
 		store.mailOptOuts(),
@@ -69,7 +70,8 @@ async function storedItems(email: string): Promise<EraseItem[]> {
 		pollStore()?.countBy(email) ?? 0,
 		kummerCount(email),
 		store.drillSharing(email),
-		store.drillConsentOf(email)
+		store.drillConsentOf(email),
+		tripStore()?.countBy(email) ?? 0
 	]);
 	const items: EraseItem[] = [
 		{ where: t.erase.stored.devices, count: devices.length, how: 'remove' },
@@ -79,6 +81,7 @@ async function storedItems(email: string): Promise<EraseItem[]> {
 		{ where: t.erase.stored.drills, count: (drillSharing ? 1 : 0) + (drillConsent ? 1 : 0), how: 'remove' },
 		{ where: t.erase.stored.marks, count: marks.length, how: 'remove' },
 		{ where: t.erase.stored.polls, count: polls, how: 'anonymise' },
+		{ where: t.erase.stored.trips, count: trips, how: 'remove' },
 		{ where: t.erase.stored.kummer, count: kummer, how: 'remove' }
 	];
 	return items.filter((item) => item.count > 0);
@@ -118,6 +121,7 @@ export async function eraseMember(address: string): Promise<ErasePreview> {
 		store.setDrillUnlocks(email, [], ''),
 		store.deleteMarks(email),
 		pollStore()?.forget(email, stand),
+		tripStore()?.forget(email, stand),
 		authorKey(email).then((key) => (key ? kummerStore()?.forget(email, key, stand) : undefined))
 	]);
 

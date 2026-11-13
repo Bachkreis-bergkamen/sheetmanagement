@@ -286,16 +286,18 @@ export const bachkreis: OrchestraConfig = {
 		{ name: 'Notenwart', description: 'Pflegt Noten, Stücke und das Archiv.', rights: ['stuecke.bearbeiten', 'archiv.bearbeiten'] },
 		{
 			name: 'Orga',
-			description: 'Organisiert Proben und Konzerte, plant Termine, sieht, wer kommt, und erfasst, wer da war.',
-			rights: ['anmeldungen.sehen', 'anwesenheit.erfassen', 'termine.planen', 'kummerkasten.lesen']
+			description: 'Organisiert Proben, Konzerte und Fahrten, plant Termine, sieht, wer kommt, und erfasst, wer da war.',
+			rights: ['anmeldungen.sehen', 'anwesenheit.erfassen', 'termine.planen', 'kummerkasten.lesen', 'fahrten.bearbeiten']
 		},
 		{
 			name: 'Vorstand',
 			description: 'Verwaltet Mitglieder und Rechte.',
-			rights: ['mitglieder.verwalten', 'programme.bearbeiten', 'stuecke.bearbeiten', 'archiv.bearbeiten', 'anmeldungen.sehen', 'anwesenheit.erfassen', 'termine.planen']
+			rights: ['mitglieder.verwalten', 'programme.bearbeiten', 'stuecke.bearbeiten', 'archiv.bearbeiten', 'anmeldungen.sehen', 'anwesenheit.erfassen', 'termine.planen', 'fahrten.bearbeiten']
 		}
 	],
 	orchestras: ['EO', 'A', 'B'],
+	// The grown-ups play in the EO; A and B are the young players (trips, #334).
+	adultOrchestras: ['EO'],
 	splitSections: ['Geige'],
 
 	// No sourceUrl: many members are kids and teens, and the repository leads to a personal profile.

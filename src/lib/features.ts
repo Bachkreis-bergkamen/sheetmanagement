@@ -7,7 +7,7 @@
 
 import type { TabKey } from '#lib/repertoire/sheet.ts';
 
-export const FEATURES = ['loans', 'musicReport', 'attendance', 'signups', 'wishes', 'calendarFeed', 'offline', 'seasons', 'tickets', 'drills'] as const;
+export const FEATURES = ['loans', 'musicReport', 'attendance', 'signups', 'wishes', 'calendarFeed', 'offline', 'seasons', 'tickets', 'drills', 'trips'] as const;
 
 export type Feature = (typeof FEATURES)[number];
 export type Features = Record<Feature, boolean>;
@@ -34,7 +34,10 @@ const ALIASES: Record<string, Feature> = {
 	karten: 'tickets',
 	kartenverkauf: 'tickets',
 	uebebereich: 'drills',
-	übebereich: 'drills'
+	übebereich: 'drills',
+	fahrten: 'trips',
+	konzertfahrten: 'trips',
+	probenfahrten: 'trips'
 };
 
 const byName = new Map<string, Feature>([...FEATURES.map((feature) => [feature.toLowerCase(), feature] as const), ...Object.entries(ALIASES)]);
@@ -66,6 +69,7 @@ export const FEATURE_TABS: Partial<Record<TabKey, Feature>> = { loans: 'loans', 
 export function featureOfPath(path: string): Feature | undefined {
 	if (path === '/leihmaterial' || path.startsWith('/leihmaterial/')) return 'loans';
 	if (path === '/wuensche' || path.startsWith('/wuensche/')) return 'wishes';
+	if (path === '/fahrten' || path.startsWith('/fahrten/')) return 'trips';
 	// The feed sits next to the calendar's pages: only the .ics file itself.
 	if (/^\/kalender\/[^/]+\.ics$/.test(path)) return 'calendarFeed';
 	if (/^\/kalender\/[^/]+\/anwesenheit(\/|$)/.test(path)) return 'attendance';

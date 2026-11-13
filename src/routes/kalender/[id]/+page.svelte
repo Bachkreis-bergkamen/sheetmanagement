@@ -241,6 +241,18 @@
 			</a>
 		</li>
 	{/if}
+	{#if data.kind === 'event' && data.trip}
+		<!-- The Konzert- or Probenfahrt this date belongs to (#334). -->
+		<li>
+			<a class="fact" href="/fahrten/{data.trip.id}">
+				<span class="icon"><Icon name="suitcase" size={18} /></span>
+				<span class="fact-body">
+					<strong>{t.trips.events.partOf(data.trip.title)}</strong>
+				</span>
+				<span class="trail"><Icon name="chevron" size={16} /></span>
+			</a>
+		</li>
+	{/if}
 	{#if data.kind === 'event' && data.orchestras}
 		{@const orchestras = data.orchestras}
 		<li>

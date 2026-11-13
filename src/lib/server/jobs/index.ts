@@ -7,6 +7,7 @@ import { checkParts } from './parts.ts';
 import { applyRetention } from './retention.ts';
 import { sendReminders } from './reminders.ts';
 import { pruneTicketOrders } from './tickets.ts';
+import { pruneTripLists } from './trips.ts';
 import { warmCaches } from './warm.ts';
 
 /**
@@ -37,7 +38,8 @@ export const JOBS = {
 	errors: { everyMinutes: 60, run: announceErrors },
 	export: { everyMinutes: 24 * 60, run: exportData },
 	backup: { everyMinutes: 7 * 24 * 60, run: backupData },
-	tickets: { everyMinutes: 24 * 60, run: () => pruneTicketOrders() }
+	tickets: { everyMinutes: 24 * 60, run: () => pruneTicketOrders() },
+	trips: { everyMinutes: 24 * 60, run: () => pruneTripLists() }
 } satisfies Record<string, Job>;
 
 export type JobName = keyof typeof JOBS;

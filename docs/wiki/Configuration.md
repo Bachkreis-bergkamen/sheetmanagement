@@ -18,7 +18,9 @@ Set with `pnpm wrangler secret put <NAME>`, or in `.dev.vars` locally. The full 
 
 ## Features that can be turned off
 
-Rented music, the GEMA list, attendance, sign-ups, wishes, the calendar feed, saving parts offline and the seasonal drawings: with `features` in the preset or `FEATURES_OFF`. Their pages, menu entries and sheet tabs go away.
+Rented music, the GEMA list, attendance, sign-ups, wishes, the calendar feed, saving parts offline, the seasonal drawings and trips (`fahrten`): with `features` in the preset or `FEATURES_OFF`. Their pages, menu entries and sheet tabs go away.
+
+For trips, `adultOrchestras` in the preset names the orchestras of grown-ups (the Bachkreis: `['EO']`). Members of none of them, like members with a parent account, count as young: they sign up as musicians only and for the whole trip. Without it, only members with a parent account count as young.
 
 ## Presets: instruments, file names, calendar keywords
 
