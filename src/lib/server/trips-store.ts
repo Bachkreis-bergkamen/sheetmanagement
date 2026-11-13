@@ -1,7 +1,7 @@
 import type { SqlDatabase } from './polls-store.ts';
 import type { Instrument, KeptList, ListEntry, ListKind } from '#lib/trips/lists.ts';
 import { DEFAULT_LISTS } from '#lib/trips/lists.ts';
-import type { NewTrip, Participant, PlanItem, Trip, TripPicture } from '#lib/trips/trips.ts';
+import type { NewTrip, Participant, PlanItem, Trip, TripPicture, TripPlace } from '#lib/trips/trips.ts';
 import { slugFor } from '#lib/trips/trips.ts';
 
 /**
@@ -18,8 +18,8 @@ export interface TripStore {
 	update(id: string, trip: NewTrip): Promise<void>;
 	/** The calendar events that belong to the trip. */
 	setEvents(id: string, eventIds: string[]): Promise<void>;
-	/** The picture found for what was looked up; null when nothing was. */
-	setPicture(id: string, picture: TripPicture | null, lookedFor: string): Promise<void>;
+	/** What was looked up for the trip's places: their pictures, where they are, the flags. */
+	setLookups(id: string, found: Lookups): Promise<void>;
 	/** The trip with its participants, plan and lists. */
 	remove(id: string): Promise<void>;
 
@@ -62,6 +62,13 @@ export interface TripStore {
 	countBy(email: string): Promise<number>;
 	/** Deletes the person's sign-ups and puts a pseudonym where they organised or confirmed (#158). */
 	forget(email: string, stand: { email: string }): Promise<void>;
+}
+
+/** What the app looks up itself for a trip, outside its form. */
+export interface Lookups {
+	pictures?: Record<string, TripPicture | null>;
+	places?: Record<string, TripPlace | null>;
+	flags?: Record<string, string>;
 }
 
 const SCHEMA = [
@@ -167,12 +174,23 @@ interface PlanRow {
 }
 
 /** What doesn't get a column of its own: lists and the optional fields. */
-type TripData = Pick<Trip, 'orchestras' | 'organisers' | 'stops' | 'lists' | 'questions' | 'eventIds' | 'note' | 'signupUntil' | 'cap' | 'pictureSearch' | 'noPicture' | 'picture' | 'pictureFor'>;
+type TripData = Pick<
+	Trip,
+	'orchestras' | 'organisers' | 'stops' | 'lists' | 'questions' | 'eventIds' | 'note' | 'signupUntil' | 'cap' | 'pictureSearch' | 'noPicture' | 'pictures' | 'places' | 'flags'
+>;
 
 /** What the trip's form doesn't edit, and stays when it's saved. */
-type Unedited = Pick<Trip, 'eventIds' | 'picture' | 'pictureFor'>;
+type Unedited = Pick<Trip, 'eventIds' | 'pictures' | 'places' | 'flags'>;
 
-const tripData = (trip: NewTrip, { eventIds, picture, pictureFor }: Unedited): TripData => ({
+/** The trip's lookups with what was just found. */
+const withLookups = (trip: Trip, found: Lookups): Unedited => ({
+	eventIds: trip.eventIds,
+	pictures: found.pictures ?? trip.pictures,
+	places: found.places ?? trip.places,
+	flags: found.flags ?? trip.flags
+});
+
+const tripData = (trip: NewTrip, { eventIds, pictures, places, flags }: Unedited): TripData => ({
 	orchestras: trip.orchestras,
 	organisers: trip.organisers,
 	stops: trip.stops,
@@ -184,8 +202,9 @@ const tripData = (trip: NewTrip, { eventIds, picture, pictureFor }: Unedited): T
 	...(trip.cap ? { cap: trip.cap } : {}),
 	...(trip.pictureSearch ? { pictureSearch: trip.pictureSearch } : {}),
 	...(trip.noPicture ? { noPicture: true } : {}),
-	...(picture ? { picture } : {}),
-	...(pictureFor !== undefined ? { pictureFor } : {})
+	...(pictures ? { pictures } : {}),
+	...(places ? { places } : {}),
+	...(flags ? { flags } : {})
 });
 
 /** Trips from before the lists (#334, step 1) ask for the usual ones. */
@@ -288,12 +307,12 @@ export class SqlTripStore implements TripStore {
 			.run();
 	}
 
-	async setPicture(id: string, picture: TripPicture | null, lookedFor: string): Promise<void> {
+	async setLookups(id: string, found: Lookups): Promise<void> {
 		const known = await this.get(id);
 		if (!known) return;
 		await this.db
 			.prepare('UPDATE trips SET data = ? WHERE id = ?')
-			.bind(JSON.stringify(tripData(known, { eventIds: known.eventIds, picture: picture ?? undefined, pictureFor: lookedFor })), id)
+			.bind(JSON.stringify(tripData(known, withLookups(known, found))), id)
 			.run();
 	}
 
@@ -504,12 +523,11 @@ export class MemoryTripStore implements TripStore {
 		if (known) known.eventIds = [...new Set(eventIds)];
 	}
 
-	async setPicture(id: string, picture: TripPicture | null, lookedFor: string): Promise<void> {
+	async setLookups(id: string, found: Lookups): Promise<void> {
 		const known = this.#trips.get(id);
 		if (!known) return;
-		if (picture) known.picture = structuredClone(picture);
-		else delete known.picture;
-		known.pictureFor = lookedFor;
+		const { title, kind, firstDay, lastDay, slug, createdBy, createdAt } = known;
+		this.#trips.set(id, { ...structuredClone(tripData(known, withLookups(known, found))), id, title, kind, firstDay, lastDay, slug, createdBy, createdAt });
 	}
 
 	async remove(id: string): Promise<void> {

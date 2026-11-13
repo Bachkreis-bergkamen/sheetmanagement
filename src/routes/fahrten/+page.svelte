@@ -33,7 +33,7 @@
 				<li>
 					<a class="trip" href="/fahrten/{trip.id}">
 						{#if trip.picture}
-							<img class="thumb" class:done={trip.past} src="/fahrten/{trip.id}/bild" alt="" loading="lazy" />
+							<img class="thumb" class:done={trip.past} src="/fahrten/{trip.id}/bild?klein" alt="" loading="lazy" />
 						{:else}
 							<span class="badge" class:done={trip.past}><Icon name="suitcase" size={20} /></span>
 						{/if}

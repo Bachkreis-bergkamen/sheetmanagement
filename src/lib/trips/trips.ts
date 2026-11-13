@@ -56,14 +56,16 @@ export interface Trip {
 	lists: ListKind[];
 	/** The organisers' own questions for this trip. */
 	questions: Question[];
-	/** What to look up for the trip's picture; without it, the first place. */
+	/** What to look up for the trip's first picture instead of its first place: "Kölner Dom". */
 	pictureSearch?: string;
 	/** No picture at all. */
 	noPicture?: boolean;
-	/** The picture found for it, from Wikimedia Commons; see server/trip-picture.ts. */
-	picture?: TripPicture;
-	/** What the picture was looked up for, so a changed place looks again; null: looked, nothing found. */
-	pictureFor?: string;
+	/** A picture for each place (and for the organisers' own search), from Wikimedia Commons; null: none found (server/trip-picture.ts). */
+	pictures?: Record<string, TripPicture | null>;
+	/** Where each place is, by the place as written: its address and country; null when not found (server/trip-geo.ts). */
+	places?: Record<string, TripPlace | null>;
+	/** The flags of the trip's countries, by country code ("DE"), as small PNG data URLs. */
+	flags?: Record<string, string>;
 	/** Calendar events that belong to the trip: its concerts and rehearsals. */
 	eventIds: string[];
 	createdBy: string;
@@ -80,12 +82,25 @@ export interface TripPicture {
 	title: string;
 	artist?: string;
 	license?: string;
-	/** The place's coordinates, for a map of the route later. */
-	lat?: number;
-	lon?: number;
+	/** Taller than wide: the page shows its upper part, where the tower or dome is. */
+	tall?: boolean;
 }
 
-export type NewTrip = Omit<Trip, 'id' | 'slug' | 'createdBy' | 'createdAt' | 'eventIds' | 'picture' | 'pictureFor'>;
+/** A place of the trip as OpenStreetMap knows it. */
+export interface TripPlace {
+	lat: number;
+	lon: number;
+	/** "Stockwieser Damm 255, 45721 Haltern am See". */
+	address?: string;
+	/** "Nordrhein-Westfalen". */
+	region?: string;
+	/** "Deutschland", in the app's language. */
+	country?: string;
+	/** "DE". */
+	countryCode?: string;
+}
+
+export type NewTrip = Omit<Trip, 'id' | 'slug' | 'createdBy' | 'createdAt' | 'eventIds' | 'pictures' | 'places' | 'flags'>;
 
 export interface Participant {
 	tripId: string;

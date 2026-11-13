@@ -3,6 +3,7 @@ import { config } from '#lib/config/index.ts';
 import { t } from '#lib/i18n/index.ts';
 import { requireRight } from '#lib/server/auth/index.ts';
 import { today } from '#lib/server/members.ts';
+import { shownPictures } from '#lib/server/trip-picture.ts';
 import { tripStore, tripViewer, visibleTrips } from '#lib/server/trips.ts';
 import { isActive, isPastTrip, signedUp, signupOpen, tripFromForm } from '#lib/trips/trips.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -27,7 +28,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			lastDay: trip.lastDay,
 			places: trip.stops.map((stop) => stop.place),
 			// The sight of the place, shown small in the list; the trip's page looks it up.
-			picture: !!trip.picture && !trip.noPicture,
+			picture: shownPictures(trip).length > 0,
 			cap: trip.cap,
 			signupUntil: trip.signupUntil,
 			signedUp: signedUp(participants).length,

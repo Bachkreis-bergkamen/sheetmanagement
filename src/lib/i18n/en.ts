@@ -2640,9 +2640,9 @@ export const en: Texts = {
 			addQuestion: 'Add a question',
 			removeQuestion: 'Remove question',
 			picture: 'Picture of the place',
-			pictureHint: 'The app looks for a photo of a sight on Wikimedia Commons, by default for the first place. You can have it look for something else here, e.g. “Cologne Cathedral”.',
+			pictureHint: 'For each place the app looks for a photo of a well-known sight on Wikimedia Commons and shows them in turn. Instead of the first place you can have it look for something else, e.g. “Cologne Cathedral”.',
 			pictureSearch: 'Look for (optional)',
-			noPicture: 'Show no picture'
+			noPicture: 'Show no pictures'
 		},
 		problems: {
 			title: 'Please give a name.',
@@ -2655,9 +2655,15 @@ export const en: Texts = {
 			questions: 'Please at most 20 questions, each up to 500 characters.',
 			'too-long': 'That is too long: name up to 120, places up to 200, description up to 2000 characters.'
 		},
+		where: {
+			globe: (places: string) => `Globe with a pin in ${places}`,
+			map: 'On the map'
+		},
 		picture: {
 			credit: (artist: string | undefined, license: string | undefined) => ['Photo', artist, license, 'Wikimedia Commons'].filter(Boolean).join(' · '),
-			alt: (what: string) => `Photo: ${what}`
+			alt: (what: string) => `Photo: ${what}`,
+			show: (n: number, place: string) => `Picture ${n}: ${place}`,
+			pictures: 'Pictures of the places'
 		},
 		yourTurn: 'Your answer is missing',
 		youGo: 'You are going',

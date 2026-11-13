@@ -6,7 +6,8 @@ import { runInBackground } from '#lib/server/env.ts';
 import { getLibrary } from '#lib/server/library.ts';
 import { today } from '#lib/server/members.ts';
 import { notify } from '#lib/server/push/index.ts';
-import { ensurePicture } from '#lib/server/trip-picture.ts';
+import { ensureLookups, withinTime } from '#lib/server/trip-geo.ts';
+import { shownPictures } from '#lib/server/trip-picture.ts';
 import { listPerson } from '#lib/server/trip-lists.ts';
 import { childrenIn, eventsInWindow, openTrip, planEventOf, youngOnTrips } from '#lib/server/trips.ts';
 import type { TripStore } from '#lib/server/trips-store.ts';
@@ -34,8 +35,11 @@ import type { Actions, PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const opened = await openTrip(locals, params.id);
 	const { participants, viewer, list, organises, inside, store } = opened;
-	// Looked up once per place; a trip from before the pictures gets one on its first visit.
-	const trip = await ensurePicture(store, opened.trip);
+	// Where the trip goes and its picture, looked up once per place: a little while on this load,
+	// the rest in the background for the next one.
+	const lookups = ensureLookups(store, opened.trip);
+	runInBackground(lookups);
+	const trip = await withinTime(lookups, opened.trip);
 	const day = today();
 	const children = childrenIn(list);
 	const mine = participants.find((p) => p.email === viewer.email) ?? null;
@@ -93,7 +97,18 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 			questions: trip.questions,
 			pictureSearch: trip.pictureSearch,
 			noPicture: trip.noPicture,
-			picture: trip.picture && !trip.noPicture ? { title: trip.picture.title, artist: trip.picture.artist, license: trip.picture.license, page: trip.picture.page } : null
+			// A picture per place, shown in turn; the image itself comes from /fahrten/[id]/bild?nr=….
+			pictures: shownPictures(trip).map(({ place, picture }) => ({ place, title: picture.title, artist: picture.artist, license: picture.license, page: picture.page, tall: !!picture.tall })),
+			// Each place with its address, country and flag, as far as OpenStreetMap knows it.
+			where: trip.stops.map((stop) => {
+				const place = trip.places?.[stop.place] ?? null;
+				return {
+					place: stop.place,
+					from: stop.from,
+					until: stop.until,
+					...(place ? { lat: place.lat, lon: place.lon, address: place.address, region: place.region, country: place.country, flag: place.countryCode ? (trip.flags?.[place.countryCode] ?? null) : null } : {})
+				};
+			})
 		},
 		myLists: people.map(({ person, fuer }) => ({ name: person.name, fuer, ...listsOf(person.email, person.participant.roles) })).filter((one) => one.of > 0),
 		listProgress: organises || carer ? listProgress(trip, participants, entries, children) : null,
@@ -217,8 +232,9 @@ export const actions: Actions = {
 		await store.update(trip.id, result.trip);
 		// More places now: the waiting list moves up.
 		await fillPlaces(store, { ...trip, ...result.trip });
-		// Another place, another picture.
-		await ensurePicture(store, { ...trip, ...result.trip });
+		// Another place: its address, flag and picture, looked up while the page reloads.
+		const changed = await store.get(trip.id);
+		if (changed) runInBackground(ensureLookups(store, changed));
 		return { edited: true };
 	},
 

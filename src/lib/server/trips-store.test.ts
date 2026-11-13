@@ -162,14 +162,20 @@ for (const [name, make] of [
 			const store = make();
 			const trip = await store.create(weekend, 'vera@x.org');
 			expect(trip.lists).toEqual(['ernaehrung', 'notfall']);
-			await store.setPicture(trip.id, { url: 'https://upload.wikimedia.org/x.jpg', page: 'https://commons.wikimedia.org/wiki/File:X.jpg', title: 'Haltern am See' }, 'Haltern');
+			const haltern = { lat: 51.75, lon: 7.25, address: 'Stockwieser Damm 255, 45721 Haltern am See', country: 'Deutschland', countryCode: 'DE' };
+			await store.setLookups(trip.id, {
+				pictures: { Haltern: { url: 'https://upload.wikimedia.org/x.jpg', page: 'https://commons.wikimedia.org/wiki/File:X.jpg', title: 'Haltern am See' }, Nirgendwo: null },
+				places: { Haltern: haltern, Nirgendwo: null },
+				flags: { DE: 'data:image/png;base64,AAAA' }
+			});
 			await store.update(trip.id, { ...weekend, questions: [{ id: 'q', text: 'Größe?', type: 'auswahl', options: ['S'] }] });
 			const got = await store.get(trip.id);
-			expect(got).toMatchObject({ pictureFor: 'Haltern', picture: { title: 'Haltern am See' }, questions: [{ id: 'q' }] });
-			await store.setPicture(trip.id, null, 'Rom');
+			expect(got).toMatchObject({ pictures: { Haltern: { title: 'Haltern am See' }, Nirgendwo: null }, places: { Haltern: haltern, Nirgendwo: null }, flags: { DE: 'data:image/png;base64,AAAA' }, questions: [{ id: 'q' }] });
+			// Only what's given changes.
+			await store.setLookups(trip.id, { pictures: { Rom: null } });
 			const after = await store.get(trip.id);
-			expect(after?.picture).toBeUndefined();
-			expect(after?.pictureFor).toBe('Rom');
+			expect(after?.pictures).toEqual({ Rom: null });
+			expect(after?.places?.Haltern).toEqual(haltern);
 		});
 
 		it('exports and forgets a person’s lists, kept lists and instruments; a parent’s name leaves the child’s list', async () => {

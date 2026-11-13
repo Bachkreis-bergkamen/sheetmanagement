@@ -7,11 +7,15 @@
 	import Icon from '#lib/components/Icon.svelte';
 	import Title from '#lib/components/Title.svelte';
 	import TripForm from '#lib/components/TripForm.svelte';
+	import TripGlobe from '#lib/components/TripGlobe.svelte';
+	import TripHero from '#lib/components/TripHero.svelte';
 
 	let { data, form } = $props();
 	const saving = new FormState();
 	const trip = $derived(data.trip);
 	const day = (iso: string) => formatWeekday(iso, config.locale);
+	// The places OpenStreetMap found, for the globe.
+	const pinned = $derived(trip.where.flatMap((one) => (one.lat !== undefined && one.lon !== undefined ? [{ lat: one.lat, lon: one.lon, name: one.place }] : [])));
 	const going = $derived(data.mine?.status === 'angemeldet' || data.mine?.status === 'warteliste');
 	const confirm = (question: string) => (event: SubmitEvent) => {
 		if (!window.confirm(question)) event.preventDefault();
@@ -23,28 +27,43 @@
 <a class="back" href="/fahrten"><Icon name="back" size={16} />{t.trips.all}</a>
 
 <header class="head">
-	{#if trip.picture}
-		<!-- A sight of the place, from Wikimedia Commons, served by the app itself. -->
-		<figure class="hero">
-			<img src="/fahrten/{trip.id}/bild" alt={t.trips.picture.alt(trip.picture.title)} />
-			<div class="overlay">
-				<p class="over">{t.trips.kinds[trip.kind]}</p>
-				<h1>{trip.title}</h1>
-				<p class="when">{formatDays(trip.firstDay, trip.lastDay, config.locale)}</p>
-			</div>
-			<figcaption><a href={trip.picture.page} target="_blank" rel="noopener noreferrer">{trip.picture.title} · {t.trips.picture.credit(trip.picture.artist, trip.picture.license)}</a></figcaption>
-		</figure>
+	{#if trip.pictures.length}
+		<!-- A sight of each place, from Wikimedia Commons, served by the app itself, in turn. -->
+		<TripHero tripId={trip.id} pictures={trip.pictures}>
+			<p class="over">{t.trips.kinds[trip.kind]}</p>
+			<h1>{trip.title}</h1>
+			<p class="when">{formatDays(trip.firstDay, trip.lastDay, config.locale)}</p>
+		</TripHero>
 	{:else}
 		<p class="over">{t.trips.kinds[trip.kind]}</p>
 		<h1>{trip.title}</h1>
 		<p class="when">{formatDays(trip.firstDay, trip.lastDay, config.locale)}</p>
 	{/if}
-	{#if trip.stops.length}
-		<ul class="stops">
-			{#each trip.stops as stop (stop.place + stop.from)}
-				<li><Icon name="pin" size={14} /><span>{stop.place}</span>{#if stop.from !== trip.firstDay || stop.until !== trip.lastDay}<span class="muted"> · {formatDays(stop.from, stop.until, config.locale)}</span>{/if}</li>
-			{/each}
-		</ul>
+	{#if trip.where.length}
+		<!-- Where the trip goes: the earth with a pin in each place, and each place's flag and address. -->
+		<div class="where" class:with-globe={pinned.length}>
+			{#if pinned.length}
+				<div class="globe-box"><TripGlobe places={pinned} label={t.trips.where.globe(pinned.map((one) => one.name).join(', '))} /></div>
+			{/if}
+			<ul class="stops">
+				{#each trip.where as stop (stop.place + stop.from)}
+					<li>
+						<span class="stop-name">
+							{#if stop.flag}<img class="flag" src={stop.flag} alt="" width="20" height="15" />{:else}<Icon name="pin" size={14} />{/if}
+							<strong>{stop.place}</strong>
+						</span>
+						{#if stop.address}<span class="muted">{stop.address}</span>{/if}
+						{#if stop.region || stop.country}<span class="muted">{[stop.region, stop.country].filter(Boolean).join(', ')}</span>{/if}
+						<span class="muted">
+							{#if stop.from !== trip.firstDay || stop.until !== trip.lastDay}{formatDays(stop.from, stop.until, config.locale)} · {/if}
+							{#if stop.lat !== undefined && stop.lon !== undefined}
+								<a href="https://www.openstreetmap.org/?mlat={stop.lat}&mlon={stop.lon}#map=15/{stop.lat}/{stop.lon}" target="_blank" rel="noopener noreferrer">{t.trips.where.map}</a>
+							{/if}
+						</span>
+					</li>
+				{/each}
+			</ul>
+		</div>
 	{/if}
 	<p class="meta">
 		{t.trips.forOrchestras}: {trip.orchestras.length ? trip.orchestras.join(', ') : t.trips.allOrchestras}
@@ -326,60 +345,33 @@
 		margin-bottom: var(--space-5);
 	}
 
-	.hero {
-		position: relative;
-		margin: 0 0 var(--space-2);
-		overflow: hidden;
-		border-radius: var(--radius-l);
-		background: var(--surface-2);
-		aspect-ratio: 16 / 7;
-		min-height: 200px;
+	.where {
+		display: grid;
+		gap: var(--space-3);
+		align-items: center;
 	}
 
-	.hero img {
-		display: block;
-		width: 100%;
-		height: 100%;
+	.where.with-globe {
+		grid-template-columns: 136px 1fr;
+	}
+
+	.globe-box {
+		width: 136px;
+	}
+
+	.flag {
+		flex: none;
+		width: 20px;
+		height: 15px;
+		border-radius: 2px;
+		box-shadow: 0 0 0 1px var(--hairline);
 		object-fit: cover;
 	}
 
-	/* The title on the photo, on a shade that keeps it readable on any picture. */
-	.hero .overlay {
-		position: absolute;
-		inset: auto 0 0;
-		display: grid;
-		gap: var(--space-1);
-		padding: var(--space-6) var(--space-4) var(--space-5);
-		background: linear-gradient(to top, rgb(0 0 0 / 0.72), rgb(0 0 0 / 0.35) 60%, transparent);
-		color: #fff;
-	}
-
-	.hero .over {
-		color: #fff;
-		opacity: 0.9;
-	}
-
-	.hero h1 {
-		color: #fff;
-		text-shadow: 0 1px 12px rgb(0 0 0 / 0.35);
-	}
-
-	.hero figcaption {
-		position: absolute;
-		top: var(--space-2);
-		right: var(--space-2);
-		max-width: calc(100% - 2 * var(--space-2));
-		padding: 2px var(--space-2);
-		overflow: hidden;
-		border-radius: var(--radius-pill);
-		background: rgb(0 0 0 / 0.45);
-		font-size: var(--text-2xs);
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
-	.hero figcaption a {
-		color: #fff;
+	.stop-name {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
 	}
 
 	.over {
@@ -396,18 +388,32 @@
 	}
 
 	.stops {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--space-1) var(--space-4);
+		display: grid;
+		gap: var(--space-3);
 		margin: 0;
 		padding: 0;
 		list-style: none;
 	}
 
 	.stops li {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-1);
+		display: grid;
+		gap: 2px;
+	}
+
+	.stops a {
+		color: var(--accent);
+		font-weight: 600;
+	}
+
+	/* On a phone the globe stays beside the places, a little smaller. */
+	@media (max-width: 420px) {
+		.where.with-globe {
+			grid-template-columns: 104px 1fr;
+		}
+
+		.globe-box {
+			width: 104px;
+		}
 	}
 
 	.meta,

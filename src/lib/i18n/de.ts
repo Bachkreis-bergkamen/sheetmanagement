@@ -2682,9 +2682,9 @@ export const de = {
 			addQuestion: 'Frage hinzufügen',
 			removeQuestion: 'Frage entfernen',
 			picture: 'Bild des Ortes',
-			pictureHint: 'Die App sucht ein Foto einer Sehenswürdigkeit bei Wikimedia Commons, sonst zum ersten Ort. Hier kannst du etwas anderes suchen lassen, z. B. „Kölner Dom“.',
+			pictureHint: 'Die App sucht zu jedem Ort ein Foto einer bekannten Sehenswürdigkeit bei Wikimedia Commons und zeigt sie nacheinander. Statt des ersten Orts kannst du etwas anderes suchen lassen, z. B. „Kölner Dom“.',
 			pictureSearch: 'Suchen nach (optional)',
-			noPicture: 'Kein Bild zeigen'
+			noPicture: 'Keine Bilder zeigen'
 		},
 		problems: {
 			title: 'Bitte einen Namen angeben.',
@@ -2697,10 +2697,17 @@ export const de = {
 			questions: 'Bitte höchstens 20 Fragen, jede bis 500 Zeichen.',
 			'too-long': 'Das ist zu lang: Name bis 120, Orte bis 200, Beschreibung bis 2000 Zeichen.'
 		},
+		/** Where the trip goes: the globe, and each place's address from OpenStreetMap. */
+		where: {
+			globe: (places: string) => `Globus mit einer Nadel in ${places}`,
+			map: 'Auf der Karte'
+		},
 		/** The picture of the place, from Wikimedia Commons. */
 		picture: {
 			credit: (artist: string | undefined, license: string | undefined) => ['Foto', artist, license, 'Wikimedia Commons'].filter(Boolean).join(' · '),
-			alt: (what: string) => `Foto: ${what}`
+			alt: (what: string) => `Foto: ${what}`,
+			show: (n: number, place: string) => `Bild ${n}: ${place}`,
+			pictures: 'Bilder der Orte'
 		},
 		/** On the list of trips: where you stand. */
 		yourTurn: 'Deine Antwort fehlt',
