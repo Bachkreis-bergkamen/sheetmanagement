@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { listHas } from '#lib/repertoire/lists.ts';
+	import { composerLine } from '#lib/repertoire/contents.ts';
 	import { onMount } from 'svelte';
 	import { replaceState } from '$app/navigation';
 	import { page } from '$app/state';
@@ -97,7 +98,7 @@
 			// Also the works this composer wrote with others ("Mozart, Haydn").
 			if (composer && !listHas(piece.composer, composer)) return false;
 			const by = findPiece(piece, words);
-			if (by && (by.instruments.length || by.note)) found.set(piece.id, by);
+			if (by && (by.instruments.length || by.song || by.note)) found.set(piece.id, by);
 			return !!by;
 		});
 		return { result, found };
@@ -227,7 +228,8 @@
 									</span>
 									{#if piece.composer || piece.catalogue || piece.category || piece.programs.length}
 										<span class="meta">
-											{[piece.composer, piece.catalogue].filter(Boolean).join(' · ')}
+											<!-- A medley names two composers "und mehr"; its songs are in "Inhalt". -->
+											{[composerLine(piece.composer), piece.catalogue].filter(Boolean).join(' · ')}
 											{#each piece.programs as program (program)}<span class="tag program">{program}</span>{/each}
 											{#if piece.category}<span class="tag">{piece.category}</span>{/if}
 										</span>
@@ -236,6 +238,7 @@
 										{@const by = foundBy.get(piece.id)!}
 										<span class="found">
 											{#if by.instruments.length}<span>{t.pieces.foundParts(by.instruments.join(', '))}</span>{/if}
+											{#if by.song}<span class="note">{t.pieces.foundSong(by.song)}</span>{/if}
 											{#if by.note}<span class="note">{t.pieces.foundNote(by.note)}</span>{/if}
 										</span>
 									{/if}

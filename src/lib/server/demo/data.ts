@@ -321,7 +321,28 @@ export function demoSheet(now: number): Map<string, string[][]> {
 				driveFolderId: p.id
 			})),
 			// Played long ago, no sheet music in the archive.
-			{ title: 'Ungarischer Tanz Nr. 5', composer: 'Brahms', genre: 'Romantik' }
+			{ title: 'Ungarischer Tanz Nr. 5', composer: 'Brahms', genre: 'Romantik' },
+			// A medley: its songs in "Inhalt", the composers come from there ("Bizet, Offenbach und mehr").
+			{
+				title: 'Operetten-Potpourri',
+				arranger: 'Hans Kolditz',
+				genre: 'Operette',
+				contents: [
+					'Habanera – Bizet',
+					'Barcarole – Offenbach',
+					'Fledermaus-Ouvertüre – Johann Strauss',
+					'Lippen schweigen – Lehár',
+					'Leichte Kavallerie – Suppé',
+					'Grüß mir mein Wien – Kálmán'
+				].join('\n')
+			},
+			// One written the old way: every composer in "Komponist", the songs in the note.
+			{
+				title: 'Musical-Highlights',
+				composer: 'Andrew Lloyd Webber, Claude-Michel Schönberg, Leonard Bernstein, Frederick Loewe, Jerry Bock',
+				genre: 'Musical',
+				notes: 'Memory, Bring Him Home, Tonight, I Could Have Danced All Night, If I Were a Rich Man'
+			}
 		]),
 		tab('concerts', [
 			// The orchestra's history for the Chronik (#61): some only known by year or month.

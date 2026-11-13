@@ -15,6 +15,14 @@
 	/** Printing: each day on a page of its own, or all after each other. */
 	let pagePerDay = $state(true);
 	const range = (start?: string, end?: string) => (start ? (end ? `${start}–${end}` : start) : '');
+	// The day's block, like every list of dates: weekday, day and month stacked.
+	const dateParts = (iso: string) => {
+		const date = new Date(`${iso}T00:00:00Z`);
+		const part = (options: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(config.locale, { ...options, timeZone: 'UTC' }).format(date);
+		return { weekday: part({ weekday: 'short' }), day: part({ day: 'numeric' }).replace('.', ''), month: part({ month: 'short' }) };
+	};
+	// Rehearsals in the accent's tint, the concert in the accent, the rest quiet.
+	const tone = (kind: string) => (kind === 'konzert' ? 'concert' : ['tutti', 'register', 'soundcheck', 'probe', 'generalprobe'].includes(kind) ? 'music' : 'plain');
 </script>
 
 <Title title={t.trips.days.title(trip.title)} />
@@ -74,11 +82,23 @@
 	</form>
 {/snippet}
 
+{#snippet dayHead(iso: string, label: string, places: string[])}
+	{@const date = dateParts(iso)}
+	<header class="day-head">
+		<span class="date" aria-hidden="true"><span class="small">{date.weekday}</span><span class="big">{date.day}</span><span class="small">{date.month}</span></span>
+		<h2>
+			<span>{label}<span class="sr-only">, {day(iso)}</span></span>
+			{#if places.length}<span class="places"><Icon name="pin" size={14} />{places.join(', ')}</span>{/if}
+		</h2>
+	</header>
+{/snippet}
+
 {#snippet entry(entry: PlanEntry)}
 	{#if entry.item}
 		{@const item = entry.item}
-		<li class="entry kind-{item.kind}">
+		<li class="entry {tone(item.kind)}">
 			<span class="time">{range(item.start, item.end)}</span>
+			<span class="dot" aria-hidden="true"></span>
 			<span class="what">
 				<span class="title">{item.title}</span>
 				<span class="details">
@@ -89,7 +109,7 @@
 				{#if item.note}<span class="note">{item.note}</span>{/if}
 				{#if data.organises}
 					<details class="edit no-print">
-						<summary>{t.trips.days.edit}</summary>
+						<summary><Icon name="edit" size={14} />{t.trips.days.edit}</summary>
 						{@render itemForm(item)}
 						<form method="POST" action="?/remove" use:enhance={saving.submit()}>
 							<input type="hidden" name="id" value={item.id} />
@@ -102,8 +122,9 @@
 		</li>
 	{:else}
 		{@const event = entry.event}
-		<li class="entry event kind-{event.type}">
+		<li class="entry event {tone(event.type)}">
 			<span class="time">{range(event.start, event.end)}</span>
+			<span class="dot" aria-hidden="true"></span>
 			<span class="what">
 				<a class="title" href="/kalender/{event.id}">{event.title}</a>
 				<span class="details">
@@ -140,7 +161,7 @@
 	</section>
 	{#if todayPlan}
 		<section class="day ui-card">
-			<h2>{t.trips.days.today} · {day(todayPlan.day)}{#if todayPlan.places.length}<span class="places">{todayPlan.places.join(', ')}</span>{/if}</h2>
+			{@render dayHead(todayPlan.day, t.trips.days.today, todayPlan.places)}
 			{#if todayPlan.entries.length}
 				<ul class="entries">{#each todayPlan.entries as one, i (i)}{@render entry(one)}{/each}</ul>
 			{:else}
@@ -152,11 +173,7 @@
 	<div class="days" class:page-per-day={pagePerDay}>
 		{#each data.days as plan, i (plan.day)}
 			<section class="day ui-card">
-				<h2>
-					<span class="number">{t.trips.days.day(i + 1)}</span>
-					{day(plan.day)}
-					{#if plan.places.length}<span class="places">{plan.places.join(', ')}</span>{/if}
-				</h2>
+				{@render dayHead(plan.day, t.trips.days.day(i + 1), plan.places)}
 				{#if plan.entries.length}
 					<ul class="entries">{#each plan.entries as one, j (j)}{@render entry(one)}{/each}</ul>
 				{:else}
@@ -178,7 +195,8 @@
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-1);
-		margin-bottom: var(--space-3);
+		min-height: 32px;
+		margin-bottom: var(--space-2);
 		color: var(--accent);
 		font-weight: 600;
 	}
@@ -192,9 +210,10 @@
 		flex-wrap: wrap;
 		align-items: center;
 		gap: var(--space-3);
-		margin-bottom: var(--space-4);
+		margin-bottom: var(--space-5);
 	}
 
+	/* Today or all days: a segmented control like elsewhere in the app. */
 	.views {
 		display: inline-flex;
 		padding: 3px;
@@ -203,16 +222,23 @@
 	}
 
 	.views a {
-		padding: var(--space-1) var(--space-3);
+		display: inline-flex;
+		align-items: center;
+		min-height: 34px;
+		padding: 0 var(--space-4);
 		border-radius: var(--radius-pill);
 		color: var(--text-muted);
+		font-size: var(--text-sm);
 		font-weight: 600;
+		transition:
+			background var(--fast) var(--ease),
+			color var(--fast) var(--ease);
 	}
 
 	.views a[aria-current='page'] {
-		background: var(--surface);
+		background: var(--surface-lifted);
 		color: var(--text);
-		box-shadow: var(--shadow-sm, none);
+		box-shadow: var(--shadow);
 	}
 
 	.per-day {
@@ -224,6 +250,11 @@
 		font-size: var(--text-sm);
 	}
 
+	.per-day input {
+		accent-color: var(--accent);
+	}
+
+	/* During the trip: now and next side by side, now in the accent's tint. */
 	.now-next {
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -233,20 +264,29 @@
 
 	.now,
 	.next {
-		padding: var(--space-4);
+		padding: var(--space-4) var(--space-5);
 	}
 
 	.now {
-		border-color: var(--accent);
+		border-color: color-mix(in oklab, var(--accent) 40%, transparent);
+		background: color-mix(in oklab, var(--accent) 6%, var(--surface));
 	}
 
 	.over {
 		margin-bottom: var(--space-2);
 		color: var(--accent);
-		font-size: var(--text-xs);
-		font-weight: 700;
-		letter-spacing: 0.04em;
+		font-size: var(--text-2xs);
+		font-weight: 650;
+		letter-spacing: 0.07em;
 		text-transform: uppercase;
+	}
+
+	.now-next .entry {
+		grid-template-columns: 6.5em 1fr;
+	}
+
+	.now-next .dot {
+		display: none;
 	}
 
 	.days {
@@ -257,27 +297,57 @@
 	.day {
 		display: grid;
 		gap: var(--space-3);
-		padding: var(--space-4);
+		padding: var(--space-5);
 	}
 
-	.day h2 {
+	/* The day: its date block, then which day of the trip and where. */
+	.day-head {
 		display: flex;
-		flex-wrap: wrap;
-		align-items: baseline;
-		gap: var(--space-1) var(--space-3);
+		align-items: center;
+		gap: var(--space-3);
+		margin-bottom: var(--space-1);
+	}
+
+	.date {
+		display: grid;
+		justify-items: center;
+		flex: none;
+		width: 52px;
+		padding: var(--space-1) 0;
+		border-radius: var(--radius-control);
+		background: var(--accent-soft);
+		color: var(--accent);
+		line-height: 1.1;
+	}
+
+	.date .small {
+		font-size: var(--text-2xs);
+		font-weight: 650;
+		text-transform: uppercase;
+	}
+
+	.date .big {
+		font-size: var(--text-xl);
+		font-weight: 700;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.day-head h2 {
+		display: grid;
+		gap: 2px;
 		font-size: var(--text-lg);
 	}
 
-	.number {
-		color: var(--accent);
-	}
-
 	.places {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
 		color: var(--text-muted);
 		font-size: var(--text-sm);
 		font-weight: 500;
 	}
 
+	/* The day's items down a line: the time, a dot on the line, what happens. */
 	.entries {
 		display: grid;
 		margin: 0;
@@ -286,26 +356,73 @@
 	}
 
 	.entry {
+		--tone: var(--text-muted);
 		display: grid;
-		grid-template-columns: 7.5em 1fr;
-		gap: var(--space-3);
-		padding: var(--space-2) 0;
-		border-top: 1px solid var(--hairline);
+		grid-template-columns: 6.5em 16px 1fr;
+		gap: 0 var(--space-3);
 	}
 
-	.entry:first-child {
-		border-top: 0;
+	.entry.music,
+	.entry.concert {
+		--tone: var(--accent);
+	}
+
+	.time,
+	.what {
+		padding: var(--space-2) 0 var(--space-3);
 	}
 
 	.time {
 		color: var(--text-muted);
+		font-size: var(--text-sm);
 		font-variant-numeric: tabular-nums;
 		font-weight: 600;
+		line-height: 1.6;
+		text-align: right;
+	}
+
+	/* The line runs through every item; it starts at the first dot and ends at the last. */
+	.dot {
+		position: relative;
+		background: linear-gradient(var(--border), var(--border)) center / 2px 100% no-repeat;
+	}
+
+	.entry:first-child .dot {
+		background-position: center calc(var(--space-2) + 0.7em);
+	}
+
+	.entry:last-child .dot {
+		background-size: 2px calc(var(--space-2) + 0.7em);
+		background-position: center top;
+	}
+
+	.entry:only-child .dot {
+		background: none;
+	}
+
+	.dot::before {
+		content: '';
+		position: absolute;
+		top: calc(var(--space-2) + 0.7em);
+		left: 50%;
+		width: 10px;
+		height: 10px;
+		border: 2px solid var(--tone);
+		border-radius: 50%;
+		background: var(--surface);
+		transform: translate(-50%, -50%);
+	}
+
+	.entry.concert .dot::before {
+		width: 14px;
+		height: 14px;
+		background: var(--tone);
 	}
 
 	.what {
 		display: grid;
-		gap: 2px;
+		align-content: start;
+		gap: 4px;
 		min-width: 0;
 	}
 
@@ -314,7 +431,13 @@
 	}
 
 	a.title {
+		color: var(--text);
+	}
+
+	a.title:hover {
 		color: var(--accent);
+		text-decoration: underline;
+		text-underline-offset: 3px;
 	}
 
 	.details {
@@ -326,23 +449,34 @@
 		font-size: var(--text-sm);
 	}
 
-	.details span {
+	.details span,
+	.details a {
 		display: inline-flex;
 		align-items: center;
 		gap: 4px;
+	}
+
+	.details a {
+		color: var(--accent);
+		font-weight: 600;
 	}
 
 	.tag {
 		padding: 1px var(--space-2);
 		border-radius: var(--radius-pill);
 		background: var(--surface-2);
-		font-size: var(--text-xs);
-		font-weight: 600;
+		font-size: var(--text-2xs);
+		font-weight: 650;
 	}
 
-	.kind-konzert .tag,
-	.event.kind-konzert .title {
+	.music .tag {
+		background: var(--accent-soft);
 		color: var(--accent);
+	}
+
+	.concert .tag {
+		background: var(--accent);
+		color: var(--accent-contrast);
 	}
 
 	.note {
@@ -360,10 +494,50 @@
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-1);
-		color: var(--accent);
+		min-height: 32px;
+		list-style: none;
+		cursor: pointer;
 		font-size: var(--text-sm);
 		font-weight: 600;
-		cursor: pointer;
+	}
+
+	.edit summary::-webkit-details-marker,
+	.add summary::-webkit-details-marker {
+		display: none;
+	}
+
+	.edit summary {
+		color: var(--text-muted);
+	}
+
+	.edit summary:hover,
+	.edit[open] summary {
+		color: var(--accent);
+	}
+
+	/* Adding to a day: a quiet dashed row at its foot. */
+	.add {
+		border: 1px dashed var(--border);
+		border-radius: var(--radius-m);
+		transition: border-color var(--fast) var(--ease);
+	}
+
+	.add:hover {
+		border-color: var(--accent);
+	}
+
+	.add summary {
+		justify-content: center;
+		width: 100%;
+		min-height: var(--tap);
+		color: var(--accent);
+	}
+
+	.add[open] {
+		padding: 0 var(--space-4);
+		border-style: solid;
+		border-color: var(--hairline);
+		background: var(--bg);
 	}
 
 	.item-form {
@@ -393,15 +567,43 @@
 		font-size: var(--text-sm);
 	}
 
+	.check input {
+		accent-color: var(--accent);
+	}
+
 	.remove {
 		color: var(--danger);
 	}
 
-	/* On a phone the time sits above the item. */
+	/* On a phone the time sits above the item, both beside the line. */
 	@media (max-width: 520px) {
+		.day {
+			padding: var(--space-4);
+		}
+
 		.entry {
+			grid-template-columns: 16px 1fr;
+			grid-template-areas: 'dot time' 'dot what';
+		}
+
+		.time {
+			grid-area: time;
+			padding-bottom: 0;
+			text-align: left;
+		}
+
+		.dot {
+			grid-area: dot;
+		}
+
+		.what {
+			grid-area: what;
+			padding-top: 2px;
+		}
+
+		.now-next .entry {
 			grid-template-columns: 1fr;
-			gap: 2px;
+			grid-template-areas: 'time' 'what';
 		}
 	}
 
@@ -415,10 +617,6 @@
 
 		.page-per-day .day + .day {
 			break-before: page;
-		}
-
-		.entry {
-			grid-template-columns: 7.5em 1fr;
 		}
 	}
 </style>

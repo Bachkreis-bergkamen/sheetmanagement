@@ -6,6 +6,8 @@ import { parseInstruments } from '#lib/music/my-parts.ts';
 import { totalSeconds } from '#lib/practice/practice.ts';
 import { getStore } from '#lib/server/db/index.ts';
 import { isOn } from '#lib/server/env.ts';
+import { getLibrary } from '#lib/server/library.ts';
+import { pickConcerts, programFor } from '#lib/server/my-concerts.ts';
 import { getAccessList } from '#lib/server/repertoire.ts';
 import { boardFor, sharingState } from '#lib/server/drills.ts';
 import type { PageServerLoad } from './$types';
@@ -33,6 +35,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const board = state && email && access ? await boardFor(access, email, state).catch(() => null) : null;
 	// Drills an administrator opened for this member (#327), on top of what their progress opens.
 	const granted = email && locals.access.member ? await getStore().drillUnlocksOf(email).catch(() => []) : [];
+	// The programme being rehearsed now, one click on from the daily round: the next concert with one.
+	const library = member ? await getLibrary().catch(() => null) : null;
+	const next = library ? pickConcerts(library.concerts, library.today, null, member).shown.find((concert) => programFor(concert, member).length) : undefined;
+	const program = next ? { title: next.title, pieces: programFor(next, member).length, url: `/meine-noten?konzert=${encodeURIComponent(next.id)}` } : null;
 	return {
 		// Progress is kept per account on the device, so a shared device keeps each member's own.
 		account: email ?? 'guest',
@@ -43,6 +49,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		// Null without an account: sharing needs someone signed in.
 		sharing: state ? { chosen: state.chosen, effective: state.effective, child: state.child, consented: state.consented } : null,
 		board,
-		granted
+		granted,
+		program
 	};
 };

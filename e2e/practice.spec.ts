@@ -341,11 +341,16 @@ test('the concert mode turns on into the next piece, its head clear of the contr
 	await expect(piece).toHaveValue('1');
 	await expect.poll(() => canvas.evaluate((each: HTMLCanvasElement) => each.toDataURL())).not.toBe(first);
 
-	// The page gets the whole screen; the controls over its head fade after a few quiet seconds, so the head is clear (#235).
-	await expect(page.locator('.concert-mode .controls.bare')).toHaveCount(1, { timeout: 8000 });
-	const sheet = (await page.locator('.concert-mode .sheet').boundingBox())!;
-	expect(sheet.y).toBeLessThanOrEqual(1);
-	await expect(page.locator('.concert-mode .controls')).toHaveCSS('opacity', '0');
+	// The head is clear (#235): the controls over it fade after a few quiet seconds, or, where the
+	// page leaves room for them (a phone held upright), they stay and the page sits below them.
+	const controls = page.locator('.concert-mode .controls');
+	const clear = async () => {
+		const bar = (await controls.boundingBox())!;
+		const sheet = (await page.locator('.concert-mode .sheet').boundingBox())!;
+		const bare = await controls.evaluate((each) => each.classList.contains('bare'));
+		return bare ? sheet.y <= 1 : sheet.y >= bar.y + bar.height - 1;
+	};
+	await expect.poll(clear, { timeout: 8000 }).toBe(true);
 });
 
 test('the metronome’s weight sets the tempo when dragged', async ({ page }) => {

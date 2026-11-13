@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { config } from '#lib/config/index.ts';
-import { instrumentationFromScore, missingVoices, pickedVoices, readInstrumentation, scoredVoices, tidyRecognised, unreadEntries, voiceText, writeInstrumentation } from './instrumentation.ts';
+import { instrumentationFromParts, instrumentationFromScore, missingVoices, pickedVoices, readInstrumentation, scoredVoices, tidyRecognised, unreadEntries, voiceText, writeInstrumentation } from './instrumentation.ts';
 import { createInstrumentMatcher, parsePartName } from './part-name.ts';
 import type { Part } from './types.ts';
 
@@ -11,6 +11,21 @@ function part(fileName: string): Part {
 	const parsed = parsePartName(fileName, 'application/pdf', config.naming, matcher);
 	return { id: `f${next++}`, fileName, label: parsed.label, kind: parsed.kind, family: parsed.family, instruments: parsed.instruments, voices: parsed.voices, notes: parsed.notes, status: parsed.status, mimeType: 'application/pdf', section: '', order: parsed.order };
 }
+
+describe('instrumentationFromParts', () => {
+	it('reads the Besetzung from the parts there are, numbers merged, generic parts with what they hold', () => {
+		const parts = ['Partitur.pdf', 'Flöte 1.pdf', 'Flöte 2.pdf', 'Klarinette 1+2 in B.pdf', 'Percussion 1 - Triangel & Becken.pdf', 'Geige 1.pdf', 'Geige 2.pdf'].map(part);
+		const text = instrumentationFromParts(parts);
+		expect(text).toContain('Flöte 1 & 2');
+		expect(text).toContain('Klarinette 1 & 2');
+		expect(text).toMatch(/Percussion 1: Triangel & Becken/);
+		expect(text).not.toMatch(/Partitur/);
+	});
+
+	it('is empty without a part naming an instrument', () => {
+		expect(instrumentationFromParts([part('Partitur.pdf')])).toBe('');
+	});
+});
 
 describe('instrumentationFromScore', () => {
 	it('reads the Italian names at the left of a classical score, one instrument each', () => {

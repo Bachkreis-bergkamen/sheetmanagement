@@ -131,8 +131,8 @@ test('a YouTube link is saved clean (#133)', async ({ page }) => {
 	await field.fill('https://youtu.be/dQw4w9WgXcQ?si=Teilen123');
 	await field.blur();
 	await expect(field).toHaveValue('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
-	await page.getByRole('button', { name: 'Dauer aus dem Video' }).click();
-	// The video's length as a suggestion ("8:30"), ready to take over.
+	// One button asks every source; the video's length ("8:30") is among the suggestions.
+	await page.getByRole('button', { name: 'Automatisch ausfüllen' }).click();
 	await expect(page.locator('.list').getByText(/^\d+:\d\d$/)).toBeVisible();
 	await page.getByRole('button', { name: 'Speichern' }).click();
 	await expect(page).toHaveURL(/\/stuecke\/demo-egmont(\?|$)/);
@@ -141,11 +141,12 @@ test('a YouTube link is saved clean (#133)', async ({ page }) => {
 
 test('the Besetzung read from the score flags an instrument without a part (#249)', async ({ page }) => {
 	await open(page, '/stuecke/demo-egmont/bearbeiten');
-	await page.getByRole('button', { name: 'Aus den Noten lesen' }).click();
-	// The names at the left of the score, Italian as scores print them, in the orchestra's words.
-	const suggestion = page.locator('.suggest li').filter({ hasText: 'Besetzung' });
-	await expect(suggestion).toContainText('Piccolo; Flöte 1 & 2; Oboe 1 & 2');
-	await suggestion.getByRole('button', { name: 'Übernehmen' }).click();
+	await page.getByRole('button', { name: 'Automatisch ausfüllen' }).click();
+	// The names at the left of the score, Italian as scores print them, in the orchestra's words,
+	// filled into the empty Besetzung.
+	const suggestion = page.locator('.suggest li').filter({ hasText: 'Piccolo; Flöte 1 & 2; Oboe 1 & 2' });
+	await expect(suggestion).toContainText(/eingetragen|Übernehmen/);
+	if (await suggestion.getByRole('button', { name: 'Übernehmen' }).isVisible()) await suggestion.getByRole('button', { name: 'Übernehmen' }).click();
 	// Taken over into the instrument picker, one chip per instrument.
 	const besetzung = page.getByRole('group', { name: 'Besetzung' });
 	await expect(besetzung).toContainText('Piccolo');

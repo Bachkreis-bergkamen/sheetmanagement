@@ -122,7 +122,7 @@ describe('the picture of a trip’s place', () => {
 		expect(plain('&amp;lt;b&amp;gt; &lt;script&gt;x')).toBe('&lt;b&gt; scriptx');
 		expect(plain('<scr<script>ipt>alert(1)')).toBe('iptalert(1)');
 		expect([isWikimediaImage('https://upload.wikimedia.org/a.jpg'), isWikimediaImage('https://evil.example/a.jpg'), isWikimediaImage('http://thumb.wikimedia.org/a.jpg'), isWikimediaImage('nonsense')]).toEqual([true, false, false, false]);
-		expect(smaller('https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/X.jpg/1920px-X.jpg')).toBe('https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/X.jpg/480px-X.jpg');
+		expect(smaller('https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/X.jpg/1920px-X.jpg')).toBe('https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/X.jpg/960px-X.jpg');
 		expect(smaller('https://upload.wikimedia.org/wikipedia/commons/a/ab/X.jpg')).toBe('https://upload.wikimedia.org/wikipedia/commons/a/ab/X.jpg');
 	});
 });

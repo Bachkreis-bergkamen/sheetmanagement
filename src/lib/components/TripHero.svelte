@@ -77,8 +77,17 @@
 		overflow: hidden;
 		border-radius: var(--radius-l);
 		background: var(--surface-2);
+		/* A definite width, or the minimum height would widen it past the page through its ratio. */
+		width: 100%;
 		aspect-ratio: 16 / 7;
-		min-height: 200px;
+		min-height: 220px;
+	}
+
+	/* On a phone the picture gets more height, so the name on it has room. */
+	@media (max-width: 560px) {
+		.hero {
+			aspect-ratio: 4 / 3;
+		}
 	}
 
 	/* The pictures lie on each other and fade from one to the next. */
@@ -124,13 +133,9 @@
 		color: #fff;
 	}
 
-	.overlay :global(.over) {
-		color: #fff;
-		opacity: 0.9;
-	}
-
 	.overlay :global(h1) {
 		color: #fff;
+		overflow-wrap: break-word;
 		text-shadow: 0 1px 12px rgb(0 0 0 / 0.35);
 	}
 

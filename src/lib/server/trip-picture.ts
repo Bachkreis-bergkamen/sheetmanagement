@@ -65,8 +65,12 @@ const cleanUrl = (url: string) => {
 	return clean.toString();
 };
 
-/** The same image smaller, for the list of trips: Commons makes a thumbnail of any width. */
-export const smaller = (url: string, width = 480) => url.replace(/\/\d+px-([^/?]+)/, `/${width}px-$1`);
+/**
+ * The same image smaller, for the list of trips. Commons makes thumbnails only in its standard
+ * widths (…, 330, 500, 960, 1280, 1920) and answers 400 to any other, so this is one of them:
+ * 960, sharp on a phone's card at two or three pixels per point.
+ */
+export const smaller = (url: string, width = 960) => url.replace(/\/\d+px-([^/?]+)/, `/${width}px-$1`);
 
 /** Text from the HTML Commons gives for the author: "<a …>Jane Doe</a>" → "Jane Doe". */
 /** The few entities Commons uses, decoded in one pass, so "&amp;lt;" stays "&lt;" and nothing is decoded twice. */

@@ -7,6 +7,7 @@ import { unscoredVoices } from '#lib/music/instrumentation.ts';
 import { searchText } from '#lib/music/text.ts';
 import type { PieceDetail, PieceStatus, PieceSummary } from '#lib/music/types.ts';
 import { eventDay, formatFuzzyDate, fuzzyDateKey, parseFuzzyDate, type FuzzyDate, type FuzzyDateLabel } from '#lib/repertoire/dates.ts';
+import { contentsComposers } from '#lib/repertoire/contents.ts';
 import { onlyGuests, performerNames, type Ensemble } from '#lib/repertoire/ensembles.ts';
 import type { ReportPiece } from '#lib/repertoire/music-report.ts';
 import { eventOrchestra, isJoint, playedBy, sameOrchestra } from '#lib/repertoire/orchestras.ts';
@@ -140,7 +141,8 @@ function buildLibrary(
 		const row = links?.pieceByFolder.get(detail.id);
 		if (row) idBySheetKey.set(row.key, detail.id);
 		const title = row?.title || detail.title;
-		const composer = row?.composer ?? detail.composer;
+		// A medley without its own "Komponist": the composers of its songs.
+		const composer = row?.composer ?? contentsComposers(row?.contents) ?? detail.composer;
 		const catalogue = row?.catalogue ?? detail.catalogue;
 		pieces.push({
 			...summary(detail),
@@ -160,12 +162,12 @@ function buildLibrary(
 		pieces.push({
 			id: row.key,
 			title: row.title,
-			composer: row.composer,
+			composer: row.composer ?? contentsComposers(row.contents),
 			catalogue: row.catalogue,
 			programs: [],
 			partCount: 0,
 			status: 'none',
-			search: searchText(row.title, row.composer, row.catalogue, row.arranger, row.genre),
+			search: searchText(row.title, row.composer ?? contentsComposers(row.contents), row.catalogue, row.arranger, row.genre),
 			sheet: row,
 			playedAt: []
 		});

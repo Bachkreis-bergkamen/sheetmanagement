@@ -58,3 +58,17 @@ describe('note excerpt', () => {
 		expect(excerpt('Straße nach Café Müller', 'cafe', 5)).toBe('…nach Café…');
 	});
 });
+
+describe('medley songs', () => {
+	const medley: SearchablePiece = {
+		search: searchText('Operetten-Potpourri'),
+		instruments: [],
+		songs: ['Habanera – Bizet', 'Barcarole – Offenbach'],
+		notes: ['Habanera nur im Konzert']
+	};
+
+	it('finds a medley by one of its songs, before its notes', () => {
+		expect(findPiece(medley, ['barcarole'])).toEqual({ instruments: [], song: 'Barcarole – Offenbach' });
+		expect(findPiece(medley, ['habanera'])).toEqual({ instruments: [], song: 'Habanera – Bizet' });
+	});
+});

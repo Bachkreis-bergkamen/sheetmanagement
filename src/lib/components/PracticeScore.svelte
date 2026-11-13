@@ -93,6 +93,7 @@
 	/** The current page's size on screen. */
 	const size = $derived(fittedSize && { width: Math.round(fittedSize.width * zoom), height: Math.round(fittedSize.height * zoom) });
 	let sheet = $state<HTMLDivElement>();
+	let pileBox = $state<HTMLDivElement>();
 	/** The page can be scrolled: at its width, or zoomed in. */
 	const scrolls = $derived(fit === 'width' || zoom > 1);
 	/** The current page's own size, unscaled. */
@@ -201,14 +202,40 @@
 	});
 
 	/**
-	 * The page being turned away: a copy of it with its marks, laid over the new page and turned
-	 * like a leaf (forward from the right edge, back from the left), quick enough not to hold up a
-	 * page turn mid-piece. Not while zoomed, and not for those who'd rather have no motion.
+	 * The other pages, as a loose pile of paper under this one: a sheet or two still to come and
+	 * the one just played at the back, each lying a little crooked, always the same way (by its
+	 * number), as pages do on a stand. Turning on takes the top sheet off and slides it under the
+	 * pile; turning back pulls the sheet at the back out and lays it on top.
 	 */
-	let leaf: { ghost: HTMLElement; forward: boolean } | null = null;
-	let leafing: Animation | null = null;
+	type Under = { number: number; behind: boolean; depth: number };
+	function pileFor(at: number): Under[] {
+		const ahead = [at + 1, at + 2].filter((number) => number <= pages);
+		const under = ahead.map((number, i) => ({ number, behind: false, depth: i + 1 }));
+		if (at > 1) under.push({ number: at - 1, behind: true, depth: under.length + 1 });
+		return under;
+	}
+	const underneath = $derived(score && !scrolls ? pileFor(page) : []);
+	/** -1 to 1, the same for a page every time. */
+	function wobble(number: number, salt: number) {
+		const x = Math.sin(number * 12.9898 + salt * 78.233) * 43758.5453;
+		return (x - Math.floor(x)) * 2 - 1;
+	}
+	/** Where a sheet lies in the pile: those to come peek out to the right, the one played to the left. */
+	function lying({ number, behind, depth }: Under) {
+		const x = behind ? -10 + wobble(number, 1) * 4 : 5 * depth + wobble(number, 1) * 4;
+		const y = 2 * depth + wobble(number, 2) * 5;
+		const tilt = wobble(number, 3);
+		const angle = Math.sign(tilt || 1) * (0.7 + Math.abs(tilt) * 1.3);
+		return `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) rotate(${angle.toFixed(2)}deg)`;
+	}
+	/** Pulled aside, to the left, on its way to or from the back of the pile. */
+	const ASIDE = 'translate(-58%, -1.5%) rotate(-4deg)';
 
-	function liftLeaf(forward: boolean) {
+	let leaf: { ghost: HTMLElement; from: number; to: number } | null = null;
+	let leafing: Animation[] = [];
+
+	/** A copy of the page being turned away, with its marks; not while zoomed or for those who'd rather have no motion. */
+	function liftLeaf(from: number, to: number) {
 		leaf = null;
 		if (!sheet || zoom > 1 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 		const old = slot?.querySelector('canvas');
@@ -222,39 +249,57 @@
 		ghost.append(copy);
 		const drawnMarks = sheet.querySelector('svg.marks');
 		if (drawnMarks) ghost.append(drawnMarks.cloneNode(true));
-		ghost.append(Object.assign(document.createElement('div'), { className: 'shade' }));
-		leaf = { ghost, forward };
+		leaf = { ghost, from, to };
 	}
 
 	function turnLeaf() {
 		const lifted = leaf;
 		leaf = null;
-		leafing?.finish();
-		if (!lifted || !sheet) return;
-		const { ghost, forward } = lifted;
-		ghost.style.transformOrigin = forward ? 'left center' : 'right center';
-		sheet.append(ghost);
-		const angle = forward ? -95 : 95;
-		const timing = { duration: 340, easing: 'cubic-bezier(0.45, 0, 0.75, 0.6)', fill: 'forwards' as const };
-		const turning = ghost.animate(
-			[
-				{ transform: 'perspective(1800px) rotateY(0deg)', boxShadow: '0 0 0 rgba(0,0,0,0)' },
-				{ transform: `perspective(1800px) rotateY(${angle * 0.5}deg)`, boxShadow: `${forward ? '-' : ''}18px 0 30px rgba(0,0,0,0.18)`, offset: 0.45 },
-				{ transform: `perspective(1800px) rotateY(${angle}deg)`, boxShadow: '0 0 0 rgba(0,0,0,0)' }
-			],
-			timing
-		);
-		ghost.querySelector('.shade')?.animate(
-			[{ opacity: 0 }, { opacity: 1 }],
-			{ ...timing, easing: 'ease-in' }
-		);
-		leafing = turning;
-		const done = () => {
-			ghost.remove();
-			if (leafing === turning) leafing = null;
-		};
-		turning.onfinish = done;
-		turning.oncancel = done;
+		for (const running of leafing) running.finish();
+		leafing = [];
+		if (!lifted || !sheet || !pileBox) return;
+		const { ghost, from, to } = lifted;
+		pileBox.append(ghost);
+		const stack = scrolls ? [] : pileFor(to);
+		const at = (number: number) => stack.find((under) => under.number === number);
+		// Where the new page lay before: in the pile under the old one.
+		const was = pileFor(from).find((under) => under.number === to) ?? { number: to, behind: to < from, depth: 3 };
+		const timing = { duration: 480, easing: 'cubic-bezier(0.33, 0, 0.25, 1)' };
+		if (to > from) {
+			// On: the old page is pulled aside and slid under the pile, the next one straightens up.
+			const rest = at(from);
+			leafing.push(
+				ghost.animate(
+					[
+						{ transform: 'none', zIndex: 6, opacity: 1 },
+						{ transform: ASIDE, zIndex: 6, opacity: 1, offset: 0.46 },
+						{ transform: ASIDE, zIndex: 0, opacity: 1, offset: 0.5 },
+						{ transform: rest ? lying(rest) : 'none', zIndex: 0, opacity: rest ? 1 : 0 }
+					],
+					{ ...timing, fill: 'forwards' }
+				),
+				sheet.animate([{ transform: lying(was) }, { transform: 'none' }], { ...timing, duration: 360, delay: 120, fill: 'backwards' })
+			);
+		} else {
+			// Back: the sheet at the back is pulled out and laid on top; the old page settles under it.
+			const settled = at(from);
+			leafing.push(
+				ghost.animate([{ transform: 'none' }, { transform: settled ? lying(settled) : 'none', opacity: settled ? 1 : 0 }], { ...timing, fill: 'forwards' }),
+				sheet.animate(
+					[
+						{ transform: lying(was), zIndex: 0 },
+						{ transform: ASIDE, zIndex: 0, offset: 0.46 },
+						{ transform: ASIDE, zIndex: 7, offset: 0.5 },
+						{ transform: 'none', zIndex: 7 }
+					],
+					timing
+				)
+			);
+		}
+		const [first] = leafing;
+		const done = () => ghost.remove();
+		first.onfinish = done;
+		first.oncancel = done;
 	}
 
 	function turn(step: number) {
@@ -262,7 +307,7 @@
 		if (next !== page) {
 			finishStroke();
 			flushSync();
-			liftLeaf(next > page);
+			liftLeaf(page, next);
 			page = next;
 		} else if (onpast && pages && Math.abs(step) === 1) onpast(step as 1 | -1);
 	}
@@ -693,6 +738,20 @@
 	let bare = $state(false);
 	let controlsBox = $state<HTMLDivElement>();
 	const floating = $derived(full && !pen && !(penAllowed && offer) && !shareNote);
+	/**
+	 * The bar at the top or the bottom of the screen, as the player likes it; kept per device. A
+	 * page narrower than the screen is tall, so it often leaves a strip free below it: where the
+	 * bar fits in the free height, it stays in view and the page makes room for it, above or below.
+	 */
+	const BAR_KEY = 'practice-bar-below';
+	let barBelow = $state(readLocalJson(BAR_KEY) === true);
+	let controlsHeight = $state(0);
+	function moveBar() {
+		barBelow = !barBelow;
+		writeLocalJson(BAR_KEY, barBelow);
+	}
+	const spare = $derived(full && size && !scrolls ? stageHeight - size.height : 0);
+	const roomy = $derived(floating && controlsHeight > 0 && spare >= controlsHeight);
 	const QUIET = 3500;
 	let quiet: ReturnType<typeof setTimeout> | undefined;
 	/** A mouse over the bar keeps it; a finger's tap leaves a "hover" behind on phones, which doesn't. */
@@ -702,7 +761,7 @@
 		clearTimeout(quiet);
 		quiet = setTimeout(() => {
 			// Not while the mouse or the keyboard is in the bar; a tapped button keeping focus doesn't count.
-			if (floating && !mouseOver && !controlsBox?.querySelector(':focus-visible')) bare = true;
+			if (floating && !roomy && !mouseOver && !controlsBox?.querySelector(':focus-visible')) bare = true;
 			else if (floating) wake();
 		}, QUIET);
 	}
@@ -712,7 +771,7 @@
 		bare = true;
 	}
 	$effect(() => {
-		if (floating) wake();
+		if (floating && !roomy) wake();
 		else {
 			clearTimeout(quiet);
 			bare = false;
@@ -869,10 +928,10 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="score" class:full class:night bind:this={root} onpointermove={onrootmove}>
 	{#if floating && bare}
-		<button type="button" class="reveal" onclick={wake} aria-label={t.practice.viewer.showControls} title={t.practice.viewer.showControls}><Icon name="menu" size={18} /></button>
+		<button type="button" class="reveal" class:below={barBelow} onclick={wake} aria-label={t.practice.viewer.showControls} title={t.practice.viewer.showControls}><Icon name="menu" size={18} /></button>
 	{/if}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div class="controls" class:floating class:bare={floating && bare} bind:this={controlsBox} onfocusin={() => floating && wake()} onpointerdown={() => floating && wake()} onpointerenter={(event) => (mouseOver = event.pointerType === 'mouse')} onpointerleave={() => (mouseOver = false)} inert={floating && bare}>
+	<div class="controls" class:floating class:below={full && barBelow} class:bare={floating && bare} bind:this={controlsBox} bind:offsetHeight={controlsHeight} onfocusin={() => floating && wake()} onpointerdown={() => floating && wake()} onpointerenter={(event) => (mouseOver = event.pointerType === 'mouse')} onpointerleave={() => (mouseOver = false)} inert={floating && bare}>
 	<div class="bar">
 		{#if extra}<div class="group">{@render extra()}</div>{/if}
 		<div class="group">
@@ -907,8 +966,11 @@
 			<button type="button" class="tool text" onclick={() => (full ? leaveFull() : enterFull())} aria-pressed={full}>
 				{full ? t.practice.viewer.exitFullscreen : t.practice.viewer.fullscreen}
 			</button>
-			{#if floating}
-				<button type="button" class="tool" onclick={hideControls} aria-label={t.practice.viewer.hideControls} title={t.practice.viewer.hideControls}><Icon name="up" size={16} /></button>
+			{#if full}
+				<button type="button" class="tool" onclick={moveBar} aria-label={barBelow ? t.practice.viewer.barTop : t.practice.viewer.barBottom} title={barBelow ? t.practice.viewer.barTop : t.practice.viewer.barBottom}><Icon name={barBelow ? 'barTop' : 'barBottom'} size={16} /></button>
+			{/if}
+			{#if floating && !roomy}
+				<button type="button" class="tool" onclick={hideControls} aria-label={t.practice.viewer.hideControls} title={t.practice.viewer.hideControls}><Icon name={barBelow ? 'down' : 'up'} size={16} /></button>
 			{/if}
 		</div>
 	</div>
@@ -1053,17 +1115,18 @@
 			<p class="note">{t.viewer.loading}</p>
 		{/if}
 		<div
-			class="sheet"
-			class:before={page > 1}
-			class:before2={page > 2}
-			class:after={page < pages}
-			class:after2={page < pages - 1}
-			bind:this={sheet}
+			class="pile"
+			bind:this={pileBox}
 			style:width={size ? `${size.width}px` : undefined}
 			style:height={size ? `${size.height}px` : undefined}
 			style:margin-left={size ? `${pageLeft}px` : undefined}
+			style:margin-top={roomy && !barBelow ? `${controlsHeight}px` : undefined}
 			hidden={!score || failed}
 		>
+		{#each underneath as under (under.number)}
+			<div class="under" style:transform={lying(under)} style:z-index={4 - under.depth}></div>
+		{/each}
+		<div class="sheet" bind:this={sheet}>
 			<div class="slot" bind:this={slot}></div>
 			{#if size}
 				<svg
@@ -1102,6 +1165,7 @@
 					{/each}
 				</svg>
 			{/if}
+		</div>
 		</div>
 	</div>
 	</div>
@@ -1156,6 +1220,22 @@
 		pointer-events: none;
 	}
 
+	/* The bar at the bottom, where the player put it. */
+	.controls.floating.below {
+		top: auto;
+		bottom: env(safe-area-inset-bottom);
+	}
+
+	.controls.floating.below.bare {
+		transform: translateY(100%);
+	}
+
+	.full .controls.below {
+		order: 1;
+		border-top: 1px solid var(--hairline);
+		border-bottom: 0;
+	}
+
 	/* The way back to the hidden bar: small and faint, in the top corner. */
 	.reveal {
 		position: absolute;
@@ -1174,6 +1254,11 @@
 		cursor: pointer;
 	}
 
+	.reveal.below {
+		top: auto;
+		bottom: calc(env(safe-area-inset-bottom) + var(--space-2));
+	}
+
 	.reveal:hover,
 	.reveal:focus-visible {
 		opacity: 1;
@@ -1184,7 +1269,7 @@
 		background: var(--brand-ink);
 	}
 
-	.night .sheet {
+	.night .pile {
 		filter: invert(1) hue-rotate(180deg);
 	}
 
@@ -1485,71 +1570,55 @@
 		font-variant-numeric: tabular-nums;
 	}
 
-	/* An outline, not a border: the page keeps exactly the size it was fitted to. */
+	/* The page and the loose pile of paper under it (see pileFor); the page keeps exactly the size it was fitted to. */
+	/* Its own layers: the sheets' z-indexes stay inside it, under the floating bar. */
+	.pile {
+		position: relative;
+		isolation: isolate;
+		--paper: #fff;
+		--paper-under: #f7f5ef;
+		--paper-edge: rgba(40, 30, 10, 0.16);
+	}
+
 	.sheet {
 		position: relative;
-		background: #fff;
-		box-shadow: 0 0 0 1px var(--hairline);
+		z-index: 5;
+		width: 100%;
+		height: 100%;
+		background: var(--paper);
+		box-shadow: 0 0 0 1px var(--paper-edge), 0 2px 6px rgba(40, 30, 10, 0.08), 0 10px 24px -10px rgba(40, 30, 10, 0.22);
 	}
 
-	/*
-	 * The pages before and after, as the edges of sheets lying under this one, a little to the
-	 * left and right: two edges where there are two or more pages that way, one for just one.
-	 */
-	.sheet {
-		--edge: 0 0 0 1px var(--hairline);
-		--before: 0 0 transparent;
-		--after: 0 0 transparent;
-		box-shadow: var(--edge), var(--before), var(--after);
-	}
-
-	.full .sheet {
-		--edge: 0 0 transparent;
-	}
-
-	.sheet {
-		--under: #f3f2ee;
-		--under-edge: rgba(0, 0, 0, 0.2);
-	}
-
-	.sheet.before {
-		--before: -8px 0 0 -4px var(--under), -8px 0 0 -3px var(--under-edge);
-	}
-
-	.sheet.before2 {
-		--before: -8px 0 0 -4px var(--under), -8px 0 0 -3px var(--under-edge), -15px 0 0 -8px var(--under), -15px 0 0 -7px var(--under-edge);
-	}
-
-	.sheet.after {
-		--after: 8px 0 0 -4px var(--under), 8px 0 0 -3px var(--under-edge);
-	}
-
-	.sheet.after2 {
-		--after: 8px 0 0 -4px var(--under), 8px 0 0 -3px var(--under-edge), 15px 0 0 -8px var(--under), 15px 0 0 -7px var(--under-edge);
-	}
-
-	/* A page turned away: laid over the new page and turned like a leaf (see turnLeaf). */
-	.sheet :global(.leaf) {
+	.under {
 		position: absolute;
 		inset: 0;
-		z-index: 2;
-		background: #fff;
+		background: var(--paper-under);
+		box-shadow: 0 0 0 1px var(--paper-edge), 0 1px 3px rgba(40, 30, 10, 0.1);
+		transition: transform 320ms cubic-bezier(0.33, 0, 0.25, 1);
 		pointer-events: none;
-		backface-visibility: hidden;
+	}
+
+	/* A page on its way to or from the back of the pile (see turnLeaf). */
+	.pile :global(.leaf) {
+		position: absolute;
+		inset: 0;
+		z-index: 6;
+		background: var(--paper);
+		box-shadow: 0 0 0 1px var(--paper-edge), 0 14px 32px -8px rgba(40, 30, 10, 0.3);
+		pointer-events: none;
 		will-change: transform;
 	}
 
-	.sheet :global(.leaf canvas) {
+	.pile :global(.leaf canvas) {
 		display: block;
 		width: 100%;
 		height: 100%;
 	}
 
-	.sheet :global(.leaf .shade) {
-		position: absolute;
-		inset: 0;
-		background: linear-gradient(to right, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.04) 40%, rgba(0, 0, 0, 0.22));
-		opacity: 0;
+	@media (prefers-reduced-motion: reduce) {
+		.under {
+			transition: none;
+		}
 	}
 
 	/* Stretched while a pinch is under way, until the page is drawn at the new size. */

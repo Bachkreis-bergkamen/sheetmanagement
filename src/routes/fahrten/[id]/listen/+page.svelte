@@ -19,6 +19,9 @@
 	const confirm = (question: string) => (event: SubmitEvent) => {
 		if (!window.confirm(question)) event.preventDefault();
 	};
+	// How many are done, and the first still to do: it opens, the others wait folded.
+	const filled = $derived(data.lists.filter((list) => list.savedAt).length);
+	const firstOpen = $derived(data.lists.find((list) => !list.savedAt)?.kind ?? null);
 	const answers = <K extends ListKind>(list: { kind: ListKind; data: unknown }, _kind: K) => list.data as ListAnswers[K] | null;
 
 	// The allergies, edited here until saved: as filled in (or kept), or one empty row.
@@ -40,12 +43,17 @@
 
 <Title title="{l.title} · {data.trip.title}" />
 
-<a class="back" href="/fahrten/{data.trip.id}"><Icon name="back" size={16} />{l.back}</a>
+<a class="back" href="/fahrten/{data.trip.id}"><Icon name="back" size={16} />{data.trip.title}</a>
 
 <header class="head">
-	<p class="over">{data.trip.title}</p>
 	<h1>{data.person.byParent ? l.titleFor(data.person.name) : l.title}</h1>
 	<p class="lead">{l.lead}</p>
+	{#if data.lists.length}
+		<p class="progress">
+			<span class="bar" aria-hidden="true"><span class:full={filled === data.lists.length} style:width="{(filled / data.lists.length) * 100}%"></span></span>
+			{l.progress(filled, data.lists.length)}
+		</p>
+	{/if}
 	{#if data.people.length > 1}
 		<nav class="people" aria-label={l.title}>
 			{#each data.people as one (one.fuer)}
@@ -101,158 +109,169 @@
 {/snippet}
 
 {#each data.lists as list (list.kind)}
-	<section class="ui-card section" id={list.kind}>
-		<h2>{l.kinds[list.kind]}</h2>
-		<p class="muted">{l.leads[list.kind]}</p>
-		<p class="readers"><Icon name="eye" size={14} />{l.readers[list.readers]}</p>
-		{@render status(list)}
+	<details class="ui-card section" id={list.kind} open={firstOpen === list.kind || result?.kind === list.kind}>
+		<summary>
+			<span class="mark" class:done={!!list.savedAt} class:kept={!list.savedAt && list.fromLastTrip}>
+				<Icon name={list.savedAt ? 'check' : list.fromLastTrip ? 'history' : 'list'} size={16} />
+			</span>
+			<span class="sum">
+				<h2>{l.kinds[list.kind]}</h2>
+				<span class="sum-status">{list.savedAt ? l.savedAt(day(list.savedAt)) : list.fromLastTrip ? l.confirmShort : l.missing}</span>
+			</span>
+		</summary>
+		<div class="section-body">
+			<p class="muted">{l.leads[list.kind]}</p>
+			<p class="readers"><Icon name="eye" size={14} />{l.readers[list.readers]}</p>
+			<!-- The header says done or not; here only what it can't: taken over, or filled in by someone else. -->
+			{#if list.fromLastTrip || (list.savedAt && list.savedBy)}{@render status(list)}{/if}
 
-		{#if list.kind === 'instrumente'}
-			{@const taken = answers(list, 'instrumente')?.taken ?? []}
-			<h3>{l.instruments.yours}</h3>
-			{#if data.instruments.length}
-				<ul class="instruments">
-					{#each data.instruments as instrument (instrument.id)}
-						<li>
-							<label class="take">
-								<input type="checkbox" name="taken" value={instrument.id} form="list-instrumente" checked={taken.includes(instrument.id)} disabled={!data.editable} />
-								<span class="name">{instrument.name}</span>
-								<span class="muted">
-									{[
-										l.instruments.owners[instrument.owner],
-										...(instrument.value !== undefined ? [euro.format(instrument.value)] : []),
-										l.instruments.insurances[instrument.insurance],
-										...(instrument.bulky ? [l.instruments.bulkyShort] : [])
-									].join(' · ')}
-								</span>
-							</label>
-							{#if instrument.confirmedAt}<span class="hint">{l.instruments.confirmedOn(day(instrument.confirmedAt))}</span>{/if}
-							{#if data.editable}
-								<details class="edit-instrument">
-									<summary>{l.instruments.edit}</summary>
-									{@render instrumentForm(instrument)}
-									<form method="POST" action="?/removeInstrument" use:enhance={saving.submit()} onsubmit={confirm(l.instruments.removeConfirm(instrument.name))}>
-										<input type="hidden" name="id" value={instrument.id} />
-										<input type="hidden" name="fuer" value={data.fuer ?? ''} />
-										<button class="btn ghost small danger-text" disabled={saving.busy}><Icon name="trash" size={14} />{l.instruments.remove}</button>
-									</form>
-								</details>
-							{/if}
-						</li>
-					{/each}
-				</ul>
-			{:else}
-				<p class="muted">{l.instruments.none}</p>
-			{/if}
-			{#if result?.instrumentError}<p class="msg error" role="alert">{result.instrumentError}</p>{/if}
-			{#if data.editable}
-				<details class="add">
-					<summary><Icon name="plus" size={16} />{l.instruments.add}</summary>
-					{@render instrumentForm(null)}
-				</details>
-			{/if}
-			<form method="POST" action="?/save" id="list-instrumente" class="list-form" use:enhance={saving.submit()}>
-				<input type="hidden" name="kind" value="instrumente" />
-				<input type="hidden" name="fuer" value={data.fuer ?? ''} />
+			{#if list.kind === 'instrumente'}
+				{@const taken = answers(list, 'instrumente')?.taken ?? []}
+				<h3>{l.instruments.yours}</h3>
 				{#if data.instruments.length}
-					<label class="check"><input type="checkbox" name="confirmValues" disabled={!data.editable} /><span>{l.instruments.confirmValues}</span></label>
+					<ul class="instruments">
+						{#each data.instruments as instrument (instrument.id)}
+							<li>
+								<label class="take">
+									<input type="checkbox" name="taken" value={instrument.id} form="list-instrumente" checked={taken.includes(instrument.id)} disabled={!data.editable} />
+									<span class="name">{instrument.name}</span>
+									<span class="muted">
+										{[
+											l.instruments.owners[instrument.owner],
+											...(instrument.value !== undefined ? [euro.format(instrument.value)] : []),
+											l.instruments.insurances[instrument.insurance],
+											...(instrument.bulky ? [l.instruments.bulkyShort] : [])
+										].join(' · ')}
+									</span>
+								</label>
+								{#if instrument.confirmedAt}<span class="hint">{l.instruments.confirmedOn(day(instrument.confirmedAt))}</span>{/if}
+								{#if data.editable}
+									<details class="edit-instrument">
+										<summary>{l.instruments.edit}</summary>
+										{@render instrumentForm(instrument)}
+										<form method="POST" action="?/removeInstrument" use:enhance={saving.submit()} onsubmit={confirm(l.instruments.removeConfirm(instrument.name))}>
+											<input type="hidden" name="id" value={instrument.id} />
+											<input type="hidden" name="fuer" value={data.fuer ?? ''} />
+											<button class="btn ghost small danger-text" disabled={saving.busy}><Icon name="trash" size={14} />{l.instruments.remove}</button>
+										</form>
+									</details>
+								{/if}
+							</li>
+						{/each}
+					</ul>
+				{:else}
+					<p class="muted">{l.instruments.none}</p>
 				{/if}
-				{@render footer(list)}
-			</form>
-		{:else}
-			<form method="POST" action="?/save" class="list-form" use:enhance={saving.submit()}>
-				<input type="hidden" name="kind" value={list.kind} />
-				<input type="hidden" name="fuer" value={data.fuer ?? ''} />
-				<fieldset class="plain" disabled={!data.editable || list.locked}>
-					{#if list.kind === 'ernaehrung'}
-						{@const diet = answers(list, 'ernaehrung')}
-						<label class="field">
-							{l.diet.diet}
-							<select name="diet" required>
-								<option value="" disabled selected={!diet}>{l.choose}</option>
-								{#each DIETS as one (one)}
-									<option value={one} selected={diet?.diet === one}>{l.diet.diets[one]}</option>
+				{#if result?.instrumentError}<p class="msg error" role="alert">{result.instrumentError}</p>{/if}
+				{#if data.editable}
+					<details class="add">
+						<summary><Icon name="plus" size={16} />{l.instruments.add}</summary>
+						{@render instrumentForm(null)}
+					</details>
+				{/if}
+				<form method="POST" action="?/save" id="list-instrumente" class="list-form" use:enhance={saving.submit()}>
+					<input type="hidden" name="kind" value="instrumente" />
+					<input type="hidden" name="fuer" value={data.fuer ?? ''} />
+					{#if data.instruments.length}
+						<label class="check"><input type="checkbox" name="confirmValues" disabled={!data.editable} /><span>{l.instruments.confirmValues}</span></label>
+					{/if}
+					{@render footer(list)}
+				</form>
+			{:else}
+				<form method="POST" action="?/save" class="list-form" use:enhance={saving.submit()}>
+					<input type="hidden" name="kind" value={list.kind} />
+					<input type="hidden" name="fuer" value={data.fuer ?? ''} />
+					<fieldset class="plain" disabled={!data.editable || list.locked}>
+						{#if list.kind === 'ernaehrung'}
+							{@const diet = answers(list, 'ernaehrung')}
+							<label class="field">
+								{l.diet.diet}
+								<select name="diet" required>
+									<option value="" disabled selected={!diet}>{l.choose}</option>
+									{#each DIETS as one (one)}
+										<option value={one} selected={diet?.diet === one}>{l.diet.diets[one]}</option>
+									{/each}
+								</select>
+							</label>
+							<label class="field">{l.diet.dietNote}<input name="dietNote" maxlength="500" value={diet?.dietNote ?? ''} /></label>
+							<fieldset class="plain allergies">
+								<legend>{l.diet.allergies}</legend>
+								<p class="hint">{l.diet.allergiesHint}</p>
+								{#each allergies as allergy, i (allergy.key)}
+									<div class="allergy">
+										<label class="field"><span class="sr-only">{l.diet.allergy}</span><input name="allergy" maxlength="120" bind:value={allergy.what} placeholder={l.diet.allergy} /></label>
+										<label class="field">
+											<span class="sr-only">{l.diet.severity}</span>
+											<select name="severity" bind:value={allergy.severity}>
+												{#each SEVERITIES as severity (severity)}<option value={severity}>{l.diet.severityOptions[severity]}</option>{/each}
+											</select>
+										</label>
+										{#if allergies.length > 1}
+											<button type="button" class="icon-btn" aria-label={l.diet.removeAllergy} title={l.diet.removeAllergy} onclick={() => allergies.splice(i, 1)}><Icon name="x" size={16} /></button>
+										{/if}
+									</div>
 								{/each}
-							</select>
-						</label>
-						<label class="field">{l.diet.dietNote}<input name="dietNote" maxlength="500" value={diet?.dietNote ?? ''} /></label>
-						<fieldset class="plain allergies">
-							<legend>{l.diet.allergies}</legend>
-							<p class="hint">{l.diet.allergiesHint}</p>
-							{#each allergies as allergy, i (allergy.key)}
-								<div class="allergy">
-									<label class="field"><span class="sr-only">{l.diet.allergy}</span><input name="allergy" maxlength="120" bind:value={allergy.what} placeholder={l.diet.allergy} /></label>
+								<button type="button" class="link-btn" onclick={() => allergies.push({ what: '', severity: 'mittel', key: next++ })}><Icon name="plus" size={14} />{l.diet.addAllergy}</button>
+							</fieldset>
+							<label class="field">
+								{l.diet.medication}
+								<textarea name="medication" rows="2" maxlength="500" aria-describedby="medication-hint">{diet?.medication ?? ''}</textarea>
+							</label>
+							<p class="hint" id="medication-hint">{l.diet.medicationHint}</p>
+							<!-- Asked again on every trip, never ticked in advance (Art. 9 DSGVO). -->
+							<label class="check consent"><input type="checkbox" name="consent" required /><span>{l.diet.consent}</span></label>
+							{@render keepBox(list, l.diet.keepHint)}
+						{:else if list.kind === 'wuensche'}
+							{@const wishes = answers(list, 'wuensche')}
+							<label class="field">{l.wishes.roomWith}<input name="roomWith" maxlength="500" value={wishes?.roomWith ?? ''} /></label>
+							<label class="field">{l.wishes.busWith}<input name="busWith" maxlength="500" value={wishes?.busWith ?? ''} /></label>
+							<label class="field">{l.wishes.note}<textarea name="note" rows="2" maxlength="500">{wishes?.note ?? ''}</textarea></label>
+							{@render keepBox(list, l.keepHint)}
+						{:else if list.kind === 'notfall'}
+							{@const contact = answers(list, 'notfall')}
+							<div class="row">
+								<label class="field">{l.emergency.name}<input name="name" required maxlength="120" autocomplete="off" value={contact?.name ?? ''} /></label>
+								<label class="field">{l.emergency.phone}<input name="phone" type="tel" required maxlength="32" autocomplete="off" value={contact?.phone ?? ''} /></label>
+							</div>
+							<label class="field">{l.emergency.insurance}<input name="insurance" maxlength="120" value={contact?.insurance ?? ''} /></label>
+							{@render keepBox(list, l.keepHint)}
+						{:else if list.kind === 'dokumente'}
+							{@render yesNo('validId', answers(list, 'dokumente')?.validId, l.documents.validId)}
+						{:else if list.kind === 'einverstaendnis'}
+							{@const consents = answers(list, 'einverstaendnis')}
+							{#if list.locked}<p class="msg info">{l.locked}</p>{/if}
+							{@render yesNo('photos', consents?.photos, l.consents.photos)}
+							{@render yesNo('travelAlone', consents?.travelAlone, l.consents.travelAlone)}
+							{#if data.person.minor}{@render yesNo('freeTime', consents?.freeTime, l.consents.freeTime)}{/if}
+							{@render keepBox(list, l.keepHint)}
+						{:else if list.kind === 'fragen'}
+							{@const given = answers(list, 'fragen') ?? {}}
+							{#each data.questions as question (question.id)}
+								{#if question.type === 'janein'}
+									<fieldset class="yes-no">
+										<legend>{question.text}</legend>
+										<label><input type="radio" name="q-{question.id}" value="ja" checked={given[question.id] === 'ja'} />{l.yes}</label>
+										<label><input type="radio" name="q-{question.id}" value="nein" checked={given[question.id] === 'nein'} />{l.no}</label>
+									</fieldset>
+								{:else if question.type === 'auswahl'}
 									<label class="field">
-										<span class="sr-only">{l.diet.severity}</span>
-										<select name="severity" bind:value={allergy.severity}>
-											{#each SEVERITIES as severity (severity)}<option value={severity}>{l.diet.severityOptions[severity]}</option>{/each}
+										{question.text}
+										<select name="q-{question.id}">
+											<option value="">{l.choose}</option>
+											{#each question.options as option (option)}<option value={option} selected={given[question.id] === option}>{option}</option>{/each}
 										</select>
 									</label>
-									{#if allergies.length > 1}
-										<button type="button" class="icon-btn" aria-label={l.diet.removeAllergy} title={l.diet.removeAllergy} onclick={() => allergies.splice(i, 1)}><Icon name="x" size={16} /></button>
-									{/if}
-								</div>
+								{:else}
+									<label class="field">{question.text}<input name="q-{question.id}" maxlength="500" value={given[question.id] ?? ''} /></label>
+								{/if}
 							{/each}
-							<button type="button" class="link-btn" onclick={() => allergies.push({ what: '', severity: 'mittel', key: next++ })}><Icon name="plus" size={14} />{l.diet.addAllergy}</button>
-						</fieldset>
-						<label class="field">
-							{l.diet.medication}
-							<textarea name="medication" rows="2" maxlength="500" aria-describedby="medication-hint">{diet?.medication ?? ''}</textarea>
-						</label>
-						<p class="hint" id="medication-hint">{l.diet.medicationHint}</p>
-						<!-- Asked again on every trip, never ticked in advance (Art. 9 DSGVO). -->
-						<label class="check consent"><input type="checkbox" name="consent" required /><span>{l.diet.consent}</span></label>
-						{@render keepBox(list, l.diet.keepHint)}
-					{:else if list.kind === 'wuensche'}
-						{@const wishes = answers(list, 'wuensche')}
-						<label class="field">{l.wishes.roomWith}<input name="roomWith" maxlength="500" value={wishes?.roomWith ?? ''} /></label>
-						<label class="field">{l.wishes.busWith}<input name="busWith" maxlength="500" value={wishes?.busWith ?? ''} /></label>
-						<label class="field">{l.wishes.note}<textarea name="note" rows="2" maxlength="500">{wishes?.note ?? ''}</textarea></label>
-						{@render keepBox(list, l.keepHint)}
-					{:else if list.kind === 'notfall'}
-						{@const contact = answers(list, 'notfall')}
-						<div class="row">
-							<label class="field">{l.emergency.name}<input name="name" required maxlength="120" autocomplete="off" value={contact?.name ?? ''} /></label>
-							<label class="field">{l.emergency.phone}<input name="phone" type="tel" required maxlength="32" autocomplete="off" value={contact?.phone ?? ''} /></label>
-						</div>
-						<label class="field">{l.emergency.insurance}<input name="insurance" maxlength="120" value={contact?.insurance ?? ''} /></label>
-						{@render keepBox(list, l.keepHint)}
-					{:else if list.kind === 'dokumente'}
-						{@render yesNo('validId', answers(list, 'dokumente')?.validId, l.documents.validId)}
-					{:else if list.kind === 'einverstaendnis'}
-						{@const consents = answers(list, 'einverstaendnis')}
-						{#if list.locked}<p class="msg info">{l.locked}</p>{/if}
-						{@render yesNo('photos', consents?.photos, l.consents.photos)}
-						{@render yesNo('travelAlone', consents?.travelAlone, l.consents.travelAlone)}
-						{#if data.person.minor}{@render yesNo('freeTime', consents?.freeTime, l.consents.freeTime)}{/if}
-						{@render keepBox(list, l.keepHint)}
-					{:else if list.kind === 'fragen'}
-						{@const given = answers(list, 'fragen') ?? {}}
-						{#each data.questions as question (question.id)}
-							{#if question.type === 'janein'}
-								<fieldset class="yes-no">
-									<legend>{question.text}</legend>
-									<label><input type="radio" name="q-{question.id}" value="ja" checked={given[question.id] === 'ja'} />{l.yes}</label>
-									<label><input type="radio" name="q-{question.id}" value="nein" checked={given[question.id] === 'nein'} />{l.no}</label>
-								</fieldset>
-							{:else if question.type === 'auswahl'}
-								<label class="field">
-									{question.text}
-									<select name="q-{question.id}">
-										<option value="">{l.choose}</option>
-										{#each question.options as option (option)}<option value={option} selected={given[question.id] === option}>{option}</option>{/each}
-									</select>
-								</label>
-							{:else}
-								<label class="field">{question.text}<input name="q-{question.id}" maxlength="500" value={given[question.id] ?? ''} /></label>
-							{/if}
-						{/each}
-					{/if}
-				</fieldset>
-				{#if !list.locked}{@render footer(list)}{/if}
-			</form>
-		{/if}
-	</section>
+						{/if}
+					</fieldset>
+					{#if !list.locked}{@render footer(list)}{/if}
+				</form>
+			{/if}
+		</div>
+	</details>
 {/each}
 
 {#snippet instrumentForm(instrument: (typeof data.instruments)[number] | null)}
@@ -303,12 +322,37 @@
 		margin-bottom: var(--space-5);
 	}
 
-	.over {
-		color: var(--accent);
-		font-size: var(--text-xs);
-		font-weight: 700;
-		letter-spacing: 0.04em;
-		text-transform: uppercase;
+	/* How far along: a bar and "2 von 6 ausgefüllt". */
+	.progress {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		margin-top: var(--space-2);
+		color: var(--text-muted);
+		font-size: var(--text-sm);
+		font-weight: 600;
+	}
+
+	.bar {
+		display: block;
+		flex: none;
+		width: 120px;
+		height: 6px;
+		overflow: hidden;
+		border-radius: var(--radius-pill);
+		background: var(--surface-2);
+	}
+
+	.bar > span {
+		display: block;
+		height: 100%;
+		border-radius: inherit;
+		background: var(--accent);
+		transition: width 0.4s var(--ease);
+	}
+
+	.bar > span.full {
+		background: var(--ok);
 	}
 
 	.people {
@@ -343,16 +387,99 @@
 		font-size: var(--text-xs);
 	}
 
+	/* Each list folds: its name and whether it's done; the first still to do is open. */
 	.section {
-		display: grid;
-		gap: var(--space-3);
-		margin-bottom: var(--space-4);
-		padding: var(--space-4);
-		scroll-margin-top: var(--space-6);
+		margin-bottom: var(--space-3);
+		padding: 0;
+		scroll-margin-top: calc(var(--header-height) + var(--space-4));
 	}
 
-	.section h2 {
+	.section > summary {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		min-height: 64px;
+		padding: var(--space-3) var(--space-5);
+		list-style: none;
+		cursor: pointer;
+	}
+
+	.section > summary::-webkit-details-marker {
+		display: none;
+	}
+
+	.section > summary::after {
+		content: '';
+		flex: none;
+		width: 8px;
+		height: 8px;
+		margin-left: auto;
+		border-right: 2px solid var(--text-muted);
+		border-bottom: 2px solid var(--text-muted);
+		transform: rotate(-45deg);
+		transition: transform var(--fast) var(--ease);
+	}
+
+	.section[open] > summary::after {
+		transform: rotate(45deg);
+	}
+
+	.section > summary:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: -2px;
+		border-radius: var(--radius-l);
+	}
+
+	.mark {
+		display: grid;
+		place-items: center;
+		flex: none;
+		width: 36px;
+		height: 36px;
+		border-radius: 50%;
+		background: color-mix(in oklab, var(--warn) 14%, transparent);
+		color: var(--warn);
+	}
+
+	.mark.kept {
+		background: var(--accent-soft);
+		color: var(--accent);
+	}
+
+	.mark.done {
+		background: var(--ok);
+		color: var(--surface);
+	}
+
+	.sum {
+		display: grid;
+		gap: 1px;
+		min-width: 0;
+	}
+
+	.sum h2 {
 		font-size: var(--text-lg);
+	}
+
+	.sum-status {
+		color: var(--text-muted);
+		font-size: var(--text-sm);
+	}
+
+	.section-body {
+		display: grid;
+		gap: var(--space-3);
+		padding: 0 var(--space-5) var(--space-5);
+	}
+
+	@media (max-width: 480px) {
+		.section > summary {
+			padding: var(--space-3) var(--space-4);
+		}
+
+		.section-body {
+			padding: 0 var(--space-4) var(--space-4);
+		}
 	}
 
 	.section h3 {

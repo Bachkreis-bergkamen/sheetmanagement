@@ -166,6 +166,10 @@ export const en: Texts = {
 		clearSearch: 'Clear search',
 		foundParts: (instruments: string) => `Part: ${instruments}`,
 		foundNote: (excerpt: string) => `Note: ${excerpt}`,
+		/** Found by one of a medley's songs ("Contents"). */
+		foundSong: (song: string) => `Contains: ${song}`,
+		/** After the first two composers of a medley: "Bizet, Offenbach and more". */
+		moreComposers: 'and more',
 		filter: 'Filter',
 		filterGroups: { mine: 'For me', programs: 'Orchestra', categories: 'Genre', difficulty: 'Difficulty', length: 'Length', state: 'Status' },
 		lengths: { kurz: 'Up to 5 min', mittel: '5–10 min', lang: 'Over 10 min' },
@@ -193,6 +197,10 @@ export const en: Texts = {
 		folder: 'Drive folder',
 		editShort: 'Edit',
 		reportShort: 'Report',
+		/** Over the one card with all parts. */
+		partsTitle: 'Parts',
+		/** The side column: upcoming dates, where it was played, related pieces. */
+		about: 'About the piece',
 		upcoming: 'Coming up',
 		recording: 'Recording',
 		edit: 'Edit details',
@@ -228,6 +236,13 @@ export const en: Texts = {
 		sectionFolder: 'This folder in Google Drive',
 		otherVersions: 'Other versions of this work',
 		moreBy: (composer: string) => `More works by ${composer}`,
+		/** A medley's songs, from "Contents". */
+		contents: 'Contents',
+		contentsCount: (n: number) => (n === 1 ? '1 title' : `${n} titles`),
+		/** Opens the rest of a shortened composer line. */
+		allComposers: (n: number) => `all ${n} composers`,
+		/** "More works by …" for a medley: by any of its composers. */
+		moreByAny: 'More works by these composers',
 		again: 'Play again',
 		againMine: "I'd like to play it again",
 		againHint: "Tells programme planning you'd like to play this piece again. Click again to take it back.",
@@ -1191,7 +1206,12 @@ export const en: Texts = {
 		numbers: 'Parts',
 		score: (label: string) => `First page: ${label}`,
 		scoreHint: 'The left edge of the first page names every instrument of the score.',
-		numbersHint: 'none chosen: all parts'
+		numbersHint: 'none chosen: all parts',
+		sheet: (label: string) => `Music: ${label}`,
+		sheetPick: 'Which music',
+		viewPart: (label: string) => `View part: ${label}`,
+		fromParts: 'Take over from the parts',
+		fromPartsHint: (text: string) => `Read from the parts there are: ${text}`
 	},
 	/** Filters for a list, several at once (archive, calendar). */
 	filters: {
@@ -1427,6 +1447,11 @@ export const en: Texts = {
 	suggest: {
 		title: 'Suggestions',
 		lead: '“Apply” fills in the form; “Save” saves it.',
+		auto: 'Fill in automatically',
+		autoBusy: (step: string) => `${step} …`,
+		autoLead: 'Reads the score and the parts, looks the work up on Wikidata and asks YouTube for the length. Empty fields are filled in; everything else is offered below.',
+		autoDone: (n: number) => (n === 0 ? 'Nothing new found.' : n === 1 ? '1 empty field filled in. Check it, then save.' : `${n} empty fields filled in. Check them, then save.`),
+		steps: { score: 'Reading the music', wikidata: 'Searching Wikidata', video: 'Asking YouTube' } as Record<string, string>,
 		fromScore: 'Read from the music',
 		fileLabel: 'Which file to read',
 		reading: 'Reading the music …',
@@ -1444,7 +1469,7 @@ export const en: Texts = {
 		add: 'Add',
 		applied: 'filled in',
 		openWikidata: 'View on Wikidata',
-		sources: { score: 'from the music', wikidata: 'Wikidata', archive: 'from the library', youtube: 'Video' } as Record<string, string>,
+		sources: { score: 'from the music', parts: 'from the parts', wikidata: 'Wikidata', archive: 'from the library', youtube: 'Video' } as Record<string, string>,
 		scanOnly: 'A scan without text. Perhaps another part or “Look up online” helps.',
 		ocr: 'Instrumentation by text recognition',
 		ocrReading: 'Recognising text …',
@@ -2021,7 +2046,7 @@ export const en: Texts = {
 			bass: 'Other, in bass clef'
 		},
 		kinds: {
-			mix: { title: 'Daily round', lead: 'About ten minutes: warm up, review what’s due, one new melody at sight.' },
+			mix: { title: 'Daily round', lead: 'About five minutes: warm up, review what’s due, one new melody at sight.' },
 			notes: { title: 'Note reading', lead: 'Which note is it? As fast as you’re sure.' },
 			keys: { title: 'Keys', lead: 'Which key has this key signature?' },
 			play: { title: 'Play the note', lead: 'Play the note; the microphone hears if it’s right.' },
@@ -2086,7 +2111,18 @@ export const en: Texts = {
 			steps: { warmup: 'Warm up', review: 'Review', sight: 'At sight', done: 'Done' } as Record<string, string>,
 			done: 'Daily round done',
 			skip: 'Skip this step',
-			doneLead: (minutes: number) => (minutes < 1 ? 'Short and regular works best.' : `${minutes} min in this round today. Short and regular works best.`)
+			doneLead: (minutes: number) => (minutes < 1 ? 'Short and regular works best.' : `${minutes} min in this round today. Short and regular works best.`),
+			toProgram: 'On to the programme',
+			programLead: (title: string, pieces: number) => `${title}: your parts, ${pieces === 1 ? '1 piece' : `${pieces} pieces`} in programme order.`,
+			hero: 'For today',
+			start: 'Start the daily round',
+			again: 'Done for today. One more round?',
+			plan: (steps: string) => `Today: ${steps}`,
+			after: 'Afterwards',
+			/** Under "Afterwards": the next concert's parts. */
+			afterProgram: (title: string) => `Practise your parts for ${title}`,
+			fullscreen: 'Full screen',
+			exitFullscreen: 'Leave full screen'
 		},
 		sharing: {
 			title: 'Practising together',
@@ -2448,6 +2484,8 @@ export const en: Texts = {
 			exitFullscreen: 'Exit full screen',
 			showControls: 'Show toolbar',
 			hideControls: 'Hide toolbar',
+			barBottom: 'Toolbar to the bottom',
+			barTop: 'Toolbar to the top',
 			turnHint: 'Turn pages by tapping the left or right edge, with the arrow keys or a page-turn pedal.',
 			tools: 'Tools',
 			closeTools: 'Close tools',
@@ -2673,6 +2711,21 @@ export const en: Texts = {
 		signedUp: (n: number, cap?: number) => (cap ? `${n} of ${cap} places` : n === 1 ? '1 sign-up' : `${n} sign-ups`),
 		until: (date: string) => `Sign-up until ${date}`,
 		about: 'The trip',
+		dayCount: (n: number) => (n === 1 ? '1 day' : `${n} days`),
+		/** Above the route: how long until it starts, or which day it is. */
+		countdown: {
+			days: (n: number) => (n === 1 ? 'day to go' : 'days to go'),
+			today: 'We leave today',
+			running: (n: number, of: number) => ({ num: `Day ${n}`, label: `of ${of}` })
+		},
+		/** The facts beside the trip: until when, how many places, who organises it. */
+		facts: {
+			signup: 'Sign-up',
+			seats: 'Places',
+			closes: (days: number) => (days <= 0 ? 'ends today' : days === 1 ? 'ends tomorrow' : `${days} days left`),
+			left: (n: number) => (n <= 0 ? 'all taken' : n === 1 ? '1 left' : `${n} left`),
+			closed: 'closed'
+		},
 		organisedBy: 'Organisers',
 		forOrchestras: 'For',
 		allOrchestras: 'all orchestras',
@@ -2680,6 +2733,9 @@ export const en: Texts = {
 		planLead: 'What happens when and where, day by day.',
 		signup: {
 			title: 'Your sign-up',
+			ask: 'Are you coming along?',
+			fromStart: 'From the first day',
+			toEnd: 'Until the end',
 			role: 'I am coming as',
 			roleHint: 'One or more, e.g. carer and musician.',
 			arrival: 'Arriving later (optional)',
@@ -2725,6 +2781,7 @@ export const en: Texts = {
 			none: 'No dates from the calendar yet.',
 			noneInWindow: 'The calendar has no dates on these days.',
 			save: 'Take these dates',
+			choose: 'Choose dates from the calendar',
 			partOf: (title: string) => `Part of the trip "${title}"`
 		},
 		participants: {
@@ -2782,6 +2839,7 @@ export const en: Texts = {
 			byParent: 'by a parent',
 			fromLastTrip: 'Taken over from your last trip. Is it still right? Then just confirm it.',
 			missing: 'Not filled in yet',
+			confirmShort: 'From your last trip: please confirm',
 			keep: 'Keep for the next trip',
 			keepHint: 'Otherwise this list is deleted with the others, and it’s empty on the next trip.',
 			goneOn: (date: string) => `The lists of this trip are deleted on ${date}, four weeks after the trip.`,
@@ -3238,6 +3296,13 @@ export const en: Texts = {
 		durationHint: 'e.g. 7:30',
 		composerHint: 'several with commas: Mozart, Haydn',
 		composerFullHint: 'e.g. Ludwig van Beethoven, for the music report',
+		/** Medleys and suites: one song per line, the composers come from there. */
+		contentsHint: 'For medleys and suites: one title per line, e.g. Habanera – Bizet',
+		contentsLead: 'Each title is found by the search. If “Composer” stays empty, it shows the composers from the contents, shortened to two and “and more”.',
+		composerFromContents: (names: string) => `from the contents: ${names}`,
+		/** Empties "Composer" so it follows the contents. */
+		useContentsComposers: 'Take from the contents',
+		useContentsComposersHint: 'Empties the field: the composers then come from the contents and stay short.',
 		listHint: 'separate several with commas',
 		publisherHint: 'e.g. Bärenreiter – for the music report',
 		unreadInstrumentation: (text: string) => `Not recognised as an instrument, kept as written: ${text}`,
@@ -3599,6 +3664,8 @@ export const en: Texts = {
 				publisher: 'Publisher',
 				/** The instruments the score is written for, "Flute 1 & 2; Oboe; Violin 1 & 2" (#249). */
 				instrumentation: 'Instrumentation',
+				/** A medley's songs, one per line: "Habanera – Bizet". */
+				contents: 'Contents',
 				driveFolderId: 'Drive folder ID'
 			}
 		},

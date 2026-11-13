@@ -4,6 +4,7 @@ import { getLibrary } from '#lib/server/library.ts';
 import { pieceFindables } from '#lib/server/piece-search.ts';
 import { getPieceNotes } from '#lib/server/repertoire.ts';
 import { searchText } from '#lib/music/text.ts';
+import { composerLine } from '#lib/repertoire/contents.ts';
 import type { RequestHandler } from './$types';
 
 /**
@@ -21,9 +22,11 @@ export const GET: RequestHandler = async ({ locals }) => {
 			pieces: library.pieces.map((piece) => ({
 				id: piece.id,
 				title: piece.title,
-				composer: piece.composer,
+				// A medley's composers shortened: "Bizet, Offenbach und mehr".
+				composer: composerLine(piece.composer),
 				search: piece.search,
 				instruments: findables.get(piece.id)?.instruments ?? [],
+				songs: findables.get(piece.id)?.songs ?? [],
 				notes: findables.get(piece.id)?.notes ?? []
 			})),
 			concerts: library.concerts.map((concert) => ({

@@ -147,7 +147,10 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		cancelled: organises ? participants.filter((p) => p.status === 'abgemeldet').map(shown) : [],
 		overview: organises ? overview(participants, invited, children) : null,
 		orchestras: config.orchestras,
-		saved: url.searchParams.has('gespeichert')
+		saved: url.searchParams.has('gespeichert'),
+		// For the facts: how many are coming, and the day to count the sign-up's days from.
+		count: signedUp(participants).length,
+		today: day
 	};
 };
 
