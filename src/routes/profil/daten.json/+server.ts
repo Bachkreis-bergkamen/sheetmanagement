@@ -14,7 +14,7 @@ export const GET: RequestHandler = async ({ locals }) => {
 	if (locals.auth === 'off' || !user) redirect(303, '/anmelden');
 	const email = user.email.trim().toLowerCase();
 	const store = getStore();
-	const [access, feedback, signups, attendance, pieceNotes, rehearsalNotes, devices, reminders, optOut, tour, practiceOn, practiceDays, marks, polls, drillSharing, drillDays, trips, tripLists] = await Promise.all([
+	const [access, feedback, signups, attendance, pieceNotes, rehearsalNotes, devices, reminders, optOut, tour, practiceOn, practiceDays, marks, polls, drillSharing, drillDays, trips, tripLists, drillProgress] = await Promise.all([
 		getAccessList({ force: true }),
 		getFeedback(),
 		getSignups(),
@@ -32,7 +32,8 @@ export const GET: RequestHandler = async ({ locals }) => {
 		store.drillSharing(email).catch(() => null),
 		store.drillDaysOf([email], '0000-00-00').catch(() => []),
 		tripStore()?.participationsOf(email).catch(() => []) ?? [],
-		tripListsOf(email)
+		tripListsOf(email),
+		store.drillProgressOf(email).catch(() => null)
 	]);
 	const member = access?.membersByEmail.get(email);
 	const data = myData(
@@ -51,7 +52,7 @@ export const GET: RequestHandler = async ({ locals }) => {
 		email: user.email,
 		exportedAt: new Date().toISOString(),
 		about: t.myData.explain,
-		data: { ...data, ...storedData(devices, reminders, optOut.has(email), tour, { on: practiceOn, days: practiceDays }, marks), ...pollData(polls), ...tripData(trips), ...tripListData(tripLists.lists, tripLists.kept, tripLists.instruments, tripLists.trips, tripLists.arrangements), ...(drillSharing ? { [t.myData.drills]: { sharing: drillSharing, days: drillDays.map(({ email: _, ...row }) => row) } } : {}) }
+		data: { ...data, ...storedData(devices, reminders, optOut.has(email), tour, { on: practiceOn, days: practiceDays }, marks), ...pollData(polls), ...tripData(trips), ...tripListData(tripLists.lists, tripLists.kept, tripLists.instruments, tripLists.trips, tripLists.arrangements), ...(drillSharing || drillProgress ? { [t.myData.drills]: { ...(drillProgress ? { progress: JSON.parse(drillProgress) } : {}), ...(drillSharing ? { sharing: drillSharing, days: drillDays.map(({ email: _, ...row }) => row) } : {}) } } : {}) }
 	};
 	return new Response(JSON.stringify(body, null, 2), {
 		headers: {

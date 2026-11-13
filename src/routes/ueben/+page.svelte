@@ -33,7 +33,8 @@
 	import { invalidateAll } from '$app/navigation';
 	import { sharesAny, summaryRows, type Sharing } from '#lib/practice/drills/sharing.ts';
 	import { dayNumber, record, summary } from '#lib/practice/drills/scheduler.ts';
-	import { clearDrills, loadDrills, saveDrills } from '#lib/practice/drills/store.ts';
+	import { clearDrills, loadDrills, saveDrills, syncDrills } from '#lib/practice/drills/store.ts';
+	import { mergeData, withDevice } from '#lib/practice/drills/sync.ts';
 	import { alterInKey, CLEFS, pitchAt, type Clef, type Pitch } from '#lib/practice/drills/theory.ts';
 
 	let { data } = $props();
@@ -45,7 +46,24 @@
 	let drills = $state<DrillData>(emptyData());
 	let ready = $state(false);
 	let saved = $state(true);
-	onMount(async () => {
+	onMount(() => {
+		begin();
+		const closing = () => {
+			if (document.visibilityState === 'hidden') syncNow(true);
+		};
+		const online = () => syncNow();
+		document.addEventListener('visibilitychange', closing);
+		window.addEventListener('online', online);
+		return () => {
+			clearTimeout(syncTimer);
+			document.removeEventListener('visibilitychange', closing);
+			window.removeEventListener('online', online);
+		};
+	});
+
+	/** How long the page waits for the progress from the other devices before it starts without. */
+	const FIRST_SYNC_MS = 4000;
+	async function begin() {
 		const loaded = await loadDrills(data.account);
 		drills = loaded.data;
 		saved = loaded.saved;
@@ -55,12 +73,23 @@
 				card === 'sight' || card === 'entry' ? !!drills.settings[card] && !drills.settings.placed : Object.keys(drills.items).some((id) => cardOf(id) === card)
 			);
 		}
+		// What was practised on another device, before the page offers a placement test or a first round.
+		if (data.synced) {
+			const sentAt = drills.changed;
+			const remote = await Promise.race([syncDrills(drills), new Promise<null>((resolve) => setTimeout(() => resolve(null), FIRST_SYNC_MS))]);
+			if (remote) {
+				drills = withDevice(mergeData(drills, remote), drills);
+				synced = drills.changed === sentAt;
+				saveDrills(data.account, drills).then((ok) => (saved = ok));
+			} else synced = false;
+		}
 		ready = true;
 		syncUnlocks();
 		syncBadges();
 		sendTime();
 		sendDays();
-	});
+		if (synced === false) syncNow();
+	}
 
 	const instrument = $derived<ProfileId>(isProfileId(drills.settings.instrument) ? drills.settings.instrument : own);
 	const prof = $derived(profile(instrument));
@@ -89,7 +118,53 @@
 	}
 
 	function persist() {
+		drills.changed = Date.now();
 		saveDrills(data.account, drills).then((ok) => (saved = ok));
+		if (data.synced) {
+			clearTimeout(syncTimer);
+			syncTimer = setTimeout(syncNow, SYNC_AFTER_MS);
+		}
+	}
+
+	/**
+	 * The progress on the member's other devices (#300): this copy goes to the server a few
+	 * seconds after a change, when the page opens, is hidden or comes back online, and what comes
+	 * back is merged in, so answers given meanwhile stay.
+	 */
+	const SYNC_AFTER_MS = 3000;
+	let syncTimer: ReturnType<typeof setTimeout> | undefined;
+	let syncing = false;
+	let syncAgain = false;
+	/** Whether the server has this device's latest copy; shown, so a member knows it's safe to switch. */
+	let synced = $state<boolean | null>(null);
+	async function syncNow(closing = false) {
+		clearTimeout(syncTimer);
+		if (!data.synced || !ready) return;
+		if (syncing) {
+			syncAgain = true;
+			return;
+		}
+		syncing = true;
+		try {
+			const sentAt = drills.changed;
+			const remote = await syncDrills(drills, closing);
+			if (!remote) {
+				synced = false;
+				return;
+			}
+			const merged = withDevice(mergeData(drills, remote), drills);
+			if (JSON.stringify(merged) !== JSON.stringify(drills)) {
+				drills = merged;
+				saveDrills(data.account, drills).then((ok) => (saved = ok));
+			}
+			synced = drills.changed === sentAt;
+		} finally {
+			syncing = false;
+			if (syncAgain) {
+				syncAgain = false;
+				syncNow(closing);
+			}
+		}
 	}
 
 	type Kind = 'mix' | 'notes' | 'keys' | 'ear' | 'rhythm' | 'pulse' | 'play' | 'scale' | 'sight' | 'entry' | 'tune' | 'trans';
@@ -428,7 +503,9 @@
 	async function reset() {
 		if (!confirm(tx.confirmReset)) return;
 		await clearDrills(data.account);
-		drills = { ...emptyData(), unlocked: [] };
+		// The reset time drops the copies from before it, on the server and the other devices.
+		drills = { ...emptyData(), unlocked: [], since: Date.now() };
+		persist();
 		syncUnlocks();
 	}
 
@@ -999,7 +1076,8 @@
 		</details>
 
 		<p class="hint private"><Icon name="shield" size={16} />{tx.private}</p>
-		{#if !saved}<p class="msg info">{tx.unsaved}</p>{/if}
+		{#if !saved}<p class="msg info">{data.synced ? tx.unsavedSynced : tx.unsaved}</p>{/if}
+		{#if data.synced && synced === false}<p class="hint">{tx.notSynced}</p>{/if}
 		<div class="row">
 			{#if ready && !offerPlacement}
 				<button type="button" class="btn ghost small" onclick={startPlacement}><Icon name="flag" size={16} />{tx.placement.again}</button>

@@ -214,6 +214,18 @@ describe.each([
 		expect(await store.drillUnlocksOf('pro@x.org')).toEqual([]);
 	});
 
+	it('keeps a member’s Übebereich progress for their other devices (#300)', async () => {
+		const store = make();
+		expect(await store.drillProgressOf('a@x.org')).toBeNull();
+		await store.setDrillProgress('a@x.org', '{"version":1}');
+		await store.setDrillProgress('a@x.org', '{"version":1,"opened":["bass"]}');
+		await store.setDrillProgress('b@x.org', '{}');
+		expect(await store.drillProgressOf('a@x.org')).toBe('{"version":1,"opened":["bass"]}');
+		await store.setDrillProgress('a@x.org', null);
+		expect(await store.drillProgressOf('a@x.org')).toBeNull();
+		expect(await store.drillProgressOf('b@x.org')).toBe('{}');
+	});
+
 	it('keeps a member’s own marks per part and page, for that member only', async () => {
 		const store = make();
 		const line = (color: 'red' | 'blue') => [{ color, points: [0.1, 0.2, 0.3, 0.4] }];

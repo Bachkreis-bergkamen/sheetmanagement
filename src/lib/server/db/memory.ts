@@ -28,6 +28,7 @@ export function memoryStore(now = () => Date.now()): Store {
 	const drillConsent = new Map<string, string>();
 	/** Drills opened by an administrator, by member. */
 	const drillUnlocks = new Map<string, string[]>();
+	const drillProgress = new Map<string, string>();
 	/** Marks by member, then by `${page} ${file}`. */
 	const marks = new Map<string, Map<string, PageMarks>>();
 	/** Offers by id; answers as `${id} ${email}`. */
@@ -162,6 +163,11 @@ export function memoryStore(now = () => Date.now()): Store {
 		async setDrillUnlocks(email, cards) {
 			if (cards.length) drillUnlocks.set(email, [...new Set(cards)].sort());
 			else drillUnlocks.delete(email);
+		},
+		drillProgressOf: async (email) => drillProgress.get(email) ?? null,
+		async setDrillProgress(email, json) {
+			if (json === null) drillProgress.delete(email);
+			else drillProgress.set(email, json);
 		},
 		marksOf: async (email, file) =>
 			[...(marks.get(email)?.values() ?? [])]
