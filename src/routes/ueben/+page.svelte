@@ -182,7 +182,7 @@
 	}
 
 	/**
-	 * The daily round (#315): about ten minutes made of what's due. A scale to warm up over a
+	 * The daily round (#315): about five minutes, the daily goal, made of what's due. A scale to warm up over a
 	 * drone, once scales are open; the notes, keys and intervals due for review; one new melody at
 	 * sight, once sight-reading is open; and a line for what was hard. Short, mixed and regular,
 	 * as spacing research suggests.
@@ -205,6 +205,7 @@
 	);
 	function nextDaily() {
 		daily = dailySteps[dailySteps.indexOf(daily) + 1] ?? 'done';
+		if (daily === 'done') roundDone = true;
 		sendDays();
 	}
 	const dailyMinutes = $derived(Math.max(0, Math.round(((drills.days[dayKey()]?.ms ?? 0) - dailyFrom) / 60_000)));
@@ -459,10 +460,48 @@
 	/** Each stage with its drills for this instrument and how many are open, for the strip and the headings. */
 	const stageList = $derived(
 		STAGES.map((stage, number) => {
-			const shown = kinds.filter(({ kind }) => (stage as string[]).includes(kind));
+			// The daily round, once open, has its own card on top (see `featured`), not one in its stage.
+			const shown = kinds.filter(({ kind }) => (stage as string[]).includes(kind) && !(kind === 'mix' && featured));
 			return { number, shown, open: shown.filter(({ kind }) => cards[kind as DrillCard].open).length };
 		}).filter((stage) => stage.shown.length)
 	);
+	/** The daily round as the way in, once it's open: the first thing on the page, with a big start. */
+	const featured = $derived(ready && cards.mix.open);
+	/** Its steps as they'd be today, for the card. */
+	const todaysSteps = $derived(featured ? dailyPlan().filter((step) => step !== 'done') : []);
+	/** A daily round finished on this visit: the card then offers another, and the programme. */
+	let roundDone = $state(false);
+
+	/**
+	 * Full screen for a round (on the button, so it needs the tap): the browser's where it has one,
+	 * else the round covers the window. Ends with the round, by the button, Escape or the browser.
+	 */
+	let roundBox = $state<HTMLDivElement>();
+	let roundFull = $state(false);
+	async function enterRoundFull() {
+		roundFull = true;
+		try {
+			const element = roundBox as (HTMLElement & { webkitRequestFullscreen?: () => Promise<void> }) | undefined;
+			await (element?.requestFullscreen?.() ?? element?.webkitRequestFullscreen?.());
+		} catch {
+			// No full screen API (iPhone): the round covers the window instead.
+		}
+	}
+	function leaveRoundFull() {
+		roundFull = false;
+		if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+	}
+	$effect(() => {
+		const changed = () => {
+			if (!document.fullscreenElement && roundFull) roundFull = false;
+		};
+		document.addEventListener('fullscreenchange', changed);
+		return () => document.removeEventListener('fullscreenchange', changed);
+	});
+	$effect(() => {
+		if (!inRound && roundFull) leaveRoundFull();
+	});
+
 	/** The stage the member is working in: the last one with a drill open. */
 	const current = $derived(stageList.reduce((at, stage) => (stage.open ? stage.number : at), 0));
 
@@ -481,6 +520,14 @@
 	<div class="intro"><PageHeader title={tx.title} lead={tx.lead} /></div>
 {/if}
 
+{#if inRound}
+<!-- A round, with a button for full screen: on a phone stand nothing else is on the screen. -->
+<div class="round" class:full={roundFull} bind:this={roundBox}>
+<div class="round-bar">
+	<button type="button" class="btn ghost small" aria-pressed={roundFull} onclick={() => (roundFull ? leaveRoundFull() : enterRoundFull())}>
+		<Icon name={roundFull ? 'x' : 'monitor'} size={16} />{roundFull ? tx.daily.exitFullscreen : tx.daily.fullscreen}
+	</button>
+</div>
 {#if testing && placement}
 	{@const test = placement}
 	<DrillRound
@@ -535,6 +582,7 @@
 		}}
 		onexit={exit}
 		onskip={nextDaily}
+		program={data.program}
 	>
 		{#key daily}
 			{#if daily === 'sight'}
@@ -586,6 +634,8 @@
 		onsetting={setting}
 		onexit={exit}
 	/>
+{/if}
+</div>
 {:else}
 	<div class="hub">
 		{#if unlocked}<p class="msg ok unlocked" role="status"><Icon name="sparkle" size={18} />{tx.newClef(tx.clefs[unlocked])}</p>{/if}
@@ -601,6 +651,34 @@
 			<p class="msg ok unlocked" role="status">
 				<Icon name="sparkle" size={18} />{tx.newDrills(freshCards.map((card) => tx.kinds[card].title))}
 			</p>
+		{/if}
+
+		{#if featured}
+			<!-- The daily round as the way in: what's in it today, a big start, and what comes after. -->
+			<section class="ui-card daily-hero" aria-labelledby="daily-title">
+				<div class="daily-text">
+					<span class="ui-label">{tx.daily.hero}</span>
+					<h2 id="daily-title"><Icon name="sparkle" size={20} />{tx.kinds.mix.title}</h2>
+					<p class="lead">{tx.kinds.mix.lead}</p>
+					<p class="daily-plan">{tx.daily.plan(todaysSteps.map((step) => tx.daily.steps[step]).join(' · '))}</p>
+				</div>
+				<div class="daily-go">
+					<span class="goal">
+						<span class="ring" style:--done="{Math.min(1, todayMinutes / DAILY_GOAL_MINUTES) * 100}%" aria-hidden="true"></span>
+						{tx.today(todayMinutes, DAILY_GOAL_MINUTES)}
+					</span>
+					{#if roundDone}<p class="hint">{tx.daily.again}</p>{/if}
+					<button type="button" class="btn big-start" onclick={() => start('mix')}>
+						<Icon name="arrow" size={18} />{roundDone ? tx.again : tx.daily.start}
+					</button>
+					{#if data.program}
+						<a class="daily-after" href={data.program.url}>
+							<span class="ui-label">{tx.daily.after}</span>
+							<span>{tx.daily.afterProgram(data.program.title)}<Icon name="chevron" size={14} /></span>
+						</a>
+					{/if}
+				</div>
+			</section>
 		{/if}
 
 		{#if announceInstrument}
@@ -880,6 +958,123 @@
 	.hub {
 		display: grid;
 		gap: var(--space-5);
+	}
+
+	/* A round: the full screen button above it, out of the exercise's way. */
+	.round-bar {
+		display: flex;
+		justify-content: flex-end;
+		margin-bottom: var(--space-2);
+	}
+
+	/* Full screen: the round alone, on the page's own background, scrolling if it must. */
+	.round.full {
+		position: fixed;
+		inset: 0;
+		z-index: 1000;
+		overflow-y: auto;
+		padding: max(var(--space-3), env(safe-area-inset-top)) max(var(--space-4), env(safe-area-inset-right)) max(var(--space-4), env(safe-area-inset-bottom))
+			max(var(--space-4), env(safe-area-inset-left));
+		background: var(--bg);
+		overscroll-behavior: contain;
+	}
+
+	.round.full > :global(*) {
+		max-width: 64rem;
+		margin-inline: auto;
+	}
+
+	/* The daily round as the way in: text on the left, the start on the right; stacked on a phone. */
+	.daily-hero {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		align-items: center;
+		gap: var(--space-4) var(--space-6, 2rem);
+		padding: var(--space-5);
+		border-color: color-mix(in oklab, var(--accent) 40%, var(--hairline));
+		background: linear-gradient(135deg, var(--accent-soft), var(--surface) 70%);
+	}
+
+	.daily-text {
+		display: grid;
+		gap: var(--space-1);
+	}
+
+	.daily-hero h2 {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		margin: 0;
+		font-family: var(--font-display);
+		font-size: var(--text-2xl);
+	}
+
+	.daily-hero h2 :global(svg) {
+		color: var(--accent);
+	}
+
+	.daily-hero .lead,
+	.daily-plan {
+		margin: 0;
+	}
+
+	.daily-plan {
+		color: var(--text-muted);
+		font-size: var(--text-sm);
+	}
+
+	.daily-go {
+		display: grid;
+		justify-items: stretch;
+		gap: var(--space-2);
+		min-width: 15rem;
+	}
+
+	.daily-go .goal,
+	.daily-go .hint {
+		justify-self: center;
+		margin: 0;
+		font-size: var(--text-sm);
+	}
+
+	.big-start {
+		justify-content: center;
+		min-height: 52px;
+		font-size: var(--text-lg);
+	}
+
+	.daily-after {
+		display: grid;
+		gap: 2px;
+		padding: var(--space-2) var(--space-3);
+		border: 1px solid var(--hairline);
+		border-radius: var(--radius-control);
+		background: var(--surface);
+		color: var(--text);
+		text-decoration: none;
+	}
+
+	.daily-after > span:last-child {
+		display: inline-flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-2);
+		font-weight: 600;
+	}
+
+	.daily-after:hover {
+		border-color: var(--accent);
+	}
+
+	@media (max-width: 640px) {
+		.daily-hero {
+			grid-template-columns: minmax(0, 1fr);
+			padding: var(--space-4);
+		}
+
+		.daily-go {
+			min-width: 0;
+		}
 	}
 
 	/* One card for where the member stands: the tree and today, the stages, the instrument. */

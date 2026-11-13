@@ -7,7 +7,8 @@
 	/**
 	 * The daily round's frame (#315): where it stands among its steps (a scale to warm up over a
 	 * drone, what's due for review, one new melody at sight), the note kept last time before it
-	 * starts, and at the end a line for what was hard, kept on the device for next time.
+	 * starts, and at the end a line for what was hard, kept on the device for next time. Then one
+	 * tap on into the programme being rehearsed: the member's parts on "Meine Noten".
 	 */
 	type Step = 'warmup' | 'review' | 'sight' | 'done';
 	let {
@@ -18,6 +19,7 @@
 		onsave,
 		onexit,
 		onskip,
+		program = null,
 		children
 	}: {
 		steps: Step[];
@@ -28,6 +30,8 @@
 		onexit: () => void;
 		/** Past a step that needs the microphone, for when there's none or no instrument at hand. */
 		onskip: () => void;
+		/** The next concert with a programme for the member, if any. */
+		program?: { title: string; pieces: number; url: string } | null;
 		children?: import('svelte').Snippet;
 	} = $props();
 	const tx = t.drills.daily;
@@ -72,7 +76,13 @@
 			</div>
 			<small class="hint" role="status">{saved ? t.drills.reflection.saved : t.drills.reflection.hint}</small>
 		</form>
-		<button type="button" class="btn" onclick={onexit}>{t.drills.back}</button>
+		{#if program}
+			<div class="next">
+				<a class="btn" href={program.url}><Icon name="parts" size={16} />{tx.toProgram}</a>
+				<small class="hint">{tx.programLead(program.title, program.pieces)}</small>
+			</div>
+		{/if}
+		<button type="button" class="btn" class:ghost={!!program} onclick={onexit}>{t.drills.back}</button>
 	</section>
 {:else}
 	{@render children?.()}
@@ -176,5 +186,14 @@
 
 	.hint {
 		color: var(--text-muted);
+	}
+
+	.next {
+		display: grid;
+		justify-items: center;
+		gap: var(--space-1);
+		padding-top: var(--space-3);
+		border-top: 1px solid var(--hairline);
+		width: min(100%, 26rem);
 	}
 </style>
