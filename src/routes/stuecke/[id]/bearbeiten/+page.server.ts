@@ -6,7 +6,8 @@ import { searchText } from '#lib/music/text.ts';
 import { checkPieceValues, EDITABLE, findPieceRow, pieceValues, pieceVersion, renameInProgram, writableValues, type PieceValues } from '#lib/repertoire/piece-edit.ts';
 import { requireRight } from '#lib/server/auth/index.ts';
 import { getLibrary } from '#lib/server/library.ts';
-import { playableInstruments } from '#lib/music/my-parts.ts';
+import { instrumentationFromParts } from '#lib/music/instrumentation.ts';
+import { playableInstruments, playedParts } from '#lib/music/my-parts.ts';
 import { getRepertoire } from '#lib/server/repertoire.ts';
 import { youtubeEnabled } from '#lib/server/youtube.ts';
 import { listItems } from '#lib/repertoire/lists.ts';
@@ -49,8 +50,19 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		arrangers: used((p) => p.sheet?.arranger),
 		publishers: used((p) => p.sheet?.publisher),
 		files,
-		// The score's first page beside the Besetzung picker, for members who may read it.
-		score: locals.auth === 'on' && locals.access.member ? (pdfs.filter((part) => part.kind === 'partitur').map((part) => ({ id: part.id, label: part.label }))[0] ?? null) : null,
+		// Beside the Besetzung picker, for members who may read them: the score first, then every
+		// part, so a percussion part can be opened to see what it holds.
+		sheets:
+			locals.auth === 'on' && locals.access.member
+				? [...pdfs.filter((part) => part.kind === 'partitur'), ...pdfs.filter((part) => part.kind !== 'partitur')].map((part) => ({
+						id: part.id,
+						label: part.label,
+						score: part.kind === 'partitur',
+						voices: part.voices.map(({ instrument, numbers }) => ({ instrument, numbers }))
+					}))
+				: [],
+		// The Besetzung as the parts there are spell it, to take over in one tap.
+		fromParts: piece.detail ? instrumentationFromParts(playedParts(piece.detail)) : '',
 		// The PDFs come through the app, which is for signed-in members.
 		canRead: locals.auth === 'on' && locals.access.member,
 		// A duration from the Hörbeispiel's video, with a YouTube key (#133).
@@ -65,7 +77,10 @@ export const actions: Actions = {
 	default: async ({ params, request, locals }) => {
 		requireRight(locals, RIGHT);
 		const data = await request.formData();
-		const submitted = Object.fromEntries(EDITABLE.map((column) => [column, String(data.get(column) ?? '').slice(0, 1000)])) as PieceValues;
+		// A medley's contents may run longer than one line.
+		const submitted = Object.fromEntries(
+			EDITABLE.map((column) => [column, String(data.get(column) ?? '').slice(0, column === 'contents' ? 4000 : 1000)])
+		) as PieceValues;
 
 		const library = await getLibrary();
 		const sheetPiece = library.piecesById.get(params.id)?.sheet;

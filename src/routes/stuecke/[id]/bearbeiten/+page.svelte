@@ -6,7 +6,8 @@
 	import { config } from '#lib/config/index.ts';
 	import { eventDay } from '#lib/repertoire/dates.ts';
 	import { cleanLink } from '#lib/links.ts';
-	import { listCompletions } from '#lib/repertoire/lists.ts';
+	import { listCompletions, splitList } from '#lib/repertoire/lists.ts';
+	import { composerLine, contentsComposers, SHOWN_COMPOSERS } from '#lib/repertoire/contents.ts';
 	import Crumbs from '#lib/components/Crumbs.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import InstrumentationField from '#lib/components/InstrumentationField.svelte';
@@ -45,6 +46,11 @@
 	] as const;
 	// Fields for columns the sheet doesn't have yet stay hidden until setup adds them.
 	const fields = $derived(FIELDS.filter((field) => data.state !== 'ready' || !(data.missing as string[]).includes(field.name)));
+	// A medley: with "Komponist" empty, the composers of its songs stand there, shortened.
+	const hasContents = $derived(data.state === 'ready' && !(data.missing as string[]).includes('contents'));
+	const fromContents = $derived(contentsComposers(current.contents));
+	// A long list typed by hand that the songs already name: offered to leave to them.
+	const canFollowContents = $derived(!!fromContents && splitList(current.composer).length > SHOWN_COMPOSERS);
 	const missingNames = $derived(data.state === 'ready' ? data.missing.map((column) => columns[column]).join(', ') : '');
 </script>
 
@@ -79,7 +85,7 @@
 			{#if field.name === 'instrumentation'}
 				<!-- The instrument picker, as on the profile; the sheet keeps it as text (#249). -->
 				<div class="field wide">
-					<InstrumentationField name="instrumentation" label={columns.instrumentation} bind:value={current.instrumentation} instruments={data.instruments} score={data.score} />
+					<InstrumentationField name="instrumentation" label={columns.instrumentation} bind:value={current.instrumentation} instruments={data.instruments} sheets={data.sheets} fromParts={data.fromParts} />
 				</div>
 			{:else}
 			<label class="field" class:wide={'wide' in field}>
@@ -92,12 +98,16 @@
 						bind:value={current[field.name]}
 						list={'list' in field ? `${field.list}-list` : undefined}
 						required={'required' in field}
-						placeholder={'placeholder' in field ? field.placeholder : undefined}
+						placeholder={field.name === 'composer' && fromContents ? t.pieceEditor.composerFromContents(composerLine(fromContents) ?? '') : 'placeholder' in field ? field.placeholder : undefined}
 						maxlength="1000"
 						autocomplete="off"
 						onblur={field.name === 'recording' ? () => (current.recording = cleanLink(current.recording ?? '') ?? current.recording) : undefined}
 					/>
-					{#if field.name === 'reviewedAt'}
+					{#if field.name === 'composer' && canFollowContents}
+						<button class="btn ghost small" type="button" title={t.pieceEditor.useContentsComposersHint} onclick={() => (current.composer = '')}>
+							{t.pieceEditor.useContentsComposers}
+						</button>
+					{:else if field.name === 'reviewedAt'}
 						<button class="btn ghost small" type="button" onclick={() => (current.reviewedAt = today())}>{t.pieceEditor.today}</button>
 					{:else if field.name === 'recording'}
 						<button class="btn ghost small" type="button" title={t.pieceEditor.noRecordingHint} onclick={() => (current.recording = t.sheetValues.noRecording)}>
@@ -108,6 +118,14 @@
 			</label>
 			{/if}
 		{/each}
+		{#if hasContents}
+			<!-- Medleys and suites: one song per line, each found by the search. -->
+			<label class="field wide">
+				{columns.contents}
+				<textarea name="contents" maxlength="4000" rows={Math.min(12, Math.max(3, (current.contents ?? '').split('\n').length + 1))} placeholder={t.pieceEditor.contentsHint} bind:value={current.contents}></textarea>
+				<span class="hint">{t.pieceEditor.contentsLead}</span>
+			</label>
+		{/if}
 		<label class="field wide">
 			{columns.notes}
 			<textarea name="notes" maxlength="1000" bind:value={current.notes}></textarea>
@@ -142,6 +160,7 @@
 		knownComposers={data.composers}
 		naming={config.naming}
 		category={data.piece.category}
+		fromParts={data.fromParts}
 	/>
 	</div>
 {/if}

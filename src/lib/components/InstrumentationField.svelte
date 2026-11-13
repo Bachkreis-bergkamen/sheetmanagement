@@ -18,7 +18,9 @@
 	 * sheet's text ("Flöte 1 & 2; Oboe"), in the instruments' order like a score, sent as `name`.
 	 * What it can't read stays as written. Follows `value` when it changes from outside: the
 	 * Besetzung read from the score (Vorschläge → "Aus den Noten lesen"). With a score, the panel
-	 * shows its first page beside the list, where the first system names every instrument.
+	 * shows its first page beside the list, where the first system names every instrument; any
+	 * other part (a percussion part, to see what it holds) opens there too, from its instrument.
+	 * The Besetzung the parts there are spell (`fromParts`) can be taken over in one tap.
 	 * A generic part (Percussion, Chor) can name what each of its parts holds:
 	 * "Percussion 1: Triangel & Becken".
 	 */
@@ -27,8 +29,32 @@
 		name,
 		label,
 		instruments: all,
-		score = null
-	}: { value: string; name: string; label: string; instruments: string[]; score?: { id: string; label: string } | null } = $props();
+		sheets = [],
+		fromParts = ''
+	}: {
+		value: string;
+		name: string;
+		label: string;
+		instruments: string[];
+		/** The piece's PDFs, the score first, each with the instruments it is for. */
+		sheets?: { id: string; label: string; score: boolean; voices: { instrument: string; numbers: number[] }[] }[];
+		/** The Besetzung read from the parts' names; empty without parts. */
+		fromParts?: string;
+	} = $props();
+
+	/** The PDF shown beside the list: the score unless a part was opened. */
+	let viewing = $state<string | null>(null);
+	const sheet = $derived(sheets.find((each) => each.id === viewing) ?? sheets[0] ?? null);
+	/** A part of the instrument (and number) to open beside the list. */
+	const partOf = (n: string, part = 0) =>
+		sheets.find((each) => !each.score && each.voices.some((voice) => voice.instrument === n && (!part || !voice.numbers.length || voice.numbers.includes(part))));
+	let aside = $state<HTMLElement>();
+	async function view(id: string) {
+		viewing = id;
+		await tick();
+		// On a phone the music is above the list: brought into view.
+		aside?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+	}
 
 	// Scores and reductions are files, not a voice of the Besetzung.
 	const instruments = $derived(all.filter((n) => config.instruments.find((instrument) => instrument.name === n)?.family !== 'partitur'));
@@ -214,14 +240,20 @@
 		<button type="button" class="btn small secondary" onclick={open}>
 			<Icon name={voices.length ? 'edit' : 'plus'} size={14} />{voices.length ? t.instruments.change : t.instruments.choose}
 		</button>
+		{#if fromParts && fromParts !== written}
+			<button type="button" class="btn small ghost" title={t.instruments.fromPartsHint(fromParts)} onclick={() => (value = fromParts)}>
+				<Icon name="parts" size={14} />{t.instruments.fromParts}
+			</button>
+		{/if}
 	</div>
+	{#if fromParts && fromParts !== written}<p class="from-parts">{t.instruments.fromPartsHint(fromParts)}</p>{/if}
 	{#if unread.length}<p class="unread">{t.pieceEditor.unreadInstrumentation(unread.join('; '))}</p>{/if}
 </div>
 
 <dialog
 	bind:this={dialog}
 	class="panel"
-	class:split={!!score}
+	class:split={!!sheet}
 	aria-labelledby="{uid}-title"
 	onclose={() => (showing = false)}
 	onclick={(event) => {
@@ -271,6 +303,10 @@
 									<button type="button" class="number" aria-pressed={voice.numbers.includes(part)} onclick={() => number(n, part)}>{ROMAN[part]}</button>
 								{/each}
 								<button type="button" class="number solo" aria-pressed={!!voice.solo} title={t.instruments.soloHint} onclick={() => solo(n)}>{t.instruments.solo}</button>
+								{#if partOf(n)}
+									{@const found = partOf(n)!}
+									<button type="button" class="number view" class:on={sheet?.id === found.id} aria-label={t.instruments.viewPart(found.label)} title={t.instruments.viewPart(found.label)} onclick={() => view(found.id)}><Icon name="eye" size={14} /></button>
+								{/if}
 							</span>
 							<!-- A generic part: what each of its parts holds, "Percussion I: Triangel & Becken". -->
 							{#if holdable(n).length}
@@ -301,6 +337,10 @@
 											}}
 										>
 											<span class="which" class:roman={!!part}>{part ? ROMAN[part] : t.instruments.holds}</span>
+											{#if part && partOf(n, part) && partOf(n, part) !== partOf(n)}
+												{@const found = partOf(n, part)!}
+												<button type="button" class="view-held" aria-label={t.instruments.viewPart(found.label)} title={t.instruments.viewPart(found.label)} onclick={() => view(found.id)}><Icon name="eye" size={12} /></button>
+											{/if}
 											{#each held as h (h)}
 												<span class="chip small">
 													<InstrumentGlyph glyph={glyphOf(h)} size={14} />
@@ -375,9 +415,17 @@
 		{/each}
 	</div>
 	</div>
-	{#if score && showing}
-		<aside class="score" aria-label={t.instruments.score(score.label)}>
-			<ScoreViewer fileId={score.id} hint={t.instruments.scoreHint} />
+	{#if sheet && showing}
+		<aside class="score" bind:this={aside} aria-label={sheet.score ? t.instruments.score(sheet.label) : t.instruments.sheet(sheet.label)}>
+			{#if sheets.length > 1}
+				<label class="sheet-pick">
+					<span>{t.instruments.sheetPick}</span>
+					<select value={sheet.id} onchange={(event) => view(event.currentTarget.value)}>
+						{#each sheets as each (each.id)}<option value={each.id}>{each.label}</option>{/each}
+					</select>
+				</label>
+			{/if}
+			<ScoreViewer fileId={sheet.id} hint={sheet.score ? t.instruments.scoreHint : undefined} />
 		</aside>
 	{/if}
 	</div>
@@ -392,6 +440,58 @@
 	.instrumentation {
 		display: grid;
 		gap: var(--space-2);
+	}
+
+	.from-parts {
+		margin: 0;
+		color: var(--text-muted);
+		font-size: var(--text-xs);
+	}
+
+	.sheet-pick {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		margin-bottom: var(--space-2);
+		font-size: var(--text-sm);
+	}
+
+	.sheet-pick span {
+		color: var(--text-muted);
+		white-space: nowrap;
+	}
+
+	.sheet-pick select {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.number.view {
+		display: inline-grid;
+		place-items: center;
+	}
+
+	.number.view.on {
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+
+	.view-held {
+		display: inline-grid;
+		place-items: center;
+		width: 26px;
+		height: 26px;
+		padding: 0;
+		border: 1px solid var(--hairline);
+		border-radius: 50%;
+		background: var(--surface);
+		color: var(--text-muted);
+		cursor: pointer;
+	}
+
+	.view-held:hover {
+		color: var(--accent);
+		border-color: var(--accent);
 	}
 
 	.caption {

@@ -1,6 +1,7 @@
 import { t } from '#lib/i18n/index.ts';
 import { cleanLink } from '#lib/links.ts';
 import { formatDuration, parseDuration } from './duration.ts';
+import { tidyContents } from './contents.ts';
 import { LIST_COLUMNS, tidyList } from './lists.ts';
 import { isNoRecording, normalize, type ColumnKey, type Table, type TableRow } from './sheet.ts';
 
@@ -27,7 +28,8 @@ export const EDITABLE = [
 	'recording',
 	'duration',
 	'publisher',
-	'instrumentation'
+	'instrumentation',
+	'contents'
 ] as const;
 export type EditableColumn = (typeof EDITABLE)[number];
 export type PieceValues = Record<EditableColumn, string>;
@@ -66,6 +68,7 @@ export function checkPieceValues(
 	if (table.rows.some((row) => row.row !== ownRow && normalize(row.values.title) === title)) return { problem: 'title-taken' };
 	// Several composers, genres …: "Mozart ,Haydn;" is saved as "Mozart, Haydn".
 	for (const column of LIST_COLUMNS) cleaned[column] = tidyList(cleaned[column]);
+	cleaned.contents = tidyContents(cleaned.contents);
 	// "keins": the piece has no recording; written the same way every time.
 	if (isNoRecording(cleaned.recording)) cleaned.recording = t.sheetValues.noRecording;
 	else if (cleaned.recording) {

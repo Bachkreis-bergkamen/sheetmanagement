@@ -208,6 +208,23 @@ export function instrumentationFromScore(labels: string[], config: OrchestraConf
 }
 
 /**
+ * The Besetzung from the parts there are, for a piece without a score to read it from: each
+ * part's instruments with their numbers, merged ("Flöte 1", "Flöte 2" → Flöte 1 & 2). A generic
+ * part keeps what it names ("Percussion 1: Triangel & Becken"); scores, recordings and files
+ * without an instrument drop out. Empty when no part names an instrument.
+ */
+export function instrumentationFromParts(parts: Pick<Part, 'kind' | 'voices'>[]): string {
+	const voices = parts.flatMap((part): ScoredVoice[] => {
+		if (part.kind === 'partitur' || part.kind === 'audio' || part.kind === 'sonstiges') return [];
+		// "Percussion 1: Triangel & Becken" is one voice of the Besetzung, not three.
+		const holder = part.voices.find((voice) => voice.holds?.length);
+		const own = (holder ? [holder] : part.voices).map(({ instrument, numbers, holds }) => ({ instrument, numbers: [...numbers], ...(holds?.length ? { holds: [...holds] } : {}) }));
+		return part.kind === 'solo' ? own.map((voice) => ({ ...voice, solo: true })) : own;
+	});
+	return merge(voices).map(voiceText).join('; ');
+}
+
+/**
  * The voices of the Besetzung without a part to play from. A part for several instruments
  * ("Violoncello & Kontrabass") or a shared one ("C-Stimmen") counts for each it covers.
  */

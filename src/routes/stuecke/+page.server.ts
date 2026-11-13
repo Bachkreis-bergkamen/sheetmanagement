@@ -21,6 +21,7 @@ import type { Actions, PageServerLoad } from './$types';
 type ListedPiece = PieceSummary & {
 	recording: boolean;
 	instruments: string[];
+	songs: string[];
 	notes: string[];
 	mine: boolean;
 	assigned: boolean;
@@ -75,6 +76,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		search,
 		recording: !!sheet?.recording,
 		instruments: findables.get(id)?.instruments ?? [],
+		songs: findables.get(id)?.songs ?? [],
 		notes: findables.get(id)?.notes ?? [],
 		mine: (findables.get(id)?.instruments ?? []).some((name) => played.has(name)),
 		assigned: assignedTitles.has(normalize(sheet?.title ?? title)),

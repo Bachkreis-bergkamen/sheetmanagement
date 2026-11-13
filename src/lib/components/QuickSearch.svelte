@@ -1,6 +1,6 @@
 <script lang="ts" module>
 	interface Index {
-		pieces: { id: string; title: string; composer?: string; search: string; instruments: string[]; notes: string[] }[];
+		pieces: { id: string; title: string; composer?: string; search: string; instruments: string[]; songs?: string[]; notes: string[] }[];
 		concerts: { id: string; title: string; when: string; dateKey: string; search: string }[];
 		today: string;
 	}
@@ -98,9 +98,15 @@
 		const pieces = byStart(
 			(data?.pieces ?? []).flatMap((piece) => {
 				// An index cached from before parts and notes were in it (up to 5 minutes) still searches titles.
-				const by = findPiece({ search: piece.search, instruments: piece.instruments ?? [], notes: piece.notes ?? [] }, words);
+				const by = findPiece({ search: piece.search, instruments: piece.instruments ?? [], songs: piece.songs ?? [], notes: piece.notes ?? [] }, words);
 				if (!by) return [];
-				const why = by.instruments.length ? t.pieces.foundParts(by.instruments.join(', ')) : by.note ? t.pieces.foundNote(by.note) : undefined;
+				const why = by.instruments.length
+					? t.pieces.foundParts(by.instruments.join(', '))
+					: by.song
+						? t.pieces.foundSong(by.song)
+						: by.note
+							? t.pieces.foundNote(by.note)
+							: undefined;
 				return [{ ...piece, why }];
 			})
 		);

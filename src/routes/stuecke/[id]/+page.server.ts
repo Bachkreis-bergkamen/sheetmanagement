@@ -25,6 +25,7 @@ import { appendRecords, deleteRows, ensureTab, readTab, refreshAfterWrite, Sheet
 import { folderUrl, partUrl } from '#lib/server/catalog.ts';
 import { addPlaceholder, createPieceFolder, folderTools, FolderError } from '#lib/server/piece-folder.ts';
 import { listsOverlap } from '#lib/repertoire/lists.ts';
+import { manyComposers, parseContents } from '#lib/repertoire/contents.ts';
 import { workKey } from '#lib/music/piece-name.ts';
 import { formatDuration } from '#lib/repertoire/duration.ts';
 import { concertSummary, getLibrary, isPastConcert, namedItem, type Library, type LibraryPiece } from '#lib/server/library.ts';
@@ -65,7 +66,8 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 	const art = pieceArt({ genre: sheet?.genre, title: piece.title });
 	const screen = art === 'filmmusik' || art === 'musical';
 	const film = screen ? await filmArt(piece.title, art === 'musical') : null;
-	const [portrait, band] = film ? [null, null] : await Promise.all([portraitFor(piece.composer), bandFor(piece.composer)]);
+	// A medley's many composers: no one face stands for it, the drawing does.
+	const [portrait, band] = film || manyComposers(piece.composer) ? [null, null] : await Promise.all([portraitFor(piece.composer), bandFor(piece.composer)]);
 	const logo = film ?? (portrait ? null : band);
 	// The member's own parts (#216), matched like "Meine Noten": from their instruments in "Mitglieder".
 	const member = locals.access.user ? access?.membersByEmail.get(normalizeEmail(locals.access.user.email)) : undefined;
@@ -182,6 +184,8 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 			title: piece.title,
 			composer: piece.composer,
 			catalogue: piece.catalogue,
+			// A medley's songs with their composers, from "Inhalt".
+			contents: parseContents(sheet?.contents),
 			category: piece.category,
 			programs: piece.programs,
 			partCount: piece.partCount,

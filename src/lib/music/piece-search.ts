@@ -13,12 +13,16 @@ import type { Part } from './types.ts';
 export interface SearchablePiece {
 	search: string;
 	instruments: string[];
+	/** A medley's songs ("Inhalt"), one line each. */
+	songs?: string[];
 	notes: string[];
 }
 
 /** Why a piece was found, when it wasn't by its title: the instruments and a bit of the note. */
 export interface FoundBy {
 	instruments: string[];
+	/** The song of a medley that has the word. */
+	song?: string;
 	note?: string;
 }
 
@@ -44,6 +48,7 @@ function instrumentText(name: string): string {
 export function findPiece(piece: SearchablePiece, words: string[]): FoundBy | null {
 	const instruments = new Set<string>();
 	let note: string | undefined;
+	let song: string | undefined;
 	for (const word of words) {
 		if (piece.search.includes(word)) continue;
 		const byPart = piece.instruments.filter((name) => instrumentText(name).includes(word));
@@ -51,11 +56,16 @@ export function findPiece(piece: SearchablePiece, words: string[]): FoundBy | nu
 			for (const name of byPart) instruments.add(instrumentLabel(name));
 			continue;
 		}
+		const found = piece.songs?.find((line) => searchText(line).includes(word));
+		if (found !== undefined) {
+			song ??= found;
+			continue;
+		}
 		const text = piece.notes.find((text) => searchText(text).includes(word));
 		if (text === undefined) return null;
 		note ??= excerpt(text, word);
 	}
-	return { instruments: [...instruments], ...(note ? { note } : {}) };
+	return { instruments: [...instruments], ...(song ? { song } : {}), ...(note ? { note } : {}) };
 }
 
 /** The part of a note around a word, so a long list of titles still shows the one searched for. */

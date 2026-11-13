@@ -173,6 +173,10 @@ export const de = {
 		// Found not by the title but by a part or a note on the piece.
 		foundParts: (instruments: string) => `Stimme: ${instruments}`,
 		foundNote: (excerpt: string) => `Notiz: ${excerpt}`,
+		/** Found by one of a medley's songs ("Inhalt"). */
+		foundSong: (song: string) => `Enthält: ${song}`,
+		/** After the first two composers of a medley: "Bizet, Offenbach und mehr". */
+		moreComposers: 'und mehr',
 		filter: 'Filter',
 		filterGroups: { mine: 'Für mich', programs: 'Orchester', categories: 'Genre', difficulty: 'Schwierigkeit', length: 'Dauer', state: 'Zustand' },
 		lengths: { kurz: 'Bis 5 Min.', mittel: '5–10 Min.', lang: 'Über 10 Min.' },
@@ -200,6 +204,10 @@ export const de = {
 		folder: 'Drive-Ordner',
 		editShort: 'Bearbeiten',
 		reportShort: 'Melden',
+		/** Over the one card with all parts. */
+		partsTitle: 'Stimmen',
+		/** The side column: upcoming dates, where it was played, related pieces. */
+		about: 'Zum Stück',
 		upcoming: 'Demnächst',
 		recording: 'Hörbeispiel',
 		edit: 'Angaben bearbeiten',
@@ -235,6 +243,13 @@ export const de = {
 		sectionFolder: 'Diesen Ordner in Google Drive',
 		otherVersions: 'Weitere Fassungen dieses Werks',
 		moreBy: (composer: string) => `Weitere Werke von ${composer}`,
+		/** A medley's songs, from "Inhalt". */
+		contents: 'Inhalt',
+		contentsCount: (n: number) => (n === 1 ? '1 Titel' : `${n} Titel`),
+		/** Opens the rest of a shortened composer line. */
+		allComposers: (n: number) => `alle ${n} Komponisten`,
+		/** "Weitere Werke von …" for a medley: by any of its composers. */
+		moreByAny: 'Weitere Werke dieser Komponisten',
 		again: 'Wieder spielen',
 		againMine: 'Möchte ich wieder spielen',
 		againHint: 'Zeigt der Programmplanung, dass du das Stück gern wieder spielen würdest. Nochmal klicken nimmt es zurück.',
@@ -1204,7 +1219,12 @@ export const de = {
 		numbers: 'Stimmen',
 		numbersHint: 'keine Auswahl: alle Stimmen',
 		score: (label: string) => `Erste Seite: ${label}`,
-		scoreHint: 'Am linken Rand der ersten Seite stehen alle Instrumente der Partitur.'
+		scoreHint: 'Am linken Rand der ersten Seite stehen alle Instrumente der Partitur.',
+		sheet: (label: string) => `Noten: ${label}`,
+		sheetPick: 'Welche Noten',
+		viewPart: (label: string) => `Stimme ansehen: ${label}`,
+		fromParts: 'Aus den Stimmen übernehmen',
+		fromPartsHint: (text: string) => `Aus den vorhandenen Stimmen gelesen: ${text}`
 	},
 	/** Filters for a list, several at once (archive, calendar). */
 	filters: {
@@ -1444,6 +1464,11 @@ export const de = {
 	suggest: {
 		title: 'Vorschläge',
 		lead: '„Übernehmen“ trägt ins Formular ein; gespeichert wird mit „Speichern“.',
+		auto: 'Automatisch ausfüllen',
+		autoBusy: (step: string) => `${step} …`,
+		autoLead: 'Liest die Noten und die Stimmen, schlägt bei Wikidata nach und fragt YouTube nach der Länge. Leere Felder werden gefüllt; alles andere steht unten zur Wahl.',
+		autoDone: (n: number) => (n === 0 ? 'Nichts Neues gefunden.' : n === 1 ? '1 leeres Feld ausgefüllt. Bitte prüfen und speichern.' : `${n} leere Felder ausgefüllt. Bitte prüfen und speichern.`),
+		steps: { score: 'Lese die Noten', wikidata: 'Suche bei Wikidata', video: 'Frage YouTube' } as Record<string, string>,
 		fromScore: 'Aus den Noten lesen',
 		fileLabel: 'Aus welcher Datei lesen',
 		reading: 'Lese die Noten …',
@@ -1461,7 +1486,7 @@ export const de = {
 		add: 'Ergänzen',
 		applied: 'eingetragen',
 		openWikidata: 'Bei Wikidata ansehen',
-		sources: { score: 'aus den Noten', wikidata: 'Wikidata', archive: 'aus dem Archiv', youtube: 'Video' } as Record<string, string>,
+		sources: { score: 'aus den Noten', parts: 'aus den Stimmen', wikidata: 'Wikidata', archive: 'aus dem Archiv', youtube: 'Video' } as Record<string, string>,
 		scanOnly: 'Ein Scan ohne Text. Vielleicht hilft eine andere Stimme oder „Online nachschlagen“.',
 		ocr: 'Besetzung per Texterkennung',
 		ocrReading: 'Erkenne Text …',
@@ -2042,7 +2067,7 @@ export const de = {
 			bass: 'Anderes, im Bassschlüssel'
 		},
 		kinds: {
-			mix: { title: 'Tagesrunde', lead: 'Rund zehn Minuten: einspielen, wiederholen, was dran ist, eine neue Melodie vom Blatt.' },
+			mix: { title: 'Tagesrunde', lead: 'Rund fünf Minuten: einspielen, wiederholen, was dran ist, eine neue Melodie vom Blatt.' },
 			notes: { title: 'Noten lesen', lead: 'Welcher Ton ist das? So schnell, wie du sicher bist.' },
 			keys: { title: 'Tonarten', lead: 'Welche Tonart hat diese Vorzeichnung?' },
 			play: { title: 'Töne spielen', lead: 'Spiel den Ton; das Mikrofon hört, ob er stimmt.' },
@@ -2107,7 +2132,18 @@ export const de = {
 			steps: { warmup: 'Einspielen', review: 'Wiederholen', sight: 'Vom Blatt', done: 'Fertig' } as Record<string, string>,
 			done: 'Tagesrunde geschafft',
 			skip: 'Schritt überspringen',
-			doneLead: (minutes: number) => (minutes < 1 ? 'Kurz und regelmäßig wirkt am meisten.' : `${minutes} Min. heute in dieser Runde. Kurz und regelmäßig wirkt am meisten.`)
+			doneLead: (minutes: number) => (minutes < 1 ? 'Kurz und regelmäßig wirkt am meisten.' : `${minutes} Min. heute in dieser Runde. Kurz und regelmäßig wirkt am meisten.`),
+			toProgram: 'Weiter mit dem Programm',
+			programLead: (title: string, pieces: number) => `${title}: deine Stimmen, ${pieces === 1 ? '1 Stück' : `${pieces} Stücke`} in Programmfolge.`,
+			hero: 'Für heute',
+			start: 'Tagesrunde starten',
+			again: 'Heute geschafft. Noch eine Runde?',
+			plan: (steps: string) => `Heute: ${steps}`,
+			after: 'Danach',
+			/** Under "Danach": the next concert's parts. "Herbstkonzert" reads "fürs", any other name in quotes. */
+			afterProgram: (title: string) => (/konzert\b/i.test(title) ? `Deine Noten fürs ${title} üben` : `Deine Noten für „${title}“ üben`),
+			fullscreen: 'Vollbild',
+			exitFullscreen: 'Vollbild beenden'
 		},
 		sharing: {
 			title: 'Gemeinsam üben',
@@ -2485,6 +2521,8 @@ export const de = {
 			exitFullscreen: 'Vollbild beenden',
 			showControls: 'Leiste zeigen',
 			hideControls: 'Leiste ausblenden',
+			barBottom: 'Leiste nach unten',
+			barTop: 'Leiste nach oben',
 			turnHint: 'Blättern: an den linken oder rechten Rand tippen, mit den Pfeiltasten oder einem Blätterpedal.',
 			tools: 'Werkzeuge',
 			closeTools: 'Werkzeuge schließen',
@@ -2719,6 +2757,21 @@ export const de = {
 		until: (date: string) => `Anmeldung bis ${date}`,
 		/** The trip's page. */
 		about: 'Die Fahrt',
+		dayCount: (n: number) => (n === 1 ? '1 Tag' : `${n} Tage`),
+		/** Above the route: how long until it starts, or which day it is. */
+		countdown: {
+			days: (n: number) => (n === 1 ? 'Tag bis zur Abfahrt' : 'Tage bis zur Abfahrt'),
+			today: 'Heute geht es los',
+			running: (n: number, of: number) => ({ num: `${n}.`, label: `Tag von ${of}` })
+		},
+		/** The facts beside the trip: until when, how many places, who organises it. */
+		facts: {
+			signup: 'Anmeldung',
+			seats: 'Plätze',
+			closes: (days: number) => (days <= 0 ? 'endet heute' : days === 1 ? 'endet morgen' : `noch ${days} Tage`),
+			left: (n: number) => (n <= 0 ? 'alle vergeben' : n === 1 ? 'noch 1 frei' : `noch ${n} frei`),
+			closed: 'geschlossen'
+		},
 		organisedBy: 'Organisation',
 		forOrchestras: 'Für',
 		allOrchestras: 'alle Orchester',
@@ -2726,6 +2779,9 @@ export const de = {
 		planLead: 'Was wann wo stattfindet, Tag für Tag.',
 		signup: {
 			title: 'Deine Anmeldung',
+			ask: 'Fährst du mit?',
+			fromStart: 'Vom ersten Tag an',
+			toEnd: 'Bis zum Schluss',
 			role: 'Ich fahre mit als',
 			roleHint: 'Eins oder mehreres, z. B. Begleitperson und Musiker·in.',
 			arrival: 'Komme später an (optional)',
@@ -2772,6 +2828,7 @@ export const de = {
 			none: 'Noch keine Termine aus dem Kalender.',
 			noneInWindow: 'Im Kalender gibt es in diesen Tagen keine Termine.',
 			save: 'Termine übernehmen',
+			choose: 'Termine aus dem Kalender wählen',
 			partOf: (title: string) => `Teil der Fahrt „${title}“`
 		},
 		participants: {
@@ -2830,6 +2887,7 @@ export const de = {
 			byParent: 'von den Eltern',
 			fromLastTrip: 'Von deiner letzten Fahrt übernommen. Stimmt das noch? Dann bestätige es einfach.',
 			missing: 'Noch nicht ausgefüllt',
+			confirmShort: 'Von der letzten Fahrt: bitte bestätigen',
 			keep: 'Für die nächste Fahrt merken',
 			keepHint: 'Sonst wird diese Liste mit den anderen gelöscht, und bei der nächsten Fahrt ist sie leer.',
 			goneOn: (date: string) => `Die Listen dieser Fahrt werden am ${date} gelöscht, vier Wochen nach der Fahrt.`,
@@ -3291,6 +3349,13 @@ export const de = {
 		durationHint: 'z. B. 7:30',
 		composerHint: 'mehrere mit Komma: Mozart, Haydn',
 		composerFullHint: 'z. B. Ludwig van Beethoven – für die GEMA-Meldung',
+		/** Medleys and suites: one song per line, the composers come from there. */
+		contentsHint: 'Bei Medleys und Suiten: ein Titel pro Zeile, z. B. Habanera – Bizet',
+		contentsLead: 'Jeder Titel wird in der Suche gefunden. Bleibt „Komponist“ leer, stehen dort die Komponisten aus dem Inhalt, gekürzt auf zwei und „und mehr“.',
+		composerFromContents: (names: string) => `aus dem Inhalt: ${names}`,
+		/** Empties "Komponist" so it follows the contents. */
+		useContentsComposers: 'Aus dem Inhalt nehmen',
+		useContentsComposersHint: 'Leert das Feld: Die Komponisten kommen dann aus dem Inhalt und bleiben kurz.',
 		listHint: 'mehrere mit Komma trennen',
 		publisherHint: 'z. B. Bärenreiter – für die GEMA-Meldung',
 		unreadInstrumentation: (text: string) => `Nicht als Instrument erkannt, bleibt so stehen: ${text}`,
@@ -3657,6 +3722,8 @@ export const de = {
 				publisher: 'Verlag',
 				/** The instruments the score is written for, "Flöte 1 & 2; Oboe; Geige 1 & 2" (#249). */
 				instrumentation: 'Besetzung',
+				/** A medley's songs, one per line: "Habanera – Bizet". */
+				contents: 'Inhalt',
 				driveFolderId: 'Drive-Ordner-ID'
 			}
 		},

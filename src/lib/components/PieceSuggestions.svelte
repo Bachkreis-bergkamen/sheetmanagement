@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import { t } from '#lib/i18n/index.ts';
 	import { readScoreText } from '#lib/music/score-text.ts';
 	import { instrumentationFromScore } from '#lib/music/instrumentation.ts';
@@ -12,8 +13,10 @@
 	import ScoreViewer from './ScoreViewer.svelte';
 
 	/**
-	 * Suggestions for a piece's details, each from a source someone asks for: the text on the
-	 * score (read in the browser) or Wikidata. Nothing is saved until the form is.
+	 * Suggestions for a piece's details: one button asks every source in turn (the text on the
+	 * score, read in the browser; the parts' names; Wikidata; the Hörbeispiel's length) and fills
+	 * in the fields still empty. The rest stays offered below, and the score is open underneath to
+	 * type from. Nothing is saved until the form is.
 	 */
 	type Field = 'composer' | 'composerFull' | 'arranger' | 'catalogue' | 'genre' | 'recording' | 'duration' | 'instrumentation';
 	let {
@@ -25,7 +28,8 @@
 		genres,
 		knownComposers,
 		naming,
-		category
+		category,
+		fromParts = ''
 	}: {
 		/** The form's current values, to search with and to mark what's already filled in. */
 		values: Record<string, string>;
@@ -40,26 +44,32 @@
 		knownComposers: string[];
 		naming: Pick<NamingRules, 'cataloguePatterns' | 'knownComposers'>;
 		category?: string;
+		/** The Besetzung the parts' names spell. */
+		fromParts?: string;
 	} = $props();
 
 	interface Suggestion {
 		field: Field;
 		value: string;
-		source: 'score' | 'wikidata' | 'archive' | 'youtube';
+		source: 'score' | 'parts' | 'wikidata' | 'archive' | 'youtube';
 	}
 
 	let suggestions = $state<Suggestion[]>([]);
 	let busy = $state<'score' | 'ocr' | 'wikidata' | 'video' | null>(null);
 	/** The file read last is a scan: its instruments can still be read by text recognition (#249). */
 	let scanned = $state(false);
-	let message = $state<string | null>(null);
+	/** What the sources said: nothing found, a scan, offline. Several after "Automatisch ausfüllen". */
+	let messages = $state<string[]>([]);
+	const say = (text: string) => {
+		if (!messages.includes(text)) messages = [...messages, text];
+	};
 	let candidates = $state<WorkCandidate[]>([]);
 	let chosen = $state<string | null>(null);
 	let wikidataUrl = $state<string | null>(null);
 	// svelte-ignore state_referenced_locally
 	let file = $state(files[0]?.id ?? '');
-	// The pages themselves, to type from when reading the text gives nothing.
-	let viewing = $state(false);
+	// The pages themselves, open underneath, to type from what reading the text doesn't give.
+	let viewing = $state(true);
 
 	/** Adds suggestions, without repeating one already listed. */
 	function add(list: Suggestion[]) {
@@ -73,16 +83,76 @@
 		const genre = suggestGenre({ category, title: values.title }, genres);
 		return genre ? [{ field: 'genre', value: genre, source: 'archive' }] : [];
 	});
-	const shown = $derived([...fromArchive.filter((a) => !suggestions.some((s) => s.field === a.field && s.value === a.value)), ...suggestions]);
+	// The Besetzung the parts spell, for a piece whose score doesn't name its instruments.
+	const fromPartsList = $derived<Suggestion[]>(fromParts ? [{ field: 'instrumentation', value: fromParts, source: 'parts' }] : []);
+	const shown = $derived(
+		[...suggestions, ...fromArchive, ...fromPartsList].filter((a, i, all) => all.findIndex((s) => s.field === a.field && s.value === a.value) === i)
+	);
+
+	/**
+	 * "Automatisch ausfüllen": every source in turn, each filling the fields still empty before the
+	 * next asks, so a composer read off the score narrows the search on Wikidata and a recording
+	 * found there gives the length. What's already in the form is never replaced.
+	 */
+	let auto = $state<string | null>(null);
+	let filledCount = $state<number | null>(null);
+	/** Which source wins a field when several suggest one. */
+	const PREFER: Partial<Record<Field, Suggestion['source'][]>> = {
+		// The recording's length is the orchestra's piece; Wikidata's is the original work's.
+		duration: ['youtube', 'wikidata'],
+		// The score names the instruments as written; the parts only those that have a file.
+		instrumentation: ['score', 'parts']
+	};
+	const rank = (s: Suggestion) => {
+		const order = PREFER[s.field];
+		const at = order ? order.indexOf(s.source) : 0;
+		return at < 0 ? 99 : at;
+	};
+	async function fillEmpty() {
+		let count = 0;
+		for (const field of new Set(shown.map((s) => s.field))) {
+			if ((values[field] ?? '').trim()) continue;
+			const best = shown.filter((s) => s.field === field).sort((a, b) => rank(a) - rank(b))[0];
+			if (!best) continue;
+			apply(field, best.value);
+			count++;
+		}
+		await tick();
+		return count;
+	}
+	async function autoFill() {
+		messages = [];
+		filledCount = null;
+		let count = 0;
+		try {
+			if (files.length && canRead) {
+				auto = t.suggest.steps.score;
+				await fromScore();
+			}
+			count += await fillEmpty();
+			if (values.title?.trim()) {
+				auto = t.suggest.steps.wikidata;
+				await lookUp();
+				count += await fillEmpty();
+			}
+			if (video) {
+				auto = t.suggest.steps.video;
+				await fromVideo();
+				count += await fillEmpty();
+			}
+		} finally {
+			auto = null;
+			filledCount = count;
+		}
+	}
 
 	async function fromScore() {
 		busy = 'score';
-		message = null;
 		try {
 			const { readScorePages } = await import('#lib/music/score-reader.ts');
 			const { lines, labels } = await readScorePages(file);
 			if (!lines.length) {
-				message = t.suggest.scanOnly;
+				say(t.suggest.scanOnly);
 				scanned = true;
 				viewing = true;
 				return;
@@ -101,12 +171,12 @@
 			const instrumentation = instrumentationFromScore(labels, config);
 			if (instrumentation) list.push({ field: 'instrumentation', value: instrumentation, source: 'score' });
 			if (!list.length) {
-				message = t.suggest.nothingInScore;
+				say(t.suggest.nothingInScore);
 				viewing = true;
 			}
 			add(list);
 		} catch (error) {
-			message = (error as { reason?: string }).reason === 'download' ? t.suggest.downloadFailed : t.suggest.unreadable;
+			say((error as { reason?: string }).reason === 'download' ? t.suggest.downloadFailed : t.suggest.unreadable);
 		} finally {
 			busy = null;
 		}
@@ -115,19 +185,18 @@
 	/** The Besetzung of a scan, by text recognition of the names left of the first system. */
 	async function fromScan() {
 		busy = 'ocr';
-		message = null;
 		try {
 			const { createLabelReader } = await import('#lib/music/score-reader.ts');
 			const reader = await createLabelReader();
 			try {
 				const instrumentation = instrumentationFromScore(await reader.labels(file), config);
 				if (instrumentation) add([{ field: 'instrumentation', value: instrumentation, source: 'score' }]);
-				else message = t.suggest.nothingInScan;
+				else say(t.suggest.nothingInScan);
 			} finally {
 				await reader.close();
 			}
 		} catch {
-			message = t.suggest.ocrFailed;
+			say(t.suggest.ocrFailed);
 		} finally {
 			busy = null;
 		}
@@ -135,17 +204,16 @@
 
 	async function lookUp() {
 		busy = 'wikidata';
-		message = null;
 		candidates = [];
 		try {
 			const title = values.title?.trim();
 			if (!title) return;
 			// One composer is enough to narrow the search.
 			candidates = await searchWorks(title, splitList(values.composer)[0]);
-			if (!candidates.length) message = t.suggest.nothingOnline;
+			if (!candidates.length) say(t.suggest.nothingOnline);
 			else await choose(candidates[0].id);
 		} catch (error) {
-			message = error instanceof WikidataBusyError ? t.suggest.busy : t.suggest.onlineFailed;
+			say(error instanceof WikidataBusyError ? t.suggest.busy : t.suggest.onlineFailed);
 		} finally {
 			busy = null;
 		}
@@ -177,9 +245,9 @@
 			// The original work's length; an arrangement may be shorter, so it's only a suggestion.
 			if (work.duration) list.push({ field: 'duration', value: formatDuration(work.duration), source: 'wikidata' });
 			add(list);
-			if (!list.length) message = t.suggest.nothingInWork;
+			if (!list.length) say(t.suggest.nothingInWork);
 		} catch (error) {
-			message = error instanceof WikidataBusyError ? t.suggest.busy : t.suggest.onlineFailed;
+			say(error instanceof WikidataBusyError ? t.suggest.busy : t.suggest.onlineFailed);
 		} finally {
 			busy = null;
 		}
@@ -190,15 +258,14 @@
 	async function fromVideo() {
 		if (!video) return;
 		busy = 'video';
-		message = null;
 		try {
 			const response = await fetch(`/api/youtube/${video}`);
 			if (!response.ok) throw new Error(String(response.status));
 			const { seconds } = (await response.json()) as { seconds: number | null };
 			if (seconds) add([{ field: 'duration', value: formatDuration(seconds), source: 'youtube' }]);
-			else message = t.suggest.videoNoLength;
+			else say(t.suggest.videoNoLength);
 		} catch {
-			message = t.suggest.videoFailed;
+			say(t.suggest.videoFailed);
 		} finally {
 			busy = null;
 		}
@@ -225,43 +292,22 @@
 	<p class="muted">{t.suggest.lead}</p>
 
 	<div class="sources">
-		{#if files.length && canRead}
-			<div class="source">
-				{#if files.length > 1}
-					<select bind:value={file} aria-label={t.suggest.fileLabel}>
-						{#each files as option (option.id)}<option value={option.id}>{option.label}</option>{/each}
-					</select>
-				{/if}
-				<button class="btn ghost small" type="button" onclick={fromScore} disabled={!!busy}>
-					<Icon name="file" size={16} />{busy === 'score' ? t.suggest.reading : t.suggest.fromScore}
-				</button>
-				{#if scanned}
-					<button class="btn ghost small" type="button" onclick={fromScan} disabled={!!busy} title={t.suggest.ocrHint}>
-						<Icon name="text" size={16} />{busy === 'ocr' ? t.suggest.ocrReading : t.suggest.ocr}
-					</button>
-				{/if}
-				<button class="btn ghost small" type="button" onclick={() => (viewing = !viewing)} aria-pressed={viewing}>
-					<Icon name="eye" size={16} />{viewing ? t.viewer.hide : t.viewer.show}
-				</button>
-			</div>
-		{/if}
-		<button class="btn ghost small" type="button" onclick={lookUp} disabled={!!busy || !values.title?.trim()}>
-			<Icon name="search" size={16} />{busy === 'wikidata' ? t.suggest.searching : t.suggest.online}
+		<button class="btn" type="button" onclick={autoFill} disabled={!!busy || !!auto}>
+			<Icon name="sparkle" size={16} />{auto ? t.suggest.autoBusy(auto) : t.suggest.auto}
 		</button>
-		{#if video}
-			<button class="btn ghost small" type="button" onclick={fromVideo} disabled={!!busy}>
-				<Icon name="clock" size={16} />{busy === 'video' ? t.suggest.videoLooking : t.suggest.videoLength}
+		{#if scanned && canRead && file}
+			<button class="btn ghost small" type="button" onclick={() => ((messages = []), fromScan())} disabled={!!busy || !!auto} title={t.suggest.ocrHint}>
+				<Icon name="text" size={16} />{busy === 'ocr' ? t.suggest.ocrReading : t.suggest.ocr}
 			</button>
 		{/if}
-		<a class="btn ghost small" href={youtube} target="_blank" rel="noopener noreferrer">
+		<a class="btn ghost small" href={youtube} target="_blank" rel="noopener noreferrer" title={t.suggest.youtubeHint}>
 			<Icon name="headphones" size={16} />{t.suggest.youtube}
 		</a>
 	</div>
-	<p class="hint">{t.suggest.youtubeHint}</p>
+	<p class="hint">{t.suggest.autoLead}</p>
 
-	{#if message}<p class="msg info" role="status">{message}</p>{/if}
-
-	{#if viewing && file && canRead}<ScoreViewer fileId={file} />{/if}
+	{#if filledCount !== null}<p class="msg ok" role="status">{t.suggest.autoDone(filledCount)}</p>{/if}
+	{#each messages as text (text)}<p class="msg info" role="status">{text}</p>{/each}
 
 	{#if candidates.length > 1}
 		<fieldset class="candidates">
@@ -299,6 +345,21 @@
 	{#if wikidataUrl}
 		<a class="source-link" href={wikidataUrl} target="_blank" rel="noopener noreferrer"><Icon name="external" size={14} />{t.suggest.openWikidata}</a>
 	{/if}
+
+	<!-- The score underneath, open from the start: what reading doesn't find is typed off the page. -->
+	{#if files.length && canRead}
+		<div class="pages">
+			{#if files.length > 1}
+				<select bind:value={file} aria-label={t.suggest.fileLabel}>
+					{#each files as option (option.id)}<option value={option.id}>{option.label}</option>{/each}
+				</select>
+			{/if}
+			<button class="btn ghost small" type="button" onclick={() => (viewing = !viewing)} aria-pressed={viewing}>
+				<Icon name="eye" size={16} />{viewing ? t.viewer.hide : t.viewer.show}
+			</button>
+		</div>
+		{#if viewing && file}<ScoreViewer fileId={file} />{/if}
+	{/if}
 </section>
 
 <style>
@@ -332,13 +393,20 @@
 	}
 
 	.sources,
-	.source {
+	.pages {
 		display: flex;
 		flex-wrap: wrap;
+		align-items: center;
 		gap: var(--space-2);
 	}
 
-	.source select {
+	.pages {
+		margin-top: var(--space-2);
+		padding-top: var(--space-3);
+		border-top: 1px solid var(--hairline);
+	}
+
+	.pages select {
 		max-width: 220px;
 		height: 32px;
 		padding: 0 var(--space-2);

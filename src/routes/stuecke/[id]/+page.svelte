@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { splitList } from '#lib/repertoire/lists.ts';
+	import { manyComposers, shortComposers } from '#lib/repertoire/contents.ts';
 	import { enhance } from '$app/forms';
 	import ConcertMode from '#lib/components/ConcertMode.svelte';
 	import { offlineParts, type OfflinePart } from '#lib/offline/parts.svelte.ts';
@@ -97,6 +98,13 @@
 			data.canPrintSet && { href: `/stuecke/${encodeURIComponent(piece.id)}/stimmensatz`, icon: 'print' as const, label: t.partSet.link, external: false }
 		].filter((tile) => !!tile)
 	);
+
+	// A medley's composers: the first two and "und mehr", which opens the rest.
+	let allComposers = $state<string | null>(null);
+	const composers = $derived.by(() => {
+		const short = shortComposers(piece.composer);
+		return allComposers === piece.id ? { names: splitList(piece.composer), more: 0, total: short.names.length + short.more } : { ...short, total: short.names.length + short.more };
+	});
 
 	// A portrait that doesn't load (Wikimedia unreachable) gives way to the drawing.
 	let portraitFailed = $state<string | null>(null);
@@ -211,7 +219,8 @@
 		{#if piece.composer || piece.catalogue}
 			<p class="eyebrow">
 				<!-- Each composer of a list links to all of their works. -->
-				{#each splitList(piece.composer) as name, i (name)}{#if i}, {/if}<a href="/stuecke?komponist={encodeURIComponent(name)}" title={t.piece.allBy(name)}>{name}</a>{/each}
+				{#each composers.names as name, i (name)}{#if i}{', '}{/if}<a href="/stuecke?komponist={encodeURIComponent(name)}" title={t.piece.allBy(name)}>{name}</a>{/each}
+				{#if composers.more}<button class="more-composers" type="button" title={t.piece.allComposers(composers.total)} onclick={() => (allComposers = piece.id)}>{t.pieces.moreComposers}</button>{/if}
 				{#if piece.composer && piece.catalogue}·{/if}
 				{piece.catalogue ?? ''}
 			</p>
@@ -225,7 +234,7 @@
 	</div>
 </header>
 
-{#if info.length}
+{#if info.length || piece.contents.length}
 	<dl class="details" aria-label={t.piece.details}>
 		{#each info as item (item.key)}
 			<!-- The icon belongs to the label, so the list keeps only labels and values (for screen readers). -->
@@ -234,10 +243,31 @@
 				<dd>{item.value}</dd>
 			</div>
 		{/each}
+		{#if piece.contents.length}
+			<!-- A medley's songs as one flowing line across the card; each composer links to all of their works. -->
+			<div class="detail songs">
+				<dt>
+					<span class="detail-icon" aria-hidden="true"><Icon name="music" size={18} /></span>{t.piece.contents}
+					<span class="count">{t.piece.contentsCount(piece.contents.length)}</span>
+				</dt>
+				<dd>
+					<ol>
+						{#each piece.contents as song, i (i)}
+							<li>
+								<!-- A no-break space: the composer stays with the title's last word. -->
+								{song.title}{#if song.composer}&nbsp;<span class="song-by">{#each splitList(song.composer) as name, j (name)}{#if j}{', '}{/if}<a href="/stuecke?komponist={encodeURIComponent(name)}" title={t.piece.allBy(name)}>{name}</a>{/each}</span>{/if}
+							</li>
+						{/each}
+					</ol>
+				</dd>
+			</div>
+		{/if}
 	</dl>
 {/if}
-{#if mine.length}
-	<div class="my-parts">
+{#if mine.length || tiles.length || canReport || data.again}
+	<!-- The card's foot: the member's own parts first, as the one strong action; the piece's
+	     few tools after them, quiet and small, so they never compete with the part. -->
+	<div class="card-actions">
 		{#each mine as part (part.id)}
 			{@const external = !part.url.startsWith('/')}
 			<a
@@ -251,11 +281,36 @@
 				<Icon name="parts" size={18} />{part.shared ? t.piece.alsoPart(part.label) : t.piece.yourPart(part.label)}
 			</a>
 		{/each}
+		<div class="tools-row">
+			{#each tiles as tile (tile.icon)}
+				<a
+					class="btn ghost small"
+					href={tile.href}
+					target={tile.external ? '_blank' : undefined}
+					rel={tile.external ? 'noopener noreferrer nofollow' : undefined}
+				>
+					<Icon name={tile.icon} size={16} />{tile.label}
+				</a>
+			{/each}
+			{#if canReport}
+				<button class="btn ghost small" class:active={reporting} aria-expanded={reporting} onclick={() => (reporting = !reporting)}>
+					<Icon name="flag" size={16} />{t.piece.reportShort}
+				</button>
+			{/if}
+			{#if data.again}
+				<form method="POST" action="?/again" use:enhance={() => async ({ update }) => update({ reset: false })}>
+					<button class="btn ghost small again" class:mine={data.again.mine} aria-pressed={data.again.mine} title={t.piece.againHint}>
+						<Icon name="heart" size={16} />{data.again.mine ? t.piece.againMine : t.piece.again}
+						{#if data.again.votes}<span class="votes">{t.wishes.votes(data.again.votes)}</span>{/if}
+					</button>
+				</form>
+			{/if}
+		</div>
 	</div>
 {/if}
 </div>
 
-{#if piece.info.notes || data.saved || gaps > 0}
+{#if piece.info.notes || data.saved || gaps > 0 || form?.againError || data.again?.planned}
 <div class="notices">
 	{#if piece.info.notes}
 		<p class="piece-note"><span class="sr-only">{t.piece.info.notes}: </span>{piece.info.notes}</p>
@@ -266,32 +321,19 @@
 			{#if data.renamedIn}{t.pieceEditor.renamed(data.renamedIn)}{/if}
 		</p>
 	{/if}
+	{#if form?.againError}<p class="msg error" role="alert">{form.againError}</p>{/if}
+	{#if data.again?.planned}<p class="planned"><Icon name="check" size={14} />{t.piece.againPlanned}</p>{/if}
 	{#if gaps > 0}
 		<p class="gaps"><Icon name="alert" size={16} />{t.piece.missingSummary(gaps)}</p>
 	{/if}
 </div>
 {/if}
 
-{#if tiles.length || canReport}
-	<div class="tiles">
-		{#each tiles as tile (tile.icon)}
-			<a
-				class="tile"
-				href={tile.href}
-				target={tile.external ? '_blank' : undefined}
-				rel={tile.external ? 'noopener noreferrer nofollow' : undefined}
-			>
-				<Icon name={tile.icon} size={20} /><span>{tile.label}</span>
-			</a>
-		{/each}
-		{#if canReport}
-			<button class="tile" class:active={reporting} aria-expanded={reporting} onclick={() => (reporting = !reporting)}>
-				<Icon name="flag" size={20} /><span>{t.piece.reportShort}</span>
-			</button>
-		{/if}
-	</div>
-{/if}
-
+<!-- Below the card: what one does on the left (the parts, the rehearsal notes), what one may
+     want to know beside it (where it's played next, where it was), and the organisers' tools
+     last. On a phone one column in that order. -->
+<div class="piece-body">
+<div class="main">
 {#if piece.status === 'none'}
 	<p class="placeholder">{t.piece.noMusic}</p>
 {/if}
@@ -326,24 +368,6 @@
 	bind:fileId={reportFile}
 />
 
-<PieceNotes notes={data.notes} result={form} />
-
-<ScanList scans={data.scans} />
-
-<PartAssignments assignments={data.assignments} result={form} />
-
-{#if data.upcoming.length}
-	<!-- Where the piece is next: the concert it's played at and the rehearsals that plan it. -->
-	<section class="block">
-		<h2 class="ui-label">{t.piece.upcoming}</h2>
-		<ul class="ui-list">
-			{#each data.upcoming as event (event.id)}
-				<li><EventRow {event} /></li>
-			{/each}
-		</ul>
-	</section>
-{/if}
-
 {#if sections.length > 1 && current}
 	<div class="sections" role="tablist" aria-label={t.piece.sections}>
 		{#each sections as section (section.key)}
@@ -375,13 +399,17 @@
 
 {#if keepFailed}<p class="msg error" role="alert">{t.pwa.failed(1)}</p>{/if}
 
-{#each groups as group (`${current?.key}:${group.key}`)}
-	<section class="block">
-		<h2 class="ui-label">{t.piece.groups[group.key]}</h2>
+{#if groups.length}
+<!-- All parts in one card, the families as quiet heads inside it, so the eye reads one list. -->
+<section class="block" aria-labelledby="parts-title">
+	<h2 class="ui-label" id="parts-title">{t.piece.partsTitle}</h2>
+	<div class="parts-card">
+	{#each groups as group (`${current?.key}:${group.key}`)}
+		<h3 class="group-head">{t.piece.groups[group.key]}</h3>
 		<ul class="parts">
 			{#each group.parts as part (part.id)}
 				{@const flagged = reported.get(part.id)}
-				<li>
+				<li class:own={mineIds.has(part.id)}>
 					<!-- A missing part is only a placeholder: nothing to open, so it isn't a link (and has no click handler). -->
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
 					<svelte:element
@@ -400,18 +428,20 @@
 							{#if part.kind === 'audio'}<Icon name="headphones" size={16} />{:else}<InstrumentGlyph glyph={partGlyph(part)} size={20} />{/if}
 						</span>
 						<span class="label">
-							<span class="name">{part.label}{#if mineIds.has(part.id)}<span class="yours">{t.piece.yours}</span>{/if}{#if offlineParts.has(part.id)}<span class="yours kept">{t.pwa.offlineBadge}</span>{/if}{#if flagged}<span class="marker" title={t.reports.markerTitle(t.feedbackValues.reportKind[flagged.kind], flagged.comment)}><Icon name="flag" size={11} />{t.reports.marker[flagged.status]}</span>{/if}</span>
-							{#if part.notes.length || (part.subfolder && sections.length < 2)}
+							<span class="name">{part.label}</span>
+							<!-- Everything about the part on a quiet line of its own, so a narrow row keeps the name whole. -->
+							{#if mineIds.has(part.id) || offlineParts.has(part.id) || part.status !== 'ok' || flagged || part.notes.length || (part.subfolder && sections.length < 2)}
 								<span class="notes">
+									{#if mineIds.has(part.id)}<span class="yours">{t.piece.yours}</span>{/if}
+									{#if offlineParts.has(part.id)}<span class="yours kept">{t.pwa.offlineBadge}</span>{/if}
+									{#if part.status !== 'ok'}<span class="status {part.status}">{t.piece.partStatus[part.status]}</span>{/if}
+									{#if flagged}<span class="marker" title={t.reports.markerTitle(t.feedbackValues.reportKind[flagged.kind], flagged.comment)}><Icon name="flag" size={11} />{t.reports.marker[flagged.status]}</span>{/if}
 									{#each part.notes as note (note)}<span class="note">{note}</span>{/each}
 									<!-- With tabs, the subfolder is the tab; a lone subfolder is still worth naming. -->
 									{#if part.subfolder && sections.length < 2}<span class="note">{part.subfolder}</span>{/if}
 								</span>
 							{/if}
 						</span>
-						{#if part.status !== 'ok'}
-							<span class="status {part.status}">{t.piece.partStatus[part.status]}</span>
-						{/if}
 						{#if part.status !== 'missing'}<span class="opens-elsewhere"><Icon name="external" size={14} /></span>{/if}
 					</svelte:element>
 					{#if canReport && part.status !== 'missing'}
@@ -442,13 +472,16 @@
 				</li>
 			{/each}
 		</ul>
-	</section>
-{/each}
+	{/each}
+	</div>
+	{#if piece.parts.length}<p class="hint">{t.piece.driveHint}</p>{/if}
+</section>
+{/if}
 
 {#if reportedMissing.length}
 	<section class="block">
 		<h2 class="ui-label">{t.piece.reportedMissing}</h2>
-		<ul class="parts">
+		<ul class="parts parts-card">
 			{#each reportedMissing as report (report.id)}
 				<li>
 					<div class="part missing" title={t.piece.reportedMissingHint}>
@@ -470,31 +503,8 @@
 	</p>
 {/if}
 
-{#if piece.parts.length}<p class="hint">{t.piece.driveHint}</p>{/if}
-
-{#if data.folder}
-	<PieceFolder
-		pieceId={piece.id}
-		tools={data.folder}
-		existing={piece.parts.filter((part) => !part.subfolder).map((part) => part.fileName)}
-		instruments={data.reports.instruments}
-		common={data.reports.common}
-		created={data.folderCreated}
-		result={form}
-	/>
-{/if}
-
-<!-- Below the parts: where the piece was played, related pieces. -->
-
-{#if piece.besetzung.voices.length}
-	<!-- The Besetzung as a seating plan (#249), below the parts: those are what most come here for. -->
-	<section class="block" aria-labelledby="besetzung-title">
-		<h2 class="ui-label" id="besetzung-title">{t.seating.title}</h2>
-		<div class="ui-card besetzung">
-			<OrchestraSeating voices={piece.besetzung.voices} missing={piece.besetzung.missing} score={piece.besetzung.score} soloists={piece.besetzung.soloists} />
-		</div>
-	</section>
-{/if}
+<PieceNotes notes={data.notes} result={form} />
+</div>
 
 {#snippet pieceLinks(pieces: typeof data.moreByComposer)}
 	<ul class="more-list">
@@ -510,43 +520,74 @@
 	</ul>
 {/snippet}
 
-<section class="block">
-	<div class="played-head">
-		<h2 class="ui-label">{t.piece.playedAt}</h2>
-		{#if data.again}
-			<form method="POST" action="?/again" use:enhance={() => async ({ update }) => update({ reset: false })}>
-				<button class="again" class:mine={data.again.mine} aria-pressed={data.again.mine} title={t.piece.againHint}>
-					<Icon name="heart" size={16} />{data.again.mine ? t.piece.againMine : t.piece.again}
-					{#if data.again.votes}<span class="votes">{t.wishes.votes(data.again.votes)}</span>{/if}
-				</button>
-			</form>
-		{/if}
-	</div>
-	{#if form?.againError}<p class="placeholder" role="alert">{form.againError}</p>{/if}
-	{#if data.again?.planned}<p class="planned"><Icon name="check" size={14} />{t.piece.againPlanned}</p>{/if}
-	{#if data.playedAt.length}
-		<ul class="ui-list">
-			{#each data.playedAt as concert (concert.id)}
-				<li><ConcertRow {concert} /></li>
-			{/each}
-		</ul>
-	{:else}
-		<p class="placeholder">{data.sheet === 'ok' ? t.piece.playedAtNone : t.piece.playedAtNoSheet}</p>
+<!-- Beside: only to know, nothing here changes the piece. -->
+<aside class="side" aria-label={t.piece.about}>
+	{#if data.upcoming.length}
+		<!-- Where the piece is next: the concert it's played at and the rehearsals that plan it. -->
+		<section class="block">
+			<h2 class="ui-label">{t.piece.upcoming}</h2>
+			<ul class="ui-list">
+				{#each data.upcoming as event (event.id)}
+					<li><EventRow {event} /></li>
+				{/each}
+			</ul>
+		</section>
 	{/if}
-</section>
 
-{#if data.otherVersions.length}
+	{#if piece.besetzung.voices.length}
+		<!-- The Besetzung as a seating plan (#249): to look at, so beside the parts. -->
+		<section class="block" aria-labelledby="besetzung-title">
+			<h2 class="ui-label" id="besetzung-title">{t.seating.title}</h2>
+			<div class="ui-card besetzung">
+				<OrchestraSeating voices={piece.besetzung.voices} missing={piece.besetzung.missing} score={piece.besetzung.score} soloists={piece.besetzung.soloists} />
+			</div>
+		</section>
+	{/if}
+
 	<section class="block">
-		<h2 class="ui-label">{t.piece.otherVersions}</h2>
-		{@render pieceLinks(data.otherVersions)}
+		<h2 class="ui-label">{t.piece.playedAt}</h2>
+		{#if data.playedAt.length}
+			<ul class="ui-list">
+				{#each data.playedAt as concert (concert.id)}
+					<li><ConcertRow {concert} /></li>
+				{/each}
+			</ul>
+		{:else}
+			<p class="quiet">{data.sheet === 'ok' ? t.piece.playedAtNone : t.piece.playedAtNoSheet}</p>
+		{/if}
 	</section>
-{/if}
-{#if piece.composer && data.moreByComposer.length}
-	<details class="block ui-disclosure more-by">
-		<summary>{t.piece.moreBy(piece.composer)} <span class="muted">{data.moreByComposer.length}</span></summary>
-		{@render pieceLinks(data.moreByComposer)}
-	</details>
-{/if}
+
+	{#if data.otherVersions.length}
+		<section class="block">
+			<h2 class="ui-label">{t.piece.otherVersions}</h2>
+			{@render pieceLinks(data.otherVersions)}
+		</section>
+	{/if}
+	{#if piece.composer && data.moreByComposer.length}
+		<details class="block ui-disclosure more-by">
+			<summary>{manyComposers(piece.composer) ? t.piece.moreByAny : t.piece.moreBy(piece.composer)} <span class="muted">{data.moreByComposer.length}</span></summary>
+			{@render pieceLinks(data.moreByComposer)}
+		</details>
+	{/if}
+</aside>
+
+<!-- The organisers' work on the piece: who plays what, what to scan, the Drive folder. -->
+<div class="tools">
+	<PartAssignments assignments={data.assignments} result={form} />
+	<ScanList scans={data.scans} />
+	{#if data.folder}
+		<PieceFolder
+			pieceId={piece.id}
+			tools={data.folder}
+			existing={piece.parts.filter((part) => !part.subfolder).map((part) => part.fileName)}
+			instruments={data.reports.instruments}
+			common={data.reports.common}
+			created={data.folderCreated}
+			result={form}
+		/>
+	{/if}
+</div>
+</div>
 
 <style>
 	.loan {
@@ -750,6 +791,23 @@
 		text-decoration-color: currentColor;
 	}
 
+	/* "und mehr" after a medley's first two composers: reads on, opens the rest. */
+	.more-composers {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: inherit;
+		font: inherit;
+		cursor: pointer;
+		text-decoration: underline dotted;
+		text-decoration-color: color-mix(in oklab, currentColor 50%, transparent);
+		text-underline-offset: 3px;
+	}
+
+	.more-composers:hover {
+		text-decoration-color: currentColor;
+	}
+
 	.facts {
 		display: flex;
 		flex-wrap: wrap;
@@ -799,7 +857,8 @@
 	.detail {
 		position: relative;
 		display: grid;
-		flex: 1 1 210px;
+		/* Two to a row even on a phone, so the facts stay a short block. */
+		flex: 1 1 150px;
 		align-content: center;
 		gap: 1px;
 		min-width: 0;
@@ -864,55 +923,148 @@
 		font-size: var(--text-md);
 	}
 
-	/* The piece's actions as equal tiles, like on a contact card. */
-	.tiles {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
-		gap: var(--space-2);
-		max-width: 440px;
-		margin-bottom: var(--space-6);
+	/* The card's foot: the member's parts as full buttons, then the piece's tools small and quiet. */
+	.card-actions {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-2) var(--space-3);
+		padding: var(--space-3) var(--space-4);
+		border-top: 1px solid var(--hairline);
 	}
 
-	.tile {
-		display: grid;
-		justify-items: center;
-		align-content: center;
-		gap: 6px;
-		min-height: 68px;
-		padding: var(--space-2);
-		border: 1px solid var(--hairline);
-		border-radius: var(--radius-m);
-		background: var(--surface);
-		box-shadow: var(--shadow);
-		color: var(--accent);
-		font: inherit;
-		font-size: var(--text-xs);
-		font-weight: 600;
-		cursor: pointer;
-		transition:
-			transform var(--fast) var(--ease),
-			background var(--fast) var(--ease);
+	.tools-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-1);
+		margin-left: auto;
 	}
 
-	.tile span {
+	/* With no part of one's own the tools start on the left. */
+	.card-actions > .tools-row:first-child {
+		margin-left: 0;
+	}
+
+	.tools-row .btn {
+		border-color: transparent;
+		color: var(--text-muted);
+	}
+
+	.tools-row .btn:hover {
 		color: var(--text);
-		text-align: center;
 	}
 
-	.tile:hover {
-		background: var(--surface-2);
+	.tools-row .btn :global(svg) {
+		color: var(--accent);
 	}
 
-	.tile:active {
-		transform: scale(0.96);
-	}
-
-	.tile.active {
+	.tools-row .btn.active,
+	.tools-row .again.mine {
 		background: var(--accent-soft);
+		color: var(--accent);
+	}
+
+	.again .votes {
+		font-weight: 700;
+	}
+
+	/* Below the card: doing on the left, knowing beside it, the organisers' tools last.
+	   On a phone one column in that order. */
+	.piece-body {
+		display: grid;
+		grid-template-areas: 'main' 'side' 'tools';
+		gap: 0 var(--space-6);
+	}
+
+	.main {
+		grid-area: main;
+		min-width: 0;
+	}
+
+	.side {
+		grid-area: side;
+		min-width: 0;
+	}
+
+	.tools {
+		grid-area: tools;
+		min-width: 0;
+	}
+
+	@media (min-width: 880px) {
+		.piece-body {
+			grid-template-columns: minmax(0, 1fr) 320px;
+			grid-template-rows: auto 1fr;
+			grid-template-areas:
+				'main side'
+				'tools side';
+		}
+	}
+
+	.quiet {
+		margin: 0 var(--space-1);
+		color: var(--text-muted);
+		font-size: var(--text-sm);
 	}
 
 	.block {
 		margin-bottom: var(--space-6);
+	}
+
+	/* A medley's songs: a cell across the whole card, the songs flowing in one paragraph with
+	   dots between them, each composer quieter after its title. */
+	.detail.songs {
+		flex-basis: 100%;
+		align-content: start;
+	}
+
+	.detail.songs .detail-icon {
+		top: var(--space-3);
+		transform: none;
+	}
+
+	.songs .count {
+		margin-left: var(--space-1);
+		font-weight: 500;
+		letter-spacing: normal;
+		text-transform: none;
+	}
+
+	.songs ol {
+		display: inline;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.songs li {
+		display: inline;
+	}
+
+	/* An eighth note between the songs, quiet in the accent colour; it ends a line, never starts one. */
+	.songs li:not(:last-child)::after {
+		content: '\00a0\266a  ';
+		color: color-mix(in oklab, var(--accent) 70%, transparent);
+		padding-inline: 0.45em;
+		font-weight: 400;
+	}
+
+	.song-by {
+		white-space: nowrap;
+		color: var(--text-muted);
+		font-size: var(--text-sm);
+		font-weight: 400;
+	}
+
+	.song-by a {
+		color: inherit;
+		text-decoration: underline;
+		text-decoration-color: color-mix(in oklab, currentColor 35%, transparent);
+		text-underline-offset: 3px;
+	}
+
+	.song-by a:hover {
+		color: var(--accent);
 	}
 
 	.sections {
@@ -997,13 +1149,9 @@
 		font-weight: 600;
 	}
 
-	/* One card per group; on wide screens the rows sit in columns, divided by hairlines. */
-	.parts {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-		margin: 0;
-		padding: 0;
-		list-style: none;
+	/* All parts in one card; each family a quiet head over its rows, which sit in columns when
+	   there's room, divided by hairlines. */
+	.parts-card {
 		border: 1px solid var(--hairline);
 		border-radius: var(--radius-l);
 		background: var(--surface);
@@ -1011,11 +1159,44 @@
 		overflow: hidden;
 	}
 
+	.group-head {
+		margin: 0;
+		padding: var(--space-3) var(--space-4) var(--space-1);
+		color: var(--text-muted);
+		font-size: var(--text-2xs);
+		font-weight: 650;
+		letter-spacing: 0.07em;
+		text-transform: uppercase;
+	}
+
+	.group-head:not(:first-child) {
+		border-top: 1px solid var(--hairline);
+	}
+
+	.parts {
+		display: grid;
+		/* Two columns only where each still holds a long name, its line under it and the buttons. */
+		grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+		margin: 0 0 -1px;
+		padding: 0;
+		list-style: none;
+	}
+
 	.parts li {
 		position: relative;
 		box-shadow:
 			0 1px 0 var(--hairline),
 			1px 0 0 var(--hairline);
+	}
+
+	/* The member's own part: the row lightly tinted, its icon in the accent. */
+	.parts li.own {
+		background: color-mix(in oklab, var(--accent) 7%, var(--surface));
+	}
+
+	.own .icon {
+		background: var(--accent);
+		color: var(--accent-contrast);
 	}
 
 	.part {
@@ -1117,17 +1298,21 @@
 	}
 
 	.flag:hover,
-	.flag:focus-visible,
-	/* Reported: a small muted word by the name, so it's known without shouting. */
+	.flag:focus-visible {
+		background: var(--accent-soft);
+		color: var(--accent);
+		opacity: 1;
+	}
+
+	/* Reported: a small muted word under the name, so it's known without shouting. */
 	.marker {
 		display: inline-flex;
 		align-items: center;
 		gap: 3px;
-		margin-left: var(--space-2);
 		color: var(--text-muted);
 		font-size: var(--text-2xs);
 		font-weight: 500;
-		vertical-align: 1px;
+		white-space: nowrap;
 	}
 
 	.piece-marker {
@@ -1172,15 +1357,18 @@
 		min-width: 0;
 	}
 
+	/* Names break between words, never letter by letter. */
 	.name {
 		font-weight: 600;
-		overflow-wrap: anywhere;
+		overflow-wrap: break-word;
+		hyphens: auto;
 	}
 
 	.notes {
 		display: flex;
 		flex-wrap: wrap;
-		gap: var(--space-1);
+		align-items: center;
+		gap: var(--space-1) var(--space-2);
 	}
 
 	.note {
@@ -1191,23 +1379,13 @@
 		font-size: var(--text-2xs);
 	}
 
-	.my-parts {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--space-2);
-		padding: var(--space-4);
-		border-top: 1px solid var(--hairline);
-	}
-
 	.yours {
-		margin-left: var(--space-2);
 		padding: 1px var(--space-2);
 		border-radius: var(--radius-pill);
 		background: var(--accent-soft);
 		color: var(--accent);
 		font-size: var(--text-2xs);
 		font-weight: 650;
-		vertical-align: 1px;
 	}
 
 	.status {
@@ -1255,55 +1433,9 @@
 	}
 
 	.hint {
-		margin: calc(-1 * var(--space-4)) var(--space-1) var(--space-7);
+		margin: var(--space-2) var(--space-1) 0;
 		color: var(--text-muted);
 		font-size: var(--text-xs);
-	}
-
-	.played-head {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--space-2);
-		margin-bottom: var(--space-2);
-	}
-
-	.played-head .ui-label {
-		margin-bottom: 0;
-	}
-
-	.again {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-1);
-		min-height: 36px;
-		padding: 0 var(--space-3);
-		border: 0;
-		border-radius: var(--radius-pill);
-		background: var(--surface-2);
-		color: var(--text);
-		font: inherit;
-		font-size: var(--text-sm);
-		font-weight: 600;
-		cursor: pointer;
-		transition:
-			background var(--fast) var(--ease),
-			transform var(--fast) var(--ease);
-	}
-
-	.again:active {
-		transform: scale(0.96);
-	}
-
-	.again.mine {
-		background: var(--accent-soft);
-		color: var(--accent);
-	}
-
-	.again .votes {
-		color: var(--text-muted);
-		font-weight: 700;
 	}
 
 	.planned {
