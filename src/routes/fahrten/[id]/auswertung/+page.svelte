@@ -23,10 +23,9 @@
 
 <Title title="{l.evaluate} · {data.trip.title}" />
 
-<a class="back" href="/fahrten/{data.trip.id}"><Icon name="back" size={16} />{l.back}</a>
+<a class="back" href="/fahrten/{data.trip.id}"><Icon name="back" size={16} />{data.trip.title}</a>
 
 <header class="head">
-	<p class="over">{data.trip.title}</p>
 	<h1>{l.evaluate}</h1>
 	<p class="lead">{l.evaluateLead}</p>
 	{#if !data.organises}<p class="msg info">{l.overview.onlyThese}</p>{/if}
@@ -40,7 +39,7 @@
 			<li>
 				<span class="name">{l.kinds[one.kind]}</span>
 				<span class="count" class:done={one.filled === one.of}>{one.filled} / {one.of}</span>
-				<span class="bar" aria-hidden="true"><span style:width="{one.of ? (100 * one.filled) / one.of : 100}%"></span></span>
+				<span class="bar" class:done={one.filled === one.of} aria-hidden="true"><span style:width="{one.of ? (100 * one.filled) / one.of : 100}%"></span></span>
 				{#if one.missing.length}
 					<span class="missing">{l.overview.missing(one.missing.join(', '))}</span>
 				{/if}
@@ -202,14 +201,6 @@
 		margin-bottom: var(--space-5);
 	}
 
-	.over {
-		color: var(--accent);
-		font-size: var(--text-xs);
-		font-weight: 700;
-		letter-spacing: 0.04em;
-		text-transform: uppercase;
-	}
-
 	.muted,
 	.hint,
 	.readers {
@@ -245,8 +236,10 @@
 		font-weight: 700;
 	}
 
+	/* Each list's state as a small tile, two or three side by side on a wide screen. */
 	.progress {
 		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
 		gap: var(--space-3);
 		margin: 0;
 		padding: 0;
@@ -256,7 +249,11 @@
 	.progress li {
 		display: grid;
 		grid-template-columns: 1fr auto;
+		align-content: start;
 		gap: var(--space-1) var(--space-3);
+		padding: var(--space-3) var(--space-4);
+		border-radius: var(--radius-m);
+		background: var(--bg);
 	}
 
 	.progress .name {
@@ -270,7 +267,7 @@
 	}
 
 	.count.done {
-		color: var(--accent);
+		color: var(--ok);
 	}
 
 	.bar {
@@ -288,6 +285,10 @@
 		background: var(--accent);
 	}
 
+	.bar.done span {
+		background: var(--ok);
+	}
+
 	.missing {
 		grid-column: 1 / -1;
 		color: var(--text-muted);
@@ -302,15 +303,28 @@
 	}
 
 	.tab {
-		padding: var(--space-1) var(--space-3);
+		min-height: 36px;
+		padding: 0 var(--space-4);
 		border: 1px solid var(--border);
 		border-radius: var(--radius-pill);
-		background: var(--bg);
+		background: var(--surface);
 		color: inherit;
 		font: inherit;
+		transition:
+			background var(--fast) var(--ease),
+			border-color var(--fast) var(--ease);
 		font-size: var(--text-sm);
 		font-weight: 600;
 		cursor: pointer;
+	}
+
+	.tab:hover {
+		background: var(--surface-2);
+	}
+
+	.tab:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
 	}
 
 	.tab.on {

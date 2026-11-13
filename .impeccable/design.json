@@ -1,6 +1,6 @@
 {
 	"schemaVersion": 2,
-	"generatedAt": "2026-11-02T09:31:56.909Z",
+	"generatedAt": "2026-11-13T14:39:32.000Z",
 	"title": "Design System: Sheetmanagement",
 	"extensions": {
 		"colorMeta": {
@@ -482,6 +482,10 @@
 				"value": "960px"
 			},
 			{
+				"name": "side-column",
+				"value": "880px"
+			},
+			{
 				"name": "tabbar",
 				"value": "720px"
 			},
@@ -563,11 +567,26 @@
 			"description": "The season's line drawings: a motif and its companion (autumn: a leaf and a kite). In the footer at 22px in the accent at 45%; behind the story card larger, in the brand gold at 60%.",
 			"html": "<span class=\"ds-season-pair\"><span class=\"ds-season-motif\"><svg viewBox=\"0 0 24 24\" width=\"14\" height=\"14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 19C5 10 10 5 19 5c0 9-5 14-14 14z\"/><path d=\"M5 19L14 10M9.5 14.5h3.5M12 12V9\"/></svg></span><span class=\"ds-season-companion\"><svg viewBox=\"0 0 24 24\" width=\"22\" height=\"22\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><g class=\"ds-kite\"><path d=\"M14 2.5l5 5.5-5 8.5-5-8.5z\"/><path d=\"M9 8h10M14 2.5v14\"/><path d=\"M14 16.5c-1.8 1.2.2 2.4-1.6 3.6s.2 2.4-1.6 3.4\"/></g></svg></span></span>",
 			"css": ".ds-season-pair { display: inline-flex; align-items: flex-end; gap: 2px; color: color-mix(in oklab, var(--accent, #815c09) 45%, transparent); } .ds-season-motif { opacity: 0.7; display: grid; } .ds-season-companion { display: grid; animation: ds-hop 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both; } .ds-season-companion svg { animation: ds-sway 5s ease-in-out 6 alternate; transform-origin: 30% 100%; } @keyframes ds-hop { 0% { translate: 0 6px; scale: 0.6; opacity: 0; } 60% { translate: 0 -2px; scale: 1.05; opacity: 1; } 100% { translate: 0 0; scale: 1; } } @keyframes ds-sway { from { rotate: -8deg; } to { rotate: 10deg; } } @media (prefers-reduced-motion: reduce) { .ds-season-pair * { animation: none !important; } }"
+		},
+		{
+			"name": "Facts card with countdown",
+			"kind": "card",
+			"refersTo": "card",
+			"description": "Labelled facts for one event, headed by the days to go.",
+			"html": "<dl class=\"ds-facts\"><p class=\"ds-count\"><strong>24</strong><span>Tage bis zur Abfahrt</span></p><div><dt>Anmeldung</dt><dd>Fr., 27. Nov.</dd><dd class=\"ds-sub\">noch 14 Tage</dd></div><div><dt>Plätze</dt><dd>5 / 40</dd><dd class=\"ds-sub\">noch 35 frei</dd><dd class=\"ds-bar\"><span style=\"width:12.5%\"></span></dd></div></dl>",
+			"css": ".ds-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;max-width:360px;margin:0;padding:16px 24px;border:1px solid var(--hairline,#e0ded7bf);border-radius:20px;background:var(--surface,#fff);box-shadow:0 1px 2px rgb(0 0 0 / .04),0 6px 20px rgb(0 0 0 / .05);color:var(--text,#161512);font-family:ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif}.ds-facts>div{display:grid;gap:2px}.ds-facts dt{color:var(--text-muted,#625e55);font-size:.75rem;font-weight:650;letter-spacing:.07em;text-transform:uppercase}.ds-facts dd{margin:0;font-weight:600}.ds-facts .ds-sub{color:var(--text-muted,#625e55);font-size:.875rem;font-weight:400}.ds-count{grid-column:1/-1;display:flex;align-items:baseline;gap:8px;margin:0;padding-bottom:12px;border-bottom:1px solid var(--hairline,#e0ded7bf);color:var(--text-muted,#625e55);font-weight:600}.ds-count strong{color:var(--accent,#815c09);font-size:2.25rem;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.02em}.ds-bar{height:6px;margin-top:4px!important;overflow:hidden;border-radius:999px;background:var(--surface-2,#eeede8)}.ds-bar span{display:block;height:100%;border-radius:inherit;background:var(--accent,#815c09)}"
+		},
+		{
+			"name": "Choice chips",
+			"kind": "chip",
+			"description": "Tap a known value (a role, a day of the trip) instead of typing it.",
+			"html": "<div class=\"ds-chips\"><label class=\"ds-chip\"><input type=\"radio\" name=\"ds-day\" checked><span>Vom ersten Tag an</span></label><label class=\"ds-chip\"><input type=\"radio\" name=\"ds-day\"><span>Di., 8. Dez.</span></label><label class=\"ds-chip\"><input type=\"radio\" name=\"ds-day\" disabled><span>Mi., 9. Dez.</span></label></div>",
+			"css": ".ds-chips{display:flex;flex-wrap:wrap;gap:8px;font-family:ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif}.ds-chip{position:relative;cursor:pointer}.ds-chip input{position:absolute;inset:0;margin:0;opacity:0;cursor:pointer}.ds-chip span{display:inline-flex;align-items:center;min-height:40px;padding:0 16px;border:1px solid var(--border,#e0ded7);border-radius:999px;background:var(--surface,#fff);color:var(--text,#161512);font-size:.875rem;font-weight:600;transition:background .15s cubic-bezier(.2,.8,.2,1),border-color .15s cubic-bezier(.2,.8,.2,1)}.ds-chip:hover span{background:var(--surface-2,#eeede8)}.ds-chip input:checked+span{border-color:var(--accent,#815c09);background:var(--accent-soft,#e6b42238);color:var(--accent,#815c09)}.ds-chip input:focus-visible+span{outline:2px solid var(--accent,#815c09);outline-offset:2px}.ds-chip input:disabled+span{opacity:.4;cursor:not-allowed}"
 		}
 	],
 	"narrative": {
 		"northStar": "The Stand Folder",
-		"overview": "Every player has a folder on the music stand: their parts, the dates, a pencilled note from the last rehearsal. The app is that folder on the phone. It's quiet and practical, and everything for *my* part is within reach of a thumb. The orchestra's colour is the tab on the folder: it marks where to look and what to press, and it isn't wallpaper. The next date, the answer and one's own part come first. Organisers' tools sit further back and use the same materials.\n\nThe density is calm, not sparse. White cards lie on a nearly neutral paper page, lists are inset with hairlines between rows, and there's one primary action per area. The poster world of the Bachkreis (black and gold, the condensed heading face, the logo large and dim behind the greeting) shows up in a few chosen places: page titles, the dark story card on the start page with the season drifting through it, and the date blocks of concerts. The rest stays out of the way.\n\nThe whole system is themeable per orchestra. Bachkreis-Gold is the Bachkreis preset's accent. Another orchestra sets its own colour, and the light and dark shades are derived from it so that text and buttons keep 4.5:1. The \"plain\" look swaps the condensed display face for a classic serif and drops the watermark.",
+		"overview": "**Creative North Star: \"The Stand Folder\"**\n\nEvery player has a folder on the music stand: their parts, the dates, a pencilled note from the last rehearsal. The app is that folder on the phone. It's quiet and practical, and everything for *my* part is within reach of a thumb. The orchestra's colour is the tab on the folder: it marks where to look and what to press, and it isn't wallpaper. The next date, the answer and one's own part come first. Organisers' tools sit further back and use the same materials.\n\nThe density is calm, not sparse. White cards lie on a nearly neutral paper page, lists are inset with hairlines between rows, and there's one primary action per area. The poster world of the Bachkreis (black and gold, the condensed heading face, the logo large and dim behind the greeting) shows up in a few chosen places: page titles, the dark story card on the start page with the season drifting through it, and the date blocks of concerts. The rest stays out of the way.\n\nThe whole system is themeable per orchestra. Bachkreis-Gold is the Bachkreis preset's accent. Another orchestra sets its own colour, and the light and dark shades are derived from it so that text and buttons keep 4.5:1. The \"plain\" look swaps the condensed display face for a classic serif and drops the watermark.",
 		"keyCharacteristics": [
 			"One accent colour per orchestra, used sparingly for actions, the current place and concerts.",
 			"Condensed bold display headings over a system sans for everything you read or tap.",
@@ -603,27 +622,34 @@
 				"section": "typography"
 			},
 			{
+				"name": "The Facts Beside, Doing Left Rule",
+				"body": "On a two-column detail page the left column is for acting (answering, opening the plan or the lists) and the right column only informs. Nothing to tap that changes data sits in the side column.",
+				"section": "layout"
+			},
+			{
 				"name": "The Paper On Paper Rule",
 				"body": "There are only two levels: resting cards and raised overlays. Don't stack a shadowed card inside a shadowed card. Inner groups use Stand Grey or a hairline instead.",
 				"section": "elevation"
 			}
 		],
 		"dos": [
-			"**Do** build every page from the tokens in `src/app.css`. A theme is one block there, and another orchestra's accent must flow through untouched.",
-			"**Do** use the derived deep accent (`--accent`) for text and fills on light pages, and keep `--brand` for dark backgrounds.",
-			"**Do** give every tappable thing at least 44px on touch screens (`--tap`), and 32px minimum for text actions.",
-			"**Do** put the next date, the answer and the member's own part on the first phone screen before anything else.",
-			"**Do** use the one motion curve (`cubic-bezier(0.2, 0.8, 0.2, 1)`) at 0.15s for state changes and about 0.25s for page and section transitions.",
-			"**Do** check both schemes and the 125% text size before calling a screen done."
+			"Do build every page from the tokens in `src/app.css`. A theme is one block there, and another orchestra's accent must flow through untouched.",
+			"Do use the derived deep accent (`--accent`) for text and fills on light pages, and keep `--brand` for dark backgrounds.",
+			"Do give every tappable thing at least 44px on touch screens (`--tap`), and 32px minimum for text actions.",
+			"Do put the next date, the answer and the member's own part on the first phone screen before anything else.",
+			"Do use the one motion curve (`cubic-bezier(0.2, 0.8, 0.2, 1)`) at 0.15s for state changes and about 0.25s for page and section transitions.",
+			"Do check both schemes and the 125% text size before calling a screen done.",
+			"Do let members tap a known value (a day of the trip, a role) instead of typing it, and fold away what's already answered."
 		],
 		"donts": [
-			"**Don't** use the condensed display face for buttons, labels or body text.",
-			"**Don't** put the raw brand colour as text on the light page, or hard-code Bachkreis-Gold outside the preset.",
-			"**Don't** add thick one-sided colour stripes to cards or chips. Use a tint, a full hairline or a small dot to mark a type.",
-			"**Don't** set readable text below 0.75rem, or in px where it should follow the text size setting.",
-			"**Don't** nest a shadowed card inside a shadowed card.",
-			"**Don't** use bouncy or elastic easing. Every transition, the segmented control's thumb included, runs on the one curve. The only looping motion is the season's scene, and it stops with reduced motion.",
-			"**Don't** write a colour, size or radius as a literal in a component. Use the tokens in `src/app.css`; the tuner and metronome drawings, which paint their own wood, brass and dial, are the only exception."
+			"Don't put a small uppercase label above a page or card title. The back link already names where the page belongs (\"‹ Probenwochenende Haltern\").",
+			"Don't use the condensed display face for buttons, labels or body text.",
+			"Don't put the raw brand colour as text on the light page, or hard-code Bachkreis-Gold outside the preset.",
+			"Don't add thick one-sided colour stripes to cards or chips. Use a tint, a full hairline or a small dot to mark a type.",
+			"Don't set readable text below 0.75rem, or in px where it should follow the text size setting.",
+			"Don't nest a shadowed card inside a shadowed card.",
+			"Don't use bouncy or elastic easing. Every transition, the segmented control's thumb included, runs on the one curve. The only looping motion is the season's scene, and it stops with reduced motion.",
+			"Don't write a colour, size or radius as a literal in a component. Use the tokens in `src/app.css`; the tuner and metronome drawings, which paint their own wood, brass and dial, are the only exception."
 		]
 	}
 }

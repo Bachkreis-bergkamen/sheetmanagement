@@ -194,6 +194,11 @@ Breakpoints, as used in the code:
 
 On coarse pointers, buttons grow to 44px and gain wider padding.
 
+**Detail pages with a side column.** A page about one thing with several parts (a trip) puts what the member does on the left and the facts beside it. From 880px a 320px column on the right holds the facts card and the place, and the place sticks below the top bar while the left column scrolls. Below 880px it's one column in the order of need: the facts, then the place, then the member's own answer, then the rest, and the organisers' editing last.
+
+### Named Rules
+**The Facts Beside, Doing Left Rule.** On a two-column detail page the left column is for acting (answering, opening the plan or the lists) and the right column only informs. Nothing to tap that changes data sits in the side column.
+
 ## Elevation & Depth
 
 The system is a light hybrid: a hairline border carries the shape, and a soft, wide shadow lifts cards a little off the paper. Depth means "this is a thing you can open or use", not hierarchy. The sticky top bar and the bottom tab bar are frosted glass: 78–94% of the page colour with `saturate(1.6) blur(20px)` and a hairline edge. That keeps them the same material as the page instead of a coloured band.
@@ -262,6 +267,25 @@ With reduced motion everything stands still. The marks never carry meaning and n
 ### Answer dock (signature)
 On phones the start page reads at the top and acts at the bottom. The next date's question ("Bist du am Samstag dabei?"), its three answer buttons and a full-width "Meine Noten · <instrument>" button sit in a frosted dock fixed right above the tab bar, in thumb reach. Once answered, it shrinks to one line, and the whole band takes the answer's colour (green, amber or red, at about 15% over the page), with "ändern" on the right. When the next date's card scrolls out of view, the dock slides away, because its answers belong to that date. Toasts rise above it (`--dock-height`). On desktop the same controls sit inside the card. Later dates never get their own answer buttons on the start page, only an answer line that links to the date.
 
+### Facts card
+A card of labelled facts for one event, two to a row: a Label over each value in 600 weight, with a muted line under it where it helps ("noch 14 Tage", "noch 35 frei"). A deadline three days away or closer turns that line Warn at 600. Capacity gets a 6px pill bar on Stand Grey in the accent, OK once full. A description may close the card under a full-width hairline, its text held to 65ch.
+- **Countdown:** heads the card on its own row with a hairline below. The number is large (2.25rem, 700, accent, tabular figures) with its label beside it in muted 600 ("24 Tage bis zur Abfahrt"). On the day it's the label alone in the accent ("Heute geht es los"), during the trip it counts the day ("2. Tag von 3"), and afterwards it's gone. It never ticks in hours or seconds.
+
+### Status band
+Once a member has answered, the card that asked opens with a band instead of the question: the status colour at 12% behind the sentence in 600, the message radius (14px), and a 32px solid circle in the status colour with the icon on it. Green for coming, amber for the waiting list, muted for a no. The form folds away behind a quiet accent disclosure ("Anmeldung ändern"), so an answered card stays short.
+
+### Choice chips
+For a few known values, tapped rather than typed: the roles one comes along as (several), and the days of a trip for arriving later or leaving earlier (one). Full pills, 40px tall (44px on touch), a hairline border on the surface. Chosen: an accent border, the soft tint and accent text, and for several-of a small tick appears. Options that can't go together dim to 40%, such as leaving before arriving. Wherever the possible days are known, these replace the browser's date field, which follows the phone's language instead of the orchestra's.
+
+### Timeline
+A day's items run down a 2px Pencil Line: the time on the left (right-aligned, muted 600, tabular figures), a 10px ring on the line, and the item with its kind tag. Travel, meals and free time ring muted, rehearsals ring in the accent with a soft gold tag, and the concert is a solid 14px dot with a solid accent tag. Each day opens with the Date block in its soft gold tint. On phones the time moves above the item, both beside the line.
+
+### Route
+The places of a trip in their order down a dotted line (2px dotted Pencil Line), a 12px ring in the accent at each, with the flag before the name and the address in muted text under it. Each place is a button: pointing at it or tapping it fills its ring in Danger, matching the pin on the globe beside it. The globe sits beside the places when the card is full-width and above them in the side column.
+
+### Folding lists
+A page of several forms to fill in once (a trip's lists) folds each into a card: a 64px summary row with a 36px status circle (amber tint for still to do, soft gold for taken over from last time, solid OK with a tick for done), the title, a one-line status and the drawn chevron. Only the first unfinished one is open; saving one closes it to a tick and opens the next. A progress bar with "2 von 6 ausgefüllt" sits under the page title.
+
 ### Calendar month (signature)
 The month view is a velvet board with paper stickers for rehearsals, the Generalprobe and concerts, each carrying the logo. It's the app's one skeuomorphic moment and stays inside the calendar.
 
@@ -274,8 +298,10 @@ The month view is a velvet board with paper stickers for rehearsals, the General
 - **Do** put the next date, the answer and the member's own part on the first phone screen before anything else.
 - **Do** use the one motion curve (`cubic-bezier(0.2, 0.8, 0.2, 1)`) at 0.15s for state changes and about 0.25s for page and section transitions.
 - **Do** check both schemes and the 125% text size before calling a screen done.
+- **Do** let members tap a known value (a day of the trip, a role) instead of typing it, and fold away what's already answered.
 
 ### Don't:
+- **Don't** put a small uppercase label above a page or card title. The back link already names where the page belongs ("‹ Probenwochenende Haltern").
 - **Don't** use the condensed display face for buttons, labels or body text.
 - **Don't** put the raw brand colour as text on the light page, or hard-code Bachkreis-Gold outside the preset.
 - **Don't** add thick one-sided colour stripes to cards or chips. Use a tint, a full hairline or a small dot to mark a type.
