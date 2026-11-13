@@ -7,13 +7,14 @@ import { getLibrary } from '#lib/server/library.ts';
 import { today } from '#lib/server/members.ts';
 import { notify } from '#lib/server/push/index.ts';
 import { ensureLookups, withinTime } from '#lib/server/trip-geo.ts';
-import { shownPictures } from '#lib/server/trip-picture.ts';
+import { pictureQueries, shownPictures } from '#lib/server/trip-picture.ts';
 import { listPerson } from '#lib/server/trip-lists.ts';
 import { childrenIn, eventsInWindow, openTrip, planEventOf, youngOnTrips } from '#lib/server/trips.ts';
 import type { TripStore } from '#lib/server/trips-store.ts';
 import {
 	isActive,
 	isInvited,
+	placeLines,
 	localDay,
 	movesUp,
 	overview,
@@ -100,13 +101,16 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 			// A picture per place, shown in turn; the image itself comes from /fahrten/[id]/bild?nr=….
 			pictures: shownPictures(trip).map(({ place, picture }) => ({ place, title: picture.title, artist: picture.artist, license: picture.license, page: picture.page, tall: !!picture.tall })),
 			// Each place with its address, country and flag, as far as OpenStreetMap knows it.
-			where: trip.stops.map((stop) => {
+			where: trip.stops.map((stop, i) => {
 				const place = trip.places?.[stop.place] ?? null;
+				// Its picture among those shown: the first place's may be the organisers' own search.
+				const query = i === 0 ? pictureQueries(trip)[0] : stop.place;
 				return {
 					place: stop.place,
+					picture: shownPictures(trip).findIndex((one) => one.place === query),
 					from: stop.from,
 					until: stop.until,
-					...(place ? { lat: place.lat, lon: place.lon, address: place.address, region: place.region, country: place.country, flag: place.countryCode ? (trip.flags?.[place.countryCode] ?? null) : null } : {})
+					...(place ? { lat: place.lat, lon: place.lon, ...placeLines(stop.place, place), flag: place.countryCode ? (trip.flags?.[place.countryCode] ?? null) : null } : {})
 				};
 			})
 		},

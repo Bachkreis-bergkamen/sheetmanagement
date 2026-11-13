@@ -9,6 +9,7 @@ import {
 	placeFor,
 	planByDay,
 	planItemFromForm,
+	placeLines,
 	selfRoles,
 	isYoung,
 	signupFromForm,
@@ -293,5 +294,17 @@ describe('the plan', () => {
 		expect(nowAndNext(day, '12:10').next?.item?.id).toBe('lunch');
 		expect(nowAndNext(day, '23:00')).toMatchObject({ now: [{ item: { id: 'lunch' } }], next: undefined });
 		expect(nowAndNext(undefined, '10:00')).toEqual({ now: [], next: undefined });
+	});
+});
+
+describe('placeLines', () => {
+	it('says where a place is without saying its name again', () => {
+		expect(placeLines('Peking', { address: 'Peking', country: 'China' })).toEqual({ where: 'China' });
+		expect(placeLines('Xi’an', { address: "Xi'an", region: 'Shaanxi', country: 'China' })).toEqual({ where: 'Shaanxi, China' });
+		expect(placeLines('Shanghai', { region: 'Shanghai', country: 'China' })).toEqual({ where: 'China' });
+		expect(placeLines('Jugendherberge Haltern am See', { address: 'Stockwieser Damm 255, 45721 Haltern am See', region: 'Nordrhein-Westfalen', country: 'Deutschland' })).toEqual({
+			address: 'Stockwieser Damm 255, 45721 Haltern am See',
+			where: 'Nordrhein-Westfalen, Deutschland'
+		});
 	});
 });

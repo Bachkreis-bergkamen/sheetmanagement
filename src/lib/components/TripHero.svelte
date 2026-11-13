@@ -1,21 +1,24 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { t } from '#lib/i18n/index.ts';
 
 	/**
 	 * A trip's header (#334): a photo of each place, one after another, with the trip's name on
 	 * it. The photos come from Wikimedia Commons through the app (/fahrten/[id]/bild?nr=…), each
 	 * credited. They change every few seconds, not while pointed at or with reduced motion; the
-	 * dots pick one.
+	 * dots pick one. With a place in focus below (its number among the pictures), its picture shows
+	 * and stays.
 	 */
 	let {
 		tripId,
 		pictures,
+		focus = null,
 		children
 	}: {
 		tripId: string;
 		pictures: { place: string; title: string; artist?: string; license?: string; page: string; tall: boolean }[];
+		focus?: number | null;
 		children: Snippet;
 	} = $props();
 
@@ -31,10 +34,16 @@
 		loaded = new Set([...loaded, shown, (shown + 1) % pictures.length]);
 	}
 
+	// Follows the focus only: what show() reads and writes mustn't run this again.
+	$effect(() => {
+		const to = focus;
+		if (to !== null && to >= 0 && to < pictures.length) untrack(() => show(to));
+	});
+
 	onMount(() => {
 		if (pictures.length < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 		const timer = setInterval(() => {
-			if (!resting && document.visibilityState === 'visible') show(shown + 1);
+			if (!resting && focus === null && document.visibilityState === 'visible') show(shown + 1);
 		}, EVERY_MS);
 		return () => clearInterval(timer);
 	});

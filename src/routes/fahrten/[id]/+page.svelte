@@ -15,7 +15,14 @@
 	const trip = $derived(data.trip);
 	const day = (iso: string) => formatWeekday(iso, config.locale);
 	// The places OpenStreetMap found, for the globe.
-	const pinned = $derived(trip.where.flatMap((one) => (one.lat !== undefined && one.lon !== undefined ? [{ lat: one.lat, lon: one.lon, name: one.place }] : [])));
+	const pinned = $derived(trip.where.flatMap((one, key) => (one.lat !== undefined && one.lon !== undefined ? [{ lat: one.lat, lon: one.lon, name: one.place, key }] : [])));
+	// The place in focus, by its number: hovered or tapped below, or its pin tapped on the globe.
+	// The globe turns to it and zooms in, and the header shows its picture.
+	let focus = $state<number | null>(null);
+	const focusPicture = $derived(focus === null ? null : (trip.where[focus]?.picture ?? -1));
+	const hover = (key: number | null) => (event: PointerEvent) => {
+		if (event.pointerType === 'mouse') focus = key;
+	};
 	const going = $derived(data.mine?.status === 'angemeldet' || data.mine?.status === 'warteliste');
 	const confirm = (question: string) => (event: SubmitEvent) => {
 		if (!window.confirm(question)) event.preventDefault();
@@ -29,7 +36,7 @@
 <header class="head">
 	{#if trip.pictures.length}
 		<!-- A sight of each place, from Wikimedia Commons, served by the app itself, in turn. -->
-		<TripHero tripId={trip.id} pictures={trip.pictures}>
+		<TripHero tripId={trip.id} pictures={trip.pictures} focus={focusPicture !== null && focusPicture >= 0 ? focusPicture : null}>
 			<p class="over">{t.trips.kinds[trip.kind]}</p>
 			<h1>{trip.title}</h1>
 			<p class="when">{formatDays(trip.firstDay, trip.lastDay, config.locale)}</p>
@@ -43,17 +50,20 @@
 		<!-- Where the trip goes: the earth with a pin in each place, and each place's flag and address. -->
 		<div class="where" class:with-globe={pinned.length}>
 			{#if pinned.length}
-				<div class="globe-box"><TripGlobe places={pinned} label={t.trips.where.globe(pinned.map((one) => one.name).join(', '))} /></div>
+				<div class="globe-box"><TripGlobe places={pinned} label={t.trips.where.globe(pinned.map((one) => one.name).join(', '))} bind:focus /></div>
 			{/if}
-			<ul class="stops">
-				{#each trip.where as stop (stop.place + stop.from)}
-					<li>
-						<span class="stop-name">
-							{#if stop.flag}<img class="flag" src={stop.flag} alt="" width="20" height="15" />{:else}<Icon name="pin" size={14} />{/if}
-							<strong>{stop.place}</strong>
-						</span>
-						{#if stop.address}<span class="muted">{stop.address}</span>{/if}
-						{#if stop.region || stop.country}<span class="muted">{[stop.region, stop.country].filter(Boolean).join(', ')}</span>{/if}
+			<!-- The places in their order, left to right: pointing at one or tapping it brings it into focus. -->
+			<ol class="stops" onpointerleave={hover(null)}>
+				{#each trip.where as stop, i (stop.place + stop.from)}
+					<li class:on={focus === i}>
+						<button type="button" class="stop" aria-pressed={focus === i} onpointerenter={hover(i)} onclick={() => (focus = focus === i ? null : i)} onfocus={() => (focus = i)}>
+							<span class="stop-name">
+								{#if stop.flag}<img class="flag" src={stop.flag} alt="" width="20" height="15" />{:else}<Icon name="pin" size={14} />{/if}
+								<strong>{stop.place}</strong>
+							</span>
+							{#if stop.address}<span class="muted">{stop.address}</span>{/if}
+							{#if stop.where}<span class="muted">{stop.where}</span>{/if}
+						</button>
 						<span class="muted">
 							{#if stop.from !== trip.firstDay || stop.until !== trip.lastDay}{formatDays(stop.from, stop.until, config.locale)} · {/if}
 							{#if stop.lat !== undefined && stop.lon !== undefined}
@@ -62,7 +72,7 @@
 						</span>
 					</li>
 				{/each}
-			</ul>
+			</ol>
 		</div>
 	{/if}
 	<p class="meta">
@@ -387,17 +397,82 @@
 		font-weight: 600;
 	}
 
+	/* Left to right in the order of the trip, with an arrow between; scrolls sideways when long. */
 	.stops {
-		display: grid;
-		gap: var(--space-3);
+		display: flex;
+		gap: var(--space-2);
+		min-width: 0;
 		margin: 0;
-		padding: 0;
+		padding: var(--space-1) 2px var(--space-2);
+		overflow-x: auto;
 		list-style: none;
+		scroll-snap-type: x proximity;
+		scrollbar-width: thin;
 	}
 
 	.stops li {
+		position: relative;
+		display: grid;
+		flex: 1 1 0;
+		align-content: start;
+		gap: 2px;
+		min-width: 8.5rem;
+		max-width: 15rem;
+		padding: var(--space-2) var(--space-3);
+		border: 1px solid var(--hairline);
+		border-radius: var(--radius-m);
+		background: var(--surface);
+		scroll-snap-align: start;
+		transition:
+			border-color var(--fast) var(--ease),
+			box-shadow var(--fast) var(--ease),
+			transform var(--fast) var(--ease);
+	}
+
+	.stops li + li {
+		margin-left: var(--space-4);
+	}
+
+	.stops li + li::before {
+		content: '→';
+		position: absolute;
+		top: 50%;
+		left: calc(-1 * var(--space-4) - var(--space-2) / 2 - 1px);
+		width: var(--space-4);
+		color: var(--text-muted);
+		text-align: center;
+		transform: translateY(-50%);
+	}
+
+	.stops li.on {
+		border-color: var(--danger);
+		box-shadow: 0 2px 10px color-mix(in oklab, var(--danger) 18%, transparent);
+		transform: translateY(-2px);
+	}
+
+	/* The card itself is the button; the map link below it stays a link of its own. */
+	.stop {
 		display: grid;
 		gap: 2px;
+		padding: 0;
+		border: 0;
+		background: none;
+		color: inherit;
+		font: inherit;
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.stop:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 4px;
+		border-radius: var(--radius-s);
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.stops li.on {
+			transform: none;
+		}
 	}
 
 	.stops a {

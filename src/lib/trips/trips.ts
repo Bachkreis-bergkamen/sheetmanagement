@@ -503,3 +503,13 @@ export const localDay = (iso: string, timeZone: string) => new Intl.DateTimeForm
 /** "Sa., 1. Mai": a day of the plan. */
 export const formatWeekday = (day: string, locale: string) =>
 	new Intl.DateTimeFormat(locale, { weekday: 'short', day: 'numeric', month: 'long', timeZone: 'UTC' }).format(utc(day));
+
+/**
+ * What to say under a place's name, without saying it twice: "Peking / Peking / China" becomes
+ * "China", "Xi'an / Shaanxi, China" becomes "Shaanxi, China".
+ */
+export function placeLines(name: string, { address, region, country }: { address?: string; region?: string; country?: string }) {
+	const same = (other?: string) => !!other && other.replace(/[’']/g, "'").toLowerCase() === name.replace(/[’']/g, "'").toLowerCase();
+	const where = [region, country].filter((part) => part && !same(part)).join(', ');
+	return { ...(address && !same(address) ? { address } : {}), ...(where ? { where } : {}) };
+}
