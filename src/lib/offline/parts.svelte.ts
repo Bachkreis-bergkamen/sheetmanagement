@@ -42,6 +42,30 @@ export function decodeMeta(id: string, header: string | null): OfflinePart | nul
 	}
 }
 
+/** How long saving waits for the worker to keep the viewer's pages; they still land after. */
+const VIEWER_WAIT_MS = 20_000;
+
+/**
+ * Asks the service worker to keep the viewer's page for these parts, so they open in the viewer
+ * offline straight away, not only after the next keeping of the library (once a day).
+ */
+async function keepViewers(ids: string[]) {
+	if (!ids.length) return;
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	const late = new Promise<void>((resolve) => (timer = setTimeout(resolve, VIEWER_WAIT_MS)));
+	const asked = (async () => {
+		const worker = (await navigator.serviceWorker.ready).active;
+		if (!worker) return;
+		await new Promise<void>((resolve) => {
+			const channel = new MessageChannel();
+			channel.port1.onmessage = () => resolve();
+			worker.postMessage({ type: 'keep-viewers', ids }, [channel.port2]);
+		});
+	})();
+	await Promise.race([asked, late]);
+	clearTimeout(timer);
+}
+
 /** The part's id from a saved copy's address. */
 const idOf = (url: string) => decodeURIComponent(new URL(url).pathname.slice('/api/noten/'.length));
 
@@ -116,6 +140,7 @@ class OfflineParts {
 			}
 		}
 		await this.declined((ids) => parts.forEach((part) => ids.delete(part.id))).catch(() => {});
+		await keepViewers(parts.map((part) => part.id)).catch(() => {});
 		await this.read();
 		return failed;
 	}
