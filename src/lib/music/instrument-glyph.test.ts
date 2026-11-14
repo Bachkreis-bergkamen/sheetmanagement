@@ -67,7 +67,15 @@ describe('instrumentGlyph', () => {
 			['Konzerttoms', 'toms'],
 			['Drumset', 'drum'],
 			['Schlagwerk', 'drum'],
-			['Kastagnetten', 'castanets']
+			['Kastagnetten', 'castanets'],
+			['Klatschen', 'claps'],
+			['Body Percussion', 'claps'],
+			['Schnipsen', 'snap'],
+			['Stampfen', 'stomp'],
+			['Pfeife', 'whistle'],
+			['Sandblocks', 'sandBlocks'],
+			['Sandpapier', 'sandpaper'],
+			['Schreibmaschine', 'typewriter']
 		];
 		for (const [name, glyph] of cases) expect(instrumentGlyph(name, 'schlagwerk'), name).toBe(glyph);
 	});
