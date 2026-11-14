@@ -328,6 +328,118 @@ const windChimes: Art = {
 	draw: [line(14, 256, 22, 256, 96), ellipse(256, 106, 172, 24), ...chimeTubes.flatMap(([x, l]) => [line(10, x, 112, x, 162), box(x - 15, 160, 30, l, 8)])]
 };
 
+/** Bamboo tubes cut at a slant, their nodes showing, hung from a bar. */
+const bambooTubes: [number, number][] = [
+	[120, 270],
+	[188, 220],
+	[256, 300],
+	[324, 240],
+	[392, 280]
+];
+const bambooChimes: Art = {
+	draw: [
+		line(14, 256, 24, 256, 92),
+		box(76, 88, 360, 26, 13),
+		...bambooTubes.flatMap(([x, l]) => [line(8, x, 112, x, 140), poly(x - 24, 140, x + 24, 140, x + 24, 140 + l, x - 24, 140 + l - 34)])
+	],
+	cut: bambooTubes.flatMap(([x, l]) => [line(9, x - 24, 140 + l * 0.32, x + 24, 140 + l * 0.32), line(9, x - 24, 140 + l * 0.64, x + 24, 140 + l * 0.64)])
+};
+
+/** Shards of glass hung from a ring, each with a glint. */
+const glassShards: [number, number, number][] = [
+	[104, 180, 120],
+	[180, 220, 170],
+	[256, 200, 200],
+	[332, 230, 160],
+	[408, 176, 130]
+];
+const glassChimes: Art = {
+	draw: [
+		line(14, 256, 22, 256, 96),
+		ellipse(256, 106, 172, 22),
+		...glassShards.flatMap(([x, top, h]) => [line(6, x, 112, x, top), poly(x - 10, top, x + 30, top + h * 0.3, x + 6, top + h, x - 30, top + h * 0.62)])
+	],
+	cut: glassShards.map(([x, top, h]) => line(7, x - 4, top + h * 0.28, x + 10, top + h * 0.6))
+};
+
+/** Scallop shells, two on each string. */
+const shells: [number, number][] = [120, 188, 256, 324, 392].flatMap((x, i) => [
+	[x, 200 + (i % 2) * 40],
+	[x, 330 + (i % 2) * 40]
+]);
+const scallop = (x: number, y: number) => `M${x} ${y + 44}L${x - 34} ${y}A34 30 0 0 1 ${x + 34} ${y}Z`;
+const shellChimes: Art = {
+	draw: [
+		line(14, 256, 22, 256, 90),
+		box(80, 86, 352, 24, 12),
+		...[120, 188, 256, 324, 392].map((x, i) => line(6, x, 108, x, 330 + (i % 2) * 40)),
+		...shells.map(([x, y]) => scallop(x, y))
+	],
+	cut: shells.flatMap(([x, y]) => [line(5, x, y + 36, x - 22, y - 12), line(5, x, y + 36, x, y - 22), line(5, x, y + 36, x + 22, y - 12)])
+};
+
+/** Three wine glasses, filled to different heights to tune them. */
+const wineGlass = (x: number, top: number, water: number) => [
+	curve(10, `M${x - 40} ${top}C${x - 40} ${top + 96} ${x - 22} ${top + 120} ${x} ${top + 122}C${x + 22} ${top + 120} ${x + 40} ${top + 96} ${x + 40} ${top}`),
+	`M${x - 38} ${top + water}L${x + 38} ${top + water}C${x + 34} ${top + 100} ${x + 18} ${top + 116} ${x} ${top + 116}C${x - 18} ${top + 116} ${x - 34} ${top + 100} ${x - 38} ${top + water}Z`,
+	line(12, x, top + 120, x, 436),
+	ellipse(x, 440, 52, 12)
+];
+const wineGlasses: Art = {
+	draw: [...wineGlass(136, 170, 40), ...wineGlass(256, 120, 70), ...wineGlass(376, 200, 24)]
+};
+
+/** A singing bowl on its cushion, the striker leaning on it, a ring of sound above. */
+const singingBowl: Art = {
+	draw: [
+		ellipse(256, 404, 172, 40),
+		'M96 230L416 230C416 336 352 384 256 384C160 384 96 336 96 230Z',
+		ellipse(256, 230, 160, 28),
+		curve(12, 'M186 156Q256 118 326 156'),
+		curve(12, 'M146 112Q256 52 366 112')
+	],
+	cut: [ellipse(256, 230, 140, 18)],
+	over: [line(28, 352, 214, 476, 96)]
+};
+
+/** A church bell in its yoke, the clapper below the lip. */
+const bell: Art = {
+	draw: [
+		box(168, 36, 176, 34, 12),
+		box(238, 66, 36, 40),
+		'M256 100C184 100 164 170 160 250C156 320 136 360 96 392L416 392C376 360 356 320 352 250C348 170 328 100 256 100Z',
+		box(80, 384, 352, 30, 14),
+		line(14, 256, 414, 256, 436),
+		circle(256, 456, 28)
+	],
+	cut: [curve(12, 'M170 296Q256 318 342 296'), curve(8, 'M190 196Q256 212 322 196')]
+};
+
+/** A hand bell: the grip, the bell and its clapper. */
+const handbell: Art = {
+	turn: -18,
+	draw: [
+		box(232, 34, 48, 136, 22),
+		circle(256, 186, 28),
+		'M256 200C198 200 186 262 184 320C182 372 160 402 132 424L380 424C352 402 330 372 328 320C326 262 314 200 256 200Z',
+		circle(256, 466, 22)
+	],
+	cut: [ellipse(256, 426, 108, 12)]
+};
+
+/** Little domes nested on a rod, the smallest at the top. */
+const bellTree: Art = {
+	draw: [
+		line(14, 256, 40, 256, 482),
+		circle(256, 34, 16),
+		...range(0, 6, 1).map((i) => {
+			const r = 30 + i * 18;
+			const y = 96 + i * 64;
+			return `M${256 - r} ${y}A${r} ${r * 0.45} 0 0 1 ${256 + r} ${y}Z`;
+		})
+	]
+};
+
 const markTree: Art = {
 	draw: [line(16, 256, 104, 256, 44), circle(256, 38, 16), box(48, 96, 416, 28, 10), ...range(0, 12, 1).map((i) => box(60 + i * 31, 124, 18, 340 - i * 20, 4))]
 };
@@ -848,6 +960,14 @@ const art: Record<Glyph, Art> = {
 	flexatone,
 	sleighBells,
 	windChimes,
+	bambooChimes,
+	glassChimes,
+	shellChimes,
+	wineGlasses,
+	singingBowl,
+	bell,
+	handbell,
+	bellTree,
 	markTree,
 	brakeDrum,
 	steelPan,
