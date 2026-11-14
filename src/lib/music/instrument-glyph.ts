@@ -60,6 +60,14 @@ export type Glyph =
 	| 'flexatone'
 	| 'sleighBells'
 	| 'windChimes'
+	| 'bambooChimes'
+	| 'glassChimes'
+	| 'shellChimes'
+	| 'wineGlasses'
+	| 'singingBowl'
+	| 'bell'
+	| 'handbell'
+	| 'bellTree'
 	| 'markTree'
 	| 'brakeDrum'
 	| 'steelPan'
@@ -116,11 +124,19 @@ const BY_NAME: [RegExp, Glyph][] = [
 	[/holzblock|woodblock/, 'woodBlock'],
 	[/glockenspiel/, 'glockenspiel'],
 	[/röhrenglocke/, 'tubularBells'],
+	[/glockenbaum/, 'bellTree'],
+	[/handglocke/, 'handbell'],
+	[/^glocke/, 'bell'],
 	[/crotales/, 'crotales'],
 	[/vibraphon|marimba/, 'vibraphone'],
 	[/xylophon|mallet/, 'mallets'],
 	[/kuhglocke|cowbell/, 'cowbell'],
 	[/agogo/, 'agogo'],
+	[/bambus/, 'bambooChimes'],
+	[/glas-?windspiel/, 'glassChimes'],
+	[/muschel/, 'shellChimes'],
+	[/weingl(ä|ae)ser/, 'wineGlasses'],
+	[/klangschale/, 'singingBowl'],
 	[/windspiel/, 'windChimes'],
 	[/mark tree/, 'markTree'],
 	[/schellen/, 'sleighBells'],

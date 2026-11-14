@@ -5,9 +5,10 @@ const SMALL_PERCUSSION = [
 	'Triangel', 'Tomtoms', 'Konzerttoms', 'Rototoms', 'Bongos', 'Congas', 'Djembe', 'Kuhglocke', 'Amboss', 'Claves', 'Holzblock', 'Tempelblocks',
 	'Güiro', 'Maracas', 'Shaker', 'Regenmacher', 'Ratsche', 'Peitsche', 'Vibraslap', 'Flexaton', 'Schellen', 'Windspiel', 'Mark Tree',
 	'Agogo Bells', 'Brake Drum', 'Steel Drums', 'Klatschen', 'Schnipsen', 'Stampfen', 'Body Percussion', 'Pfeife', 'Sandblocks', 'Sandpapier',
-	'Schreibmaschine'
+	'Schreibmaschine', 'Glocken', 'Handglocken', 'Glockenbaum', 'Bambus-Windspiel', 'Glas-Windspiel', 'Muschel-Windspiel',
+	'Weingläser', 'Klangschalen'
 ];
-/** What a mallet part ("Mallet Percussion: Xylophon & Marimba") may hold. */
+/** The mallet instruments. */
 const MALLETS = ['Glockenspiel', 'Xylophon', 'Marimba', 'Vibraphon', 'Röhrenglocken', 'Crotales'];
 /**
  * What a generic percussion part ("Percussion I: Triangel & Becken") may hold, the usual ones of
@@ -17,6 +18,15 @@ const PERCUSSION_PARTS = [
 	'Becken', 'Bass Drum', 'Snare Drum', 'Triangel', 'Tamburin', 'Glockenspiel', 'Xylophon', 'Tamtam', 'Röhrenglocken',
 	'Hängendes Becken', 'Drumset', 'Trommel', ...CYMBALS.filter((cymbal) => cymbal !== 'Hängendes Becken'),
 	...SMALL_PERCUSSION.filter((small) => small !== 'Triangel'), 'Marimba', 'Vibraphon', 'Crotales', 'Mallet Percussion'
+];
+/**
+ * What a mallet part ("Mallet Percussion I: Xylophon & Pauke") may hold: the mallets first, then
+ * what its players often take on too (timpani, bells, chimes, tambourine), then the rest of the
+ * percussion, folded away.
+ */
+const MALLET_PARTS = [
+	...MALLETS, 'Pauke', 'Glocken', 'Windspiel', 'Tamburin',
+	...PERCUSSION_PARTS.filter((name) => ![...MALLETS, 'Pauke', 'Glocken', 'Windspiel', 'Tamburin', 'Mallet Percussion'].includes(name))
 ];
 
 /**
@@ -133,8 +143,17 @@ export const bachkreis: OrchestraConfig = {
 		{ name: 'Vibraslap', family: 'schlagwerk', aliases: ['Vibra Slap'] },
 		{ name: 'Flexaton', family: 'schlagwerk', aliases: ['Flexatone'] },
 		{ name: 'Schellen', family: 'schlagwerk', aliases: ['Sleigh Bells', 'Schlittenglocken', 'Schellenkranz'] },
-		{ name: 'Windspiel', family: 'schlagwerk', aliases: ['Wind Chimes', 'Windchimes', 'Glass Chimes'] },
+		{ name: 'Windspiel', family: 'schlagwerk', aliases: ['Wind Chimes', 'Windchimes', 'Wind Chime', 'Metal Chimes', 'Metal Wind Chimes'] },
+		{ name: 'Bambus-Windspiel', family: 'schlagwerk', aliases: ['Bamboo Chimes', 'Bamboo Wind Chimes', 'Bambuswindspiel', 'Bambus Windspiel'] },
+		{ name: 'Glas-Windspiel', family: 'schlagwerk', aliases: ['Glass Chimes', 'Glass Wind Chimes', 'Glaswindspiel', 'Glas Windspiel'] },
+		{ name: 'Weingläser', family: 'schlagwerk', aliases: ['Wine Glasses', 'Wineglasses', 'Musical Glasses', 'Tuned Glasses', 'Glass Harp', 'Gläserharfe', 'Glasharfe', 'Singende Gläser', 'Gläser'] },
+		{ name: 'Klangschalen', family: 'schlagwerk', aliases: ['Klangschale', 'Singing Bowls', 'Singing Bowl', 'Tibetan Bowls', 'Tibetische Klangschalen'] },
+		{ name: 'Muschel-Windspiel', family: 'schlagwerk', aliases: ['Shell Chimes', 'Seashell Chimes', 'Muschelwindspiel', 'Muschel Windspiel'] },
 		{ name: 'Mark Tree', family: 'schlagwerk', aliases: ['Marktree', 'Bar Chimes', 'Barchimes', 'Chimes Tree'] },
+		// Real bells. "Bells" alone is the glockenspiel ("orchestra bells"), as in band scores.
+		{ name: 'Glocken', family: 'schlagwerk', aliases: ['Glocke', 'Church Bells', 'Church Bell', 'Kirchenglocken', 'Kirchenglocke'] },
+		{ name: 'Handglocken', family: 'schlagwerk', aliases: ['Handbells', 'Hand Bells', 'Handbell', 'Hand Bell', 'Handglocke'] },
+		{ name: 'Glockenbaum', family: 'schlagwerk', aliases: ['Bell Tree', 'Belltree', 'Bell-Tree'] },
 		{ name: 'Agogo Bells', family: 'schlagwerk', aliases: ['Agogo', 'Agogô', 'Agogo Bell'] },
 		{ name: 'Brake Drum', family: 'schlagwerk', aliases: ['Brake Drums', 'Bremstrommel', 'Bremstrommeln', 'Automobile Brake Drum', 'Auto Brake Drum'] },
 		{ name: 'Steel Drums', family: 'schlagwerk', aliases: ['Steel Drum', 'Steeldrum', 'Steeldrums', 'Steel Pan', 'Steelpan', 'Steel Pans', 'Steelpans'] },
@@ -153,13 +172,13 @@ export const bachkreis: OrchestraConfig = {
 			family: 'schlagwerk',
 			aliases: ['Mallets', 'Mallet Perc', 'Stabspiele'],
 			// A part for several players like Percussion: "Mallet Percussion I: Xylophon & Glockenspiel".
-			holds: MALLETS
+			holds: MALLET_PARTS
 		},
-		{ name: 'Röhrenglocken', family: 'schlagwerk', aliases: ['Röhrenglocke', 'Tubular Bells', 'Tubular Bell', 'Chimes', 'Campane', 'Campanelle tubolari'] },
+		{ name: 'Röhrenglocken', family: 'schlagwerk', aliases: ['Röhrenglocke', 'Tubular Bells', 'Tubular Bell', 'Chimes', 'Orchestra Chimes', 'Orchestral Chimes', 'Tubular Chimes', 'Campane', 'Campanelle tubolari'] },
 		{ name: 'Crotales', family: 'schlagwerk', aliases: ['Crotale', 'Antike Zimbeln', 'Antique Cymbals', 'Cymbales antiques'] },
 		{ name: 'Marimba', family: 'schlagwerk', aliases: ['Marimbaphon', 'Marimbafon', 'Marimbaphone'] },
 		{ name: 'Vibraphon', family: 'schlagwerk', aliases: ['Vibraphone', 'Vibrafon', 'Vibes', 'Vibraharp'] },
-		{ name: 'Glockenspiel', family: 'schlagwerk', aliases: ['Bells', 'Orchestra Bells', 'Orchestral Bells'] },
+		{ name: 'Glockenspiel', family: 'schlagwerk', aliases: ['Bells', 'Orchestra Bells', 'Orchestral Bells', 'Orchestra Bell', 'Glockenspiel Bells', 'Campanelli', 'Carillon'] },
 		{ name: 'Xylophon', family: 'schlagwerk', aliases: ['Xylophone'] },
 		{ name: 'Becken', family: 'schlagwerk', aliases: ['Cymbals', 'Cymbal', 'Piatti', 'Clash Cymbals', 'Beckenpaar'] },
 		{ name: 'Bass Drum', family: 'schlagwerk', aliases: ['Große Trommel', 'Grosse Trommel', 'Gran Cassa', 'Gran Casa', 'Grancassa', 'Gran-Cassa', 'Bassdrum'] },
@@ -354,6 +373,8 @@ export const bachkreis: OrchestraConfig = {
 		Vibraphon: ['Mallet Percussion', 'Schlagwerk', 'Percussion'],
 		Röhrenglocken: ['Mallet Percussion', 'Schlagwerk', 'Percussion'],
 		Crotales: ['Mallet Percussion', 'Schlagwerk', 'Percussion'],
+		Glocken: ['Mallet Percussion', 'Schlagwerk', 'Percussion'],
+		Handglocken: ['Mallet Percussion', 'Schlagwerk', 'Percussion'],
 		...Object.fromEntries(CYMBALS.map((name) => [name, ['Becken', 'Schlagwerk', 'Percussion']])),
 		// Choir parts: each voice sings from them.
 		Chor: ['Sopran', 'Alt', 'Tenor', 'Bassstimme', 'Gesang'],
@@ -372,9 +393,9 @@ export const bachkreis: OrchestraConfig = {
 		Trommeln: ['Snare Drum', 'Bass Drum', 'Trommel', 'Tomtoms', 'Konzerttoms', 'Rototoms'],
 		'Becken und Gongs': ['Becken', 'Hängendes Becken', 'Crash-Becken', 'Ride-Becken', 'China-Becken', 'Hi-Hat', 'Fingerzimbeln', 'Tamtam'],
 		Kleinpercussion: ['Triangel', 'Tamburin', 'Schellen', 'Holzblock', 'Tempelblocks', 'Claves', 'Kuhglocke', 'Maracas', 'Shaker', 'Güiro', 'Agogo Bells'],
-		Effekte: ['Ratsche', 'Peitsche', 'Vibraslap', 'Flexaton', 'Regenmacher', 'Windspiel', 'Mark Tree', 'Amboss', 'Brake Drum'],
+		Effekte: ['Ratsche', 'Peitsche', 'Vibraslap', 'Flexaton', 'Regenmacher', 'Windspiel', 'Bambus-Windspiel', 'Glas-Windspiel', 'Muschel-Windspiel', 'Weingläser', 'Klangschalen', 'Mark Tree', 'Glockenbaum', 'Amboss', 'Brake Drum'],
 		'Latin und Karibik': ['Bongos', 'Congas', 'Djembe', 'Steel Drums'],
-		Stabspiele: ['Glockenspiel', 'Xylophon', 'Marimba', 'Vibraphon', 'Röhrenglocken', 'Crotales', 'Mallet Percussion'],
+		Stabspiele: ['Glockenspiel', 'Xylophon', 'Marimba', 'Vibraphon', 'Röhrenglocken', 'Crotales', 'Glocken', 'Handglocken', 'Mallet Percussion'],
 		Drumset: ['Drumset'],
 		Pauken: ['Pauke']
 	}
