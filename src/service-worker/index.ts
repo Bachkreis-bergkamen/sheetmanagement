@@ -56,7 +56,15 @@ sw.addEventListener('activate', (event) => {
 // A signed-in member's page asks to keep the library offline.
 sw.addEventListener('message', (event) => {
 	if (event.data === 'skip-waiting') sw.skipWaiting();
-	if (event.data === 'warm') event.waitUntil(warm());
+	// Kept pages from before an update are brought up to date first; warm() then skips those just fetched.
+	if (event.data === 'warm') event.waitUntil(tidy().then(warm));
+	// A part just saved on "Meine Noten" or a piece page: its viewer's page too, so it opens offline
+	// straight away, not only after the next keeping of the library. The page waits for the answer.
+	const data = event.data as { type?: string; ids?: unknown } | null;
+	if (data?.type === 'keep-viewers' && Array.isArray(data.ids)) {
+		const ids = data.ids.filter((id): id is string => typeof id === 'string');
+		event.waitUntil(keepViewers(ids).finally(() => event.ports[0]?.postMessage('kept')));
+	}
 });
 
 /** The page a path belongs to: "/stuecke/x/__data.json" → "/stuecke/x". */
@@ -99,11 +107,14 @@ async function twoAtATime<T>(items: T[], work: (item: T) => Promise<void>) {
 
 /**
  * Deletes the files of older versions that no kept page links any more. Not while a new version
- * is installing, whose files would look unneeded too; and a page kept before pages noted their
- * version keeps them all, until it is fetched again.
+ * is installing, whose files would look unneeded too. A page kept before pages noted their
+ * version keeps only the oldest version's files: until pages noted it, each update deleted every
+ * older version, so the oldest left is the one that made it. Without this every update's files
+ * stayed, and every lookup on the device searched all of them.
  */
 async function sweep() {
 	if (sw.registration.installing || sw.registration.waiting) return;
+	const versions = (await caches.keys()).filter((key) => key.startsWith('app-'));
 	const needed = new Set([APP]);
 	for (const name of [PAGES, LIBRARY]) {
 		const cache = await caches.open(name);
@@ -111,26 +122,31 @@ async function sweep() {
 			const path = new URL(request.url).pathname;
 			if (own(path) || path.endsWith('/__data.json')) continue;
 			const made = (await cache.match(request))?.headers.get(MADE_BY);
-			if (!made) return;
-			needed.add(`app-${made}`);
+			// Cache names come in the order they were made.
+			needed.add(made ? `app-${made}` : versions[0]);
 		}
 	}
-	for (const key of await caches.keys()) if (key.startsWith('app-') && !needed.has(key)) await caches.delete(key);
+	for (const key of versions) if (!needed.has(key)) await caches.delete(key);
 }
 
 /** When the kept pages were last brought to this version: "<version> <time> <failed>". */
 const TIDIED = '/__offline-tidied';
 /** How long after a tidying that couldn't reach every page (offline, say) it is tried again. */
 const RETRY_TIDY = 10 * 60 * 1000;
+/** How long one page may take; on a hall's weak Wi-Fi a request often hangs rather than fails (#303). */
+const TIDY_FETCH_MS = 15_000;
 let tidying: Promise<void> | null = null;
 /**
  * After an update, fetches every kept page again from the new version, so it links the new
  * version's files, then lets the old files go (sweep()). A page that fails to come (no
- * connection) stays as it is, with its version's files. Old page data is dropped: the new
- * version's scripts read it differently.
+ * connection) stays as it is, with its version's files; after the first failure the rest aren't
+ * tried, it's tried again later. Old page data is dropped: the new version's scripts read it
+ * differently. Runs on activation and when a page starts (the "warm" message), never while
+ * pages are being opened, and not offline.
  */
 function tidy() {
 	tidying ??= (async () => {
+		if (!navigator.onLine) return;
 		const library = await caches.open(LIBRARY);
 		const [stamp, at, failedBefore] = (await (await library.match(TIDIED))?.text())?.split(' ') ?? [];
 		if (stamp === version && (!Number(failedBefore) || Date.now() - Number(at) < RETRY_TIDY)) return;
@@ -145,7 +161,8 @@ function tidy() {
 				else stale.push(request);
 			}
 			await twoAtATime(stale, async (request) => {
-				const page = await fetch(request.url, { headers: { accept: 'text/html' } }).catch(() => null);
+				if (failed) return void failed++;
+				const page = await fetch(request.url, { headers: { accept: 'text/html' }, signal: AbortSignal.timeout(TIDY_FETCH_MS) }).catch(() => null);
 				if (page && keepable(page)) await keep(cache, request.url, page);
 				// Gone, or no longer the member's (signed out elsewhere): it goes too.
 				else if (page && page.status < 500) await cache.delete(request);
@@ -158,6 +175,19 @@ function tidy() {
 		.catch(() => undefined)
 		.finally(() => (tidying = null));
 	return tidying;
+}
+
+/**
+ * Keeps the viewer's page for these parts. A part the viewer doesn't open (it sends the browser
+ * elsewhere) is left out, not retried.
+ */
+async function keepViewers(ids: string[]) {
+	const cache = await caches.open(LIBRARY);
+	await twoAtATime(ids, async (id) => {
+		const path = `/ueben/${encodeURIComponent(id)}`;
+		const page = await fetch(path, { headers: { accept: 'text/html' }, redirect: 'manual' }).catch(() => null);
+		if (page && keepable(page)) await keep(cache, sw.location.origin + path, page);
+	});
 }
 
 let warming: Promise<void> | null = null;
@@ -211,13 +241,8 @@ function warm() {
 			if (!wantedParts.has(id) && autoKept(await noten.match(request))) await noten.delete(request);
 			else savedIds.add(id);
 		}
-		// The viewer's page for every part on the device, so it opens there offline too. A part
-		// the viewer doesn't open (it sends the browser elsewhere) is left out, not retried.
-		await twoAtATime([...savedIds], async (id) => {
-			const path = `/ueben/${encodeURIComponent(id)}`;
-			const page = await fetch(path, { headers: { accept: 'text/html' }, redirect: 'manual' }).catch(() => null);
-			if (page && keepable(page)) await keep(cache, sw.location.origin + path, page);
-		});
+		// The viewer's page for every part on the device, so it opens there offline too.
+		await keepViewers([...savedIds]);
 
 		// Pieces no longer in the archive go, and the viewer's pages of parts no longer on the device.
 		const wanted = new Set(piecePages);
@@ -261,6 +286,15 @@ const OFFLINE = {
 		home: 'To the overview'
 	}
 }[__LANGUAGE__];
+
+/**
+ * The app's own files of this version. Looked up in its own cache, not across all of them: every
+ * cache searched (older versions' files, saved parts) makes each style and script slower to come.
+ */
+const inApp = async (path: string) => (await caches.open(APP)).match(path);
+/** A kept page or its data, from either page cache. */
+const keptCopy = async (request: RequestInfo, options?: CacheQueryOptions) =>
+	(await (await caches.open(PAGES)).match(request, options)) ?? (await (await caches.open(LIBRARY)).match(request, options));
 
 const offlinePage = () =>
 	new Response(
@@ -306,7 +340,7 @@ sw.addEventListener('fetch', (event) => {
 	// The app's own files, fixed per version.
 	if (ASSETS.has(url.pathname)) {
 		event.respondWith(
-			caches.match(url.pathname).then(
+			inApp(url.pathname).then(
 				(cached) =>
 					cached ??
 					fetch(request).then(async (response) => {
@@ -331,7 +365,7 @@ sw.addEventListener('fetch', (event) => {
 		// Bundled as e.g. "_app/immutable/assets/jbig2.BUnLb-NU.wasm".
 		const asset = [...ASSETS].find((path) => path.endsWith('.wasm') && path.split('/').pop()!.startsWith(`${name}.`));
 		if (asset) {
-			event.respondWith(caches.match(asset).then((cached) => cached ?? fetch(request)));
+			event.respondWith(inApp(asset).then((cached) => cached ?? fetch(request)));
 			return;
 		}
 	}
@@ -371,8 +405,6 @@ sw.addEventListener('fetch', (event) => {
 	const data = url.pathname.endsWith('/__data.json');
 	if (!data && request.mode !== 'navigate') return;
 	if (url.pathname.startsWith('/auth/') || url.pathname.startsWith('/api/') || url.pathname.startsWith('/demo')) return;
-	// Kept pages still from before an update are brought up to date (it returns at once when they are).
-	if (!data) event.waitUntil(tidy());
 
 	event.respondWith(
 		(async () => {
@@ -381,7 +413,7 @@ sw.addEventListener('fetch', (event) => {
 			// Page data carries a changing "x-sveltekit-invalidated" parameter; the path is what counts.
 			const key = data ? url.origin + url.pathname : request.url;
 			// Either cache: a page may have been kept before it moved to the library.
-			const copy = async () => (await caches.match(key)) ?? (data ? undefined : await caches.match(request, { ignoreSearch: true }));
+			const copy = async () => (await keptCopy(key)) ?? (data ? undefined : await keptCopy(request, { ignoreSearch: true }));
 			let stored: Promise<unknown> = Promise.resolve();
 			const fresh = fetch(request).then((response) => {
 				// Files sent with "no-store" (a member's data export, the music list) are never kept.
@@ -396,7 +428,7 @@ sw.addEventListener('fetch', (event) => {
 				// one gives way to loading the page itself, which then comes from the device.
 				if (!data) return await networkOr(fresh, copy);
 				const page = sw.location.origin + pageOf(url.pathname);
-				return await networkOr(fresh, async () => ((await caches.match(page)) ? Response.error() : undefined));
+				return await networkOr(fresh, async () => ((await cache.match(page)) ? Response.error() : undefined));
 			} catch {
 				const cached = await copy();
 				if (cached) return cached;
