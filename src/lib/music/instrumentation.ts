@@ -55,6 +55,8 @@ export interface ScoredVoice {
 	holds?: string[];
 	/** The soloist, out front: "Solo Geige" beside the section's "Geige 1 & 2". */
 	solo?: boolean;
+	/** The key its parts are written in, when it isn't the instrument's usual one: "Horn 1 & 2 in Es". */
+	key?: string;
 }
 
 /** The word for a soloist in the Besetzung, as in the part names ("Solo Geige"). */
@@ -78,13 +80,22 @@ function plain(label: string, config: OrchestraConfig): string {
 	return text.replace(JOINER, ' & ');
 }
 
+/** The key a voice is written in, kept only for an instrument with keys and when it isn't its usual one. */
+export function unusualKey(instrument: string, key: string | undefined, config: OrchestraConfig): string | undefined {
+	const keys = config.instruments.find((each) => each.name === instrument)?.keys;
+	return key && keys?.length && key !== keys[0] ? key : undefined;
+}
+
 /** The voices one name stands for: "Flauto I, II" → Flöte 1 and 2. Scores and reductions aren't voices. */
 function voicesOf(label: string, config: OrchestraConfig): ScoredVoice[] {
 	const parsed = parsePartName(plain(label, config), 'application/pdf', config.naming, matcherFor(config));
 	if (parsed.kind === 'partitur') return [];
 	// "Percussion 1: Triangel & Becken" is one voice of the Besetzung, not three.
 	const holder = parsed.voices.find((voice) => voice.holds?.length);
-	const voices = holder ? [holder] : parsed.voices;
+	const voices = (holder ? [holder] : parsed.voices).map(({ transposition, ...voice }) => {
+		const key = unusualKey(voice.instrument, transposition, config);
+		return key ? { ...voice, key } : voice;
+	});
 	return parsed.kind === 'solo' ? voices.map((voice) => ({ ...voice, solo: true })) : voices;
 }
 
@@ -95,10 +106,16 @@ function voicesOf(label: string, config: OrchestraConfig): ScoredVoice[] {
  */
 function merge(voices: ScoredVoice[]): ScoredVoice[] {
 	const merged = new Map<string, ScoredVoice>();
-	for (const { instrument, numbers, holds, solo } of voices) {
-		// The soloist stays apart from the section of the same instrument.
-		const key = (solo ? 'solo|' : '') + (holds?.length ? `${instrument}|${[...numbers].sort().join(',')}` : instrument);
-		const known = merged.get(key) ?? { instrument, numbers: [], ...(holds?.length ? { holds: [] } : {}), ...(solo ? { solo } : {}) };
+	for (const { instrument, numbers, holds, solo, key: written } of voices) {
+		// The soloist stays apart from the section of the same instrument, a part in another key too.
+		const key = (solo ? 'solo|' : '') + (holds?.length ? `${instrument}|${[...numbers].sort().join(',')}` : instrument) + (written ? `|${written}` : '');
+		const known = merged.get(key) ?? {
+			instrument,
+			numbers: [],
+			...(holds?.length ? { holds: [] } : {}),
+			...(solo ? { solo } : {}),
+			...(written ? { key: written } : {})
+		};
 		for (const number of numbers) if (!known.numbers.includes(number)) known.numbers.push(number);
 		for (const held of holds ?? []) if (!known.holds!.includes(held)) known.holds!.push(held);
 		merged.set(key, known);
@@ -135,10 +152,10 @@ export function tidyRecognised(line: string): string {
 		.replace(/(?<=\p{L}*(?:i|(?<![\p{L}])[A-H]))a\s+([2-4])(?!\d)/gu, ' a $1');
 }
 
-/** "Flöte 1 & 2", with the deployment's label for the instrument. */
-export function voiceText({ instrument, numbers, holds, solo }: ScoredVoice): string {
+/** "Flöte 1 & 2", "Horn 1 & 2 in Es", with the deployment's label for the instrument. */
+export function voiceText({ instrument, numbers, holds, solo, key }: ScoredVoice): string {
 	const name = solo ? `${SOLO} ${instrumentLabel(instrument)}` : instrumentLabel(instrument);
-	const text = numbers.length ? `${name} ${numbers.join(' & ')}` : name;
+	const text = (numbers.length ? `${name} ${numbers.join(' & ')}` : name) + (key ? ` in ${key}` : '');
 	return holds?.length ? `${text}: ${holds.map(instrumentLabel).join(' & ')}` : text;
 }
 
@@ -154,13 +171,16 @@ export interface PickedVoice {
 	solo?: boolean;
 	/** With a soloist: the section plays too, also without numbers ("Solo Flöte; Flöte"). */
 	tutti?: boolean;
+	/** The key, when it isn't the instrument's usual one ("Es" for a horn). */
+	key?: string;
 }
 
 /** The Besetzung's voices as the picker shows them, one per instrument. */
 export function pickedVoices(voices: ScoredVoice[]): PickedVoice[] {
 	const picked = new Map<string, PickedVoice>();
-	for (const { instrument, numbers, holds, solo } of voices) {
+	for (const { instrument, numbers, holds, solo, key } of voices) {
 		const voice: PickedVoice = picked.get(instrument) ?? { instrument, numbers: [], held: {} };
+		if (key && !voice.key) voice.key = key;
 		if (solo) {
 			voice.solo = true;
 			picked.set(instrument, voice);
@@ -181,18 +201,19 @@ export function pickedVoices(voices: ScoredVoice[]): PickedVoice[] {
 
 /** The picker's voices back as the Besetzung's: a generic part once per number that names instruments. */
 export function scoredVoices(picked: PickedVoice[]): ScoredVoice[] {
-	return picked.flatMap(({ instrument, numbers, held, solo, tutti }): ScoredVoice[] => {
-		const soloist: ScoredVoice[] = solo ? [{ instrument, numbers: [], solo: true }] : [];
+	return picked.flatMap(({ instrument, numbers, held, solo, tutti, key }): ScoredVoice[] => {
+		const keyed = key ? { key } : {};
+		const soloist: ScoredVoice[] = solo ? [{ instrument, numbers: [], solo: true, ...keyed }] : [];
 		// A soloist alone ("Solo Klavier") unless the section has parts or is said to play.
 		if (solo && !tutti && !numbers.length && !held[0]?.length) return soloist;
 		const keys = numbers.length ? numbers : [0];
 		const naming = keys.filter((number) => held[number]?.length);
-		if (!naming.length) return [...soloist, { instrument, numbers: [...numbers] }];
+		if (!naming.length) return [...soloist, { instrument, numbers: [...numbers], ...keyed }];
 		const plain = keys.filter((number) => !naming.includes(number) && number > 0);
 		return ([
 			...soloist,
-			...naming.map((number) => ({ instrument, numbers: number ? [number] : [], holds: [...held[number]] })),
-			...(plain.length ? [{ instrument, numbers: plain }] : [])
+			...naming.map((number) => ({ instrument, numbers: number ? [number] : [], holds: [...held[number]], ...keyed })),
+			...(plain.length ? [{ instrument, numbers: plain, ...keyed }] : [])
 		] as ScoredVoice[]).sort((a, b) => Number(!a.solo) - Number(!b.solo) || (a.numbers[0] ?? 0) - (b.numbers[0] ?? 0));
 	});
 }

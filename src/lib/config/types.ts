@@ -50,6 +50,12 @@ export interface Instrument {
 	 */
 	holds?: string[];
 	/**
+	 * The keys its parts are written in, the usual one first: a horn in F, else in Es, E, D …
+	 * The Besetzung offers them beside the parts and names a key only when it isn't the first
+	 * ("Horn 1 & 2 in Es"). As the part names write them, i.e. values of `naming.transpositions`.
+	 */
+	keys?: string[];
+	/**
 	 * One of the usual orchestra instruments, offered first in instrument lists; the rest
 	 * are behind "Mehr Instrumente …". When no instrument has it, every one is offered.
 	 */

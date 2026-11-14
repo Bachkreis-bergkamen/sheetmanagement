@@ -31,7 +31,7 @@ describe('instrumentationFromScore', () => {
 	it('reads the Italian names at the left of a classical score, one instrument each', () => {
 		const labels = ['Allegro con brio', 'Flauto I, II', 'Oboi a 2', 'Clarinetti in B', 'Fagotti', 'Corni in F I. II.', 'Trombe in C', 'Timpani', 'Violino I', 'Violino II', 'Viola', 'Violoncello e Basso'];
 		expect(instrumentationFromScore(labels, config)).toBe(
-			'Flöte 1 & 2; Oboe 1 & 2; Klarinette; Fagott; Horn 1 & 2; Trompete; Pauke; Geige 1 & 2; Bratsche; Cello; Kontrabass'
+			'Flöte 1 & 2; Oboe 1 & 2; Klarinette; Fagott; Horn 1 & 2; Trompete in C; Pauke; Geige 1 & 2; Bratsche; Cello; Kontrabass'
 		);
 	});
 
@@ -53,7 +53,7 @@ describe('tidyRecognised', () => {
 		const read = ['Partitur', 'Egmor', 'Ottavino', 'Flauti a 2', 'Oboia 2', 'Clarinetti in Ba 2', 'Fagotti a 2', 'Corni in F 1. Il.', 'Trombe in C', 'Timpani', 'Violino |', 'Violino II', 'Viola', 'Violoncello e Basso', 'Demo-Noten - Sheetr'];
 		expect(read.map(tidyRecognised).slice(4, 11)).toEqual(['Oboi a 2', 'Clarinetti in B a 2', 'Fagotti a 2', 'Corni in F 1. II.', 'Trombe in C', 'Timpani', 'Violino I']);
 		expect(instrumentationFromScore(read.map(tidyRecognised), config)).toBe(
-			'Piccolo; Flöte 1 & 2; Oboe 1 & 2; Klarinette 1 & 2; Fagott 1 & 2; Horn 1 & 2; Trompete; Pauke; Geige 1 & 2; Bratsche; Cello; Kontrabass'
+			'Piccolo; Flöte 1 & 2; Oboe 1 & 2; Klarinette 1 & 2; Fagott 1 & 2; Horn 1 & 2; Trompete in C; Pauke; Geige 1 & 2; Bratsche; Cello; Kontrabass'
 		);
 	});
 
@@ -152,5 +152,27 @@ describe('generic parts in the instrument picker', () => {
 	it('writes a part without a number, and drops what a removed number named', () => {
 		expect(writeInstrumentation(scoredVoices([{ instrument: 'Chor', numbers: [], held: { 0: ['Sopran', 'Alt'] } }]))).toBe('Chor: Sopran & Alt');
 		expect(writeInstrumentation(scoredVoices([{ instrument: 'Percussion', numbers: [2], held: { 1: ['Triangel'] } }]))).toBe('Percussion 2');
+	});
+});
+
+describe('the key a part is written in', () => {
+	it('writes a key only when it isn’t the instrument’s usual one', () => {
+		const voices = readInstrumentation('Horn 1 & 2 in Es; Horn in F 3; Klarinette 1 & 2 in B; Trompete in C', config);
+		expect(voices.map(voiceText)).toEqual(['Horn 1 & 2 in Es', 'Horn 3', 'Klarinette 1 & 2', 'Trompete in C']);
+	});
+
+	it('reads the key as a score names it', () => {
+		expect(readInstrumentation('Corno I, II in Es; Clarinetto in A a 2', config).map(voiceText)).toEqual(['Horn 1 & 2 in Es', 'Klarinette 1 & 2 in A']);
+	});
+
+	it('leaves the key out for an instrument that isn’t written in one', () => {
+		expect(readInstrumentation('Flöte in C; Geige 1', config).map(voiceText)).toEqual(['Flöte', 'Geige 1']);
+	});
+
+	it('keeps the picker’s key for the soloist and the section', () => {
+		const picked = pickedVoices(readInstrumentation('Solo Klarinette in A; Klarinette 1 & 2 in A', config));
+		expect(picked).toEqual([{ instrument: 'Klarinette', numbers: [1, 2], held: {}, solo: true, tutti: true, key: 'A' }]);
+		expect(writeInstrumentation(scoredVoices(picked))).toBe('Solo Klarinette in A; Klarinette 1 & 2 in A');
+		expect(writeInstrumentation(scoredVoices([{ instrument: 'Horn', numbers: [1, 2], held: {} }]))).toBe('Horn 1 & 2');
 	});
 });

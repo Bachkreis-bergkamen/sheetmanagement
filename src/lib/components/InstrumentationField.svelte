@@ -100,6 +100,13 @@
 		if (voice.solo) voice.tutti = voice.numbers.length > 0;
 	}
 
+	/** The keys an instrument's parts may be in, the usual one first; and the one the piece's are in. */
+	const keysOf = (n: string) => info.get(n)?.keys ?? [];
+	function setKey(n: string, key: string) {
+		const voice = chosen(n);
+		if (voice) voice.key = key === keysOf(n)[0] ? undefined : key;
+	}
+
 	/** A soloist for the instrument; the section plays too while it has numbers. */
 	function solo(n: string) {
 		const voice = chosen(n);
@@ -303,6 +310,19 @@
 									<button type="button" class="number" aria-pressed={voice.numbers.includes(part)} onclick={() => number(n, part)}>{ROMAN[part]}</button>
 								{/each}
 								<button type="button" class="number solo" aria-pressed={!!voice.solo} title={t.instruments.soloHint} onclick={() => solo(n)}>{t.instruments.solo}</button>
+								{#if keysOf(n).length > 1 || voice.key}
+									{@const keys = [...new Set([...keysOf(n), ...(voice.key ? [voice.key] : [])])]}
+									<select
+										class="number key"
+										class:other={!!voice.key}
+										aria-label="{t.instruments.key}: {instrumentLabel(n)}"
+										title={t.instruments.keyHint}
+										value={voice.key ?? keys[0]}
+										onchange={(event) => setKey(n, event.currentTarget.value)}
+									>
+										{#each keys as key (key)}<option value={key}>{t.instruments.inKey(key)}</option>{/each}
+									</select>
+								{/if}
 								{#if partOf(n)}
 									{@const found = partOf(n)!}
 									<button type="button" class="number view" class:on={sheet?.id === found.id} aria-label={t.instruments.viewPart(found.label)} title={t.instruments.viewPart(found.label)} onclick={() => view(found.id)}><Icon name="eye" size={14} /></button>
@@ -816,6 +836,17 @@
 		width: auto;
 		margin-left: 4px;
 		padding: 0 10px;
+	}
+
+	/* The key: quiet while it's the usual one, marked when the piece's parts are in another. */
+	.number.key {
+		width: auto;
+		padding: 0 6px;
+	}
+
+	.number.key.other {
+		border-color: var(--accent);
+		color: var(--accent);
 	}
 
 	.none {

@@ -76,6 +76,8 @@ export interface Voice {
 	numbers: number[];
 	/** For a generic part ("Percussion I: Triangel & Becken"): the instruments it names. */
 	holds?: string[];
+	/** The key it is written in, as the name gives it: "Horn II in Es" → "Es". */
+	transposition?: string;
 }
 
 // ":" after a voice or a generic part: "Stimme 3: Flöte", "Percussion I: Triangel".
@@ -446,7 +448,7 @@ export function parsePartName(
 			.map((i) =>
 				i === holder
 					? { instrument: i.instrument.name, numbers: [...i.numbers], holds: items.slice(1).map((held) => held.instrument.name) }
-					: { instrument: i.instrument.name, numbers: [...i.numbers] }
+					: { instrument: i.instrument.name, numbers: [...i.numbers], ...(i.transposition ? { transposition: i.transposition } : {}) }
 			),
 		notes,
 		status,
