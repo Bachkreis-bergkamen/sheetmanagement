@@ -19,7 +19,7 @@ import { daysUntilDue, loanState, loansOf } from '#lib/loans/loans.ts';
 import { formatDay } from '#lib/events/format.ts';
 import { pieceArt } from '#lib/music/piece-art.ts';
 import { missingVoices, readInstrumentation } from '#lib/music/instrumentation.ts';
-import { bandFor, filmArt, filmSourceUrl } from '#lib/server/film-art.ts';
+import { bandFor, filmArt, filmSourceUrl, musicalArt } from '#lib/server/film-art.ts';
 import { portraitFor, portraitPageUrl } from '#lib/server/portraits.ts';
 import { appendRecords, deleteRows, ensureTab, readTab, refreshAfterWrite, SheetLayoutError } from '#lib/server/sheet-writes.ts';
 import { folderUrl, partUrl } from '#lib/server/catalog.ts';
@@ -66,9 +66,13 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 	const art = pieceArt({ genre: sheet?.genre, title: piece.title });
 	const screen = art === 'filmmusik' || art === 'musical';
 	const film = screen ? await filmArt(piece.title, art === 'musical') : null;
-	// A medley's many composers: no one face stands for it, the drawing does.
-	const [portrait, band] = film || manyComposers(piece.composer) ? [null, null] : await Promise.all([portraitFor(piece.composer), bandFor(piece.composer)]);
-	const logo = film ?? (portrait ? null : band);
+	// A medley's many composers: no one face stands for it, the drawing does. A piece from a
+	// musical without the genre is found by its composers, before their portrait or band.
+	const [portrait, band, stage] =
+		film || manyComposers(piece.composer)
+			? [null, null, null]
+			: await Promise.all([portraitFor(piece.composer), bandFor(piece.composer), screen ? null : musicalArt(piece.title, piece.composer)]);
+	const logo = film ?? stage ?? (portrait ? null : band);
 	// The member's own parts (#216), matched like "Meine Noten": from their instruments in "Mitglieder".
 	const member = locals.access.user ? access?.membersByEmail.get(normalizeEmail(locals.access.user.email)) : undefined;
 	// What they play here: their own instruments, or the part assigned to them (#262) for this piece and its coming concerts.
@@ -92,15 +96,20 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 	});
 	return {
 		banner: {
-			art,
+			art: stage ? ('musical' as const) : art,
 			film: logo && {
 				// The picture's file in the address too: the browser keeps each answer for a month, so another picture needs another address.
 				src: `/api/filmbild?${new URLSearchParams({
-					...(film ? { titel: piece.title, ...(art === 'musical' ? { musical: '' } : {}) } : { band: band!.query }),
+					...(film
+						? { titel: piece.title, ...(art === 'musical' ? { musical: '' } : {}) }
+						: stage
+							? { titel: piece.title, komponist: piece.composer ?? '' }
+							: { band: band!.query }),
 					bild: logo.logo ?? logo.icon ?? ''
 				})}`,
 				name: logo.name,
-				band: !film,
+				band: !film && !stage,
+				musical: art === 'musical' || !!stage,
 				kind: logo.logo ? ('logo' as const) : ('icon' as const),
 				source: filmSourceUrl(logo)
 			},

@@ -204,7 +204,7 @@
 		<img
 			class="film {film.kind} {film.kind === 'logo' ? (logoLook ?? 'measuring') : ''}"
 			src={film.src}
-			alt={film.band ? t.piece.bandPicture(film.name) : t.piece.filmPicture(film.name)}
+			alt={film.band ? t.piece.bandPicture(film.name) : film.musical ? t.piece.musicalPicture(film.name) : t.piece.filmPicture(film.name)}
 			use:measured
 			onerror={() => (filmFailed = piece.id)}
 		/>
