@@ -7,42 +7,153 @@ import type { InstrumentFamily } from '#lib/config/types.ts';
  */
 export type Glyph =
 	| 'violin'
+	| 'cello'
+	| 'contrabass'
+	| 'electricBass'
+	| 'guitar'
+	| 'mandolin'
+	| 'recorder'
 	| 'flute'
+	| 'piccolo'
+	| 'oboe'
 	| 'clarinet'
+	| 'bassClarinet'
+	| 'contrabassClarinet'
+	| 'bassetHorn'
+	| 'contrabassoon'
 	| 'bassoon'
 	| 'sax'
+	| 'sopranoSax'
 	| 'horn'
 	| 'trumpet'
 	| 'trombone'
 	| 'tuba'
+	| 'wagnerTuba'
 	| 'timpani'
 	| 'drum'
-	| 'cymbal'
+	| 'snare'
+	| 'fieldDrum'
+	| 'bassDrum'
+	| 'toms'
+	| 'bongos'
+	| 'congas'
+	| 'djembe'
+	| 'cajon'
+	| 'hiHat'
+	| 'suspendedCymbal'
+	| 'clashCymbals'
+	| 'gong'
+	| 'triangle'
+	| 'cowbell'
+	| 'agogo'
+	| 'anvil'
+	| 'claves'
+	| 'woodBlock'
+	| 'templeBlocks'
+	| 'guiro'
+	| 'maracas'
+	| 'shaker'
+	| 'rainStick'
+	| 'ratchet'
+	| 'whip'
+	| 'vibraslap'
+	| 'flexatone'
+	| 'sleighBells'
+	| 'windChimes'
+	| 'markTree'
+	| 'brakeDrum'
+	| 'steelPan'
+	| 'tambourine'
+	| 'castanets'
 	| 'mallets'
+	| 'vibraphone'
+	| 'glockenspiel'
+	| 'tubularBells'
+	| 'crotales'
 	| 'keys'
+	| 'synth'
+	| 'accordion'
+	| 'celesta'
 	| 'organ'
 	| 'harp'
 	| 'voice'
 	| 'score';
 
-// First match wins, so "Englischhorn" is a clarinet before "horn" makes it a horn.
+// First match wins: "Englischhorn" is an oboe before "horn" makes it a horn, "Blockflöte" a recorder
+// before it is a flute, "Hi-Hat" and "Ride-Becken" stand before the plain "Becken" of a pair.
 const BY_NAME: [RegExp, Glyph][] = [
+	[/sopran-?saxophon/, 'sopranoSax'],
 	[/saxophon/, 'sax'],
+	[/kontrafagott/, 'contrabassoon'],
 	[/fagott/, 'bassoon'],
-	[/oboe|englischhorn|klarinette/, 'clarinet'],
-	[/fl(ö|oe)te|piccolo/, 'flute'],
-	[/horn/, 'horn'],
+	[/oboe|englischhorn|heckelphon/, 'oboe'],
+	[/kontrabass-?klarinette/, 'contrabassClarinet'],
+	[/(alt|bass)-?klarinette/, 'bassClarinet'],
+	[/bassetthorn/, 'bassetHorn'],
+	[/klarinette/, 'clarinet'],
+	[/blockfl(ö|oe)te/, 'recorder'],
+	[/piccolo/, 'piccolo'],
+	[/fl(ö|oe)te/, 'flute'],
 	[/trompete|kornett|fl(ü|ue)gelhorn/, 'trumpet'],
+	[/wagnertuba/, 'wagnerTuba'],
+	[/tenorhorn/, 'tuba'],
+	[/horn/, 'horn'],
 	[/posaune/, 'trombone'],
-	[/tuba|bariton|euphonium/, 'tuba'],
+	[/tuba|bariton|euphonium|sousaphon|cimbasso|ophikleide/, 'tuba'],
 	[/pauke/, 'timpani'],
-	[/glockenspiel|xylophon|vibraphon|marimba|mallet|röhrenglocken|crotales/, 'mallets'],
-	[/becken|tamtam|gong/, 'cymbal'],
-	[/geige|viola|violine|bratsche|cello|kontrabass|e-bass/, 'violin'],
+	[/hi-?hat/, 'hiHat'],
+	[/crash|ride|china|hängend|suspended/, 'suspendedCymbal'],
+	[/fingerzimbel|becken/, 'clashCymbals'],
+	[/tamtam|gong/, 'gong'],
+	[/tempelblock/, 'templeBlocks'],
+	[/holzblock|woodblock/, 'woodBlock'],
+	[/glockenspiel/, 'glockenspiel'],
+	[/röhrenglocke/, 'tubularBells'],
+	[/crotales/, 'crotales'],
+	[/vibraphon|marimba/, 'vibraphone'],
+	[/xylophon|mallet/, 'mallets'],
+	[/kuhglocke|cowbell/, 'cowbell'],
+	[/agogo/, 'agogo'],
+	[/windspiel/, 'windChimes'],
+	[/mark tree/, 'markTree'],
+	[/schellen/, 'sleighBells'],
+	[/triangel/, 'triangle'],
+	[/tamburin/, 'tambourine'],
+	[/snare|kleine trommel/, 'snare'],
+	[/bass drum|gro(ß|ss)e trommel/, 'bassDrum'],
+	[/brake drum/, 'brakeDrum'],
+	[/steel drum/, 'steelPan'],
+	[/drumset|schlagwerk|schlagzeug/, 'drum'],
+	[/trommel/, 'fieldDrum'],
+	[/toms|timbales|low drum/, 'toms'],
+	[/bongo/, 'bongos'],
+	[/conga/, 'congas'],
+	[/djemb/, 'djembe'],
+	[/caj(o|ó)n/, 'cajon'],
+	[/amboss/, 'anvil'],
+	[/claves/, 'claves'],
+	[/g(ü|u)iro/, 'guiro'],
+	[/maracas|cabasa/, 'maracas'],
+	[/shaker/, 'shaker'],
+	[/regenmacher/, 'rainStick'],
+	[/ratsche/, 'ratchet'],
+	[/peitsche/, 'whip'],
+	[/vibraslap/, 'vibraslap'],
+	[/flexaton/, 'flexatone'],
+	[/kastagnette|castanet/, 'castanets'],
+	[/cello/, 'cello'],
+	[/kontrabass/, 'contrabass'],
+	[/e-bass|e-gitarre/, 'electricBass'],
+	[/gitarre/, 'guitar'],
+	[/mandolin/, 'mandolin'],
+	[/geige|viola|violine|bratsche/, 'violin'],
 	[/orgel/, 'organ'],
-	[/klavier|cembalo|synthesizer|continuo|piano/, 'keys'],
+	[/synthesizer|keyboard/, 'synth'],
+	[/akkordeon/, 'accordion'],
+	[/celesta/, 'celesta'],
+	[/klavier|cembalo|continuo|piano/, 'keys'],
 	[/harfe/, 'harp'],
-	[/sopran|alt$|tenor$|bass$|chor|gesang/, 'voice']
+	[/sopran|alt$|tenor$|bass$|chor$|gesang/, 'voice']
 ];
 
 const BY_FAMILY: Record<InstrumentFamily, Glyph> = {
