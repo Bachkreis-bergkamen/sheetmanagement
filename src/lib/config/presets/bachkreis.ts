@@ -4,7 +4,8 @@ const CYMBALS = ['Crash-Becken', 'Ride-Becken', 'China-Becken', 'Hängendes Beck
 const SMALL_PERCUSSION = [
 	'Triangel', 'Tomtoms', 'Konzerttoms', 'Rototoms', 'Bongos', 'Congas', 'Djembe', 'Kuhglocke', 'Amboss', 'Claves', 'Holzblock', 'Tempelblocks',
 	'Güiro', 'Maracas', 'Shaker', 'Regenmacher', 'Ratsche', 'Peitsche', 'Vibraslap', 'Flexaton', 'Schellen', 'Windspiel', 'Mark Tree',
-	'Agogo Bells', 'Brake Drum', 'Steel Drums'
+	'Agogo Bells', 'Brake Drum', 'Steel Drums', 'Klatschen', 'Schnipsen', 'Stampfen', 'Body Percussion', 'Pfeife', 'Sandblocks', 'Sandpapier',
+	'Schreibmaschine'
 ];
 /** What a mallet part ("Mallet Percussion: Xylophon & Marimba") may hold. */
 const MALLETS = ['Glockenspiel', 'Xylophon', 'Marimba', 'Vibraphon', 'Röhrenglocken', 'Crotales'];
@@ -137,6 +138,15 @@ export const bachkreis: OrchestraConfig = {
 		{ name: 'Agogo Bells', family: 'schlagwerk', aliases: ['Agogo', 'Agogô', 'Agogo Bell'] },
 		{ name: 'Brake Drum', family: 'schlagwerk', aliases: ['Brake Drums', 'Bremstrommel', 'Bremstrommeln', 'Automobile Brake Drum', 'Auto Brake Drum'] },
 		{ name: 'Steel Drums', family: 'schlagwerk', aliases: ['Steel Drum', 'Steeldrum', 'Steeldrums', 'Steel Pan', 'Steelpan', 'Steel Pans', 'Steelpans'] },
+		// Sounds made with the body, and things that aren't instruments at all.
+		{ name: 'Klatschen', family: 'schlagwerk', aliases: ['Claps', 'Clap', 'Hand Claps', 'Handclaps', 'Händeklatschen', 'Klatscher'] },
+		{ name: 'Schnipsen', family: 'schlagwerk', aliases: ['Snaps', 'Snap', 'Finger Snaps', 'Fingerschnipsen', 'Fingerschnippen'] },
+		{ name: 'Stampfen', family: 'schlagwerk', aliases: ['Stomps', 'Stomp', 'Foot Stomps', 'Füßestampfen'] },
+		{ name: 'Body Percussion', family: 'schlagwerk', aliases: ['Bodypercussion', 'Body Perc', 'Körperpercussion'] },
+		{ name: 'Pfeife', family: 'schlagwerk', aliases: ['Whistle', 'Trillerpfeife', 'Signalpfeife', 'Police Whistle', 'Referee Whistle'] },
+		{ name: 'Sandblocks', family: 'schlagwerk', aliases: ['Sand Blocks', 'Sand Block', 'Sandpapierblöcke', 'Sandblöcke'] },
+		{ name: 'Sandpapier', family: 'schlagwerk', aliases: ['Sandpaper', 'Sand Paper', 'Schmirgelpapier'] },
+		{ name: 'Schreibmaschine', family: 'schlagwerk', aliases: ['Typewriter'] },
 		{
 			name: 'Mallet Percussion',
 			common: true,

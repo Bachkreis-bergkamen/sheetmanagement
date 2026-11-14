@@ -708,6 +708,108 @@ const contrabassoon: Art = {
 	cut: [...range(150, 400, 46).map((y) => circle(188, y, 7)), ...range(260, 380, 46).map((y) => circle(329, y, 7))]
 };
 
+/**
+ * A hand, fingers up and the thumb out to the left (`flip` puts it right), turned by `deg`
+ * around (cx, cy). `grow` widens every stroke, so the same hand can cut a gap round itself.
+ */
+const hand = (cx: number, cy: number, deg: number, flip = 1, grow = 0, fingers = [-178, -194, -186, -150]): Mark[] => {
+	const c = Math.cos((deg * Math.PI) / 180);
+	const s = Math.sin((deg * Math.PI) / 180);
+	const at = (x: number, y: number) => [cx + x * flip * c - y * s, cy + x * flip * s + y * c];
+	const seg = (w: number, ...p: number[]) => line(w + grow, ...p.flatMap((v, i) => (i % 2 ? [] : at(v, p[i + 1]))));
+	const palm = [-58, -50, 58, -50, 54, 92, -50, 92];
+	return [
+		poly(...palm.flatMap((v, i) => (i % 2 ? [] : at(v, palm[i + 1])))),
+		seg(40, ...palm, -58, -50),
+		...[-48, -16, 16, 46].map((x, i) => seg(i === 3 ? 30 : 34, x, -40, x * 1.12, fingers[i])),
+		seg(38, -56, 50, -100, -10, -112, -64)
+	];
+};
+
+const claps: Art = {
+	draw: hand(176, 330, 30),
+	cut: hand(336, 330, -30, -1, 30),
+	over: [...hand(336, 330, -30, -1), line(16, 256, 92, 256, 40), line(16, 196, 104, 160, 62), line(16, 316, 104, 352, 62)]
+};
+
+const snap: Art = {
+	draw: [
+		...hand(250, 330, 10, 1, 0, [-200, -70, -60, -56]),
+		// the middle finger has just slid off the thumb and lies in the palm
+		line(34, 230, 270, 262, 210)
+	],
+	over: [line(14, 96, 150, 54, 120), line(14, 104, 98, 80, 46), line(14, 146, 78, 152, 24), circle(126, 132, 12)]
+};
+
+const stomp: Art = {
+	draw: [
+		'M164 60H284V262C344 274 414 292 440 330C452 348 452 362 452 372H134V96Q134 60 164 60Z',
+		box(122, 372, 342, 42, 14),
+		line(18, 40, 476, 472, 476)
+	],
+	cut: [...range(110, 230, 40).map((y) => line(12, 236, y, 300, y + 10)), line(10, 134, 300, 280, 300)],
+	over: [line(16, 92, 404, 34, 380), line(16, 90, 444, 30, 444), line(16, 482, 404, 504, 380), line(16, 486, 444, 506, 444), line(14, 340, 120, 340, 200), line(14, 396, 170, 396, 240)]
+};
+
+const whistle: Art = {
+	draw: [circle(316, 296, 144), box(30, 152, 300, 100, 26), curve(18, ellipse(464, 160, 28, 28))],
+	cut: [poly(240, 140, 330, 140, 300, 196, 240, 196), curve(14, ellipse(316, 296, 92, 92)), line(10, 76, 172, 76, 232)],
+	over: [line(14, 248, 112, 226, 58), line(14, 290, 108, 296, 50), line(14, 330, 116, 364, 68)]
+};
+
+const sandBlock = (x: number, top: number, up: boolean): { draw: Mark[]; cut: Mark[] } => {
+	const face = up ? top : top + 90;
+	const block = up ? top + 24 : top;
+	const knob = up ? top + 114 : top - 60;
+	return {
+		draw: [box(x, block, 300, 90, 14), box(x - 6, face, 312, 24, 6), box(x + 126, up ? knob - 6 : knob + 30, 48, 36), ellipse(x + 150, up ? knob + 30 : knob, 52, 30)],
+		cut: [line(8, x, up ? face + 24 : face, x + 300, up ? face + 24 : face), ...range(x + 18, x + 288, 30).map((gx, i) => circle(gx, face + 8 + (i % 2) * 8, 5))]
+	};
+};
+const sandBlocks: Art = (() => {
+	const a = sandBlock(60, 116, false);
+	const b = sandBlock(152, 254, true);
+	return {
+		draw: [...a.draw, ...b.draw],
+		cut: [...a.cut, ...b.cut],
+		over: [line(14, 24, 242, 84, 242), line(14, 428, 242, 488, 242)]
+	};
+})();
+
+const sandpaper: Art = {
+	turn: -8,
+	draw: [poly(90, 70, 350, 70, 430, 150, 430, 450, 90, 450)],
+	cut: [
+		line(14, 350, 70, 350, 150, 430, 150),
+		...range(0, 8, 1).flatMap((row) =>
+			range(0, 8, 1)
+				.map((col) => [118 + col * 40 + (row % 2) * 20 + 9 * Math.sin(row * 7 + col * 3), 104 + row * 42 + 8 * Math.cos(row * 5 + col * 11)])
+				.filter(([x, y]) => x < 410 && !(x > 330 && y < 170))
+				.map(([x, y], col) => circle(x, y, (row + col) % 3 ? 7 : 10))
+		)
+	]
+};
+
+const typewriter: Art = {
+	draw: [
+		box(160, 24, 192, 170, 6),
+		box(70, 170, 372, 48, 24),
+		circle(56, 194, 30),
+		circle(456, 194, 30),
+		line(18, 110, 172, 70, 124, 24, 124),
+		poly(104, 232, 408, 232, 458, 434, 54, 434),
+		box(36, 424, 440, 44, 16)
+	],
+	cut: [
+		...[70, 104, 138].map((y, i) => line(10, 188, y, i === 2 ? 270 : 324, y)),
+		line(8, 160, 170, 352, 170),
+		...range(0, 6, 1).map((i) => circle(146 + i * 44, 278, 14)),
+		...range(0, 7, 1).map((i) => circle(136 + i * 40, 324, 14)),
+		...range(0, 6, 1).map((i) => circle(146 + i * 44, 370, 14)),
+		box(176, 398, 160, 18, 9)
+	]
+};
+
 const art: Record<Glyph, Art> = {
 	...(Object.fromEntries(Object.entries(gameIcons).map(([name, d]) => [name, { draw: [d] }])) as Record<keyof typeof gameIcons, Art>),
 	cello,
@@ -755,6 +857,13 @@ const art: Record<Glyph, Art> = {
 	glockenspiel,
 	tambourine,
 	castanets,
+	claps,
+	snap,
+	stomp,
+	whistle,
+	sandBlocks,
+	sandpaper,
+	typewriter,
 	sopranoSax,
 	wagnerTuba,
 	guitar,

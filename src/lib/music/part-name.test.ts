@@ -161,7 +161,7 @@ describe('parsePartName', () => {
 	});
 
 	it('keeps unknown files readable and sorts the score first', () => {
-		expect(parse('Avicii Medley - Klatschen.pdf')).toMatchObject({ label: 'Avicii Medley – Klatschen', kind: 'sonstiges' });
+		expect(parse('Avicii Medley - Tanzschritte.pdf')).toMatchObject({ label: 'Avicii Medley – Tanzschritte', kind: 'sonstiges' });
 		expect(parse('Aufnahme.mp3', '', 'audio/mpeg').kind).toBe('audio');
 
 		const order = ['Geige I.pdf', '@Partitur.pdf', 'Flöte II.pdf', 'Flöte I.pdf', 'Notizen.pdf']

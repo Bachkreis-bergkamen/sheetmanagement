@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isLogoFile, candidatePicture, candidateQuery, commonsFile, FILM_KINDS, filmQuery, iconTerms, iconUrl, MUSICAL_KINDS, pickIcon, rankCandidates, readCandidates, type Candidate } from './film-art.ts';
+import { isLogoFile, candidatePicture, candidateQuery, candidateStill, composedBy, commonsFile, FILM_KINDS, filmQuery, iconTerms, iconUrl, MUSICAL_KINDS, pickIcon, rankCandidates, readCandidates, type Candidate } from './film-art.ts';
 
 describe('film pictures (#312)', () => {
 	it('finds the film in an arrangement title', () => {
@@ -46,7 +46,10 @@ describe('film pictures (#312)', () => {
 			seriesLogo: undefined,
 			franchiseLogo: undefined,
 			subjects: ['space', 'lightsaber'],
-			fame: 70
+			fame: 70,
+			poster: undefined,
+			photo: undefined,
+			composers: []
 		});
 		expect(commonsFile(undefined)).toBeUndefined();
 	});
@@ -67,6 +70,25 @@ describe('film pictures (#312)', () => {
 		const film: Candidate = { id: 'Q102244', kinds: ['Q11424'], labels: { en: 'Harry Potter and the Chamber of Secrets' }, seriesLogo: 'Harry Potter wordmark.svg', franchiseLogo: 'Wizarding World logo.svg', subjects: [] };
 		expect(candidatePicture(film)).toBe('Harry Potter wordmark.svg');
 		expect(candidatePicture({ ...film, seriesLogo: undefined })).toBeUndefined();
+	});
+
+	it("falls back to a poster, and for a musical to a photo of its production", () => {
+		const show: Candidate = { id: 'Q19320959', kinds: ['Q58483083'], labels: { en: 'Hamilton' }, photo: 'Lin-Manuel Miranda in Hamilton.jpg', subjects: [] };
+		expect(candidateStill(show)).toBe('Lin-Manuel Miranda in Hamilton.jpg');
+		expect(candidateStill({ ...show, poster: 'Hamilton poster.jpg' })).toBe('Hamilton poster.jpg');
+		// A film's image is a still or an actor: only its poster counts.
+		const film: Candidate = { id: 'Q188850', kinds: ['Q11424'], labels: { en: 'Mamma Mia!' }, photo: 'ABBA 2008.jpg', subjects: [] };
+		expect(candidateStill(film)).toBeUndefined();
+		expect(candidateStill({ ...film, poster: 'Phantom of the opera 1925 poster.jpg' })).toBe('Phantom of the opera 1925 poster.jpg');
+	});
+
+	it("knows a musical by its composers' surnames, so a namesake piece doesn't get its picture", () => {
+		const cats: Candidate = { id: 'Q337097', kinds: ['Q58483083'], labels: { en: 'Cats' }, composers: ['Andrew Lloyd Webber'], subjects: [] };
+		expect(composedBy(cats, 'Andrew Lloyd Webber')).toBe(true);
+		expect(composedBy(cats, 'Lloyd Webber, arr. Calvin Custer')).toBe(true);
+		expect(composedBy(cats, 'Domenico Scarlatti')).toBe(false);
+		expect(composedBy(cats, undefined)).toBe(false);
+		expect(composedBy({ ...cats, composers: undefined }, 'Andrew Lloyd Webber')).toBe(false);
 	});
 
 	it('matches names without their article, and the better known of two works of one name', () => {

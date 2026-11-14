@@ -65,6 +65,13 @@ export type Glyph =
 	| 'steelPan'
 	| 'tambourine'
 	| 'castanets'
+	| 'claps'
+	| 'snap'
+	| 'stomp'
+	| 'whistle'
+	| 'sandBlocks'
+	| 'sandpaper'
+	| 'typewriter'
 	| 'mallets'
 	| 'vibraphone'
 	| 'glockenspiel'
@@ -141,6 +148,13 @@ const BY_NAME: [RegExp, Glyph][] = [
 	[/vibraslap/, 'vibraslap'],
 	[/flexaton/, 'flexatone'],
 	[/kastagnette|castanet/, 'castanets'],
+	[/klatsch|clap|body ?percussion/, 'claps'],
+	[/schnips|snap/, 'snap'],
+	[/stampf|stomp/, 'stomp'],
+	[/trillerpfeife|signalpfeife|^pfeife|whistle/, 'whistle'],
+	[/sand-? ?bl(ö|o)ck/, 'sandBlocks'],
+	[/sandpapier|sandpaper/, 'sandpaper'],
+	[/schreibmaschine|typewriter/, 'typewriter'],
 	[/cello/, 'cello'],
 	[/kontrabass/, 'contrabass'],
 	[/e-bass|e-gitarre/, 'electricBass'],

@@ -5,6 +5,8 @@ import {
 	candidateName,
 	candidatePicture,
 	candidateQuery,
+	candidateStill,
+	composedBy,
 	FILM_KINDS,
 	filmQuery,
 	iconTerms,
@@ -45,7 +47,7 @@ const HITS = 15;
 export interface FilmArt {
 	/** The film or band as Wikidata names it, for the picture's description. */
 	name: string;
-	/** The logo's (or a musical's picture's) file on Wikimedia Commons. */
+	/** The logo's file on Wikimedia Commons, else a poster's or a musical production's photo. */
 	logo?: string;
 	/** Else an icon, e.g. "noto:lion". */
 	icon?: string;
@@ -95,8 +97,26 @@ async function lookUpFilm(query: string, musical: boolean): Promise<FilmArt | nu
 	// A musical's film and a musical film's stage show both do.
 	const kinds = musical ? [...MUSICAL_KINDS, ...FILM_KINDS] : [...FILM_KINDS, ...MUSICAL_KINDS];
 	const ids = await search(query, kinds);
-	const hits = await candidates(ids);
-	const ranked = rankCandidates(query, ids, hits, kinds);
+	return pictureOf(query, rankCandidates(query, ids, await candidates(ids), kinds));
+}
+
+/**
+ * A musical for a piece without the genre: only one by the piece's own composers, so a
+ * song called "Elisabeth" never gets the musical's picture.
+ */
+async function lookUpMusical(query: string, composers: string): Promise<FilmArt | null> {
+	const ids = await search(query, MUSICAL_KINDS);
+	const ranked = rankCandidates(query, ids, await candidates(ids), MUSICAL_KINDS).filter((candidate) => composedBy(candidate, composers));
+	if (!ranked.length) return null;
+	// It is the musical: then like one with the genre, so its film's logo comes before a photo of the stage.
+	return (await lookUpFilm(query, true)) ?? pictureOf(query, ranked);
+}
+
+/**
+ * The best of the ranked hits' pictures: a logo, a logo file on Commons named for it, a free
+ * poster or a photo of a musical's production, the franchise's logo, else an icon.
+ */
+async function pictureOf(query: string, ranked: Candidate[]): Promise<FilmArt | null> {
 	for (const candidate of ranked) {
 		const logo = candidatePicture(candidate);
 		if (logo) return { name: candidateName(candidate, LANGUAGE) ?? query, logo };
@@ -106,6 +126,11 @@ async function lookUpFilm(query: string, musical: boolean): Promise<FilmArt | nu
 	for (const name of named.slice(0, 2)) {
 		const logo = await commonsLogo(name).catch(() => undefined);
 		if (logo) return { name: (ranked[0] && candidateName(ranked[0], LANGUAGE)) ?? query, logo };
+	}
+	// A poster, or a musical's production ("Lin-Manuel Miranda in Hamilton"): of the work itself.
+	for (const candidate of ranked) {
+		const still = candidateStill(candidate);
+		if (still) return { name: candidateName(candidate, LANGUAGE) ?? query, logo: still };
 	}
 	// Else the franchise's: broader ("Marvel Cinematic Universe"), but of the same world.
 	const franchise = ranked.find((candidate) => candidate.franchiseLogo);
@@ -145,7 +170,19 @@ export async function filmArt(title: string, musical = false): Promise<FilmArt |
 	const query = filmQuery(title);
 	const key = keyOf(query);
 	if (!key) return null;
-	return cachedArt(`film-art:v6:${musical ? 'musical' : 'film'}:${key}`, () => lookUpFilm(query, musical));
+	return cachedArt(`film-art:v7:${musical ? 'musical' : 'film'}:${key}`, () => lookUpFilm(query, musical));
+}
+
+/**
+ * The picture of the musical a piece is from when its genre doesn't say so: looked up by
+ * the title and taken only if the musical is by the piece's composers. Cached like a film's.
+ */
+export async function musicalArt(title: string, composers: string | undefined): Promise<FilmArt | null> {
+	const query = filmQuery(title);
+	const key = keyOf(query);
+	const by = keyOf(composers ?? '');
+	if (!key || !by) return null;
+	return cachedArt(`musical-art:v1:${key}:${by}`, () => lookUpMusical(query, composers!));
 }
 
 /** The logo of a band among a piece's composers ("Queen", "ABBA"), cached. */

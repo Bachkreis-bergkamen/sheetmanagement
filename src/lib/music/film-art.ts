@@ -84,6 +84,12 @@ export interface Candidate {
 	subjects: string[];
 	/** In how many Wikipedias it has an article: the better known of two works of one name. */
 	fame?: number;
+	/** Its poster (P3383), on Commons only when it's free: old films, some shows. */
+	poster?: string;
+	/** Its image (P18): for a musical mostly a photo of a production or its theatre. */
+	photo?: string;
+	/** Its composers' names (P86), to tell a musical from a piece of the same name. */
+	composers?: string[];
 }
 
 type Binding = Record<string, { value: string } | undefined>;
@@ -120,7 +126,10 @@ export function readCandidates(bindings: Binding[]): Candidate[] {
 				seriesLogo: commonsFile(row.seriesLogo?.value),
 				franchiseLogo: commonsFile(row.franchiseLogo?.value),
 				subjects: split(row.subjects?.value),
-				fame: Number(row.fame?.value) || 0
+				fame: Number(row.fame?.value) || 0,
+				poster: commonsFile(row.poster?.value),
+				photo: commonsFile(row.photo?.value),
+				composers: split(row.composers?.value)
 			}
 		];
 	});
@@ -135,7 +144,8 @@ export function candidateQuery(ids: string[]): string {
 	return `SELECT ?item (GROUP_CONCAT(DISTINCT ?kind; separator="|") AS ?kinds)
  (GROUP_CONCAT(DISTINCT ?label; separator="|") AS ?labels) (SAMPLE(?logo_) AS ?logo)
  (SAMPLE(?seriesLogo_) AS ?seriesLogo) (SAMPLE(?franchiseLogo_) AS ?franchiseLogo)
- (GROUP_CONCAT(DISTINCT ?subject; separator="|") AS ?subjects) (SAMPLE(?links) AS ?fame) WHERE {
+ (GROUP_CONCAT(DISTINCT ?subject; separator="|") AS ?subjects) (SAMPLE(?links) AS ?fame)
+ (SAMPLE(?poster_) AS ?poster) (SAMPLE(?photo_) AS ?photo) (GROUP_CONCAT(DISTINCT ?composer; separator="|") AS ?composers) WHERE {
  VALUES ?item { ${values} }
  OPTIONAL { ?item wdt:P31 ?kind }
  OPTIONAL { ?item wikibase:sitelinks ?links }
@@ -144,6 +154,9 @@ export function candidateQuery(ids: string[]): string {
  OPTIONAL { ?item wdt:P179/wdt:P154 ?seriesLogo_ }
  OPTIONAL { ?item wdt:P8345/wdt:P154 ?franchiseLogo_ }
  OPTIONAL { ?item wdt:P921/rdfs:label ?s FILTER(LANG(?s) = "en") BIND(STR(?s) AS ?subject) }
+ OPTIONAL { ?item wdt:P3383 ?poster_ }
+ OPTIONAL { ?item wdt:P18 ?photo_ }
+ OPTIONAL { ?item wdt:P86/rdfs:label ?c FILTER(LANG(?c) IN ("en", "mul")) BIND(STR(?c) AS ?composer) }
 } GROUP BY ?item`;
 }
 
@@ -194,6 +207,30 @@ export function rankCandidates(query: string, order: string[], candidates: Candi
 /** Its logo, else its series'. (Its franchise's comes last, after a logo file on Commons named for it.) */
 export function candidatePicture(candidate: Candidate): string | undefined {
 	return candidate.logo ?? candidate.seriesLogo;
+}
+
+/** Whether it is a stage musical, not its film. */
+export const isMusical = (candidate: Candidate) => candidate.kinds.some((kind) => MUSICAL_KINDS.includes(kind));
+
+/**
+ * When there's no logo: its poster, and for a musical the photo of a production. A film's image
+ * is mostly a still or one of its actors, so films get only a poster.
+ */
+export function candidateStill(candidate: Candidate): string | undefined {
+	return candidate.poster ?? (isMusical(candidate) ? candidate.photo : undefined);
+}
+
+/**
+ * Whether a piece's composers wrote it: one of its composers' surnames is among the piece's
+ * names ("Lloyd Webber, arr. Custer" for Andrew Lloyd Webber). How a piece without the genre
+ * "Musical" is still found as one, but a song "Elisabeth" never as the musical.
+ */
+export function composedBy(candidate: Candidate, composers: string | undefined): boolean {
+	const words = new Set(nameWords(composers ?? ''));
+	return (candidate.composers ?? []).some((name) => {
+		const surname = nameWords(name).at(-1);
+		return !!surname && surname.length > 2 && words.has(surname);
+	});
 }
 
 /** Words a logo's file name may have besides the name: "Evita Soundtrack Logo.png", "007 logo (cropped).jpg". */
