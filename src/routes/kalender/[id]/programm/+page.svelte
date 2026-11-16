@@ -4,7 +4,7 @@
 	import { guardUnsaved } from '#lib/unsaved.svelte.ts';
 	import { flip } from 'svelte/animate';
 	import { t } from '#lib/i18n/index.ts';
-	import { movementsIn, withMovements } from '#lib/music/sections.ts';
+	import { movementsIn, movementWord, withMovements } from '#lib/music/sections.ts';
 	import { searchText } from '#lib/music/text.ts';
 	import { isJoint, programLabel } from '#lib/repertoire/orchestras.ts';
 	import { formatDuration, parseDuration, programLength, roundMinutes } from '#lib/repertoire/duration.ts';
@@ -22,10 +22,11 @@
 	 * Picks movements in an entry's note, where "Meine Noten" reads them: from the whole piece, a
 	 * tap means only that movement, then each tap adds or drops one; none left is the whole piece again.
 	 */
-	function toggleMovement(entry: Entry, all: number[], movement: number) {
+	function toggleMovement(entry: Entry, parts: { number: number; label: string }[], movement: number) {
+		const all = parts.map((part) => part.number);
 		const named = movementsIn(entry.notes).filter((n) => all.includes(n));
 		const next = named.includes(movement) ? named.filter((n) => n !== movement) : [...named, movement];
-		entry.notes = withMovements(entry.notes, next.length === all.length ? [] : next);
+		entry.notes = withMovements(entry.notes, next.length === all.length ? [] : next, movementWord(parts.map((part) => part.label)));
 	}
 
 	interface Entry {
@@ -425,13 +426,13 @@
 						/>
 						{#if movements.has(entry.piece)}
 							{@const all = movements.get(entry.piece) ?? []}
-							{@const named = movementsIn(entry.notes).filter((n) => all.includes(n))}
+							{@const named = movementsIn(entry.notes)}
 							<span class="movements" role="group" aria-label="{t.editor.movements}: {entry.title}">
 								<span class="muted">{t.editor.movements}</span>
-								{#each all as movement (movement)}
-									<button type="button" aria-pressed={named.includes(movement)} aria-label={t.editor.movement(movement)} onclick={() => toggleMovement(entry, all, movement)}>{movement}</button>
+								{#each all as part (part.number)}
+									<button type="button" aria-pressed={named.includes(part.number)} aria-label={part.label} onclick={() => toggleMovement(entry, all, part.number)}>{part.number}</button>
 								{/each}
-								{#if !named.length}<span class="muted">{t.editor.allMovements}</span>{/if}
+								{#if !all.some((part) => named.includes(part.number))}<span class="muted">{t.editor.allMovements}</span>{/if}
 							</span>
 						{/if}
 					</span>

@@ -30,13 +30,30 @@ export interface SectionName {
 const MOVEMENT = [/^\s*(\d+)\s*(?:\.|er|ter|te|tr|r)?\s*satz\b/i, /\bsatz\s*(\d+)\b/i, /^\s*(\d+)\s*(?:\.|er|ter)?\s*mov(?:ement)?\b/i, /\bmov(?:ement)?\s*(\d+)\b/i];
 const COMPLETE = /\b(komplett|vollständig|gesamt|gesamtausgabe|complete|full)\b/i;
 
-/** "1er Satz" → "1. Satz", "Komplett" → "Komplett", anything else stays as it is. */
+/** A numbered part that isn't called a movement, counted in digits or Roman numerals: "Section II", "Teil 3", "Part IV". */
+const NUMBERED = /^\s*(?:section|sektion|abschnitt|teil|part|nr\.?|no\.?)\s*(\d{1,2}|[ivx]{1,5})\s*$/i;
+const ROMAN: Record<string, number> = { i: 1, v: 5, x: 10 };
+
+/** "II" → 2, "IV" → 4, "3" → 3; 0 for anything else. */
+function numberOf(text: string): number {
+	if (/^\d+$/.test(text)) return Number(text);
+	const values = [...text.toLowerCase()].map((letter) => ROMAN[letter] ?? NaN);
+	const sum = values.reduce((total, value, i) => total + (value < (values[i + 1] ?? 0) ? -value : value), 0);
+	return sum > 0 && sum <= 20 ? sum : 0;
+}
+
+/**
+ * "1er Satz" → "1. Satz", "Komplett" → "Komplett", anything else stays as it is. A piece's
+ * numbered parts under another word ("Section II") count as movements and keep their name.
+ */
 export function sectionName(folderName: string): SectionName {
 	const name = folderName.trim();
 	for (const pattern of MOVEMENT) {
 		const number = Number(pattern.exec(name)?.[1]);
 		if (number) return { label: `${number}. Satz`, kind: 'movement', movement: number };
 	}
+	const numbered = numberOf(NUMBERED.exec(name)?.[1] ?? '');
+	if (numbered) return { label: name, kind: 'movement', movement: numbered };
 	if (COMPLETE.test(name)) return { label: 'Komplett', kind: 'complete' };
 	return { label: name, kind: 'other' };
 }
@@ -53,7 +70,7 @@ export function sharedMovement(fileNames: string[]): number | undefined {
 
 const NUMBER = String.raw`\d{1,2}`;
 const JOIN = String.raw`\s*(?:,|&|\+|-|–|\bund\b|\band\b|\bbis\b|\bto\b)\s*`;
-const WORD = String.raw`(?:s[aä]tze?|mov(?:ement)?s?\.?)`;
+const WORD = String.raw`(?:s[aä]tze?|mov(?:ement)?s?\.?|sections?|sektion(?:en)?|abschnitte?|teile?)`;
 /** "Satz 2", "Sätze 1–3", "movements 2 & 4"; or with the numbers first, the last one an ordinal: "2. Satz", "1. & 3. Satz". */
 const MOVEMENTS = new RegExp(
 	String.raw`(?<![a-zäöü])${WORD}\s*(${NUMBER}\.?(?:${JOIN}${NUMBER}\.?)*)|((?:\b${NUMBER}\.?${JOIN})*\b${NUMBER}(?:\.|er|ter|te|st|nd|rd|th))\s*${WORD}(?![a-zäöü])`,
@@ -86,14 +103,24 @@ export function movementsIn(note: string | undefined): number[] {
 	return [...found].sort((a, b) => a - b);
 }
 
-/** The note with these movements named in it, in place of the ones it named: [2, 4] → "2. & 4. Satz"; none: the whole piece. */
-export function withMovements(note: string, movements: number[]): string {
+/** The word a piece's parts go by in a note: "Section" for folders "Section II", "Section III"; "Satz" for movements and anything mixed. */
+export function movementWord(labels: string[]): string {
+	const words = new Set(labels.map((label) => /^(section|sektion|abschnitt|teil)\b/i.exec(label.trim())?.[1].toLowerCase()));
+	const [word] = words;
+	return words.size === 1 && word ? word[0].toUpperCase() + word.slice(1) : 'Satz';
+}
+
+/**
+ * The note with these movements named in it, in place of the ones it named: [2, 4] → "2. & 4. Satz",
+ * or with another `word` "Section 2 & 4"; none: the whole piece.
+ */
+export function withMovements(note: string, movements: number[], word = 'Satz'): string {
 	const rest = note
 		.replace(MOVEMENTS, '')
 		.replace(/^[\s,;·–-]+|[\s,;·–-]+$/g, '')
 		.replace(/\s{2,}/g, ' ');
 	const sorted = [...new Set(movements)].sort((a, b) => a - b);
-	const named = sorted.length ? `${sorted.map((n) => `${n}.`).join(' & ')} Satz` : '';
+	const named = !sorted.length ? '' : word === 'Satz' ? `${sorted.map((n) => `${n}.`).join(' & ')} Satz` : `${word} ${sorted.join(' & ')}`;
 	return [named, rest].filter(Boolean).join(', ');
 }
 

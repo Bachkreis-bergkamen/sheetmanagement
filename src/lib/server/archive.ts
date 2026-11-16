@@ -1,7 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { config } from '#lib/config/index.ts';
 import { t } from '#lib/i18n/index.ts';
-import { movementsOf } from '#lib/music/my-parts.ts';
+import { playedSections } from '#lib/music/my-parts.ts';
 import { searchText } from '#lib/music/text.ts';
 import { orchestraChoices, sameOrchestra } from '#lib/repertoire/orchestras.ts';
 import { checkNewConcert, checkNewPiece, similarPieces, type ArchiveProblem, type NewConcert } from '#lib/repertoire/archive-edit.ts';
@@ -158,7 +158,7 @@ export interface PickablePiece {
 	subtitle?: string;
 	duration?: number;
 	/** For a piece kept as a folder per movement: the movements a programme can pick from (#361). */
-	movements?: number[];
+	movements?: { number: number; label: string }[];
 }
 
 /** Pieces with a row in "Stücke": the ones a programme can refer to. */
@@ -166,7 +166,8 @@ export function pickablePieces(library: Awaited<ReturnType<typeof getLibrary>>):
 	return library.pieces
 		.filter((piece) => piece.sheet?.title)
 		.map((piece) => {
-			const movements = piece.detail ? movementsOf(piece.detail) : [];
+			const played = piece.detail ? playedSections(piece.detail) : [];
+			const movements = played.length > 1 ? played.flatMap((section) => (section.movement ? [{ number: section.movement, label: section.label }] : [])) : [];
 			return {
 				name: piece.sheet!.title,
 				title: piece.title,

@@ -3,7 +3,7 @@ import { bachkreis } from '#lib/config/presets/bachkreis.ts';
 import type { DriveIndex, IndexedFile } from '#lib/server/drive-index.ts';
 import { buildCatalog } from './catalog.ts';
 import { workKey } from './piece-name.ts';
-import { compareSections, movementsIn, sectionName, sharedMovement, withMovements } from './sections.ts';
+import { compareSections, movementsIn, movementWord, sectionName, sharedMovement, withMovements } from './sections.ts';
 
 describe('sectionName', () => {
 	it.each([
@@ -144,6 +144,9 @@ describe('movements in a programme note (#361)', () => {
 		['Satz 1 bis 3', [1, 2, 3]],
 		['movements 2 & 4', [2, 4]],
 		['2nd movement', [2]],
+		['Section 2 & 3', [2, 3]],
+		['Sections 1-3', [1, 2, 3]],
+		['nur 1. Teil', [1]],
 		['Zugabe', []],
 		['2 Sätze', []],
 		['Ersatz 2', []],
@@ -164,5 +167,33 @@ describe('movements in a programme note (#361)', () => {
 		expect(withMovements('2. Satz', [])).toBe('');
 		// What it writes, it reads again.
 		expect(movementsIn(withMovements('Zugabe', [1, 3, 4]))).toEqual([1, 3, 4]);
+	});
+});
+
+describe('numbered parts under another name', () => {
+	it.each([
+		['Section II', 2],
+		['Section III', 3],
+		['section 4', 4],
+		['Teil IV', 4],
+		['Part IX', 9],
+		['Abschnitt 1', 1]
+	])('%s counts as a movement and keeps its name', (folder, movement) => {
+		expect(sectionName(folder)).toEqual({ label: folder, kind: 'movement', movement });
+	});
+
+	it('leaves other folders alone', () => {
+		expect(sectionName('Sections').kind).toBe('other');
+		expect(sectionName('Section Leaders').kind).toBe('other');
+		expect(sectionName('Teil mix').kind).toBe('other');
+	});
+
+	it('names them in a note by their own word', () => {
+		expect(movementWord(['Section II', 'Section III'])).toBe('Section');
+		expect(movementWord(['1. Satz', '2. Satz'])).toBe('Satz');
+		expect(movementWord(['Section II', '3. Satz'])).toBe('Satz');
+		expect(withMovements('Zugabe', [3, 2], 'Section')).toBe('Section 2 & 3, Zugabe');
+		expect(withMovements('Section 2 & 3', [], 'Section')).toBe('');
+		expect(movementsIn(withMovements('', [2], 'Section'))).toEqual([2]);
 	});
 });
