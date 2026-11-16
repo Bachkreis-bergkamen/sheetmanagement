@@ -39,6 +39,16 @@ describe('merging progress from two devices', () => {
 		expect(merged.changed).toBe(200);
 	});
 
+	it('keeps the wider range, edge by edge, with the tries that belong to each edge', () => {
+		const phone = data({ settings: { reach: { trumpet: { low: 30, high: 40, tried: { high: { day: 5, fails: 2 } } } } }, changed: 100 });
+		const laptop = data({ settings: { sound: false, reach: { trumpet: { low: 28, high: 38, tried: { high: { day: 9, fails: 1 }, low: { day: 9, fails: 1 } } }, cello: { low: 10, high: 20 } } }, changed: 200 });
+		const merged = mergeData(phone, laptop);
+		expect(merged.settings.reach).toEqual({ trumpet: { low: 28, high: 40, tried: { low: { day: 9, fails: 1 }, high: { day: 5, fails: 2 } } }, cello: { low: 10, high: 20 } });
+		expect(mergeData(laptop, phone).settings.reach).toEqual(merged.settings.reach);
+		expect(merged.settings.sound).toBe(false);
+		expect(mergeData(merged, laptop)).toEqual(merged);
+	});
+
 	it('keeps the newer reflection', () => {
 		const a = data({ reflection: { day: '2026-11-12', text: 'Altschlüssel' } });
 		const b = data({ reflection: { day: '2026-11-13', text: 'Terzen' } });

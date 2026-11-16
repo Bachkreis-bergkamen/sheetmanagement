@@ -1,4 +1,5 @@
 import type { ProfileId } from './instruments.ts';
+import type { Reach } from './reach.ts';
 import type { ItemState } from './scheduler.ts';
 import type { SightLevel } from './sight.ts';
 import type { DayStats, DrillData, DrillSettings } from './progress.ts';
@@ -10,7 +11,7 @@ import type { DayStats, DrillData, DrillSettings } from './progress.ts';
  * device and on the server, and merging twice changes nothing.
  *
  * What was practised only grows: an item seen more often, a day with more answers, a clef or
- * drill opened, a badge earned. Choices (instrument, clef, sound) come from the copy changed
+ * drill opened, a badge earned, a note reached. Choices (instrument, clef, sound) come from the copy changed
  * last. A reset starts over everywhere: a copy from before it is dropped.
  */
 
@@ -57,6 +58,29 @@ function higherLevels(a: DrillSettings['sight'], b: DrillSettings['sight']): Dri
 	return levels;
 }
 
+/**
+ * The wider range per instrument, edge by edge: a note reached on one device is reached. Each
+ * edge keeps the tries of the copy it came from; on the same edge, `newer`'s.
+ */
+function widerReach(a: DrillSettings['reach'], b: DrillSettings['reach'], newer: DrillSettings['reach']): DrillSettings['reach'] {
+	if (!a || !b) return a ?? b;
+	const reach: Partial<Record<ProfileId, Reach>> = { ...a };
+	for (const [id, theirs] of Object.entries(b) as [ProfileId, Reach][]) {
+		const mine = reach[id];
+		if (!mine) {
+			reach[id] = theirs;
+			continue;
+		}
+		const first = newer === b ? theirs : mine;
+		const second = first === theirs ? mine : theirs;
+		const low = second.low < first.low ? second : first;
+		const high = second.high > first.high ? second : first;
+		const tried = { ...(low.tried?.low ? { low: low.tried.low } : {}), ...(high.tried?.high ? { high: high.tried.high } : {}) };
+		reach[id] = { low: low.low, high: high.high, ...(tried.low || tried.high ? { tried } : {}) };
+	}
+	return reach;
+}
+
 function mergeRecords<T>(a: Record<string, T>, b: Record<string, T>, pick: (a: T, b: T) => T): Record<string, T> {
 	const merged = { ...a };
 	for (const [key, value] of Object.entries(b)) merged[key] = key in merged ? pick(merged[key], value) : value;
@@ -82,6 +106,8 @@ export function mergeData(a: DrillData, b: DrillData): DrillData {
 	const entry = higherLevels(a.settings.entry, b.settings.entry);
 	if (sight) settings.sight = sight;
 	if (entry) settings.entry = entry;
+	const reach = widerReach(a.settings.reach, b.settings.reach, newer.settings.reach);
+	if (reach) settings.reach = reach;
 	// The placement test, once taken or skipped, isn't offered again on another device.
 	const placed = a.settings.placed ?? b.settings.placed;
 	if (placed) settings.placed = placed;
