@@ -1,4 +1,5 @@
-import type { ProfileId } from './instruments.ts';
+import { isProfileId, type ProfileId } from './instruments.ts';
+import { readReach, type Reach } from './reach.ts';
 import type { States } from './scheduler.ts';
 import { MAX_LEVEL, type SightLevel } from './sight.ts';
 import { MAX_ENTRY_LEVEL } from './together.ts';
@@ -31,6 +32,8 @@ export interface DrillSettings {
 	instrument?: ProfileId;
 	clef?: Clef;
 	sound?: boolean;
+	/** Intervals, chords and melodies heard once more after the answer; on unless turned off. */
+	replay?: boolean;
 	/** Milliseconds from a click to a tap on this device, measured once for the rhythm drill. */
 	tapOffset?: number;
 	/** Scales: a drone under them, the metronome, and the cents kept back until the end. */
@@ -43,6 +46,11 @@ export interface DrillSettings {
 	/** Playing together: the entries' level per instrument, and a second voice under sight-reading. */
 	entry?: Partial<Record<ProfileId, SightLevel>>;
 	duet?: boolean;
+	/**
+	 * The player's own range per instrument, written (see reach.ts): from the range test, then
+	 * one note wider each time a new one comes. None yet: the comfortable range, and the test is offered.
+	 */
+	reach?: Partial<Record<ProfileId, Reach>>;
 	/** The placement test: the day it was taken, or "skipped" when the member started from the beginning. */
 	placed?: string;
 	/** The instrument the member was told was chosen for them, so it's said once. */
@@ -115,6 +123,14 @@ export function readData(value: unknown): DrillData {
 		if (!['off', 'tonic', 'fifth', undefined].includes(raw.settings.drone)) delete data.settings.drone;
 		if (raw.settings.sight !== undefined) data.settings.sight = readLevels(raw.settings.sight, MAX_LEVEL);
 		if (raw.settings.entry !== undefined) data.settings.entry = readLevels(raw.settings.entry, MAX_ENTRY_LEVEL);
+		if (raw.settings.reach !== undefined) {
+			const reach: Partial<Record<ProfileId, Reach>> = {};
+			for (const [id, value] of Object.entries(raw.settings.reach && typeof raw.settings.reach === 'object' ? raw.settings.reach : {})) {
+				const read = isProfileId(id) ? readReach(id, value) : null;
+				if (read) reach[id as ProfileId] = read;
+			}
+			data.settings.reach = reach;
+		}
 	}
 	if (Array.isArray(raw.unlocked)) data.unlocked = raw.unlocked.filter((card): card is string => typeof card === 'string');
 	if (Array.isArray(raw.opened)) data.opened = raw.opened.filter((clef): clef is Clef => (CLEFS as readonly string[]).includes(clef));
