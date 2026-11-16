@@ -3636,6 +3636,7 @@ export const de = {
 		programUnknown: 'Kalender oder Archiv konnten nicht gelesen werden; die Programm-Ordner bleiben, wie sie sind.',
 		programInStep: 'Die Programm-Ordner enthalten die Stücke der nächsten Konzerte.',
 		programMoved: (folder: string, concert: string, added: number, removed: number) => `»${folder}« enthält jetzt »${concert}«: ${added} neu, ${removed} entfernt.`,
+		programStuck: (folder: string, names: string[]) => `Noch in »${folder}«, weil nur entfernen kann, wer sie angelegt hat: ${names.map((name) => `»${name}«`).join(', ')}. Bitte im Drive von Hand löschen.`,
 		programFailed: (names: string[]) => `Nicht umgestellt: ${names.join(', ')}.`,
 		tripListsPruned: (n: number) => (n === 0 ? 'Keine Liste einer Fahrt fällig.' : n === 1 ? 'Eine Liste einer vergangenen Fahrt gelöscht.' : `${n} Listen vergangener Fahrten gelöscht.`),
 		ticketsPruned: (n: number) => (n === 0 ? 'Keine Gästeliste fällig.' : n === 1 ? 'Die Gästeliste eines vergangenen Konzerts gelöscht.' : `Gästelisten von ${n} vergangenen Konzerten gelöscht.`),

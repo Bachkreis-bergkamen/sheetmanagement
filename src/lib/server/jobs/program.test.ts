@@ -59,4 +59,31 @@ describe('rollCurrentProgram', () => {
 		expect(again.ok).toBe(true);
 		expect(driveRequests).toBe(0);
 	});
+
+	// In My Drive only a shortcut's owner may bin it: those made by hand stay next to the new
+	// ones, and the run said nothing about it.
+	it('names the shortcuts it may not take out, and is not ok', async () => {
+		const orchestra = config.orchestras[0];
+		const library = await getLibrary();
+		const next = nextConcert(library, orchestra);
+		const last = library.concerts.find((c) => c.id !== next!.id && programOf(c, orchestra).some((item) => !programOf(next!, orchestra).some((other) => other.pieceId === item.pieceId)));
+		const before = await syncCurrentProgram(last!, library, orchestra);
+
+		const client = demoClient() as unknown as { fetchImpl: typeof fetch };
+		const fetchImpl = client.fetchImpl;
+		client.fetchImpl = (input, init) => {
+			if (init?.method === 'PATCH' && String(init.body).includes('"trashed":true')) {
+				return Promise.resolve(Response.json({ error: { message: 'The user does not have sufficient permissions for this file.' } }, { status: 403 }));
+			}
+			return fetchImpl(input, init);
+		};
+		const rolled = await rollCurrentProgram();
+		client.fetchImpl = fetchImpl;
+
+		expect(rolled.ok).toBe(false);
+		expect(rolled.summary).toContain(before.folderName);
+		const left = programOf(last!, orchestra).filter((item) => !programOf(next!, orchestra).some((other) => other.pieceId === item.pieceId));
+		const name = library.piecesById.get(left.find((item) => item.pieceId && library.piecesById.get(item.pieceId)?.detail)!.pieceId!)!.detail!.folderName;
+		expect(rolled.summary).toContain(name);
+	});
 });

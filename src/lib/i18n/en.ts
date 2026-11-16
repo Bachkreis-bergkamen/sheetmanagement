@@ -3582,6 +3582,7 @@ export const en: Texts = {
 		programUnknown: 'The calendar or the archive couldn’t be read; the current-programme folders stay as they are.',
 		programInStep: 'The current-programme folders hold the next concerts’ pieces.',
 		programMoved: (folder: string, concert: string, added: number, removed: number) => `“${folder}” now holds “${concert}”: ${added} in, ${removed} out.`,
+		programStuck: (folder: string, names: string[]) => `Still in “${folder}”, as only whoever made them can take them out: ${names.map((name) => `“${name}”`).join(', ')}. Please delete them by hand in Drive.`,
 		programFailed: (names: string[]) => `Couldn’t move on: ${names.join(', ')}.`,
 		tripListsPruned: (n: number) => (n === 0 ? 'No trip list due.' : n === 1 ? 'Deleted one list of a past trip.' : `Deleted ${n} lists of past trips.`),
 		ticketsPruned: (n: number) => (n === 0 ? 'No guest list due.' : n === 1 ? 'Deleted the guest list of a past concert.' : `Deleted the guest lists of ${n} past concerts.`),

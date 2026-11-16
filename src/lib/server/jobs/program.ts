@@ -17,6 +17,7 @@ export async function rollCurrentProgram(now = Date.now()): Promise<JobResult> {
 	if (!library.schedule.ok || !library.catalog.ok) return { ok: false, summary: t.status.programUnknown };
 
 	const moved: string[] = [];
+	const stuck: string[] = [];
 	const failed: string[] = [];
 	for (const orchestra of config.orchestras.length ? config.orchestras : [undefined]) {
 		const next = nextConcert(library, orchestra);
@@ -25,11 +26,13 @@ export async function rollCurrentProgram(now = Date.now()): Promise<JobResult> {
 		try {
 			const result = await syncCurrentProgram(next, library, orchestra);
 			if (result.added.length || result.removed.length) moved.push(t.status.programMoved(result.folderName, next.title, result.added.length, result.removed.length));
+			// Shortcuts made by hand in My Drive: only their owner may bin them, so they stay next to the new ones.
+			if (result.stuck.length) stuck.push(t.status.programStuck(result.folderName, result.stuck));
 		} catch (cause) {
 			console.error(`Moving the current programme of ${orchestra ?? 'the orchestra'} on failed:`, cause);
 			failed.push(orchestra ?? next.title);
 		}
 	}
-	const summary = [...moved, ...(failed.length ? [t.status.programFailed(failed)] : [])];
-	return { ok: !failed.length, summary: summary.length ? summary.join(' ') : t.status.programInStep };
+	const summary = [...moved, ...stuck, ...(failed.length ? [t.status.programFailed(failed)] : [])];
+	return { ok: !failed.length && !stuck.length, summary: summary.length ? summary.join(' ') : t.status.programInStep };
 }
