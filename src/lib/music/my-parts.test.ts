@@ -359,3 +359,17 @@ describe('a piece kept as a folder per movement (#361)', () => {
 		expect(playedParts(plain)).toEqual(plain.parts);
 	});
 });
+
+describe('a piece kept as folders "Section II", "Section III"', () => {
+	const section = (label: string, movement: number) => ({ key: label, label, kind: 'movement' as const, movement, folderId: label, partCount: 1 });
+	const detail = {
+		sections: [section('Section II', 2), section('Section III', 3)],
+		parts: [part('Sections - Viola.pdf', 'Section II'), part('Sections - Viola.pdf', 'Section III')]
+	};
+
+	it('plays both, or the one a programme names', () => {
+		expect(labels(playedParts(detail))).toEqual(['Bratsche · Section II', 'Bratsche · Section III']);
+		expect(labels(playedParts(detail, [3]))).toEqual(['Bratsche · Section III']);
+		expect(movementsOf(detail)).toEqual([2, 3]);
+	});
+});
