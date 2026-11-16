@@ -1,5 +1,4 @@
 import { normalizeEmail } from '#lib/access/access.ts';
-import { MAX_LENGTH } from '#lib/access/password-rules.ts';
 import { base64url, fromBase64url, signToken, verifyToken } from './session.ts';
 
 /**

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isLogoFile, candidatePicture, candidateQuery, candidateStill, composedBy, commonsFile, FILM_KINDS, filmQuery, iconTerms, iconUrl, MUSICAL_KINDS, pickIcon, rankCandidates, readCandidates, type Candidate } from './film-art.ts';
+import { isLogoFile, candidatePicture, candidateQuery, candidateStill, composedBy, commonsFile, FILM_KINDS, filmQuery, iconTerms, iconUrl, pickIcon, rankCandidates, readCandidates, type Candidate } from './film-art.ts';
 
 describe('film pictures (#312)', () => {
 	it('finds the film in an arrangement title', () => {

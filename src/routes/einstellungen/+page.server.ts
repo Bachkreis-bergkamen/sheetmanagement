@@ -1,4 +1,4 @@
-import { error, redirect, fail } from '@sveltejs/kit';
+import { redirect, fail } from '@sveltejs/kit';
 import { FEATURES, type Feature } from '#lib/features.ts';
 import { t } from '#lib/i18n/index.ts';
 import { requireRight } from '#lib/server/auth/index.ts';

@@ -22,7 +22,23 @@ export default defineConfig(({ mode }) => ({
 		sveltekit({
 			adapter: adapter({ platformProxy: { environment: mode === 'demo' ? 'demo' : undefined } }),
 			// An open app notices a deploy within a few minutes and offers "Neu laden" (#140).
-			version: { pollInterval: 5 * 60 * 1000 }
+			version: { pollInterval: 5 * 60 * 1000 },
+			// Which scripts may run (#358): the app's own, SvelteKit's inline ones by nonce, and
+			// WebAssembly (pdf.js's decoders, ZXing at the door, Tesseract). Tesseract's engine comes
+			// from jsDelivr into a blob: worker. Only reported for now (/api/csp, shown on /status);
+			// once the log stays quiet, the same list moves to `directives` and is enforced.
+			// Styles aren't limited: the brand colours and Svelte's transitions are inline styles.
+			// frame-ancestors stays in hooks.server.ts, which every response gets.
+			csp: {
+				mode: 'auto',
+				reportOnly: {
+					'script-src': ['self', 'wasm-unsafe-eval', 'https://cdn.jsdelivr.net'],
+					'worker-src': ['self', 'blob:'],
+					'object-src': ['none'],
+					'base-uri': ['self'],
+					'report-uri': ['/api/csp']
+				}
+			}
 		})
 	],
 	// Shown next to the source link and on /status.

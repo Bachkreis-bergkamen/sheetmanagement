@@ -56,6 +56,8 @@
 		onsetting,
 		onfinish,
 		length,
+		tryNote,
+		ontry,
 		onexit
 	}: {
 		order: string[];
@@ -81,6 +83,12 @@
 		onfinish?: () => void;
 		/** Questions in the round, instead of the usual; the daily round's steps are shorter. */
 		length?: number;
+		/**
+		 * A note just beyond the player's range (see reach.ts), tried once in the round, as its
+		 * third question; whether it came goes to `ontry`, not into the round's score.
+		 */
+		tryNote?: { id: string; name: string } | null;
+		ontry?: (reached: boolean) => void;
 		onexit: () => void;
 	} = $props();
 
@@ -97,8 +105,11 @@
 	let introduced = $state(0);
 	let question = $state<Question | null>(null);
 	let isNew = $state(false);
+	/** The question is the try at a new note; and whether it's been asked this round. */
+	let trying = $state(false);
+	let tried = false;
 	let shownAt = 0;
-	let feedback = $state<{ correct: boolean; text: string; tip?: string } | null>(null);
+	let feedback = $state<{ correct: boolean; text: string; tip?: string; gentle?: boolean } | null>(null);
 	let chosen = $state<number | null>(null);
 	let chosenChord = $state<ChordQuality | null>(null);
 	let chosenMelody = $state<number | null>(null);
@@ -189,6 +200,21 @@
 		else playTone(frequencyOf(q.kind === 'play' ? q.midi : midiOf(q.pitch)));
 	}
 
+	/** Drills where the question is heard, not read: the next one is a sound of its own. */
+	const isHeard = (q: Question) => q.kind === 'ear' || q.kind === 'chord' || q.kind === 'dict';
+
+	/** Until what sound() plays has died away: its last note starts, then rings about 1.2 s. */
+	function soundMs(q: Question): number {
+		const ring = 1200;
+		if (q.kind === 'ear') return (q.harmonic ? 0 : 700) + ring;
+		if (q.kind === 'chord') return 1600 + ring;
+		if (q.kind === 'dict') return (q.options[q.answer].length - 1) * 600 + ring;
+		return ring;
+	}
+
+	/** Silence between the replayed answer and the next question, so the two don't run together. */
+	const PAUSE_MS = 700;
+
 	function next() {
 		clearTimeout(autoNext);
 		stopBar();
@@ -210,7 +236,9 @@
 			return;
 		}
 		const tested = test?.();
-		const pick = test ? (tested ? { id: tested, isNew: false } : null) : pickNext({ order, states, day, answers, recent });
+		trying = !test && !!tryNote && !tried && count >= 2;
+		if (trying) tried = true;
+		const pick = trying ? { id: tryNote!.id, isNew: false } : test ? (tested ? { id: tested, isNew: false } : null) : pickNext({ order, states, day, answers, recent });
 		const asked = pick && questionFor(pick.id, clefs[Math.floor(Math.random() * clefs.length)]);
 		if (!pick || !asked) {
 			finish();
@@ -282,6 +310,17 @@
 
 	function answer(correct: boolean, text: string, tip?: string, measure?: number) {
 		if (!question || feedback) return;
+		if (trying && tryNote) {
+			ontry?.(correct);
+			// Not yet: a kind word, the note to hear, and no mark against the round.
+			if (!correct) {
+				judge = null;
+				feedback = { correct: false, text: tx.reach.notYet(tryNote.name), tip: tx.reach.notYetTip, gentle: true };
+				if (withSound) sound(question);
+				return;
+			}
+			text = tx.reach.reached(tryNote.name);
+		}
 		const ms = performance.now() - shownAt;
 		const fluent = (measure ?? ms) <= FLUENT_MS[kindOf(question.id)];
 		answers = [...answers, correct];
@@ -291,11 +330,15 @@
 		onanswer(question.id, correct, ms, measure);
 		judge = null;
 		feedback = { correct, text: correct ? (text || (fluent ? tx.right : tx.rightSlow)) : text, tip };
-		// A rhythm tapped right was just heard; a wrong one is played as it should be.
-		if (withSound && question.kind !== 'pulse' && (question.kind !== 'rhythm' || !correct)) sound(question);
+		// A rhythm tapped right was just heard; a wrong one is played as it should be. A heard
+		// question again only if the member wants it: the next one follows with a sound of its own.
+		const replay = withSound && question.kind !== 'pulse' && (question.kind !== 'rhythm' || !correct) && (!isHeard(question) || settings.replay !== false);
+		if (replay) sound(question);
 		// Right: on by itself, a little longer when it was a new one to look at, or taps to see;
-		// not after a scale, whose notes and cents take a moment to read.
-		if (correct && question.kind !== 'scale' && question.kind !== 'pulse') autoNext = setTimeout(next, question.kind === 'rhythm' ? 1800 : isNew ? 1600 : 800);
+		// not after a scale, whose notes and cents take a moment to read. After a replayed
+		// interval, chord or melody only once it has died away, and a moment of silence.
+		const wait = trying ? 2600 : question.kind === 'rhythm' ? 1800 : isNew ? 1600 : 800;
+		if (correct && question.kind !== 'scale' && question.kind !== 'pulse') autoNext = setTimeout(next, replay && isHeard(question) ? Math.max(wait, soundMs(question) + PAUSE_MS) : wait);
 	}
 
 	function stopBar() {
@@ -779,7 +822,8 @@
 	{#if question}
 		<div class="prompt">
 			<p class="ask">
-				{#if isNew && !calibrating}<span class="new">{tx.new}</span>{/if}
+				{#if trying}<span class="new">{tx.reach.tag}</span>
+				{:else if isNew && !calibrating}<span class="new">{tx.new}</span>{/if}
 				{#if question.kind === 'notes'}{tx.whichNote}
 				{:else if question.kind === 'keys'}{tx.whichKey(question.mode)}
 				{:else if question.kind === 'ear'}{tx.whichInterval(question.harmonic)}
@@ -790,7 +834,7 @@
 				{:else if question.kind === 'pulse'}{calibrating ? tx.calibrateTitle : tx.pulseAsk(question.silent)}
 				{:else if question.kind === 'scale'}{scaleName(question)}
 				{:else if question.kind === 'tune'}{tx.tuneAsk(tx.tuneRoles[question.tune.role])}
-				{:else}{tx.playThis}{/if}
+				{:else}{trying ? tx.reach.ask : tx.playThis}{/if}
 			</p>
 			{#if question.kind === 'tune'}
 				{@const held = question.tune.heldPitches}
@@ -875,7 +919,7 @@
 				<DrillStaff
 					clef={question.clef}
 					notes={[question.pitch]}
-					state={feedback ? (feedback.correct ? 'right' : 'wrong') : null}
+					state={feedback && !feedback.gentle ? (feedback.correct ? 'right' : 'wrong') : null}
 					label={feedback ? noteName(question.pitch.step, question.pitch.alter) : tx.whichNote}
 				/>
 			{/if}
@@ -1092,7 +1136,7 @@
 
 		<div class="after" aria-live="polite">
 			{#if feedback}
-				<p class="feedback" class:ok={feedback.correct}>{feedback.text}</p>
+				<p class="feedback" class:ok={feedback.correct} class:gentle={feedback.gentle}>{feedback.text}</p>
 				{#if feedback.tip}<p class="hint">{feedback.tip}</p>{/if}
 				<div class="row">
 					<button type="button" class="btn ghost small" onclick={() => question && sound(question)}
@@ -1101,7 +1145,15 @@
 					<button type="button" class="btn" onclick={next}>{tx.next}</button>
 				</div>
 			{:else if !calibrating && take === 'idle'}
-				<button type="button" class="btn ghost small" onclick={skip}>{tx.skip}</button>
+				<div class="row">
+					<button type="button" class="btn ghost small" onclick={skip}>{trying ? tx.reach.notNow : tx.skip}</button>
+					{#if withSound && isHeard(question)}
+						<label class="check">
+							<input type="checkbox" checked={settings.replay !== false} onchange={(event) => onsetting({ replay: event.currentTarget.checked })} />
+							{tx.replayAfter}
+						</label>
+					{/if}
+				</div>
 			{/if}
 		</div>
 	{:else if finished}
@@ -1513,6 +1565,11 @@
 	.feedback {
 		color: var(--danger);
 		font-weight: 600;
+	}
+
+	/* Not yet, not wrong: a new note tried. */
+	.feedback.gentle {
+		color: var(--accent);
 	}
 
 	.feedback.ok {

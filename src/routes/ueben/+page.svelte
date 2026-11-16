@@ -12,10 +12,12 @@
 	import { treeStage, type TreeStage } from '#lib/practice/practice.ts';
 	import RhythmStaff from '#lib/components/RhythmStaff.svelte';
 	import SightRound from '#lib/components/SightRound.svelte';
+	import ReachTest from '#lib/components/ReachTest.svelte';
 	import SightStaff from '#lib/components/SightStaff.svelte';
 	import Title from '#lib/components/Title.svelte';
 	import { EAR_DECK, EAR_ORDER, FLUENT_MS, interleave, KEY_ORDER, kindOf, notesOrder, playOrder, transOrder } from '#lib/practice/drills/decks.ts';
-	import { isProfileId, PROFILE_IDS, profile, profileFor, type ProfileId } from '#lib/practice/drills/instruments.ts';
+	import { isProfileId, PROFILE_IDS, profile, profileFor, useReaches, type ProfileId } from '#lib/practice/drills/instruments.ts';
+	import { afterTry, canGrow, comfortable, nextTry, noteAt, type Reach, type Side } from '#lib/practice/drills/reach.ts';
 	import { clefLadder, UNLOCK_AT } from '#lib/practice/drills/levels.ts';
 	import { PULSE_ORDER, RHYTHM_ORDER } from '#lib/practice/drills/rhythm.ts';
 	import { scaleOrder } from '#lib/practice/drills/scales.ts';
@@ -68,6 +70,18 @@
 	const chosenClef = $derived<Clef | null>(drills.settings.clef && CLEFS.includes(drills.settings.clef) ? drills.settings.clef : null);
 	const clefs = $derived<Clef[]>(chosenClef ? [chosenClef] : ladder.filter((step) => step.open).map((step) => step.clef));
 	const sound = $derived(drills.settings.sound ?? true);
+	/**
+	 * The player's own range on the instrument, measured or grown (see reach.ts); none yet: the
+	 * comfortable one. Handed to the instrument profiles first, so every drill keeps to it.
+	 */
+	const reach = $derived.by(() => {
+		useReaches(drills.settings.reach);
+		return drills.settings.reach?.[instrument];
+	});
+	const reachName = (step: number) => {
+		const pitch = noteAt(step);
+		return `${tx.noteName(pitch.step, 0)}${pitch.octave}`;
+	};
 
 	function setting(change: Partial<DrillData['settings']>) {
 		drills.settings = { ...drills.settings, ...change };
@@ -80,6 +94,7 @@
 
 	type Kind = 'mix' | 'notes' | 'keys' | 'ear' | 'rhythm' | 'pulse' | 'play' | 'scale' | 'sight' | 'entry' | 'tune' | 'trans';
 	const orders = $derived.by<Record<Kind, string[]>>(() => {
+		void reach;
 		const notes = interleave(...clefs.map(notesOrder));
 		return {
 			mix: interleave(notes, KEY_ORDER, EAR_DECK),
@@ -124,7 +139,7 @@
 	);
 
 	/** Badges (#300): what this instrument offers, and those reached now kept for good with the day. */
-	const badges = $derived(badgesFor(instrument));
+	const badges = $derived((void reach, badgesFor(instrument)));
 	function syncBadges() {
 		const fresh = newBadges(badges, drills, instrument, streak(drills.days));
 		if (!fresh.length) return;
@@ -171,8 +186,32 @@
 		syncBadges();
 		freshBadges = badges.filter((badge) => drills.badges?.[badge.id] && !badgesBefore.includes(badge.id));
 	}
+	/** Drills where notes are played: the range is asked for first, once per instrument, where it can grow. */
+	const PLAYED: Kind[] = ['play', 'scale', 'sight', 'entry', 'tune'];
+	/** The range test, and the drill to go on to after it ('hub' when started from the settings). */
+	let reachTest = $state<Kind | 'hub' | null>(null);
+	/** This round's try at a note beyond the range. */
+	let tryNote = $state<{ id: string; name: string; side: Side } | null>(null);
+
+	function saveReach(value: Reach) {
+		setting({ reach: { ...drills.settings.reach, [instrument]: value } });
+	}
+
+	function afterReach(value: Reach | null) {
+		saveReach(value ?? { low: comfortable(instrument)[0], high: comfortable(instrument)[1] });
+		const then = reachTest;
+		reachTest = null;
+		if (then && then !== 'hub') start(then);
+	}
+
 	function start(kind: Kind) {
 		remember();
+		if (PLAYED.includes(kind) && !reach && canGrow(instrument)) {
+			reachTest = kind;
+			return;
+		}
+		const found = kind === 'play' && reach ? nextTry(instrument, reach, clefs, drills.items, dayNumber()) : null;
+		tryNote = found && { id: found.id, name: reachName(found.step), side: found.side };
 		playing = kind;
 		if (kind === 'mix') {
 			dailySteps = dailyPlan();
@@ -506,7 +545,7 @@
 	const current = $derived(stageList.reduce((at, stage) => (stage.open ? stage.number : at), 0));
 
 	// A round starts at the top of the screen, not where the button that started it was.
-	const inRound = $derived(!!((testing && placement) || playing));
+	const inRound = $derived(!!((testing && placement) || playing || reachTest));
 	$effect(() => {
 		if (inRound) window.scrollTo({ top: 0 });
 	});
@@ -528,7 +567,14 @@
 		<Icon name={roundFull ? 'x' : 'monitor'} size={16} />{roundFull ? tx.daily.exitFullscreen : tx.daily.fullscreen}
 	</button>
 </div>
-{#if testing && placement}
+{#if reachTest}
+	<ReachTest
+		{instrument}
+		start={reach ? [reach.low, reach.high] : comfortable(instrument)}
+		onsave={afterReach}
+		onskip={() => (reach ? (reachTest = null) : afterReach(null))}
+	/>
+{:else if testing && placement}
 	{@const test = placement}
 	<DrillRound
 		order={[]}
@@ -629,6 +675,10 @@
 		title={tx.kinds[playing].title}
 		tapOffset={drills.settings.tapOffset}
 		settings={drills.settings}
+		{tryNote}
+		ontry={(reached) => {
+			if (reach && tryNote) saveReach(afterTry(instrument, reach, tryNote.side, reached, dayNumber()));
+		}}
 		{onanswer}
 		oncalibrate={(tapOffset) => setting({ tapOffset })}
 		onsetting={setting}
@@ -809,6 +859,13 @@
 							</label>
 						</div>
 						<p class="hint">{tx.changeHint(prof.clefs.length > 1)}</p>
+					{/if}
+					{#if canGrow(instrument)}
+						{@const [low, high] = reach ? [reach.low, reach.high] : comfortable(instrument)}
+						<p class="playing">
+							<span class="muted">{tx.reach.label(reachName(low), reachName(high))}</span>
+							<button type="button" class="link" onclick={() => (reachTest = 'hub')}>{reach ? tx.reach.again : tx.reach.title}</button>
+						</p>
 					{/if}
 				</div>
 			</div>

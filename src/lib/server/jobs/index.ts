@@ -4,6 +4,7 @@ import { backupData } from './backup.ts';
 import { announceErrors } from './errors.ts';
 import { exportData } from './export.ts';
 import { checkParts } from './parts.ts';
+import { rollCurrentProgram } from './program.ts';
 import { applyRetention } from './retention.ts';
 import { sendReminders } from './reminders.ts';
 import { pruneTicketOrders } from './tickets.ts';
@@ -39,7 +40,9 @@ export const JOBS = {
 	export: { everyMinutes: 24 * 60, run: exportData },
 	backup: { everyMinutes: 7 * 24 * 60, run: backupData },
 	tickets: { everyMinutes: 24 * 60, run: () => pruneTicketOrders() },
-	trips: { everyMinutes: 24 * 60, run: () => pruneTripLists() }
+	trips: { everyMinutes: 24 * 60, run: () => pruneTripLists() },
+	// The morning after a concert at the latest; in step, it reads no more than the cached archive.
+	program: { everyMinutes: 6 * 60, run: () => rollCurrentProgram() }
 } satisfies Record<string, Job>;
 
 export type JobName = keyof typeof JOBS;

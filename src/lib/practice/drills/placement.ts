@@ -56,7 +56,8 @@ function cut(order: string[], sizes: number[]): string[][] {
  * minors. Intervals: the distinct ones, then together, then the easily confused.
  */
 export function makePlacement(instrument: InstrumentProfile): Placement {
-	const clefs = instrument.clefs.filter((clef) => instrument.range[clef]);
+	// Every clef: reading one doesn't depend on reaching its notes.
+	const clefs = instrument.clefs;
 	return {
 		parts: [
 			...clefs.map((clef) => ({ skill: { kind: 'notes', clef } as const, bands: cut(notesOrder(clef), [5, 4, 6, 6]), probes: 3, passed: 0, asked: [], done: false })),

@@ -60,14 +60,6 @@ const gear = (cx: number, cy: number, inner: number, outer: number, teeth: numbe
 		})
 	);
 
-/** A rectangle of w × h, centred on (cx, cy) and turned by `a` radians. */
-const turned = (cx: number, cy: number, w: number, h: number, a: number) => {
-	const c = Math.cos(a);
-	const s = Math.sin(a);
-	const corner = (x: number, y: number) => [cx + x * c - y * s, cy + x * s + y * c];
-	return poly(...corner(-w / 2, -h / 2), ...corner(w / 2, -h / 2), ...corner(w / 2, h / 2), ...corner(-w / 2, h / 2));
-};
-
 const snareSticks = [line(22, 120, 34, 290, 172), line(22, 392, 34, 222, 172)];
 
 const snare: Art = {

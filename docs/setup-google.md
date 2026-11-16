@@ -217,7 +217,7 @@ None of these is needed to start; `/einstellungen/status` lists the ones that ar
 
 ### Current-programme folders
 
-`DRIVE_CURRENT_PROGRAM_FOLDER_ID`: the folder ids of "Programm A-Orchester" and the like, separated by commas (step 5). The archive then shows which pieces are on the current programme, and with Drive writing the app keeps those folders in step with the concert programmes (see step 9).
+`DRIVE_CURRENT_PROGRAM_FOLDER_ID`: the folder ids of "Programm A-Orchester" and the like, separated by commas (step 5). The archive then shows which pieces are on the current programme, and with Drive writing the app keeps those folders in step with the concert programmes (see step 9). Once a concert is over, a background job moves each orchestra's folder on to its next concert within six hours: the old pieces' shortcuts go into the bin and the next programme's come in. With no concert in the calendar yet, the folder stays as it is.
 
 ### Drive writing
 

@@ -63,15 +63,25 @@ export function currentProgramStatus(concert: LibraryConcert, library: Library, 
 	};
 }
 
+/** The orchestra's next concert with a date, today's included; for no orchestra, the next naming none. */
+export function nextConcert(library: Library, orchestra: string | undefined): LibraryConcert | undefined {
+	const plays = (other: LibraryConcert) =>
+		orchestra ? other.orchestras.some((name) => sameOrchestra(name, orchestra)) : !other.orchestras.length;
+	return library.concerts
+		.filter((other) => plays(other) && !isPastConcert(other, library.today) && other.dateKey)
+		.sort((a, b) => a.dateKey.localeCompare(b.dateKey))[0];
+}
+
 /** Whether the concert's programme is the one to keep in the orchestra's folder: its next concert. */
 export function isCurrentConcert(concert: LibraryConcert, library: Library, orchestra = concert.orchestras[0]): boolean {
 	if (isPastConcert(concert, library.today)) return false;
-	const plays = (other: LibraryConcert) =>
-		orchestra ? other.orchestras.some((name) => sameOrchestra(name, orchestra)) : !other.orchestras.length;
-	const next = library.concerts
-		.filter((other) => plays(other) && !isPastConcert(other, library.today) && other.dateKey)
-		.sort((a, b) => a.dateKey.localeCompare(b.dateKey))[0];
+	const next = nextConcert(library, orchestra);
 	return !next || next.id === concert.id;
+}
+
+/** The folder holds exactly the concert's pieces already: nothing to write in Drive. */
+export function currentProgramInStep(status: CurrentProgramStatus): boolean {
+	return status.linked === status.total && !status.extra.length;
 }
 
 export interface CurrentProgramResult {

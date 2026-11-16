@@ -18,7 +18,7 @@ export const legal = {
 		title: 'Privacy notice',
 		lead: (c: LegalContext) =>
 			`${c.name} runs this web app for its own members: music, concerts and programmes in one place. This page says which personal data it processes.`,
-		sections: (c: LegalContext): LegalSection[] => [
+		sections: (_c: LegalContext): LegalSection[] => [
 			{
 				heading: 'Signing in with Google',
 				paragraphs: [
@@ -171,7 +171,7 @@ export const legal = {
 	terms: {
 		title: 'Terms of use',
 		lead: (c: LegalContext) => `${c.name} provides this web app to its own members free of charge.`,
-		sections: (c: LegalContext): LegalSection[] => [
+		sections: (_c: LegalContext): LegalSection[] => [
 			{
 				heading: 'Who may use the app',
 				paragraphs: [
