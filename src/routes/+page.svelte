@@ -6,6 +6,7 @@
 	import SignupAnswers from '#lib/components/SignupAnswers.svelte';
 	import Title from '#lib/components/Title.svelte';
 	import { navGroups, ORGANISER_HUB, organiserGroups } from '#lib/nav.ts';
+	import { pendingAnswers } from '#lib/offline/answers.svelte.ts';
 	import { SvelteSet } from 'svelte/reactivity';
 	import type { ShownEvent } from '#lib/events/schedule.ts';
 	import { splitTrailingEmoji } from '#lib/events/format.ts';
@@ -144,7 +145,9 @@
 
 {#snippet answers(event: ShownEvent, open: string)}
 	{@const answer = answerOf(event)}
-	{#if answer && !changing.has(event.id)}
+	{@const action = `/kalender/${encodeURIComponent(event.id)}?/answer`}
+	<!-- An answer given offline and still to be sent (#191) keeps the buttons up, with their line saying so. -->
+	{#if answer && !changing.has(event.id) && !pendingAnswers.queue[action]}
 		<p class="answered">
 			<span class="answer-mark {answer}"><Icon name={ANSWER_ICONS[answer]} size={14} />{t.signups.status[answer]}</span>
 			<button class="link" onclick={() => changing.add(event.id)} aria-label="{t.signups.change}: {t.signups.question} {event.displayTitle}">{t.signups.change}</button>
@@ -152,7 +155,7 @@
 	{:else}
 		<div class="rsvp">
 			<span class="question">{answer ? t.signups.yourAnswer : open}</span>
-			<SignupAnswers action="/kalender/{encodeURIComponent(event.id)}?/answer" {answer} label="{t.signups.question} {event.displayTitle}" toastErrors />
+			<SignupAnswers {action} {answer} label="{t.signups.question} {event.displayTitle}" toastErrors />
 		</div>
 	{/if}
 {/snippet}

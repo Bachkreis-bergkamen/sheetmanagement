@@ -75,6 +75,7 @@
 			file={current.id}
 			marks={marks[current.id] ?? {}}
 			pen={false}
+			print={false}
 			{startAt}
 			startFull
 			{night}

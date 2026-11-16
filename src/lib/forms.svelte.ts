@@ -23,6 +23,11 @@ export interface SubmitOptions {
 	onSuccess?: (data: Record<string, unknown> | undefined) => void;
 	/** Called when the action refused, with what it returned, e.g. to say so on another page. */
 	onFailure?: (data: Record<string, unknown> | undefined) => void;
+	/**
+	 * Called instead of the "try again" message when the form can't reach the server (offline, a
+	 * dead spot in the hall), for a form that keeps what was entered and sends it later (#191).
+	 */
+	offline?: (input: Parameters<SubmitFunction>[0]) => void;
 }
 
 /**
@@ -37,10 +42,21 @@ export class FormState {
 
 	submit(options: SubmitOptions = {}): SubmitFunction {
 		return (input) => {
+			// Known to be offline: nothing is sent, the form keeps it for later.
+			if (options.offline && typeof navigator !== 'undefined' && !navigator.onLine) {
+				input.cancel();
+				options.offline(input);
+				return;
+			}
 			this.busy = true;
 			options.onStart?.(input);
 			return async ({ result, update }) => {
 				try {
+					// Without a status the request never got an answer: the network, not the server.
+					if (result.type === 'error' && result.status === undefined && options.offline) {
+						options.offline(input);
+						return;
+					}
 					if (result.type === 'error') {
 						showToast(result.status === 503 ? t.common.saveUnavailable : t.common.saveFailed);
 						return;
