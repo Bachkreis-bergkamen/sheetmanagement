@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { NewPoll } from '#lib/polls/polls.ts';
-import { MemoryPollStore, SqlPollStore, type PollStore, type SqlDatabase, type SqlStatement } from './polls-store.ts';
+import { MemoryPollStore, perDatabase, SqlPollStore, type PollStore, type SqlDatabase, type SqlStatement } from './polls-store.ts';
 
 // Node's own SQLite; the project has no Node types, so the little that's used is typed here.
 interface Sqlite {
@@ -47,6 +47,20 @@ for (const [name, make] of [
 			expect(got?.poll).toMatchObject({ title: poll.title, options: poll.options, groups: poll.groups, createdBy: vera.email });
 			expect(got?.responses).toEqual([]);
 			expect(await store.get('nope')).toBeNull();
+		});
+
+		it('lists the polls not closed that someone has not answered (#347)', async () => {
+			const store = make();
+			const first = await store.create(poll, vera);
+			const second = await store.create({ ...poll, title: 'Sommerfest' }, vera);
+			const closed = await store.create({ ...poll, title: 'Vorbei' }, vera);
+			await store.close(closed.id, ['o1']);
+			await store.respond(first.id, { email: 'ben@example.org', name: 'Ben', choices: { o1: 'yes' }, updatedAt: '2027-01-01T10:00:00Z' });
+			const titles = async (email: string) => (await store.unanswered(email)).map((open) => open.title).sort();
+			expect(await titles('ben@example.org')).toEqual(['Sommerfest']);
+			expect(await titles('ada@example.org')).toEqual(['Probenwochenende Frühjahr', 'Sommerfest']);
+			await store.respond(second.id, { email: 'ben@example.org', name: 'Ben', choices: { o2: 'no' }, updatedAt: '2027-01-01T10:00:00Z' });
+			expect(await titles('ben@example.org')).toEqual([]);
 		});
 
 		it('keeps one answer per person: answering again replaces it', async () => {
@@ -98,3 +112,26 @@ for (const [name, make] of [
 		});
 	});
 }
+
+describe('perDatabase (#346)', () => {
+	it('keeps one store per binding, so its tables are made once', async () => {
+		const made: string[] = [];
+		const counting = (): SqlDatabase => {
+			const db = sqlite();
+			return {
+				prepare: (sql) => {
+					if (sql.startsWith('CREATE TABLE')) made.push(sql);
+					return db.prepare(sql);
+				}
+			};
+		};
+		const store = perDatabase((db) => new SqlPollStore(db));
+		const db = counting();
+		await store(db).list();
+		await store(db).list();
+		expect(store(db)).toBe(store(db));
+		expect(made).toHaveLength(2);
+		// Another binding (a new deployment, a test) gets its own.
+		expect(store(counting())).not.toBe(store(db));
+	});
+});

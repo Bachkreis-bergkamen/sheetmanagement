@@ -4,7 +4,7 @@ import { isFor, unreadForAuthor, unreadForLeitung } from '#lib/kummer/kummer.ts'
 import { authConfig } from './auth/index.ts';
 import { isDemo } from './env.ts';
 import { MemoryKummerStore, SqlKummerStore, type KummerStore } from './kummer-store.ts';
-import type { SqlDatabase } from './polls-store.ts';
+import { perDatabase, type SqlDatabase } from './polls-store.ts';
 import { getAccessList } from './repertoire.ts';
 
 /**
@@ -15,11 +15,12 @@ import { getAccessList } from './repertoire.ts';
 export const KUMMER_RIGHT = 'kummerkasten.lesen';
 
 let demo: MemoryKummerStore | null = null;
+const sql = perDatabase((db) => new SqlKummerStore(db));
 
 export function kummerStore(): KummerStore | null {
 	if (isDemo()) return (demo ??= new MemoryKummerStore());
 	const db = (env as { DB?: SqlDatabase }).DB;
-	return db ? new SqlKummerStore(db) : null;
+	return db ? sql(db) : null;
 }
 
 /** Back to empty, with the rest of the demo. */

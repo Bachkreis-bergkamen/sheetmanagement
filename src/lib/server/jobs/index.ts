@@ -69,7 +69,8 @@ export function dueJobs(runs: JobRuns, now: number): JobName[] {
 }
 
 // Last runs live in KV, shared by all Worker instances; without KV (dev, demo) in memory.
-// One small write per run: every 10 minutes is 144 of the 1,000 free writes a day.
+// One small write per run of the trigger, whatever the number of jobs due in it (#348): every
+// 10 minutes is 144 of the 1,000 free writes a day, and KV takes only one write a second per key.
 const KEY = 'jobs:runs:v1';
 let memory: JobRuns = {};
 
@@ -79,13 +80,16 @@ export async function lastRuns(): Promise<JobRuns> {
 	return ((await kv.get(KEY, 'json').catch(() => null)) as JobRuns | null) ?? memory;
 }
 
-async function saveRun(name: JobName, run: JobRun) {
-	const runs = { ...(await lastRuns()), [name]: run };
+async function saveRuns(done: JobRuns) {
+	if (!Object.keys(done).length) return;
+	const runs = { ...(await lastRuns()), ...done };
 	memory = runs;
-	await appEnv().CACHE?.put(KEY, JSON.stringify(runs));
+	await appEnv()
+		.CACHE?.put(KEY, JSON.stringify(runs))
+		.catch((cause: unknown) => console.error(`Saving the runs of ${Object.keys(done).join(', ')} failed:`, cause));
 }
 
-export async function runJob(name: JobName, auto: boolean): Promise<JobRun> {
+async function run(name: JobName, auto: boolean): Promise<JobRun> {
 	const started = Date.now();
 	let result: JobResult;
 	try {
@@ -94,14 +98,23 @@ export async function runJob(name: JobName, auto: boolean): Promise<JobRun> {
 		console.error(`Job ${name} failed:`, cause);
 		result = { ok: false, summary: cause instanceof Error ? cause.message : String(cause) };
 	}
-	const run: JobRun = { ok: result.ok, summary: result.summary, at: started, ms: Date.now() - started, auto };
-	await saveRun(name, run).catch((cause: unknown) => console.error(`Saving the run of ${name} failed:`, cause));
-	return run;
+	return { ok: result.ok, summary: result.summary, at: started, ms: Date.now() - started, auto };
+}
+
+/** One job, by hand on /status: its run is saved by itself. */
+export async function runJob(name: JobName, auto: boolean): Promise<JobRun> {
+	const done = await run(name, auto);
+	await saveRuns({ [name]: done });
+	return done;
 }
 
 /** What the Cron Trigger calls: every due job, one after another. */
 export async function runDueJobs(now = Date.now()): Promise<JobRuns> {
 	const done: JobRuns = {};
-	for (const name of dueJobs(await lastRuns(), now)) done[name] = await runJob(name, true);
+	try {
+		for (const name of dueJobs(await lastRuns(), now)) done[name] = await run(name, true);
+	} finally {
+		await saveRuns(done);
+	}
 	return done;
 }

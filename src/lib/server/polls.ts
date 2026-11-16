@@ -3,7 +3,7 @@ import { normalizeEmail } from '#lib/access/access.ts';
 import { canSeePoll, isOpen, type Poll } from '#lib/polls/polls.ts';
 import { DEMO_ADMIN } from './demo/data.ts';
 import { isDemo } from './env.ts';
-import { MemoryPollStore, SqlPollStore, type PollStore, type SqlDatabase } from './polls-store.ts';
+import { MemoryPollStore, perDatabase, SqlPollStore, type PollStore, type SqlDatabase } from './polls-store.ts';
 import { getAccessList } from './repertoire.ts';
 
 /**
@@ -12,11 +12,12 @@ import { getAccessList } from './repertoire.ts';
  */
 
 let demo: MemoryPollStore | null = null;
+const sql = perDatabase((db) => new SqlPollStore(db));
 
 export function pollStore(): PollStore | null {
 	if (isDemo()) return (demo ??= demoPolls());
 	const db = (env as { DB?: SqlDatabase }).DB;
-	return db ? new SqlPollStore(db) : null;
+	return db ? sql(db) : null;
 }
 
 /** Back to the sample poll, with the rest of the demo. */
@@ -52,9 +53,7 @@ export async function unansweredPolls(locals: App.Locals, today: string): Promis
 	const store = pollStore();
 	const viewer = await pollViewer(locals);
 	if (!store || !viewer) return [];
-	const open = (await visiblePolls(locals)).filter((poll) => isOpen(poll, today));
-	const answered = await Promise.all(open.map(async (poll) => (await store.get(poll.id))?.responses.some((response) => response.email === viewer.email)));
-	return open.filter((_, i) => !answered[i]);
+	return (await store.unanswered(viewer.email)).filter((poll) => isOpen(poll, today) && canSeePoll(poll, viewer));
 }
 
 const DAY_MS = 86_400_000;

@@ -68,6 +68,7 @@ function buildPiece(piece: IndexedPiece, config: OrchestraConfig, matcher: Instr
 			key,
 			label: name.label,
 			kind: name.kind,
+			...(name.movement ? { movement: name.movement } : {}),
 			folderId,
 			partCount: sectionParts.filter((part) => isReal(part) && part.status !== 'missing').length
 		});

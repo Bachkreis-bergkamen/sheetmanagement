@@ -4,6 +4,7 @@ import type { ShownEvent } from '#lib/events/schedule.ts';
 import type { OrchestraConfig } from '#lib/config/index.ts';
 import type { Catalog } from '#lib/music/catalog.ts';
 import { unscoredVoices } from '#lib/music/instrumentation.ts';
+import { movementsIn } from '#lib/music/sections.ts';
 import { searchText } from '#lib/music/text.ts';
 import type { PieceDetail, PieceStatus, PieceSummary } from '#lib/music/types.ts';
 import { eventDay, formatFuzzyDate, fuzzyDateKey, parseFuzzyDate, type FuzzyDate, type FuzzyDateLabel } from '#lib/repertoire/dates.ts';
@@ -32,6 +33,8 @@ export interface ProgramItem {
 	pieceId?: string;
 	status?: PieceStatus;
 	notes?: string;
+	/** The movements the note names ("2. Satz"), for a piece kept as a folder per movement; none: all of it. */
+	movements?: number[];
 	/** Seconds, from the piece's "Dauer". */
 	duration?: number;
 	/** Which of the concert's orchestras plays it; guest ensembles by their short name. */
@@ -206,6 +209,7 @@ function buildLibrary(
 						pieceId: piece?.id,
 						status: piece?.status,
 						notes: entry.notes,
+						...movementsNamed(entry.notes),
 						// The row's own details win: a guest may play another arrangement than ours.
 						duration: entry.duration ?? piece?.sheet?.duration,
 						orchestra: entry.orchestra,
@@ -370,8 +374,15 @@ export function namedItem(library: Library, name: string, notes?: string): Progr
 		pieceId: piece?.id,
 		status: piece?.status,
 		notes,
+		...movementsNamed(notes),
 		duration: piece?.sheet?.duration
 	};
+}
+
+/** The movements a programme row's or a rehearsal plan's note names (#361). */
+function movementsNamed(notes: string | undefined): { movements?: number[] } {
+	const movements = movementsIn(notes);
+	return movements.length ? { movements } : {};
 }
 
 /**

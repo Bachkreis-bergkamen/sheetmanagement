@@ -3,7 +3,7 @@ import { bachkreis } from '#lib/config/presets/bachkreis.ts';
 import type { DriveIndex, IndexedFile } from '#lib/server/drive-index.ts';
 import { buildCatalog } from './catalog.ts';
 import { workKey } from './piece-name.ts';
-import { compareSections, sectionName, sharedMovement } from './sections.ts';
+import { compareSections, movementsIn, sectionName, sharedMovement, withMovements } from './sections.ts';
 
 describe('sectionName', () => {
 	it.each([
@@ -102,6 +102,7 @@ describe('catalog sections', () => {
 	it('gives each movement its own section, without repeating "Satz N" on every part', () => {
 		const piece = catalog.byId.get('dvorak')!;
 		expect(piece.sections.map((s) => s.label)).toEqual(['1. Satz', '4. Satz']);
+		expect(piece.sections.map((s) => s.movement)).toEqual([1, 4]);
 		expect(piece.parts.every((p) => !p.notes.some((note) => note.startsWith('Satz')))).toBe(true);
 		expect(piece.parts.filter((p) => p.section === 's4').map((p) => p.label)).toEqual(['Partitur', 'Bratsche']);
 	});
@@ -127,5 +128,41 @@ describe('workKey', () => {
 	it('gives nothing for titles without a number', () => {
 		expect(workKey('Jesu bleibet meine Freude')).toBeUndefined();
 		expect(workKey('Nr. 5')).toBeUndefined();
+	});
+});
+
+describe('movements in a programme note (#361)', () => {
+	it.each([
+		['2. Satz', [2]],
+		['Satz 2', [2]],
+		['nur Satz 4, ohne Wiederholung', [4]],
+		['1. & 4. Satz', [1, 4]],
+		['2. und 3. Satz', [2, 3]],
+		['Sätze 1–3', [1, 2, 3]],
+		['Sätze 2, 4', [2, 4]],
+		['1.–3. Satz', [1, 2, 3]],
+		['Satz 1 bis 3', [1, 2, 3]],
+		['movements 2 & 4', [2, 4]],
+		['2nd movement', [2]],
+		['Zugabe', []],
+		['2 Sätze', []],
+		['Ersatz 2', []],
+		['', []]
+	])('%s', (note, movements) => {
+		expect(movementsIn(note)).toEqual(movements);
+	});
+
+	it('reads nothing from no note', () => {
+		expect(movementsIn(undefined)).toEqual([]);
+	});
+
+	it('writes the movements into a note, in place of the ones it named', () => {
+		expect(withMovements('', [2])).toBe('2. Satz');
+		expect(withMovements('Zugabe', [4, 1])).toBe('1. & 4. Satz, Zugabe');
+		expect(withMovements('Sätze 1–3, Zugabe', [2])).toBe('2. Satz, Zugabe');
+		expect(withMovements('2. Satz, ohne Wiederholung', [])).toBe('ohne Wiederholung');
+		expect(withMovements('2. Satz', [])).toBe('');
+		// What it writes, it reads again.
+		expect(movementsIn(withMovements('Zugabe', [1, 3, 4]))).toEqual([1, 3, 4]);
 	});
 });

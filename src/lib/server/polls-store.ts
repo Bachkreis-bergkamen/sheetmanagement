@@ -4,9 +4,23 @@ import type { NewPoll, Poll, PollResponse } from '#lib/polls/polls.ts';
  * Where date polls (#95) are kept. In D1 with plain SQL on a deployment, in memory for the
  * demo; both behave the same, and the tests run the SQL against SQLite.
  */
+/**
+ * One store per database binding, kept between requests (#346): a store makes its tables on
+ * first use and remembers that it did, which a new store on every call never could.
+ */
+export function perDatabase<T>(make: (db: SqlDatabase) => T): (db: SqlDatabase) => T {
+	let kept: { db: SqlDatabase; store: T } | undefined;
+	return (db) => {
+		if (kept?.db !== db) kept = { db, store: make(db) };
+		return kept.store;
+	};
+}
+
 export interface PollStore {
 	list(): Promise<Poll[]>;
 	get(id: string): Promise<{ poll: Poll; responses: PollResponse[] } | null>;
+	/** The polls not closed yet that this person hasn't answered, newest first: one query for "Wartet auf dich" (#347). */
+	unanswered(email: string): Promise<Poll[]>;
 	create(poll: NewPoll, by: { email: string; name: string }): Promise<Poll>;
 	/** One row per person and poll: answering again replaces the earlier answer. */
 	respond(id: string, response: PollResponse): Promise<void>;
@@ -138,6 +152,18 @@ export class SqlPollStore implements PollStore {
 		return { poll: toPoll(row), responses: results.map(toResponse) };
 	}
 
+	async unanswered(email: string): Promise<Poll[]> {
+		await this.ready();
+		const { results } = await this.db
+			.prepare(
+				`SELECT * FROM polls WHERE closed_at IS NULL
+				AND NOT EXISTS (SELECT 1 FROM poll_responses WHERE poll_id = polls.id AND email = ?) ORDER BY created_at DESC`
+			)
+			.bind(email)
+			.all<PollRow>();
+		return results.map(toPoll);
+	}
+
 	async create(poll: NewPoll, by: { email: string; name: string }): Promise<Poll> {
 		await this.ready();
 		const created: Poll = { ...poll, id: newId(), createdBy: by.email, createdByName: by.name, createdAt: new Date().toISOString(), chosen: [] };
@@ -231,6 +257,10 @@ export class MemoryPollStore implements PollStore {
 		if (!poll) return null;
 		const responses = [...(this.responses.get(id)?.values() ?? [])].sort((a, b) => a.name.localeCompare(b.name));
 		return structuredClone({ poll, responses });
+	}
+
+	async unanswered(email: string): Promise<Poll[]> {
+		return (await this.list()).filter((poll) => !poll.closedAt && !this.responses.get(poll.id)?.has(email));
 	}
 
 	async create(poll: NewPoll, by: { email: string; name: string }, createdAt = new Date().toISOString()): Promise<Poll> {

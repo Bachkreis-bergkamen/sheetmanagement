@@ -2,7 +2,7 @@ import type { Instrument, OrchestraConfig } from '#lib/config/index.ts';
 import { createInstrumentMatcher, parsePartName, type InstrumentMatcher } from './part-name.ts';
 import { instrumentLabel } from './instrument-label.ts';
 import { formatNumbers } from './text.ts';
-import type { Part, PieceDetail } from './types.ts';
+import type { Part, PieceDetail, Section } from './types.ts';
 
 /**
  * Which parts of a piece someone plays from: "Meine Noten" for one member, and the
@@ -218,10 +218,45 @@ export interface PartMatch {
 	shared: Part[];
 }
 
-/** The parts of the section people play (the first one), as the piece page opens them. */
-export function playedParts(detail: Pick<PieceDetail, 'parts' | 'sections'>): Part[] {
-	const played = detail.sections[0]?.key;
-	return detail.parts.filter((part) => isPlayable(part) && (played === undefined || part.section === played));
+/**
+ * The sections people play: the files directly in the piece folder, as the piece page opens
+ * them. A piece kept as a folder per movement has none of those: then every movement is
+ * played (#361), or only the `movements` a programme names, where the piece has them.
+ */
+export function playedSections(detail: Pick<PieceDetail, 'sections'>, movements: number[] = []): Section[] {
+	const first = detail.sections[0];
+	if (!first) return [];
+	if (first.kind !== 'movement') return [first];
+	const all = detail.sections.filter((section) => section.kind === 'movement');
+	const named = all.filter((section) => section.movement !== undefined && movements.includes(section.movement));
+	return named.length ? named : all;
+}
+
+/** The movements a piece is kept in, when it has a folder for each: what a programme can pick from. */
+export function movementsOf(detail: Pick<PieceDetail, 'sections'>): number[] {
+	const played = playedSections(detail);
+	return played.length > 1 ? played.flatMap((section) => section.movement ?? []) : [];
+}
+
+/**
+ * The parts of the sections people play (see playedSections). A movement's parts say which
+ * one they are for ("Viola · 2. Satz"), as a player gets one of each.
+ */
+export function playedParts(detail: Pick<PieceDetail, 'parts' | 'sections'>, movements?: number[]): Part[] {
+	if (!detail.sections.length) return detail.parts.filter(isPlayable);
+	const played = new Map(playedSections(detail, movements).map((section) => [section.key, section]));
+	return detail.parts.flatMap((part) => {
+		const section = played.get(part.section);
+		if (!section || !isPlayable(part)) return [];
+		return section.kind === 'movement' && section.label ? [{ ...part, label: `${part.label} · ${section.label}` }] : [part];
+	});
+}
+
+/** The parts of each section on their own, in their order; one group when they don't say. */
+function bySection(parts: Part[]): Part[][] {
+	const groups = new Map<string | undefined, Part[]>();
+	for (const part of parts) groups.set(part.section, [...(groups.get(part.section) ?? []), part]);
+	return [...groups.values()];
 }
 
 /**
@@ -233,7 +268,17 @@ function fitsSetup(part: Part, plays: string[]): boolean {
 	return !holder || holder.holds!.some((held) => plays.includes(held));
 }
 
+/**
+ * The parts someone with this instrument plays from. Each section is matched on its own: with
+ * several movements, a player gets their part of every one, whatever the others are called.
+ */
 export function matchParts(parts: Part[], choice: InstrumentChoice, config: OrchestraConfig): PartMatch {
+	const matches = bySection(parts).map((section) => matchSection(section, choice, config));
+	if (matches.length <= 1) return matches[0] ?? { own: [], shared: [] };
+	return { own: matches.flatMap((match) => match.own), shared: matches.flatMap((match) => match.shared) };
+}
+
+function matchSection(parts: Part[], choice: InstrumentChoice, config: OrchestraConfig): PartMatch {
 	const plays = choice.plays;
 	// A setup leaves out the shared parts of the set instruments not played (Marimba for one without mallets).
 	const inSets = setInstruments(config);
@@ -269,10 +314,15 @@ export function matchParts(parts: Part[], choice: InstrumentChoice, config: Orch
 export type Coverage = 'own' | 'shared' | 'problem' | 'none';
 
 export function coverage(parts: Part[], instrument: string, config: OrchestraConfig): Coverage {
-	const { own, shared } = matchParts(parts, { instrument, numbers: [] }, config);
-	if (own.some((part) => part.status === 'ok')) return 'own';
-	if (shared.some((part) => part.status === 'ok')) return 'shared';
-	return own.length || shared.length ? 'problem' : 'none';
+	// With several movements, the one covered worst counts: a part missing in one is missing.
+	const worstFirst: Coverage[] = ['none', 'problem', 'shared', 'own'];
+	const each = bySection(parts).map((section): Coverage => {
+		const { own, shared } = matchSection(section, { instrument, numbers: [] }, config);
+		if (own.some((part) => part.status === 'ok')) return 'own';
+		if (shared.some((part) => part.status === 'ok')) return 'shared';
+		return own.length || shared.length ? 'problem' : 'none';
+	});
+	return worstFirst.find((level) => each.includes(level)) ?? 'none';
 }
 
 /**

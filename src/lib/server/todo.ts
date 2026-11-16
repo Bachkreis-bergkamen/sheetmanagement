@@ -105,8 +105,17 @@ export async function openItems(locals: App.Locals): Promise<OpenItem[]> {
 
 const attendanceUrl = (eventId: string) => `/kalender/${encodeURIComponent(eventId)}/anwesenheit`;
 
-/** What's open, read once for the counts and the list; only what this person may act on. */
-async function gather(locals: App.Locals) {
+/** What's open, read once per request (#347): the layout's tab counts and the page ask for the same. */
+const gathered = new WeakMap<App.Locals, ReturnType<typeof read>>();
+
+function gather(locals: App.Locals) {
+	let open = gathered.get(locals);
+	if (!open) gathered.set(locals, (open = read(locals)));
+	return open;
+}
+
+/** What's open, for the counts and the list; only what this person may act on. */
+async function read(locals: App.Locals) {
 	const rights = locals.access.rights;
 	const on = features();
 	const reports = rights.has('stuecke.bearbeiten');

@@ -13,7 +13,9 @@ import {
 	parseInstrument,
 	parseInstruments,
 	playableInstruments,
+	movementsOf,
 	playedParts,
+	playedSections,
 	programInstruments,
 	setsFor
 } from './my-parts.ts';
@@ -303,5 +305,57 @@ describe('a percussionist’s setup', () => {
 		expect(setsFor('Schlagwerk', config).map((set) => set.name)).toEqual(expect.arrayContaining(['Stabspiele', 'Pauken']));
 		expect(setsFor('Geige', config)).toEqual([]);
 		expect(setsFor('Chor', config)).toEqual([]);
+	});
+});
+
+describe('a piece kept as a folder per movement (#361)', () => {
+	const section = (movement: number) => ({ key: `s${movement}`, label: `${movement}. Satz`, kind: 'movement' as const, movement, folderId: `s${movement}`, partCount: 2 });
+	const detail = {
+		sections: [section(1), section(2), section(4), { key: 'k', label: 'Komplett', kind: 'complete' as const, folderId: 'k', partCount: 1 }],
+		parts: [
+			part('Dvorak 9 - Geige I.pdf', 's1'),
+			part('Dvorak 9 - Geige II.pdf', 's1'),
+			part('Dvorak 9 - Viola.pdf', 's1'),
+			part('Dvorak 9 - Geige.pdf', 's2'),
+			part('Dvorak 9 - Viola.pdf', 's2'),
+			part('Dvorak 9 - Geige II.pdf', 's4'),
+			part('Dvorak 9 - Viola - FEHLT.pdf', 's4'),
+			part('Dvorak 9 - Viola.pdf', 'k')
+		]
+	};
+
+	it('plays every movement, not only the first, and never the complete work beside them', () => {
+		expect(playedSections(detail).map((s) => s.label)).toEqual(['1. Satz', '2. Satz', '4. Satz']);
+		expect(movementsOf(detail)).toEqual([1, 2, 4]);
+		expect(new Set(playedParts(detail).map((p) => p.section))).toEqual(new Set(['s1', 's2', 's4']));
+	});
+
+	it('plays only the movements a programme names, where the piece has them', () => {
+		expect(playedSections(detail, [2]).map((s) => s.label)).toEqual(['2. Satz']);
+		expect(playedSections(detail, [4, 1]).map((s) => s.label)).toEqual(['1. Satz', '4. Satz']);
+		// A movement the folder doesn't have: the whole piece, not nothing.
+		expect(playedSections(detail, [3]).map((s) => s.label)).toEqual(['1. Satz', '2. Satz', '4. Satz']);
+		expect(labels(playedParts(detail, [2]))).toEqual(['Geige · 2. Satz', 'Bratsche · 2. Satz']);
+	});
+
+	it('gives a player their part of each movement', () => {
+		const viola = matchParts(playedParts(detail), { instrument: 'Viola', numbers: [] }, config);
+		expect(labels(viola.own)).toEqual(['Bratsche · 1. Satz', 'Bratsche · 2. Satz', 'Bratsche · 4. Satz']);
+		// A second violin: "Geige II" where there is one, the plain "Geige" where there is only that.
+		const second = matchParts(playedParts(detail), { instrument: 'Geige', numbers: [2] }, config);
+		expect(labels(second.own)).toEqual(['Geige II · 1. Satz', 'Geige · 2. Satz', 'Geige II · 4. Satz']);
+	});
+
+	it('counts the movement covered worst in the instrumentation check', () => {
+		expect(coverage(playedParts(detail), 'Viola', config)).toBe('problem');
+		expect(coverage(playedParts(detail, [1, 2]), 'Viola', config)).toBe('own');
+		expect(coverage(playedParts(detail), 'Geige', config)).toBe('own');
+	});
+
+	it('leaves a piece with its parts directly in the folder as it was', () => {
+		const plain = { sections: [{ key: '', label: '', kind: 'played' as const, folderId: 'f', partCount: 1 }], parts: [part('Fame - Viola.pdf')] };
+		expect(playedSections(plain, [2])).toEqual(plain.sections);
+		expect(movementsOf(plain)).toEqual([]);
+		expect(playedParts(plain)).toEqual(plain.parts);
 	});
 });
