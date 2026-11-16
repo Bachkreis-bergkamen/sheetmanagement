@@ -1,10 +1,18 @@
 <script lang="ts">
 	import { showToast, toast } from '#lib/forms.svelte.ts';
 	import { t } from '#lib/i18n/index.ts';
-	import { readLocalJson, writeLocalJson } from '#lib/local-storage.ts';
 	import type { OpenScore } from '#lib/music/score-reader.ts';
-	import { MARK_COLORS, MARK_SYMBOLS, MAX_PAGE_POINTS, MAX_STROKES, markLines, onPage, pagePoints, shouldIgnoreTouch, strokePath, SYMBOL_SIZE, symbolLines, thinPoints, type MarkColor, type MarkSymbol, type Stroke } from '#lib/practice/marks.ts';
-	import { keepPage, keptPages, mergeMarks, sendPending } from '#lib/offline/marks.ts';
+	import { FloatingBar } from '#lib/practice/floating-bar.svelte.ts';
+	import { MARK_COLORS, MARK_SYMBOLS, markLines, onPage, strokePath, SYMBOL_SIZE, symbolLines, type MarkColor, type MarkSymbol, type Stroke } from '#lib/practice/marks.ts';
+	import { OpenTools } from '#lib/practice/open-tools.svelte.ts';
+	import { pageKey } from '#lib/practice/page-keys.ts';
+	import { PageMarks } from '#lib/practice/page-marks.svelte.ts';
+	import { MAX_ZOOM, PageZoom, ZOOM_STEP } from '#lib/practice/page-zoom.svelte.ts';
+	import { Pen } from '#lib/practice/pen.svelte.ts';
+	import { ASIDE, dockFor, fitted as fitTo, lying, PANEL, pileFor } from '#lib/practice/score-layout.ts';
+	import { SectionOffers, type Offer } from '#lib/practice/section-offers.svelte.ts';
+	import { nudged, ToolSpots, type Spot } from '#lib/practice/tool-spots.svelte.ts';
+	import { keptPages, sendPending } from '#lib/offline/marks.ts';
 	import { flushSync, type Snippet } from 'svelte';
 	import Icon from './Icon.svelte';
 
@@ -67,15 +75,9 @@
 		/** The page shown, e.g. for a report about it (#306). */
 		page?: number;
 	} = $props();
-	type Offer = { id: string; from: string; pages: Record<number, Stroke[]> };
 
-	/** The tool shown; tools once opened stay mounted, so a metronome or drone keeps going. */
-	let active = $state<string | null>(null);
-	let opened = $state<string[]>([]);
-	function chooseTool(tool: string) {
-		active = active === tool ? null : tool;
-		if (active && !opened.includes(active)) opened = [...opened, active];
-	}
+	/** The tool shown; tools once opened stay mounted (see OpenTools). */
+	const toolbox = new OpenTools();
 
 	let score = $state<OpenScore | null>(null);
 	let pages = $state(0);
@@ -88,9 +90,9 @@
 		printing = true;
 		try {
 			// The stroke being drawn belongs on the paper too.
-			finishStroke();
+			pen.finish();
 			const { printScore } = await import('#lib/practice/print.ts');
-			await printScore(score, marks, (number, of) => showToast(t.practice.viewer.printing(number, of), 30_000));
+			await printScore(score, own.marks, (number, of) => showToast(t.practice.viewer.printing(number, of), 30_000));
 			toast.message = null;
 		} catch (error) {
 			console.error(error);
@@ -108,17 +110,14 @@
 	let stageHeight = $state(0);
 	/** The current page's size fitted to the screen, before zooming. */
 	let fittedSize = $state<{ width: number; height: number } | null>(null);
-	/** 1 is the fitted page; up to MAX_ZOOM times that. */
-	let zoom = $state(1);
-	/** The zoom the page is drawn at; follows `zoom` once a pinch rests, so it isn't drawn on every step. */
-	let drawnZoom = $state(1);
-	const MAX_ZOOM = 4;
+	/** Shown at `zoom.level`, drawn at `zoom.drawn` once a pinch rests (see PageZoom). */
+	const zoom = new PageZoom();
 	/** The current page's size on screen. */
-	const size = $derived(fittedSize && { width: Math.round(fittedSize.width * zoom), height: Math.round(fittedSize.height * zoom) });
+	const size = $derived(fittedSize && { width: Math.round(fittedSize.width * zoom.level), height: Math.round(fittedSize.height * zoom.level) });
 	let sheet = $state<HTMLDivElement>();
 	let pileBox = $state<HTMLDivElement>();
 	/** The page can be scrolled: at its width, or zoomed in. */
-	const scrolls = $derived(fit === 'width' || zoom > 1);
+	const scrolls = $derived(fit === 'width' || zoom.zoomed);
 	/** The current page's own size, unscaled. */
 	let base = $state<{ width: number; height: number } | null>(null);
 	/** The page's area: in full screen the tools above the page and the stage share its height. */
@@ -166,8 +165,7 @@
 	}
 
 	function fitted(base: { width: number; height: number }, height = stageHeight) {
-		const scale = fit === 'page' ? Math.min(stageWidth / base.width, height / base.height) : stageWidth / base.width;
-		return { width: Math.max(100, Math.floor(base.width * scale)), height: Math.max(100, Math.floor(base.height * scale)) };
+		return fitTo(base, fit, stageWidth, height);
 	}
 
 	/** One page at one width; drawn one at a time, as pdf.js likes it. */
@@ -196,7 +194,7 @@
 	let shownPage = 0;
 	$effect(() => {
 		if (!score || !slot || !stageWidth || !stageHeight) return;
-		const [current, number, mode, scale] = [score, page, fit, drawnZoom];
+		const [current, number, mode, scale] = [score, page, fit, zoom.drawn];
 		const token = ++shown;
 		void mode;
 		(async () => {
@@ -224,35 +222,8 @@
 		})();
 	});
 
-	/**
-	 * The other pages, as a loose pile of paper under this one: a sheet or two still to come and
-	 * the one just played at the back, each lying a little crooked, always the same way (by its
-	 * number), as pages do on a stand. Turning on takes the top sheet off and slides it under the
-	 * pile; turning back pulls the sheet at the back out and lays it on top.
-	 */
-	type Under = { number: number; behind: boolean; depth: number };
-	function pileFor(at: number): Under[] {
-		const ahead = [at + 1, at + 2].filter((number) => number <= pages);
-		const under = ahead.map((number, i) => ({ number, behind: false, depth: i + 1 }));
-		if (at > 1) under.push({ number: at - 1, behind: true, depth: under.length + 1 });
-		return under;
-	}
-	const underneath = $derived(score && !scrolls ? pileFor(page) : []);
-	/** -1 to 1, the same for a page every time. */
-	function wobble(number: number, salt: number) {
-		const x = Math.sin(number * 12.9898 + salt * 78.233) * 43758.5453;
-		return (x - Math.floor(x)) * 2 - 1;
-	}
-	/** Where a sheet lies in the pile: those to come peek out to the right, the one played to the left. */
-	function lying({ number, behind, depth }: Under) {
-		const x = behind ? -10 + wobble(number, 1) * 4 : 5 * depth + wobble(number, 1) * 4;
-		const y = 2 * depth + wobble(number, 2) * 5;
-		const tilt = wobble(number, 3);
-		const angle = Math.sign(tilt || 1) * (0.7 + Math.abs(tilt) * 1.3);
-		return `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) rotate(${angle.toFixed(2)}deg)`;
-	}
-	/** Pulled aside, to the left, on its way to or from the back of the pile. */
-	const ASIDE = 'translate(-58%, -1.5%) rotate(-4deg)';
+	/** The other pages, as a loose pile of paper under this one (see pileFor). */
+	const underneath = $derived(score && !scrolls ? pileFor(page, pages) : []);
 
 	let leaf: { ghost: HTMLElement; from: number; to: number } | null = null;
 	let leafing: Animation[] = [];
@@ -260,7 +231,7 @@
 	/** A copy of the page being turned away, with its marks; not while zoomed or for those who'd rather have no motion. */
 	function liftLeaf(from: number, to: number) {
 		leaf = null;
-		if (!sheet || zoom > 1 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+		if (!sheet || zoom.zoomed || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 		const old = slot?.querySelector('canvas');
 		if (!old || !old.width) return;
 		const ghost = document.createElement('div');
@@ -283,10 +254,10 @@
 		if (!lifted || !sheet || !pileBox) return;
 		const { ghost, from, to } = lifted;
 		pileBox.append(ghost);
-		const stack = scrolls ? [] : pileFor(to);
+		const stack = scrolls ? [] : pileFor(to, pages);
 		const at = (number: number) => stack.find((under) => under.number === number);
 		// Where the new page lay before: in the pile under the old one.
-		const was = pileFor(from).find((under) => under.number === to) ?? { number: to, behind: to < from, depth: 3 };
+		const was = pileFor(from, pages).find((under) => under.number === to) ?? { number: to, behind: to < from, depth: 3 };
 		const timing = { duration: 480, easing: 'cubic-bezier(0.33, 0, 0.25, 1)' };
 		if (to > from) {
 			// On: the old page is pulled aside and slid under the pile, the next one straightens up.
@@ -328,7 +299,7 @@
 	function turn(step: number) {
 		const next = Math.min(pages, Math.max(1, page + step));
 		if (next !== page) {
-			finishStroke();
+			pen.finish();
 			flushSync();
 			liftLeaf(page, next);
 			page = next;
@@ -345,26 +316,20 @@
 		else turn(-1);
 	}
 
-	const NEXT = new Set(['ArrowRight', 'ArrowDown', 'PageDown', ' ', 'Enter']);
-	const PREVIOUS = new Set(['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace']);
 	function onkeydown(event: KeyboardEvent) {
-		if (event.ctrlKey || event.metaKey || event.altKey) return;
-		const target = event.target as HTMLElement | null;
-		if (target?.closest('input, textarea, select, [contenteditable="true"]')) return;
-		// Space and Enter on a button press the button.
-		if ((event.key === ' ' || event.key === 'Enter') && target?.closest('button, a')) return;
-		if (event.key === 'Escape' && full) return void leaveFull();
-		if (NEXT.has(event.key)) forward();
-		else if (PREVIOUS.has(event.key)) back();
-		else if (event.key === 'Home') turn(-pages);
-		else if (event.key === 'End') turn(pages);
+		const action = pageKey({ key: event.key, ctrlKey: event.ctrlKey, metaKey: event.metaKey, altKey: event.altKey, target: event.target as HTMLElement | null }, full);
+		if (action === 'leave') return void leaveFull();
+		if (action === 'forward') forward();
+		else if (action === 'back') back();
+		else if (action === 'first') turn(-pages);
+		else if (action === 'last') turn(pages);
 		else return;
 		event.preventDefault();
 	}
 
 	/** Tapping the left half goes back, the right half forward; not while drawing or zoomed in. */
 	function onstageclick(event: MouseEvent) {
-		if (pen || zoom > 1 || !stage) return;
+		if (pen.on || zoom.zoomed || !stage) return;
 		const rect = stage.getBoundingClientRect();
 		if (event.clientX - rect.left < rect.width / 2) back();
 		else forward();
@@ -403,25 +368,17 @@
 	 * Zooms so the spot of the page at `fraction` (0–1 across and down) ends up under `point`
 	 * on screen: by default the spot under it now, so the music under the fingers stays put.
 	 */
-	let settle: ReturnType<typeof setTimeout> | undefined;
 	function zoomTo(next: number, point?: { x: number; y: number }, fraction?: { x: number; y: number }) {
 		if (!stage || !sheet) return;
-		next = Math.round(Math.min(MAX_ZOOM, Math.max(1, next)) * 100) / 100;
 		const area = stage.getBoundingClientRect();
 		const at = point ?? { x: area.left + area.width / 2, y: area.top + area.height / 2 };
 		const before = sheet.getBoundingClientRect();
 		const spot = fraction ?? { x: (at.x - before.left) / before.width, y: (at.y - before.top) / before.height };
-		if (next !== zoom) {
-			zoom = next;
-			flushSync();
-		}
+		if (zoom.set(next)) flushSync();
 		const after = sheet.getBoundingClientRect();
 		stage.scrollLeft += after.left + spot.x * after.width - at.x;
 		stage.scrollTop += after.top + spot.y * after.height - at.y;
-		clearTimeout(settle);
-		settle = setTimeout(() => (drawnZoom = zoom), 250);
 	}
-	const ZOOM_STEP = 1.25;
 
 	// Two fingers zoom the page, not the browser's whole window; one finger still scrolls it.
 	// Touch events, not pointer events: they can stop Safari's own pinch, which pointer events can't.
@@ -434,10 +391,10 @@
 		const start = (event: TouchEvent) => {
 			if (event.touches.length !== 2 || !sheet) return;
 			event.preventDefault();
-			dropTouchMark();
+			pen.dropTouch();
 			const rect = sheet.getBoundingClientRect();
 			const at = middle(event.touches);
-			pinch = { distance: distance(event.touches), zoom, spot: { x: (at.x - rect.left) / rect.width, y: (at.y - rect.top) / rect.height } };
+			pinch = { distance: distance(event.touches), zoom: zoom.level, spot: { x: (at.x - rect.left) / rect.width, y: (at.y - rect.top) / rect.height } };
 		};
 		const move = (event: TouchEvent) => {
 			if (!pinch || event.touches.length < 2) return;
@@ -454,7 +411,7 @@
 		const wheel = (event: WheelEvent) => {
 			if (!event.ctrlKey) return;
 			event.preventDefault();
-			zoomTo(zoom * Math.exp(-event.deltaY / 200), { x: event.clientX, y: event.clientY });
+			zoomTo(zoom.level * Math.exp(-event.deltaY / 200), { x: event.clientX, y: event.clientY });
 		};
 		const options = { passive: false };
 		element.addEventListener('touchstart', start, options);
@@ -475,379 +432,121 @@
 		};
 	});
 
-	// The pen.
-	let marks = $state<Record<number, Stroke[]>>({});
+	// The pen: the member's marks, saved a moment after it stops (see PageMarks).
+	const own = new PageMarks(() => file);
 	$effect.pre(() => {
-		marks = { ...saved };
+		own.marks = { ...saved };
 	});
 	// What this device drew and the server hasn't got (or, offline, a page kept days ago doesn't show).
 	$effect(() => {
 		const server = saved;
-		const part = file;
 		let stale = false;
-		keptPages(part).then((kept) => {
-			if (stale) return;
-			const merged = mergeMarks(server, kept, navigator.onLine);
-			const next = { ...marks };
-			// Pages drawn on since opening are newer than anything kept.
-			for (const [number, strokes] of Object.entries(merged)) if (!history.has(Number(number))) next[Number(number)] = strokes;
-			marks = next;
+		keptPages(file).then((kept) => {
+			if (!stale) own.merge(server, kept, navigator.onLine);
 		});
 		return () => (stale = true);
 	});
 	// Back online: what was drawn offline goes to the server.
 	$effect(() => {
-		const online = () =>
-			sendPending().then(() => {
-				if (saving === 'queued') saving = 'saved';
-			});
+		const online = () => sendPending().then(() => own.sent());
 		if (navigator.onLine) online();
 		addEventListener('online', online);
 		return () => removeEventListener('online', online);
 	});
-	let pen = $state(false);
-	let ink = $state<MarkColor>('graphite');
-	/** Drawing a line, erasing, or placing a symbol with each tap. */
-	let tool = $state<'line' | 'eraser' | MarkSymbol>('line');
-	let drawing = $state<Stroke | null>(null);
-	/** A mark that didn't fit on the page (MAX_PAGE_POINTS, MAX_STROKES) until something goes. */
-	let refused = $state(false);
-	/** `queued`: drawn offline, kept on the device until it can be sent. */
-	let saving = $state<'idle' | 'saving' | 'saved' | 'queued' | 'failed'>('idle');
-	/** Why the last save failed: the HTTP status, or none when the device was offline. */
-	let failure = $state('');
-	const history = new Map<number, Stroke[][]>();
-	const timers = new Map<number, ReturnType<typeof setTimeout>>();
-	const current = $derived(marks[page] ?? []);
-	/** How full the page is, 0 to 1: drawn lines fill it, symbols hardly. */
-	const fullness = $derived(Math.max(pagePoints(current) / MAX_PAGE_POINTS, current.length / MAX_STROKES));
+	/** The colour and tool, and the one pointer drawing (see Pen). */
+	const pen = new Pen(own, () => page);
+	const current = $derived(own.on(page));
+	/** How full the page is, 0 to 1. */
+	const fullness = $derived(own.fullness(page));
 
-	/** Whether one more mark still fits on the page. */
-	function fits(stroke: Stroke) {
-		refused = current.length >= MAX_STROKES || pagePoints(current) + stroke.points.length / 2 > MAX_PAGE_POINTS;
-		return !refused;
-	}
-
-	function change(number: number, next: Stroke[]) {
-		const before = history.get(number) ?? [];
-		before.push(marks[number] ?? []);
-		history.set(number, before.slice(-50));
-		marks = { ...marks, [number]: next };
-		refused = false;
-		saveSoon(number);
-	}
-
-	function saveSoon(number: number) {
-		clearTimeout(timers.get(number));
-		saving = 'saving';
-		failure = '';
-		timers.set(number, setTimeout(() => save(number), 1200));
-	}
-
-	async function save(number: number, keepalive = false) {
-		timers.delete(number);
-		const strokes = marks[number] ?? [];
-		try {
-			const response = await fetch('/api/ueben/notizen', {
-				method: 'PUT',
-				headers: { 'content-type': 'application/json' },
-				body: JSON.stringify({ file, page: number, strokes }),
-				keepalive
-			});
-			if (!response.ok) {
-				failure = String(response.status);
-				saving = 'failed';
-			} else {
-				await keepPage(file, number, strokes, false);
-				if (!timers.size && saving !== 'failed' && saving !== 'queued') saving = 'saved';
-			}
-		} catch {
-			// No connection: kept on the device and sent once it's back.
-			await keepPage(file, number, strokes, true);
-			failure = '';
-			saving = 'queued';
-		}
-	}
-
-	/** Saves what's still waiting now, before the server reads the member's marks. */
-	async function flush() {
-		await Promise.all([...timers].map(([number, timer]) => (clearTimeout(timer), save(number))));
-	}
-
-	// Sharing with the section: the member's own offer, and the offers of others.
-	let shared = $state<string | null>(null);
-	let pending = $state<Offer[]>([]);
-	$effect.pre(() => {
-		shared = sharedAt;
-		pending = offers.map((offer) => ({ ...offer, pages: { ...offer.pages } }));
-	});
-	const offer = $derived(pending[0]);
-	const offerCount = $derived(offer ? Object.values(offer.pages).reduce((sum, strokes) => sum + strokes.length, 0) : 0);
-	let reviewing = $state(false);
-	/** Marks taken over one by one from the offer shown. */
-	let picked = $state(0);
-	let shareNote = $state('');
+	// Sharing with the section: the member's own offer, and the offers of others (see SectionOffers).
+	const section = new SectionOffers(own, () => file);
+	$effect.pre(() => section.reset(sharedAt, offers));
 	/** The offered marks shown on this page, to be taken over with a tap. */
-	const offered = $derived(reviewing && offer ? (offer.pages[page] ?? []) : []);
-
-	async function share() {
-		if (!confirm(t.practice.share.confirm)) return;
-		await flush();
-		const response = await fetch('/api/ueben/notizen/teilen', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ file }) }).catch(() => null);
-		if (response?.ok) {
-			shared = ((await response.json()) as { at: string }).at;
-			shareNote = '';
-		} else shareNote = response?.status === 400 ? t.practice.share.nothing : t.practice.share.failed;
+	const offered = $derived(section.offered(page));
+	function share() {
+		if (confirm(t.practice.share.confirm)) section.share();
 	}
-	async function unshare() {
-		if (!confirm(t.practice.share.confirmUnshare)) return;
-		const response = await fetch('/api/ueben/notizen/teilen', { method: 'DELETE', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ file }) }).catch(() => null);
-		if (response?.ok) shared = null;
-		else shareNote = t.practice.share.failed;
-	}
-
-	/** One offered mark on this page into the member's own. */
-	function take(index: number) {
-		if (!offer) return;
-		const stroke = offered[index];
-		if (!stroke || !fits(stroke)) return;
-		change(page, [...current, stroke]);
-		pending[0] = { ...offer, pages: { ...offer.pages, [page]: offered.filter((_, i) => i !== index) } };
-		picked++;
-	}
-
-	/** Ends the offer shown: everything taken over, some by hand, or none. */
-	async function answer(kind: 'all' | 'some' | 'declined') {
-		if (!offer) return;
-		await flush();
-		const response = await fetch('/api/ueben/notizen/angebot', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: offer.id, answer: kind }) }).catch(() => null);
-		if (!response?.ok) return void (shareNote = t.practice.share.failed);
-		const { pages: merged, skipped } = (await response.json()) as { pages: Record<number, Stroke[]>; skipped: number };
-		if (Object.keys(merged).length) marks = { ...marks, ...merged };
-		shareNote = skipped ? t.practice.share.skipped(skipped) : '';
-		pending = pending.slice(1);
-		reviewing = false;
-		picked = 0;
+	function unshare() {
+		if (confirm(t.practice.share.confirmUnshare)) section.unshare();
 	}
 
 	// Leaving the page: what's still waiting goes out now.
-	$effect(() => () => {
-		for (const [number, timer] of timers) {
-			clearTimeout(timer);
-			save(number, true);
-		}
-	});
+	$effect(() => () => own.leave());
 
 	function point(event: PointerEvent, element: Element): [number, number] {
 		const rect = element.getBoundingClientRect();
 		return [onPage((event.clientX - rect.left) / rect.width), onPage((event.clientY - rect.top) / rect.height)];
 	}
 
-	let erasing = false;
-	function erase([x, y]: [number, number]) {
-		const near = (stroke: Stroke) => {
-			for (let i = 0; i < stroke.points.length; i += 2) if (Math.hypot(stroke.points[i] - x, stroke.points[i + 1] - y) < 0.02) return true;
-			return false;
-		};
-		const kept = current.filter((stroke) => !near(stroke));
-		if (kept.length === current.length) return;
-		// One undo step for a whole wipe.
-		if (!erasing) change(page, kept);
-		else marks = { ...marks, [page]: kept };
-		erasing = true;
-		saveSoon(page);
-	}
-
-	/**
-	 * The one pointer drawing: a second finger or the palm on the glass doesn't join its line
-	 * (#235). Once a pen has drawn, fingers don't draw until the pen tool is turned off and on again,
-	 * so a resting hand leaves no marks.
-	 */
-	let pointer: { id: number; type: string } | null = null;
-	let penSeen = false;
-
 	function down(event: PointerEvent) {
-		if (!pen || pinch) return;
+		if (!pen.on || pinch) return;
 		event.preventDefault();
-		if (event.pointerType === 'pen') penSeen = true;
-		else if (shouldIgnoreTouch(event.pointerType, pen, penSeen)) return;
-		if (pointer) {
-			// A pen taking over from the hand it rests on: the hand's line goes.
-			if (event.pointerType !== 'pen' || pointer.type === 'pen') return;
-			drawing = null;
-		}
 		const element = event.currentTarget as Element;
-		const at = point(event, element);
-		if (tool !== 'line' && tool !== 'eraser') {
-			const stamp: Stroke = { color: ink, points: at, symbol: tool };
-			if (fits(stamp)) {
-				change(page, [...current, stamp]);
-				lastStamp = { at: Date.now(), type: event.pointerType };
-			}
-			return;
-		}
-		pointer = { id: event.pointerId, type: event.pointerType };
+		if (!pen.down({ id: event.pointerId, type: event.pointerType, at: point(event, element) })) return;
 		// Keeps the line going past the page's edge; a browser that won't still draws on the page.
 		try {
 			element.setPointerCapture(event.pointerId);
 		} catch {
 			// Drawn without capture.
 		}
-		if (tool === 'eraser') {
-			erasing = false;
-			erase(at);
-		} else drawing = { color: ink, points: at };
 	}
 	function move(event: PointerEvent) {
-		if (!pen || pinch || event.pointerId !== pointer?.id) return;
+		if (pinch) return;
 		const element = event.currentTarget as Element;
-		if (tool === 'eraser') return erase(point(event, element));
-		if (!drawing) return;
 		// Pens report many points between frames; all of them make a smoother line.
 		const coalesced = event.getCoalescedEvents?.();
 		const events = coalesced?.length ? coalesced : [event];
-		const added = events.flatMap((each) => point(each, element));
-		drawing = { ...drawing, points: [...drawing.points, ...added] };
+		pen.move(event.pointerId, [...events.slice(0, -1), event].map((each) => point(each, element)));
 	}
 	function lift(event: PointerEvent) {
-		if (event.pointerId !== pointer?.id) return;
-		pointer = null;
-		finishStroke();
-	}
-	/**
-	 * A second finger makes it a zoom: the first finger's line so far goes, and a symbol its
-	 * touch placed a moment ago too.
-	 */
-	let lastStamp: { at: number; type: string } | null = null;
-	function dropTouchMark() {
-		if (pointer?.type === 'touch') {
-			drawing = null;
-			pointer = null;
-			erasing = false;
-		}
-		if (lastStamp?.type === 'touch' && Date.now() - lastStamp.at < 400) undo();
-		lastStamp = null;
-	}
-
-	function finishStroke() {
-		erasing = false;
-		pointer = null;
-		if (!drawing) return;
-		const stroke = { ...drawing, points: thinPoints(drawing.points) };
-		drawing = null;
-		if (fits(stroke)) change(page, [...current, stroke]);
+		pen.lift(event.pointerId);
 	}
 
 	function undo() {
-		const before = history.get(page);
-		const last = before?.pop();
-		if (last === undefined) return;
-		marks = { ...marks, [page]: last };
-		refused = false;
-		saveSoon(page);
+		own.undo(page);
 	}
 
 	function clear() {
 		if (!current.length || !confirm(t.practice.marks.confirmClear)) return;
-		change(page, []);
+		own.change(page, []);
 	}
 
 	/**
-	 * In full screen the controls float over the top of the page, so the page gets the whole
-	 * height, and fade away after a few quiet seconds. A mouse moving, a tap on the small button
-	 * in the corner or a key into the bar brings them back. Not while drawing or answering an
-	 * offer: those bars stay put above the page.
+	 * In full screen the controls float over the page, so it gets the whole height, and fade
+	 * away when quiet (see FloatingBar). Not while drawing or answering an offer: those bars stay
+	 * put above the page. A page narrower than the screen is tall, so it often leaves a strip
+	 * free below it: where the bar fits in the free height, it stays in view and the page makes
+	 * room for it, above or below.
 	 */
-	let bare = $state(false);
 	let controlsBox = $state<HTMLDivElement>();
-	const floating = $derived(full && !pen && !(penAllowed && offer) && !shareNote);
-	/**
-	 * The bar at the top or the bottom of the screen, as the player likes it; kept per device. A
-	 * page narrower than the screen is tall, so it often leaves a strip free below it: where the
-	 * bar fits in the free height, it stays in view and the page makes room for it, above or below.
-	 */
-	const BAR_KEY = 'practice-bar-below';
-	let barBelow = $state(readLocalJson(BAR_KEY) === true);
+	const floating = $derived(full && !pen.on && !(penAllowed && section.offer) && !section.note);
 	let controlsHeight = $state(0);
-	function moveBar() {
-		barBelow = !barBelow;
-		writeLocalJson(BAR_KEY, barBelow);
-	}
 	const spare = $derived(full && size && !scrolls ? stageHeight - size.height : 0);
 	const roomy = $derived(floating && controlsHeight > 0 && spare >= controlsHeight);
-	const QUIET = 3500;
-	let quiet: ReturnType<typeof setTimeout> | undefined;
-	/** A mouse over the bar keeps it; a finger's tap leaves a "hover" behind on phones, which doesn't. */
-	let mouseOver = false;
-	function wake() {
-		bare = false;
-		clearTimeout(quiet);
-		quiet = setTimeout(() => {
-			// Not while the mouse or the keyboard is in the bar; a tapped button keeping focus doesn't count.
-			if (floating && !roomy && !mouseOver && !controlsBox?.querySelector(':focus-visible')) bare = true;
-			else if (floating) wake();
-		}, QUIET);
-	}
+	const bar = new FloatingBar(() => ({ floating, roomy, focused: !!controlsBox?.querySelector(':focus-visible') }));
 	function hideControls() {
-		clearTimeout(quiet);
 		(document.activeElement as HTMLElement | null)?.blur?.();
-		bare = true;
+		bar.hide();
 	}
 	$effect(() => {
-		if (floating && !roomy) wake();
-		else {
-			clearTimeout(quiet);
-			bare = false;
-		}
-		return () => clearTimeout(quiet);
+		bar.follow();
+		return () => bar.stop();
 	});
 	function onrootmove(event: PointerEvent) {
-		if (floating && event.pointerType === 'mouse') wake();
+		if (floating && event.pointerType === 'mouse') bar.wake();
 	}
 
 	/**
-	 * Where the tools go, so they never cover the music and the page never shrinks for them:
-	 * beside the page where its margin has room (moving the page aside, at the same size, when
-	 * only both margins together do), below it where a page narrower than the screen leaves room,
-	 * else above it in the page's flow, where in full screen the page gets smaller for it.
+	 * Where the tools go (see dockFor). Decided by the page as it is without the tools: in full
+	 * screen, tools above the page make it smaller, and the smaller page mustn't then send them
+	 * beside it, and back (#239).
 	 */
-	const PANEL = 260;
-	const GAP = 12;
-
 	const dock = $derived.by(() => {
-		// Decided by the page as it is without the tools: in full screen, tools above the page make
-		// it smaller, and the smaller page mustn't then send them beside it, and back (#239).
 		const room = full && areaHeight ? areaHeight : stageHeight;
-		const whole = base ? fitted(base, room) : size;
-		const width = whole?.width ?? stageWidth;
-		const height = whole?.height ?? stageHeight;
-		const free = stageWidth - width;
-		if (fit === 'page' && free >= PANEL + GAP) {
-			const left = Math.max(0, Math.min((stageWidth - width) / 2, stageWidth - PANEL - GAP - width));
-			return { place: 'side', page: left, left: `${left + width + GAP}px`, top: '0px', width: `${Math.min(PANEL + 40, stageWidth - left - width - GAP)}px`, height: '100%' };
-		}
-		const below = room - height - GAP;
-		if (fit === 'page' && size && below >= 150) {
-			const left = (stageWidth - width) / 2;
-			return { place: 'below', page: left, left: `${left}px`, top: `${height + GAP}px`, width: `${width}px`, height: `${below}px` };
-		}
-		const centred = Math.max(0, (stageWidth - (size?.width ?? width)) / 2);
-		return { place: 'above', page: centred, left: undefined, top: undefined, width: undefined, height: undefined };
+		return dockFor({ fit, stageWidth, stageHeight, room, whole: base ? fitted(base, room) : size, size });
 	});
-	/**
-	 * The tools where the player put them (#248): picked up by the grip and kept per device, apart
-	 * for portrait, landscape and full screen, since the stand differs. Over the page, so where
-	 * they cover the music is the player's choice; folded to a pill they cover little. Without a
-	 * saved spot `dock` places them, as before.
-	 */
-	const SPOTS_KEY = 'practice-tools-spot';
-	const SNAP = 16;
-	type Spot = { x: number; y: number };
-	function readSpots(): Record<string, Spot> {
-		const value = readLocalJson(SPOTS_KEY);
-		return value && typeof value === 'object' ? (value as Record<string, Spot>) : {};
-	}
-	let spots = $state<Record<string, Spot>>(readSpots());
+	// The tools where the player put them (#248; see ToolSpots): apart for portrait, landscape and full screen.
 	let windowWidth = $state(0);
 	let windowHeight = $state(0);
 	let areaWidth = $state(0);
@@ -855,36 +554,9 @@
 	let dockHeight = $state(0);
 	let dockBox = $state<HTMLDivElement>();
 	let areaBox = $state<HTMLDivElement>();
-	let folded = $state(false);
-	let placeNote = $state('');
 	const layout = $derived(`${full ? 'full' : 'page'}-${windowWidth > windowHeight ? 'landscape' : 'portrait'}`);
-	/** Inside the area, also after a rotation or resize made it smaller. */
-	const clamp = ({ x, y }: Spot): Spot => ({
-		x: Math.round(Math.min(Math.max(0, x), Math.max(0, areaWidth - dockWidth))),
-		y: Math.round(Math.min(Math.max(0, y), Math.max(0, areaHeight - dockHeight)))
-	});
-	const spot = $derived(spots[layout] && areaWidth ? clamp(spots[layout]) : null);
-
-	/** Without storage the tools stay put until the page is left. */
-	function saveSpots() {
-		writeLocalJson(SPOTS_KEY, spots);
-	}
-	function place(next: Spot | null, save: boolean) {
-		const { [layout]: _, ...rest } = spots;
-		spots = next ? { ...rest, [layout]: clamp(next) } : rest;
-		if (!next) folded = false;
-		if (save) {
-			saveSpots();
-			placeNote = next ? t.practice.viewer.toolsAt(...percent(clamp(next))) : t.practice.viewer.toolsAuto;
-		}
-	}
-	const percent = ({ x, y }: Spot): [number, number] => [Math.round((x / Math.max(1, areaWidth)) * 100), Math.round((y / Math.max(1, areaHeight)) * 100)];
-	/** A light pull to the edges and corners. */
-	const snap = ({ x, y }: Spot): Spot => {
-		const right = areaWidth - dockWidth;
-		const bottom = areaHeight - dockHeight;
-		return { x: x < SNAP ? 0 : right - x < SNAP ? right : x, y: y < SNAP ? 0 : bottom - y < SNAP ? bottom : y };
-	};
+	const placed = new ToolSpots(() => ({ layout, areaWidth, areaHeight, dockWidth, dockHeight }));
+	const spot = $derived(placed.spot);
 	/** Where the panel is now, docked or moved, in the area's coordinates. */
 	function spotNow(): Spot {
 		if (spot) return spot;
@@ -911,32 +583,28 @@
 		const dy = event.clientY - drag.startY;
 		if (!drag.moved && Math.hypot(dx, dy) < 4) return;
 		drag.moved = true;
-		place({ x: drag.from.x + dx, y: drag.from.y + dy }, false);
+		placed.place({ x: drag.from.x + dx, y: drag.from.y + dy }, false);
 	}
 	function drop(event: PointerEvent) {
 		if (drag?.id !== event.pointerId) return;
 		const moved = drag.moved;
 		drag = null;
-		if (moved) return place(snap(spot ?? spotNow()), true);
+		if (moved) return placed.place(placed.snap(spot ?? spotNow()), true);
 		// A double tap, also by finger, where dblclick doesn't come: back to automatic.
-		if (event.timeStamp - lastTap < 350) place(null, true);
+		if (event.timeStamp - lastTap < 350) placed.place(null, true);
 		lastTap = event.timeStamp;
 	}
 	function nudge(event: KeyboardEvent) {
-		const step = event.shiftKey ? 48 : 12;
-		const by: Record<string, [number, number]> = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
-		if (event.key === 'Escape') place(null, true);
-		else if (by[event.key]) {
-			const from = spotNow();
-			place({ x: from.x + by[event.key][0], y: from.y + by[event.key][1] }, true);
-		} else return;
+		const to = nudged(spotNow(), event.key, event.shiftKey);
+		if (to === undefined) return;
+		placed.place(to, true);
 		// Not a page turn, and not leaving full screen.
 		event.preventDefault();
 		event.stopPropagation();
 	}
 
 	/** The page's left edge in the stage: centred, or moved aside for the docked tools. */
-	const pageLeft = $derived(active && !spot ? dock.page : Math.max(0, ((size ? stageWidth - size.width : 0) / 2)));
+	const pageLeft = $derived(toolbox.active && !spot ? dock.page : Math.max(0, ((size ? stageWidth - size.width : 0) / 2)));
 
 	const STROKE: Record<MarkColor, string> = { graphite: 'var(--mark-graphite)', red: 'var(--mark-red)', blue: 'var(--mark-blue)' };
 	/** A symbol's button: its glyph in a 24 × 24 box, 10 to a symbol unit. */
@@ -950,11 +618,11 @@
      The pointer handlers here and on .controls only wake the controls; keyboard users get them through focusin. -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="score" class:full class:night bind:this={root} onpointermove={onrootmove}>
-	{#if floating && bare}
-		<button type="button" class="reveal" class:below={barBelow} onclick={wake} aria-label={t.practice.viewer.showControls} title={t.practice.viewer.showControls}><Icon name="menu" size={18} /></button>
+	{#if floating && bar.bare}
+		<button type="button" class="reveal" class:below={bar.below} onclick={() => bar.wake()} aria-label={t.practice.viewer.showControls} title={t.practice.viewer.showControls}><Icon name="menu" size={18} /></button>
 	{/if}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div class="controls" class:floating class:below={full && barBelow} class:bare={floating && bare} bind:this={controlsBox} bind:offsetHeight={controlsHeight} onfocusin={() => floating && wake()} onpointerdown={() => floating && wake()} onpointerenter={(event) => (mouseOver = event.pointerType === 'mouse')} onpointerleave={() => (mouseOver = false)} inert={floating && bare}>
+	<div class="controls" class:floating class:below={full && bar.below} class:bare={floating && bar.bare} bind:this={controlsBox} bind:offsetHeight={controlsHeight} onfocusin={() => floating && bar.wake()} onpointerdown={() => floating && bar.wake()} onpointerenter={(event) => (bar.mouseOver = event.pointerType === 'mouse')} onpointerleave={() => (bar.mouseOver = false)} inert={floating && bar.bare}>
 	<div class="bar">
 		{#if extra}<div class="group">{@render extra()}</div>{/if}
 		<div class="group">
@@ -967,22 +635,17 @@
 				<Icon name={fit === 'page' ? 'fitWidth' : 'fitHeight'} size={15} />{fit === 'page' ? t.practice.viewer.fitWidth : t.practice.viewer.fitPage}
 			</button>
 			<span class="zoom" role="group" aria-label={t.practice.viewer.zoom}>
-				<button type="button" class="tool" onclick={() => zoomTo(zoom / ZOOM_STEP)} disabled={zoom <= 1} aria-label={t.practice.viewer.zoomOut}><Icon name="minus" size={16} /></button>
-				<button type="button" class="tool text percent" onclick={() => zoomTo(1)} disabled={zoom <= 1} aria-label={t.practice.viewer.zoomReset}>{Math.round(zoom * 100)} %</button>
-				<button type="button" class="tool" onclick={() => zoomTo(zoom * ZOOM_STEP)} disabled={zoom >= MAX_ZOOM} aria-label={t.practice.viewer.zoomIn}><Icon name="plus" size={16} /></button>
+				<button type="button" class="tool" onclick={() => zoomTo(zoom.level / ZOOM_STEP)} disabled={!zoom.zoomed} aria-label={t.practice.viewer.zoomOut}><Icon name="minus" size={16} /></button>
+				<button type="button" class="tool text percent" onclick={() => zoomTo(1)} disabled={!zoom.zoomed} aria-label={t.practice.viewer.zoomReset}>{Math.round(zoom.level * 100)} %</button>
+				<button type="button" class="tool" onclick={() => zoomTo(zoom.level * ZOOM_STEP)} disabled={zoom.level >= MAX_ZOOM} aria-label={t.practice.viewer.zoomIn}><Icon name="plus" size={16} /></button>
 			</span>
 			{#if penAllowed}
-				<button type="button" class="tool text" class:on={pen} aria-pressed={pen} onclick={() => {
-					if (pen) finishStroke();
-					// Turned off and on again, fingers draw again until a pen does.
-					penSeen = false;
-					pen = !pen;
-				}}>
+				<button type="button" class="tool text" class:on={pen.on} aria-pressed={pen.on} onclick={() => pen.toggle()}>
 					<Icon name="edit" size={15} />{t.practice.marks.pen}
 				</button>
 			{/if}
 			{#each tools as each (each.value)}
-				<button type="button" class="tool text" class:on={active === each.value} aria-expanded={active === each.value} onclick={() => chooseTool(each.value)}>
+				<button type="button" class="tool text" class:on={toolbox.active === each.value} aria-expanded={toolbox.active === each.value} onclick={() => toolbox.choose(each.value)}>
 					{each.label}
 				</button>
 			{/each}
@@ -993,40 +656,40 @@
 				<button type="button" class="tool" onclick={print} disabled={!score || printing} aria-busy={printing} aria-label={t.practice.viewer.print} title={t.practice.viewer.print}><Icon name="print" size={16} /></button>
 			{/if}
 			{#if full}
-				<button type="button" class="tool" onclick={moveBar} aria-label={barBelow ? t.practice.viewer.barTop : t.practice.viewer.barBottom} title={barBelow ? t.practice.viewer.barTop : t.practice.viewer.barBottom}><Icon name={barBelow ? 'barTop' : 'barBottom'} size={16} /></button>
+				<button type="button" class="tool" onclick={() => bar.move()} aria-label={bar.below ? t.practice.viewer.barTop : t.practice.viewer.barBottom} title={bar.below ? t.practice.viewer.barTop : t.practice.viewer.barBottom}><Icon name={bar.below ? 'barTop' : 'barBottom'} size={16} /></button>
 			{/if}
 			{#if floating && !roomy}
-				<button type="button" class="tool" onclick={hideControls} aria-label={t.practice.viewer.hideControls} title={t.practice.viewer.hideControls}><Icon name={barBelow ? 'down' : 'up'} size={16} /></button>
+				<button type="button" class="tool" onclick={hideControls} aria-label={t.practice.viewer.hideControls} title={t.practice.viewer.hideControls}><Icon name={bar.below ? 'down' : 'up'} size={16} /></button>
 			{/if}
 		</div>
 	</div>
 
-	{#if pen}
+	{#if pen.on}
 		<div class="bar pen" role="toolbar" aria-label={t.practice.marks.title}>
 			<div class="group">
 				{#each MARK_COLORS as each (each)}
 					<button
 						type="button"
 						class="swatch {each}"
-						class:on={ink === each && tool !== 'eraser'}
-						aria-pressed={ink === each && tool !== 'eraser'}
-						onclick={() => ((ink = each), tool === 'eraser' && (tool = 'line'))}
+						class:on={pen.ink === each && pen.tool !== 'eraser'}
+						aria-pressed={pen.ink === each && pen.tool !== 'eraser'}
+						onclick={() => pen.pick(each)}
 						title={t.practice.marks[each]}
 					>
 						<span class="dot"></span><span class="label">{t.practice.marks[each]}</span>
 					</button>
 				{/each}
-				<button type="button" class="tool text" class:on={tool === 'eraser'} aria-pressed={tool === 'eraser'} onclick={() => (tool = tool === 'eraser' ? 'line' : 'eraser')}>{t.practice.marks.eraser}</button>
+				<button type="button" class="tool text" class:on={pen.tool === 'eraser'} aria-pressed={pen.tool === 'eraser'} onclick={() => pen.choose('eraser')}>{t.practice.marks.eraser}</button>
 			</div>
 			<!-- Symbols: a tap on the page places one; they hardly fill the page, as lines do. -->
 			<div class="group symbols" role="group" aria-label={t.practice.marks.symbolsTitle}>
 				{#each MARK_SYMBOLS as each (each)}
 					<button
 						type="button"
-						class="tool symbol {ink}"
-						class:on={tool === each}
-						aria-pressed={tool === each}
-						onclick={() => (tool = tool === each ? 'line' : each)}
+						class="tool symbol {pen.ink}"
+						class:on={pen.tool === each}
+						aria-pressed={pen.tool === each}
+						onclick={() => pen.choose(each)}
 						title={t.practice.marks.symbols[each]}
 						aria-label={t.practice.marks.symbols[each]}
 					>
@@ -1040,24 +703,24 @@
 				<button type="button" class="tool text" onclick={undo}>{t.practice.marks.undo}</button>
 				<button type="button" class="tool text" onclick={clear} disabled={!current.length}>{t.practice.marks.clear}</button>
 				{#if canShare}
-					<button type="button" class="tool text" class:on={!!shared} aria-pressed={!!shared} onclick={() => (shared ? unshare() : share())}>
-						<Icon name="users" size={15} />{shared ? t.practice.share.unshare : t.practice.share.share}
+					<button type="button" class="tool text" class:on={!!section.shared} aria-pressed={!!section.shared} onclick={() => (section.shared ? unshare() : share())}>
+						<Icon name="users" size={15} />{section.shared ? t.practice.share.unshare : t.practice.share.share}
 					</button>
 				{/if}
-				<span class="state" class:failed={saving === 'failed' || refused} role="status">
-					{refused
+				<span class="state" class:failed={own.saving === 'failed' || own.refused} role="status">
+					{own.refused
 						? t.practice.marks.pageFull
-						: saving === 'saving'
+						: own.saving === 'saving'
 							? t.practice.marks.saving
-							: saving === 'failed'
-								? t.practice.marks.failed(failure)
-								: saving === 'queued'
+							: own.saving === 'failed'
+								? t.practice.marks.failed(own.failure)
+								: own.saving === 'queued'
 									? t.practice.marks.queued
 								: fullness > 0.8
 									? t.practice.marks.nearlyFull
-									: saving === 'saved'
+									: own.saving === 'saved'
 										? t.practice.marks.saved
-										: shared
+										: section.shared
 											? t.practice.marks.sharedNote
 											: t.practice.marks.private}
 				</span>
@@ -1066,41 +729,41 @@
 	{/if}
 
 	<!-- An offer from the section: above the page like the rest, never over it. -->
-	{#if penAllowed && offer}
+	{#if penAllowed && section.offer}
 		<div class="bar offer" role="region" aria-label={t.practice.marks.title}>
 			<p>
-				<Icon name="users" size={15} />{t.practice.share.offered(offer.from, offerCount + picked)}
-				{#if reviewing}<span class="muted">{t.practice.share.pick} {t.practice.share.onPage(offered.length)}</span>{/if}
+				<Icon name="users" size={15} />{t.practice.share.offered(section.offer.from, section.count + section.picked)}
+				{#if section.reviewing}<span class="muted">{t.practice.share.pick} {t.practice.share.onPage(offered.length)}</span>{/if}
 			</p>
 			<div class="group">
-				<button type="button" class="tool text" class:on={reviewing} aria-pressed={reviewing} onclick={() => (reviewing ? (reviewing = false) : (finishStroke(), (pen = false), (reviewing = true)))}>
-					{reviewing ? t.practice.share.hide : t.practice.share.show}
+				<button type="button" class="tool text" class:on={section.reviewing} aria-pressed={section.reviewing} onclick={() => (section.reviewing ? (section.reviewing = false) : (pen.stop(), (section.reviewing = true)))}>
+					{section.reviewing ? t.practice.share.hide : t.practice.share.show}
 				</button>
-				<button type="button" class="tool text" onclick={() => answer('all')}>{t.practice.share.takeAll}</button>
-				{#if picked}
-					<button type="button" class="tool text" onclick={() => answer('some')}>{t.practice.share.done}</button>
+				<button type="button" class="tool text" onclick={() => section.answer('all')}>{t.practice.share.takeAll}</button>
+				{#if section.picked}
+					<button type="button" class="tool text" onclick={() => section.answer('some')}>{t.practice.share.done}</button>
 				{:else}
-					<button type="button" class="tool text" onclick={() => answer('declined')}>{t.practice.share.decline}</button>
+					<button type="button" class="tool text" onclick={() => section.answer('declined')}>{t.practice.share.decline}</button>
 				{/if}
 			</div>
 		</div>
 	{/if}
-	{#if shareNote}<p class="share-note" role="status">{shareNote}</p>{/if}
+	{#if section.note}<p class="share-note" role="status">{section.note}</p>{/if}
 	</div>
 
-	<div class="area" class:docked={!!active} bind:this={areaBox} bind:clientHeight={areaHeight} bind:clientWidth={areaWidth}>
+	<div class="area" class:docked={!!toolbox.active} bind:this={areaBox} bind:clientHeight={areaHeight} bind:clientWidth={areaWidth}>
 	<!-- The tools: rendered once, so a running metronome or drone carries on when the panel moves, folds or closes. -->
-	{#if panel && opened.length}
+	{#if panel && toolbox.opened.length}
 		<div
 			class="dock {spot ? 'free' : dock.place}"
-			class:folded={spot && folded}
-			hidden={!active}
+			class:folded={spot && placed.folded}
+			hidden={!toolbox.active}
 			bind:this={dockBox}
 			bind:offsetWidth={dockWidth}
 			bind:offsetHeight={dockHeight}
 			style:top={spot ? `${spot.y}px` : dock.top}
 			style:left={spot ? `${spot.x}px` : dock.left}
-			style:width={spot ? (folded ? undefined : `${Math.min(PANEL + 40, areaWidth)}px`) : dock.width}
+			style:width={spot ? (placed.folded ? undefined : `${Math.min(PANEL + 40, areaWidth)}px`) : dock.width}
 			style:max-height={spot ? `${areaHeight}px` : dock.height}
 		>
 			<div class="handle">
@@ -1113,28 +776,28 @@
 					onpointerup={drop}
 					onpointercancel={() => (drag = null)}
 					onkeydown={nudge}><Icon name="grip" size={18} /></button>
-				{#if spot && folded}
-					<button type="button" class="pill" onclick={() => (folded = false)} aria-expanded="false">{tools.find((each) => each.value === active)?.label}</button>
+				{#if spot && placed.folded}
+					<button type="button" class="pill" onclick={() => (placed.folded = false)} aria-expanded="false">{tools.find((each) => each.value === toolbox.active)?.label}</button>
 				{:else if spot}
-					<button type="button" class="icon" onclick={() => (folded = true)} aria-expanded="true" aria-label={t.practice.viewer.fold} title={t.practice.viewer.fold}><Icon name="minus" size={16} /></button>
-					<button type="button" class="icon" onclick={() => place(null, true)} aria-label={t.practice.viewer.autoPlace} title={t.practice.viewer.autoPlace}><Icon name="refresh" size={16} /></button>
+					<button type="button" class="icon" onclick={() => (placed.folded = true)} aria-expanded="true" aria-label={t.practice.viewer.fold} title={t.practice.viewer.fold}><Icon name="minus" size={16} /></button>
+					<button type="button" class="icon" onclick={() => placed.place(null, true)} aria-label={t.practice.viewer.autoPlace} title={t.practice.viewer.autoPlace}><Icon name="refresh" size={16} /></button>
 				{/if}
-				{#if !(spot && folded)}
-					<button type="button" class="close" onclick={() => (active = null)} aria-label={t.practice.viewer.closeTools}>×</button>
+				{#if !(spot && placed.folded)}
+					<button type="button" class="close" onclick={() => toolbox.close()} aria-label={t.practice.viewer.closeTools}>×</button>
 				{/if}
 			</div>
-			<div class="panels" hidden={!!spot && folded}>
-				{#each opened as tool (tool)}
-					<div class="tool-panel" hidden={active !== tool}>{@render panel(tool)}</div>
+			<div class="panels" hidden={!!spot && placed.folded}>
+				{#each toolbox.opened as tool (tool)}
+					<div class="tool-panel" hidden={toolbox.active !== tool}>{@render panel(tool)}</div>
 				{/each}
 			</div>
 		</div>
 	{/if}
-	<p class="sr-only" role="status">{placeNote}</p>
+	<p class="sr-only" role="status">{placed.note}</p>
 
 	<!-- Taps on the page turn it; the keys and pedals work anywhere on the page. -->
 	<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-	<div class="stage" class:width={fit === 'width'} class:zoomed={zoom > 1} bind:this={stage} bind:clientWidth={stageWidth} bind:clientHeight={stageHeight} onclick={onstageclick}>
+	<div class="stage" class:width={fit === 'width'} class:zoomed={zoom.zoomed} bind:this={stage} bind:clientWidth={stageWidth} bind:clientHeight={stageHeight} onclick={onstageclick}>
 		{#if failed}
 			<p class="msg error">{t.practice.viewer.failed}</p>
 		{:else if !score}
@@ -1146,7 +809,7 @@
 			style:width={size ? `${size.width}px` : undefined}
 			style:height={size ? `${size.height}px` : undefined}
 			style:margin-left={size ? `${pageLeft}px` : undefined}
-			style:margin-top={roomy && !barBelow ? `${controlsHeight}px` : undefined}
+			style:margin-top={roomy && !bar.below ? `${controlsHeight}px` : undefined}
 			hidden={!score || failed}
 		>
 		{#each underneath as under (under.number)}
@@ -1157,7 +820,7 @@
 			{#if size}
 				<svg
 					class="marks"
-					class:drawing={pen}
+					class:drawing={pen.on}
 					viewBox="0 0 {size.width} {size.height}"
 					width={size.width}
 					height={size.height}
@@ -1167,7 +830,7 @@
 					onpointercancel={lift}
 					aria-hidden={offered.length ? undefined : 'true'}
 				>
-					{#each [...current, ...(drawing ? [drawing] : [])] as stroke, i (i)}
+					{#each [...current, ...(pen.drawing ? [pen.drawing] : [])] as stroke, i (i)}
 						{#each markLines(stroke, size.width / size.height) as line, j (j)}
 							<path d={strokePath(line, size.width, size.height)} stroke={STROKE[stroke.color]} stroke-width={strokeWidth} />
 						{/each}
@@ -1179,8 +842,8 @@
 							role="button"
 							tabindex="0"
 							aria-label={t.practice.share.take}
-							onclick={(event) => (event.stopPropagation(), take(i))}
-							onkeydown={(event) => (event.key === 'Enter' || event.key === ' ') && (event.preventDefault(), event.stopPropagation(), take(i))}
+							onclick={(event) => (event.stopPropagation(), section.take(page, i))}
+							onkeydown={(event) => (event.key === 'Enter' || event.key === ' ') && (event.preventDefault(), event.stopPropagation(), section.take(page, i))}
 						>
 							{#each markLines(stroke, size.width / size.height) as line, j (j)}
 								{@const d = strokePath(line, size.width, size.height)}
