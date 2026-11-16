@@ -715,7 +715,7 @@ export const en: Texts = {
 			seasons: 'Small drawings for the season: a snowflake, a blossom, a pumpkin.',
 			tickets: 'Reserve concert tickets on the website, paid at the door, with check-in by phone.',
 			offline: 'Save parts in “My parts” for rehearsals without a connection.',
-			drills: 'Short exercises in note reading, keys, intervals, rhythm, pitch, scales, sight-reading, playing together and transposing. They run on the device; only the time counts toward practice time.'
+			drills: 'Short exercises in note reading, keys, intervals, rhythm, pitch, scales, sight-reading, playing together and transposing. They run on the device, your progress follows you to your other devices; the time counts toward practice time.'
 		} as Record<string, string>,
 		instruments: 'Instruments',
 		instrumentsLead:
@@ -1683,7 +1683,7 @@ export const en: Texts = {
 	admin: {
 		drillUnlock: 'Unlock exercises',
 		drillUnlockLead:
-			'Opens exercises in the practice area for a member without them working their way up: for professionals, say. Progress stays on the member’s device; this only sets which exercises are open.',
+			'Opens exercises in the practice area for a member without them working their way up: for professionals, say. No one sees the member’s progress here; this only sets which exercises are open.',
 		drillUnlockMember: 'Member',
 		drillUnlockChoose: 'Choose a member …',
 		drillUnlockAll: 'All',
@@ -1963,7 +1963,7 @@ export const en: Texts = {
 	},
 	/** Everything the sheet keeps about a member, as one file (#158). */
 	myData: {
-		drills: 'Practice area (shared)',
+		drills: 'Practice area',
 		title: 'My data',
 		lead: 'Everything the app keeps about you: your entry, sign-ups, attendance, reports, wishes and notes from the repertoire sheet, plus your devices for notifications, the reminders you got and your answers in date polls.',
 		download: 'Download my data',
@@ -2017,8 +2017,10 @@ export const en: Texts = {
 	drills: {
 		title: 'Practice room',
 		lead: 'A few minutes a day: read notes, recognise keys, hear intervals, tap rhythms, play in tune, play scales, sight-read, come in on time and tune in a chord, transpose. The exercises adapt to you.',
-		private: 'Your progress and the microphone stay on this device. At most your practice time is sent, if you record practice time.',
+		private: 'Your progress is saved with your account, so you can carry on on any device. The microphone stays on this device; only you can see your progress.',
 		unsaved: 'This browser can’t save your progress (a private window?). You can still practise.',
+		unsavedSynced: 'This browser can’t save your progress itself (a private window?); it is saved only with your account while you’re online.',
+		notSynced: 'Not matched with your other devices yet. That happens by itself once you’re back online.',
 		instrument: 'Instrument',
 		clef: 'Clef',
 		clefs: { treble: 'Treble clef', bass: 'Bass clef', alto: 'Alto clef', tenor: 'Tenor clef' },
@@ -2443,8 +2445,8 @@ export const en: Texts = {
 		treeNext: (duration: string, stage: string) => `${duration} to go to ${stage}`,
 		treeStart: 'Turn it on in your profile',
 		treeOff: 'Turn on “Record practice time” in your profile and your practice tree grows with these rounds too.',
-		reset: 'Delete progress on this device',
-		confirmReset: 'Delete all your practice progress on this device? This can’t be undone.',
+		reset: 'Delete progress',
+		confirmReset: 'Delete all your practice progress, on all your devices? This can’t be undone.',
 		letters: ['C', 'D', 'E', 'F', 'G', 'A', 'B'],
 		letterKeys: ['c', 'd', 'e', 'f', 'g', 'a', 'b'],
 		noteName: (step: number, alter: number): string => 'CDEFGAB'[step] + ({ [-2]: '𝄫', [-1]: '♭', 0: '', 1: '♯', 2: '𝄪' }[alter] ?? ''),
@@ -3186,7 +3188,7 @@ export const en: Texts = {
 	parents: {
 		drills: {
 			title: 'Practice area',
-			lead: 'What your child practises in the app’s practice area stays on their device. They can share a short summary with you. The weekly board and the conductor are open to children only with your okay.',
+			lead: 'What your child practises in the app’s practice area only they can see. They can share a short summary with you. The weekly board and the conductor are open to children only with your okay.',
 			allowed: 'May appear on the weekly board and share with the conductor and teachers, if they turn it on themselves.',
 			notAllowed: 'Doesn’t appear on the weekly board and shares nothing with the conductor and teachers.',
 			allow: 'Allow',
@@ -3382,7 +3384,7 @@ export const en: Texts = {
 			reminders: 'Reminders sent',
 			settings: 'Settings (emails, tour, practice time)',
 			practice: 'Practice time (days)',
-			drills: 'Shared practice summary and parents’ consent',
+			drills: 'Practice area (progress, shared summary, parents’ consent)',
 			marks: 'Own marks in parts (pages)',
 			polls: 'Date polls',
 			trips: 'Trips (sign-ups, lists and instruments deleted, organising without name)',

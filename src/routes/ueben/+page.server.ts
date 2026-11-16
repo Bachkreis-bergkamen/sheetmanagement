@@ -13,10 +13,11 @@ import { boardFor, sharingState } from '#lib/server/drills.ts';
 import type { PageServerLoad } from './$types';
 
 /**
- * The Übebereich (#300, #315): drills that run in the browser. The server only says whose
- * progress to load from the device, which instruments the member plays (so the drills start in
- * the right clef) and whether their time counts for the practice tree; answers, progress and the
- * microphone never reach it. Besides, what the member chose to share (a summary per day, see
+ * The Übebereich (#300, #315): drills that run in the browser. The server says whose progress
+ * to load from the device (a copy of it is synced through /api/ueben/fortschritt, so it follows
+ * the member to their other devices), which instruments the member plays (so the drills start in
+ * the right clef) and whether their time counts for the practice tree; the microphone never
+ * reaches it. Besides, what the member chose to share (a summary per day, see
  * sharing.ts) and, when they're on it, this week's board.
  */
 export const load: PageServerLoad = async ({ locals }) => {
@@ -42,6 +43,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 	return {
 		// Progress is kept per account on the device, so a shared device keeps each member's own.
 		account: email ?? 'guest',
+		// A signed-in member's progress also goes to the server, for their other devices.
+		synced: signedIn,
 		instruments: parseInstruments(member?.instrument ?? '', config).map((choice) => choice.instrument),
 		// Time in the rounds goes to practice time (the tree) only when the member records it; null without an account.
 		practising: signedIn ? practising : null,

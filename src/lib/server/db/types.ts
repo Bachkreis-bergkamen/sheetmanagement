@@ -166,6 +166,10 @@ export interface Store {
 	drillUnlocksAll(): Promise<Map<string, string[]>>;
 	/** Replaces the drills opened for a member; none forgets them. */
 	setDrillUnlocks(email: string, cards: string[], by: string): Promise<void>;
+	/** A member's Übebereich progress as last saved from a device, as JSON (#300); null if none. */
+	drillProgressOf(email: string): Promise<string | null>;
+	/** Replaces a member's progress; null forgets it. */
+	setDrillProgress(email: string, json: string | null): Promise<void>;
 
 	/** A member's own marks in one part, or in all parts without `file`; by page. */
 	marksOf(email: string, file?: string): Promise<PageMarks[]>;

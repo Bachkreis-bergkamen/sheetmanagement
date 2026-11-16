@@ -6,8 +6,9 @@ import { MAX_ENTRY_LEVEL } from './together.ts';
 import { CLEFS, type Clef } from './theory.ts';
 
 /**
- * What the Übebereich keeps on the device (#300): every item's progress, and per day how much
- * was practised. Nothing of it is sent anywhere.
+ * What the Übebereich keeps (#300): every item's progress, and per day how much was practised.
+ * Kept on the device and, for a signed-in member, a copy on the server so it follows them to
+ * their other devices (see sync.ts).
  */
 
 export interface DayStats {
@@ -87,6 +88,13 @@ export interface DrillData {
 	badges?: Record<string, string>;
 	/** What the member noted as hard after the daily round (#315), shown before the next one. */
 	reflection?: Reflection;
+	/**
+	 * When the progress was last reset (ms since 1970): a copy from before, on another device or
+	 * the server, is dropped rather than merged back in. Undefined when it never was.
+	 */
+	since?: number;
+	/** When it last changed on any device (ms since 1970): the newer settings win in a merge. */
+	changed?: number;
 }
 
 export interface Reflection {
@@ -141,6 +149,8 @@ export function readData(value: unknown): DrillData {
 	if (reflection && typeof reflection.text === 'string' && typeof reflection.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(reflection.day) && reflection.text.trim()) {
 		data.reflection = { day: reflection.day, text: reflection.text.trim().slice(0, REFLECTION_MAX) };
 	}
+	if (Number.isFinite(raw.since) && raw.since! > 0) data.since = Math.round(raw.since!);
+	if (Number.isFinite(raw.changed) && raw.changed! > 0) data.changed = Math.round(raw.changed!);
 	if (Number.isFinite(raw.unsent) && raw.unsent! > 0) data.unsent = Math.min(MAX_UNSENT, Math.round(raw.unsent!));
 	return data;
 }

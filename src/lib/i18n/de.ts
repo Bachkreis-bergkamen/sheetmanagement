@@ -725,7 +725,7 @@ export const de = {
 			offline: 'Stimmen in „Meine Noten“ für die Probe ohne Netz speichern.',
 			seasons: 'Kleine Zeichnungen zur Jahreszeit: Schneeflocke, Blüte, Kürbis.',
 			tickets: 'Karten für Konzerte über die Website reservieren, bezahlt an der Abendkasse, mit Einlass per Handy.',
-			drills: 'Kurze Übungen zu Notenlesen, Tonarten, Intervallen, Rhythmus, Tönen, Tonleitern, Vom-Blatt-Spiel, Zusammenspiel und Transponieren. Sie laufen auf dem Gerät; nur die Übezeit zählt für die Probenzeit.'
+			drills: 'Kurze Übungen zu Notenlesen, Tonarten, Intervallen, Rhythmus, Tönen, Tonleitern, Vom-Blatt-Spiel, Zusammenspiel und Transponieren. Sie laufen auf dem Gerät, der Fortschritt geht mit auf deine anderen Geräte; die Übezeit zählt für die Probenzeit.'
 		} as Record<string, string>,
 		instruments: 'Instrumente',
 		instrumentsLead:
@@ -1702,7 +1702,7 @@ export const de = {
 	admin: {
 		drillUnlock: 'Übungen freischalten',
 		drillUnlockLead:
-			'Öffnet Übungen im Übebereich für ein Mitglied, ohne dass es sich hocharbeiten muss: etwa für Profis. Der Fortschritt bleibt auf dem Gerät des Mitglieds; hier geht es nur darum, welche Übungen offen sind.',
+			'Öffnet Übungen im Übebereich für ein Mitglied, ohne dass es sich hocharbeiten muss: etwa für Profis. Den Fortschritt des Mitglieds sieht hier niemand; es geht nur darum, welche Übungen offen sind.',
 		drillUnlockMember: 'Mitglied',
 		drillUnlockChoose: 'Mitglied wählen …',
 		drillUnlockAll: 'Alle',
@@ -1983,7 +1983,7 @@ export const de = {
 	},
 	/** Everything the sheet keeps about a member, as one file (#158). */
 	myData: {
-		drills: 'Übebereich (geteilt)',
+		drills: 'Übebereich',
 		title: 'Meine Daten',
 		lead: 'Alles, was die App über dich speichert: dein Eintrag, Zu- und Absagen, Anwesenheit, Meldungen, Wünsche und Notizen aus der Repertoire-Tabelle, dazu deine Geräte für Benachrichtigungen, die Erinnerungen, die du bekommen hast, und deine Antworten in Terminumfragen.',
 		download: 'Meine Daten herunterladen',
@@ -2034,12 +2034,14 @@ export const de = {
 		yes: 'ja',
 		no: 'nein'
 	},
-	/** The Übebereich (#300, #315): drills on the device, nothing sent. */
+	/** The Übebereich (#300, #315): drills on the device, the progress synced to the member's others. */
 	drills: {
 		title: 'Übebereich',
 		lead: 'Ein paar Minuten am Tag: Noten lesen, Tonarten erkennen, Intervalle hören, Rhythmen klopfen, Töne treffen, Tonleitern spielen, vom Blatt spielen, einsetzen und im Akkord stimmen, transponieren. Die Übungen passen sich dir an.',
-		private: 'Dein Fortschritt und das Mikrofon bleiben auf diesem Gerät. Gesendet wird höchstens die Übezeit, wenn du die Probenzeit aufzeichnest.',
+		private: 'Dein Fortschritt wird mit deinem Konto gespeichert, damit du auf jedem Gerät weitermachen kannst. Das Mikrofon bleibt auf diesem Gerät; sehen kann den Fortschritt nur du.',
 		unsaved: 'Dieser Browser kann den Fortschritt nicht speichern (ein privates Fenster?). Üben geht trotzdem.',
+		unsavedSynced: 'Dieser Browser kann den Fortschritt nicht selbst speichern (ein privates Fenster?); er wird nur mit deinem Konto gespeichert, solange du online bist.',
+		notSynced: 'Noch nicht mit deinen anderen Geräten abgeglichen. Das passiert von selbst, sobald du wieder online bist.',
 		instrument: 'Instrument',
 		clef: 'Schlüssel',
 		clefs: { treble: 'Violinschlüssel', bass: 'Bassschlüssel', alto: 'Altschlüssel', tenor: 'Tenorschlüssel' },
@@ -2469,8 +2471,8 @@ export const de = {
 		treeNext: (duration: string, stage: string) => `noch ${duration} bis ${stage}`,
 		treeStart: 'Im Profil einschalten',
 		treeOff: 'Mit „Probenzeit aufzeichnen“ im Profil wächst dein Übebaum auch mit diesen Runden.',
-		reset: 'Fortschritt auf diesem Gerät löschen',
-		confirmReset: 'Deinen ganzen Übe-Fortschritt auf diesem Gerät löschen? Das lässt sich nicht rückgängig machen.',
+		reset: 'Fortschritt löschen',
+		confirmReset: 'Deinen ganzen Übe-Fortschritt löschen, auf allen Geräten? Das lässt sich nicht rückgängig machen.',
 		letters: ['C', 'D', 'E', 'F', 'G', 'A', 'H'] as string[],
 		/** The keys that answer each letter. */
 		letterKeys: ['c', 'd', 'e', 'f', 'g', 'a', 'h'] as string[],
@@ -3236,7 +3238,7 @@ export const de = {
 	parents: {
 		drills: {
 			title: 'Übebereich',
-			lead: 'Was dein Kind im Übebereich der App übt, bleibt auf seinem Gerät. Es kann eine kurze Übersicht mit dir teilen. Wochenwertung und Dirigat gibt es für Kinder nur mit deinem Okay.',
+			lead: 'Was dein Kind im Übebereich der App übt, sieht nur es selbst. Es kann eine kurze Übersicht mit dir teilen. Wochenwertung und Dirigat gibt es für Kinder nur mit deinem Okay.',
 			allowed: 'Darf in der Wochenwertung erscheinen und mit Dirigat und Lehrkräften teilen, wenn es das selbst einschaltet.',
 			notAllowed: 'Erscheint nicht in der Wochenwertung und teilt nichts mit Dirigat und Lehrkräften.',
 			allow: 'Erlauben',
@@ -3435,7 +3437,7 @@ export const de = {
 			reminders: 'Verschickte Erinnerungen',
 			settings: 'Einstellungen (E-Mails, Tour, Übezeit)',
 			practice: 'Übezeit (Tage)',
-			drills: 'Geteilter Übestand und Zustimmung der Eltern',
+			drills: 'Übebereich (Fortschritt, geteilter Übestand, Zustimmung der Eltern)',
 			marks: 'Eigene Eintragungen in Noten (Seiten)',
 			polls: 'Terminumfragen',
 			trips: 'Fahrten (Anmeldungen, Listen und Instrumente gelöscht, Organisation ohne Namen)',

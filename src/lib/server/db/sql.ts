@@ -285,6 +285,19 @@ export function sqlStore(db: D1): Store {
 				...[...new Set(cards)].map((card): [string, ...unknown[]] => ['INSERT INTO drill_unlocks (email, card, granted_by) VALUES (?, ?, ?)', email, card, by])
 			]);
 		},
+		async drillProgressOf(email) {
+			const [row] = await all<{ data: string }>('SELECT data FROM drill_progress WHERE email = ?', email);
+			return row?.data ?? null;
+		},
+		async setDrillProgress(email, json) {
+			if (json === null) await run('DELETE FROM drill_progress WHERE email = ?', email);
+			else
+				await run(
+					`INSERT INTO drill_progress (email, data) VALUES (?, ?) ON CONFLICT (email) DO UPDATE SET data = excluded.data, updated_at = datetime('now')`,
+					email,
+					json
+				);
+		},
 		async marksOf(email, file) {
 			const rows = await all<{ file: string; page: number; strokes: string }>(
 				`SELECT file, page, strokes FROM practice_marks WHERE email = ?${file === undefined ? '' : ' AND file = ?'} ORDER BY file, page`,
