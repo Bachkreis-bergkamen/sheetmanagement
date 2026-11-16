@@ -63,6 +63,14 @@ export function sqlStore(db: D1): Store {
 	const schema = () => (ready ??= migrate().catch((cause: unknown) => ((ready = undefined), Promise.reject(cause))));
 	const all = async <T>(sql: string, ...values: unknown[]) => (await schema(), (await db.prepare(sql).bind(...values).all<T>()).results);
 	const run = async (sql: string, ...values: unknown[]) => (await schema(), await db.prepare(sql).bind(...values).run());
+	/**
+	 * Writes that belong together (#351): one batch is one transaction and one round trip, so a
+	 * failure half-way leaves nothing half done. Long lists go in batches of 50, as for tickets.
+	 */
+	const together = async (writes: [sql: string, ...values: unknown[]][]) => {
+		await schema();
+		for (let i = 0; i < writes.length; i += 50) await db.batch(writes.slice(i, i + 50).map(([sql, ...values]) => db.prepare(sql).bind(...values)));
+	};
 
 	async function applied(): Promise<string[]> {
 		await db.prepare(BOOKKEEPING).run();
@@ -230,8 +238,8 @@ export function sqlStore(db: D1): Store {
 			}
 		},
 		async saveDrillDays(email, rows) {
-			for (const row of rows) {
-				await run(
+			await together(
+				rows.map((row) => [
 					`INSERT INTO drill_days (email, day, skill, answers, right_answers, seconds) VALUES (?, ?, ?, ?, ?, ?)
 					 ON CONFLICT (email, day, skill) DO UPDATE SET answers = excluded.answers, right_answers = excluded.right_answers, seconds = excluded.seconds`,
 					email,
@@ -240,8 +248,8 @@ export function sqlStore(db: D1): Store {
 					row.answers,
 					row.right,
 					row.seconds
-				);
-			}
+				])
+			);
 		},
 		async drillDaysOf(emails, since) {
 			if (!emails.length) return [];
@@ -271,8 +279,11 @@ export function sqlStore(db: D1): Store {
 			return result;
 		},
 		async setDrillUnlocks(email, cards, by) {
-			await run('DELETE FROM drill_unlocks WHERE email = ?', email);
-			for (const card of new Set(cards)) await run('INSERT INTO drill_unlocks (email, card, granted_by) VALUES (?, ?, ?)', email, card, by);
+			// Together: if an insert fails, the member keeps the drills they had.
+			await together([
+				['DELETE FROM drill_unlocks WHERE email = ?', email],
+				...[...new Set(cards)].map((card): [string, ...unknown[]] => ['INSERT INTO drill_unlocks (email, card, granted_by) VALUES (?, ?, ?)', email, card, by])
+			]);
 		},
 		async marksOf(email, file) {
 			const rows = await all<{ file: string; page: number; strokes: string }>(
@@ -294,28 +305,34 @@ export function sqlStore(db: D1): Store {
 				);
 		},
 		async deleteMarks(email) {
-			await run('DELETE FROM practice_marks WHERE email = ?', email);
-			await run('DELETE FROM mark_share_answers WHERE email = ? OR share IN (SELECT id FROM mark_shares WHERE sender = ?)', email, email);
-			await run('DELETE FROM mark_shares WHERE sender = ?', email);
+			await together([
+				['DELETE FROM practice_marks WHERE email = ?', email],
+				['DELETE FROM mark_share_answers WHERE email = ? OR share IN (SELECT id FROM mark_shares WHERE sender = ?)', email, email],
+				['DELETE FROM mark_shares WHERE sender = ?', email]
+			]);
 		},
 
 		async shareMarks(sender, file, pages) {
 			const id = crypto.randomUUID();
 			// A new offer: everyone answers it anew.
-			await run('DELETE FROM mark_share_answers WHERE share IN (SELECT id FROM mark_shares WHERE sender = ? AND file = ?)', sender, file);
-			await run(
-				`INSERT INTO mark_shares (id, sender, file, pages) VALUES (?, ?, ?, ?)
-				 ON CONFLICT (sender, file) DO UPDATE SET id = excluded.id, pages = excluded.pages, created_at = datetime('now')`,
-				id,
-				sender,
-				file,
-				JSON.stringify(pages)
-			);
+			await together([
+				['DELETE FROM mark_share_answers WHERE share IN (SELECT id FROM mark_shares WHERE sender = ? AND file = ?)', sender, file],
+				[
+					`INSERT INTO mark_shares (id, sender, file, pages) VALUES (?, ?, ?, ?)
+					 ON CONFLICT (sender, file) DO UPDATE SET id = excluded.id, pages = excluded.pages, created_at = datetime('now')`,
+					id,
+					sender,
+					file,
+					JSON.stringify(pages)
+				]
+			]);
 			return (await this.shareById(id))!;
 		},
 		async unshareMarks(sender, file) {
-			await run('DELETE FROM mark_share_answers WHERE share IN (SELECT id FROM mark_shares WHERE sender = ? AND file = ?)', sender, file);
-			await run('DELETE FROM mark_shares WHERE sender = ? AND file = ?', sender, file);
+			await together([
+				['DELETE FROM mark_share_answers WHERE share IN (SELECT id FROM mark_shares WHERE sender = ? AND file = ?)', sender, file],
+				['DELETE FROM mark_shares WHERE sender = ? AND file = ?', sender, file]
+			]);
 		},
 		async shareById(id) {
 			const [row] = await all<ShareRow>('SELECT id, sender, file, pages, created_at FROM mark_shares WHERE id = ?', id);

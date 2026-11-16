@@ -1,13 +1,17 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { page } from '$app/state';
 	import { FormState, showToast } from '#lib/forms.svelte.ts';
 	import { t } from '#lib/i18n/index.ts';
+	import { actionPath, dropQueuedAnswer, pendingAnswers, queueAnswer } from '#lib/offline/answers.svelte.ts';
 	import { ANSWERS, type Answer } from '#lib/signups/signups.ts';
 	import Icon from './Icon.svelte';
 
 	/**
 	 * "Ich komme · Vielleicht · Ich kann nicht" as three large buttons, each in its own colour,
 	 * so the choice is clear without reading. On the event's page and on the start page's cards.
+	 * Without a connection the answer waits on the device and is sent later (#191); it shows as
+	 * chosen meanwhile, with a line saying so.
 	 */
 	let {
 		action,
@@ -27,14 +31,24 @@
 	const saving = new FormState();
 	// The tapped answer shows as chosen at once; the sheet catches up in the background.
 	let tapped = $state<string | null>(null);
+	const account = $derived((page.data.user as { email?: string } | null | undefined)?.email ?? '');
+	const path = $derived(actionPath(action, page.url.href));
+	/** Answered without a connection, still to be sent. */
+	const waiting = $derived(pendingAnswers.queue[path]);
 	const submit = $derived(saving.submit({
 		onStart: ({ submitter }) => (tapped = submitter?.getAttribute('name') === 'answer' ? submitter.getAttribute('value') : null),
 		stay: toastErrors,
+		onSuccess: () => account && dropQueuedAnswer(account, path),
 		onFailure: (data) => {
 			if (toastErrors) showToast(typeof data?.signupError === 'string' ? data.signupError : t.signups.failed);
+		},
+		offline: ({ submitter }) => {
+			const value = submitter?.getAttribute('value') as Answer;
+			if (account && ANSWERS.includes(value)) queueAnswer(account, path, value);
+			else showToast(t.common.saveFailed);
 		}
 	}));
-	const chosen = $derived((saving.busy && tapped) || answer);
+	const chosen = $derived((saving.busy && tapped) || waiting || answer);
 
 	const ICONS = { yes: 'check', maybe: 'minus', no: 'x' } as const;
 </script>
@@ -53,6 +67,7 @@
 			<span class="word">{t.signups.answers[option]}</span>
 		</button>
 	{/each}
+	{#if waiting}<p class="waiting" role="status"><Icon name="clock" size={14} />{t.signups.queued}</p>{/if}
 </form>
 
 <style>
@@ -87,6 +102,17 @@
 		line-height: 1.2;
 		text-align: center;
 		cursor: pointer;
+	}
+
+	/* Under the buttons, across all three: the answer is on the device, not yet with the orchestra. */
+	.waiting {
+		display: flex;
+		grid-column: 1 / -1;
+		align-items: center;
+		gap: var(--space-1);
+		margin: 0;
+		color: var(--text-muted);
+		font-size: var(--text-sm);
 	}
 
 	.answer.yes {

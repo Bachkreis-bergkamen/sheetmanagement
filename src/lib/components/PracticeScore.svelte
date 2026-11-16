@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { showToast, toast } from '#lib/forms.svelte.ts';
 	import { t } from '#lib/i18n/index.ts';
 	import { readLocalJson, writeLocalJson } from '#lib/local-storage.ts';
 	import type { OpenScore } from '#lib/music/score-reader.ts';
@@ -32,6 +33,7 @@
 		offers = [],
 		sharedAt = null,
 		share: canShare = true,
+		print: printable = true,
 		page = $bindable(1)
 	}: {
 		file: string;
@@ -60,6 +62,8 @@
 		sharedAt?: string | null;
 		/** Off for a part not of the member's instrument: nobody in their section plays it. */
 		share?: boolean;
+		/** The "Drucken" button (#362); off in the concert mode. */
+		print?: boolean;
 		/** The page shown, e.g. for a report about it (#306). */
 		page?: number;
 	} = $props();
@@ -76,6 +80,25 @@
 	let score = $state<OpenScore | null>(null);
 	let pages = $state(0);
 	let failed = $state(false);
+
+	/** Printing (#362): every page with the member's marks, through the system's print dialogue. */
+	let printing = $state(false);
+	async function print() {
+		if (!score || printing) return;
+		printing = true;
+		try {
+			// The stroke being drawn belongs on the paper too.
+			finishStroke();
+			const { printScore } = await import('#lib/practice/print.ts');
+			await printScore(score, marks, (number, of) => showToast(t.practice.viewer.printing(number, of), 30_000));
+			toast.message = null;
+		} catch (error) {
+			console.error(error);
+			showToast(t.practice.viewer.printFailed);
+		} finally {
+			printing = false;
+		}
+	}
 	let fit = $state<'page' | 'width'>('page');
 	let full = $state(false);
 	let root = $state<HTMLDivElement>();
@@ -966,6 +989,9 @@
 			<button type="button" class="tool text" onclick={() => (full ? leaveFull() : enterFull())} aria-pressed={full}>
 				{full ? t.practice.viewer.exitFullscreen : t.practice.viewer.fullscreen}
 			</button>
+			{#if printable}
+				<button type="button" class="tool" onclick={print} disabled={!score || printing} aria-busy={printing} aria-label={t.practice.viewer.print} title={t.practice.viewer.print}><Icon name="print" size={16} /></button>
+			{/if}
 			{#if full}
 				<button type="button" class="tool" onclick={moveBar} aria-label={barBelow ? t.practice.viewer.barTop : t.practice.viewer.barBottom} title={barBelow ? t.practice.viewer.barTop : t.practice.viewer.barBottom}><Icon name={barBelow ? 'barTop' : 'barBottom'} size={16} /></button>
 			{/if}

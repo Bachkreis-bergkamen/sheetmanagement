@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { sendPending } from '#lib/offline/marks.ts';
 	import { sendQueuedPractice } from '#lib/offline/practice-queue.ts';
+	import { loadPendingAnswers, sendQueuedAnswers } from '#lib/offline/answers.svelte.ts';
 	import '../app.css';
-	import { afterNavigate, onNavigate } from '$app/navigation';
+	import { afterNavigate, invalidateAll, onNavigate } from '$app/navigation';
 	import { navigating, page } from '$app/state';
 	import { DEFAULT_LOGO, shownLogo } from '#lib/branding.ts';
 	import { config, useInstrumentOverrides } from '#lib/config/index.ts';
@@ -90,6 +91,24 @@
 		send();
 		addEventListener('online', send);
 		return () => removeEventListener('online', send);
+	});
+
+	// "Bist du dabei?" answered without a connection (#191): sent once online, or when the app comes
+	// back to the front; the pages then show the answer as saved.
+	$effect(() => {
+		const account = data.auth === 'on' && data.user ? data.user.email : '';
+		loadPendingAnswers(account);
+		if (!account) return;
+		const send = () => {
+			if (document.visibilityState === 'visible') void sendQueuedAnswers(account).then((saved) => (saved ? invalidateAll() : undefined));
+		};
+		send();
+		addEventListener('online', send);
+		document.addEventListener('visibilitychange', send);
+		return () => {
+			removeEventListener('online', send);
+			document.removeEventListener('visibilitychange', send);
+		};
 	});
 
 	// Pages cross-fade like in an app (#129): the browser animates between the old and the new
