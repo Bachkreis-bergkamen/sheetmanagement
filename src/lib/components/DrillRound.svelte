@@ -26,7 +26,7 @@
 	} from '#lib/practice/drills/rhythm.ts';
 	import type { DrillSettings } from '#lib/practice/drills/progress.ts';
 	import { droneMidi, IN_TUNE, isArpeggio, isMinor, judgeScale, scaleRows, scaleTempo, segment, UNEVEN, type NoteMark, type Reading } from '#lib/practice/drills/scales.ts';
-	import { listenToPitch, playArpeggio, playBar, playChord, playTone, rememberedA4, startChord, startDrone, triad, type MicProblem, type PlayedBar } from '#lib/practice/drills/sound.ts';
+	import { listenToPitch, playArpeggio, playBar, playChord, playTone, rememberedA4, startChord, startDrone, tapTime, triad, type MicProblem, type PlayedBar } from '#lib/practice/drills/sound.ts';
 	import { TUNED } from '#lib/practice/drills/together.ts';
 	import { midiOf, tonic, type Clef } from '#lib/practice/drills/theory.ts';
 	import DrillStaff from './DrillStaff.svelte';
@@ -729,7 +729,7 @@
 				if (question.kind === 'pulse') tapPulse();
 				else tapRhythm();
 			}
-			else tap(event.timeStamp);
+			else tap(tapTime(event.timeStamp, performance.now()));
 			return;
 		}
 		if (feedback && (event.key === ' ' || event.key === 'Enter')) {
@@ -1061,7 +1061,7 @@
 						class:hit={tapped % 2 === 1}
 						onpointerdown={(event) => {
 							event.preventDefault();
-							tap(event.timeStamp);
+							tap(tapTime(event.timeStamp, performance.now()));
 						}}>{tx.tapPad}</button
 					>
 				{:else if !feedback}

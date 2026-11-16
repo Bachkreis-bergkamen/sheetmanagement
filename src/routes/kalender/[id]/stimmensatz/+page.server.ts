@@ -27,7 +27,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		players: members.length,
 		pieces: concert.program.map((item) => {
 			const piece = item.pieceId ? library.piecesById.get(item.pieceId) : undefined;
-			const parts = piece?.detail ? playedParts(piece.detail) : [];
+			const parts = piece?.detail ? playedParts(piece.detail, item.movements) : [];
 			// Each player with what they play in this piece: their own instruments, or the part assigned to them (#262).
 			const occasion = { piece: piece?.sheet?.title ?? item.title, concerts: concert.sheet ? [concert.sheet.title] : [] };
 			const players = members.flatMap((member) =>

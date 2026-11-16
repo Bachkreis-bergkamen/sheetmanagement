@@ -49,6 +49,8 @@ export interface Section {
 	/** "2. Satz", "Komplett", or empty for a piece with only one section. */
 	label: string;
 	kind: SectionKind;
+	/** The movement it holds, for a folder per movement ("2. Satz" → 2). */
+	movement?: number;
 	/** The Drive folder to open for this section. */
 	folderId: string;
 	partCount: number;

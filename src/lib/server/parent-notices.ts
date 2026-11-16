@@ -2,7 +2,7 @@ import { env } from 'cloudflare:workers';
 import { splitGroups } from '#lib/access/access.ts';
 import type { NewParentNotice, ParentNotice } from '#lib/parents/notices.ts';
 import { isDemo } from './env.ts';
-import type { SqlDatabase } from './polls-store.ts';
+import { perDatabase, type SqlDatabase } from './polls-store.ts';
 
 /**
  * Where the notices to parents are kept: in the app's database (D1), in memory for the demo;
@@ -96,12 +96,13 @@ export class MemoryParentNoticeStore implements ParentNoticeStore {
 }
 
 let demo: MemoryParentNoticeStore | null = null;
+const sql = perDatabase((db) => new SqlParentNoticeStore(db));
 
 /** In D1 (binding "DB"), in memory for the demo; null without a database. */
 export function parentNoticeStore(): ParentNoticeStore | null {
 	if (isDemo()) return (demo ??= new MemoryParentNoticeStore());
 	const db = (env as { DB?: SqlDatabase }).DB;
-	return db ? new SqlParentNoticeStore(db) : null;
+	return db ? sql(db) : null;
 }
 
 /** Back to empty, with the rest of the demo. */

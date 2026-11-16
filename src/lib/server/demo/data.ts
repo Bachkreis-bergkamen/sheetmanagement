@@ -67,6 +67,8 @@ interface SamplePiece {
 	publisher?: string;
 	category?: 'christmas';
 	parts: string[];
+	/** A folder per movement ("2. Satz") with these parts in each, in place of parts directly in the piece folder (#361). */
+	movements?: number[];
 	/** Parts with a status word: a placeholder doc for FEHLT, a PDF otherwise. */
 	gaps?: Record<string, 'FEHLT' | 'LEER' | 'UNVOLLSTÄNDIG'>;
 	/** A score's instrument names, at the left of its staves (#249). */
@@ -181,6 +183,17 @@ const PIECES: SamplePiece[] = [
 		duration: '3:15',
 		parts: ['Partitur', ...STRINGS],
 		gaps: { Violoncello: 'LEER' }
+	},
+	{
+		// Kept as a folder per movement; the third was never scanned.
+		id: 'demo-dvorak',
+		folder: 'Dvořák Op. 95 - Sinfonie Nr. 9 Aus der neuen Welt',
+		short: 'Dvořák 9',
+		title: 'Sinfonie Nr. 9 Aus der neuen Welt',
+		composer: 'Antonín Dvořák',
+		duration: '42:00',
+		parts: ['Partitur', 'Flöte', 'Klarinette in B', 'Horn in F', ...STRINGS],
+		movements: [1, 2, 4]
 	}
 ];
 
@@ -212,14 +225,19 @@ export function demoFiles(): DemoFile[] {
 				pdf: { title: piece.title, composer: piece.composer, part: name.replace(/\.pdf$/i, '') }
 			});
 		});
-		piece.parts.forEach((part, i) => {
+		for (const movement of piece.movements ?? []) {
+			files.push({ id: `${piece.id}-satz-${movement}`, name: `${movement}. Satz`, mimeType: FOLDER, parents: [piece.id], modifiedTime: MODIFIED });
+		}
+		// One set of parts in the piece folder, or one in each movement's folder.
+		const sets = piece.movements?.map((movement) => ({ id: `${piece.id}-satz-${movement}`, name: `${piece.short} - Satz ${movement}` })) ?? [{ id: piece.id, name: piece.short }];
+		for (const set of sets) piece.parts.forEach((part, i) => {
 			const gap = piece.gaps?.[part];
 			const prefix = SCORES.includes(part) ? '@' : '';
 			files.push({
-				id: `${piece.id}-${i}`,
-				name: `${prefix}${piece.short} - ${part}${gap ? ` - ${gap}` : ''}${gap === 'FEHLT' ? '' : '.pdf'}`,
+				id: `${set.id}-${i}`,
+				name: `${prefix}${set.name} - ${part}${gap ? ` - ${gap}` : ''}${gap === 'FEHLT' ? '' : '.pdf'}`,
 				mimeType: gap === 'FEHLT' ? DOC : PDF,
-				parents: [piece.id],
+				parents: [set.id],
 				modifiedTime: MODIFIED,
 				pdf:
 					gap === 'FEHLT'

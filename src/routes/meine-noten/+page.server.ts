@@ -85,7 +85,7 @@ export const load: PageServerLoad = async ({ url, cookies, locals }) => {
 	const piecesOf = (items: ProgramItem[], concert: LibraryConcert | undefined, position = programPositions(items)) =>
 		items.map((item) => {
 			const piece = item.pieceId ? library.piecesById.get(item.pieceId) : undefined;
-			const parts = piece?.detail ? playedParts(piece.detail) : [];
+			const parts = piece?.detail ? playedParts(piece.detail, item.movements) : [];
 			return {
 				notes: notesFor(item, concert),
 				position: position(item),

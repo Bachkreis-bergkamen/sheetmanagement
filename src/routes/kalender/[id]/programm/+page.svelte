@@ -4,6 +4,7 @@
 	import { guardUnsaved } from '#lib/unsaved.svelte.ts';
 	import { flip } from 'svelte/animate';
 	import { t } from '#lib/i18n/index.ts';
+	import { movementsIn, withMovements } from '#lib/music/sections.ts';
 	import { searchText } from '#lib/music/text.ts';
 	import { isJoint, programLabel } from '#lib/repertoire/orchestras.ts';
 	import { formatDuration, parseDuration, programLength, roundMinutes } from '#lib/repertoire/duration.ts';
@@ -13,6 +14,19 @@
 	import Title from '#lib/components/Title.svelte';
 
 	let { data, form } = $props();
+
+	/** Pieces kept as a folder per movement, by their name: the movements a programme can pick from (#361). */
+	const movements = $derived(new Map(data.state === 'ready' ? data.pieces.flatMap((piece) => (piece.movements ? [[piece.name, piece.movements] as const] : [])) : []));
+
+	/**
+	 * Picks movements in an entry's note, where "Meine Noten" reads them: from the whole piece, a
+	 * tap means only that movement, then each tap adds or drops one; none left is the whole piece again.
+	 */
+	function toggleMovement(entry: Entry, all: number[], movement: number) {
+		const named = movementsIn(entry.notes).filter((n) => all.includes(n));
+		const next = named.includes(movement) ? named.filter((n) => n !== movement) : [...named, movement];
+		entry.notes = withMovements(entry.notes, next.length === all.length ? [] : next);
+	}
 
 	interface Entry {
 		key: number;
@@ -409,6 +423,17 @@
 							aria-label="{t.editor.noteLabel}: {entry.title}"
 							maxlength="300"
 						/>
+						{#if movements.has(entry.piece)}
+							{@const all = movements.get(entry.piece) ?? []}
+							{@const named = movementsIn(entry.notes).filter((n) => all.includes(n))}
+							<span class="movements" role="group" aria-label="{t.editor.movements}: {entry.title}">
+								<span class="muted">{t.editor.movements}</span>
+								{#each all as movement (movement)}
+									<button type="button" aria-pressed={named.includes(movement)} aria-label={t.editor.movement(movement)} onclick={() => toggleMovement(entry, all, movement)}>{movement}</button>
+								{/each}
+								{#if !named.length}<span class="muted">{t.editor.allMovements}</span>{/if}
+							</span>
+						{/if}
 					</span>
 					<span class="actions">
 						<button type="button" onclick={() => move(i, i - 1)} disabled={i === 0} title={t.editor.up} aria-label={t.editor.up}>
@@ -640,6 +665,35 @@
 		color: var(--text);
 		font: inherit;
 		font-size: var(--text-sm);
+	}
+
+	.movements {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-1);
+		margin-top: var(--space-1);
+		font-size: var(--text-sm);
+	}
+
+	.movements button {
+		min-width: 34px;
+		height: 34px;
+		padding: 0 var(--space-2);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-pill);
+		background: var(--bg);
+		color: var(--text);
+		font: inherit;
+		font-size: var(--text-sm);
+		cursor: pointer;
+	}
+
+	.movements button[aria-pressed='true'] {
+		border-color: var(--accent);
+		background: var(--accent-soft);
+		color: var(--accent);
+		font-weight: 700;
 	}
 
 	.actions {

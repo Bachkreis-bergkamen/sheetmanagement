@@ -54,7 +54,7 @@ export function upcomingParts(library: Library, member: Member, music: Orchestra
 		for (const item of programFor(concert, member)) {
 			const piece = item.pieceId ? library.piecesById.get(item.pieceId) : undefined;
 			if (!piece?.detail) continue;
-			const parts = playedParts(piece.detail);
+			const parts = playedParts(piece.detail, item.movements);
 			const played = choicesAt(
 				{ email: member.email, choices },
 				assignments,

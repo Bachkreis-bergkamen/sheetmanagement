@@ -51,6 +51,52 @@ export function sharedMovement(fileNames: string[]): number | undefined {
 	return first !== undefined && numbers.every((n) => n === first) ? first : undefined;
 }
 
+const NUMBER = String.raw`\d{1,2}`;
+const JOIN = String.raw`\s*(?:,|&|\+|-|–|\bund\b|\band\b|\bbis\b|\bto\b)\s*`;
+const WORD = String.raw`(?:s[aä]tze?|mov(?:ement)?s?\.?)`;
+/** "Satz 2", "Sätze 1–3", "movements 2 & 4"; or with the numbers first, the last one an ordinal: "2. Satz", "1. & 3. Satz". */
+const MOVEMENTS = new RegExp(
+	String.raw`(?<![a-zäöü])${WORD}\s*(${NUMBER}\.?(?:${JOIN}${NUMBER}\.?)*)|((?:\b${NUMBER}\.?${JOIN})*\b${NUMBER}(?:\.|er|ter|te|st|nd|rd|th))\s*${WORD}(?![a-zäöü])`,
+	'i'
+);
+const RANGE = /-|–|bis|to/i;
+
+/**
+ * The movements a programme row's note names (#361): "2. Satz" → [2], "Sätze 1–3" → [1, 2, 3],
+ * "1. & 4. Satz, ohne Wiederholung" → [1, 4]. Empty when it names none: the whole piece.
+ * "2 Sätze" is a count, not a movement.
+ */
+export function movementsIn(note: string | undefined): number[] {
+	const match = note ? MOVEMENTS.exec(note) : null;
+	if (!match) return [];
+	const found = new Set<number>();
+	let last: number | undefined;
+	let range = false;
+	for (const token of (match[1] ?? match[2]).split(/(\d{1,2})/)) {
+		if (!/^\d/.test(token)) {
+			range = RANGE.test(token);
+			continue;
+		}
+		const number = Number(token);
+		if (range && last !== undefined) for (let n = Math.min(last, number); n <= Math.max(last, number); n++) found.add(n);
+		found.add(number);
+		last = number;
+	}
+	found.delete(0);
+	return [...found].sort((a, b) => a - b);
+}
+
+/** The note with these movements named in it, in place of the ones it named: [2, 4] → "2. & 4. Satz"; none: the whole piece. */
+export function withMovements(note: string, movements: number[]): string {
+	const rest = note
+		.replace(MOVEMENTS, '')
+		.replace(/^[\s,;·–-]+|[\s,;·–-]+$/g, '')
+		.replace(/\s{2,}/g, ' ');
+	const sorted = [...new Set(movements)].sort((a, b) => a - b);
+	const named = sorted.length ? `${sorted.map((n) => `${n}.`).join(' & ')} Satz` : '';
+	return [named, rest].filter(Boolean).join(', ');
+}
+
 /** Played first, then movements in order, other folders by name, the complete work last. */
 export function compareSections(a: SectionName, b: SectionName): number {
 	const rank = { played: 0, movement: 1, other: 2, complete: 3 } as const;

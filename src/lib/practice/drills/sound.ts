@@ -167,6 +167,31 @@ function sustain(audio: AudioContext, time: number, frequency: number, seconds: 
 	nodes.push(oscillator);
 }
 
+/** How far the output's timestamp may be from the page's and the audio's own clock and still be believed. */
+const STAMP_SLACK_MS = 500;
+
+/**
+ * When `downbeat` (on the audio clock) is heard, on the clock of `performance.now()`: by the
+ * output's own timestamp where it is believable (it includes the delay to the speaker), else now
+ * plus the reported output latency. Safari on iPhone and iPad reports timestamps on another
+ * clock, or zeros (#363); taken as they come, no tap would ever be near a click.
+ */
+export function barStart(downbeat: number, now: number, currentTime: number, latency: number, stamp?: AudioTimestamp): number {
+	const { performanceTime, contextTime } = stamp ?? {};
+	if (performanceTime && contextTime !== undefined && Math.abs(performanceTime - now) < STAMP_SLACK_MS && Math.abs(contextTime - currentTime) * 1000 < STAMP_SLACK_MS)
+		return performanceTime + (downbeat - contextTime) * 1000;
+	return now + (downbeat - currentTime + latency) * 1000;
+}
+
+/**
+ * When a tap happened, on the clock of `performance.now()`: the event's own timestamp, which is
+ * taken before the page gets to handle it, unless it is on another clock, as in Safari on iPhone
+ * and iPad after the device has slept (#363); then the time it is handled.
+ */
+export function tapTime(timeStamp: number, now: number): number {
+	return timeStamp <= now + 5 && now - timeStamp < STAMP_SLACK_MS ? timeStamp : now;
+}
+
 export interface PlayedBar {
 	/** When the first beat after the count-in is heard, on the clock of `performance.now()` and events' `timeStamp`. */
 	start: number;
@@ -214,13 +239,7 @@ export async function playBar({
 		}
 		for (const note of notes) strike(audio, downbeat + note / 1000, 660, 0.4, 0.12, nodes);
 		for (const voice of voices) sustain(audio, downbeat + voice.at / 1000, voice.frequency, voice.seconds, nodes);
-		// From the audio clock to the page's: the output's own timestamp where there is one (it
-		// includes the delay to the speaker), else now plus the reported output latency.
-		const stamp = audio.getOutputTimestamp?.();
-		const start =
-			stamp?.performanceTime && stamp.contextTime !== undefined
-				? stamp.performanceTime + (downbeat - stamp.contextTime) * 1000
-				: performance.now() + (downbeat - audio.currentTime + (audio.outputLatency || audio.baseLatency || 0)) * 1000;
+		const start = barStart(downbeat, performance.now(), audio.currentTime, audio.outputLatency || audio.baseLatency || 0, audio.getOutputTimestamp?.());
 		// When each click and tock is heard, so the microphone can leave them out.
 		const heard = [...Array.from({ length: countIn + beats }, (_, i) => start + (i - countIn) * beat * 1000), ...notes.map((note) => start + note)];
 		const now = performance.now();

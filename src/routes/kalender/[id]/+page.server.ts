@@ -64,7 +64,7 @@ const ENTITIES = { nbsp: ' ', amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'" 
 async function instrumentation(items: ProgramItem[], library: Library, orchestra: string | undefined) {
 	const rows = items.map((item) => {
 		const piece = item.pieceId ? library.piecesById.get(item.pieceId) : undefined;
-		return { item, parts: piece?.detail ? playedParts(piece.detail) : [] };
+		return { item, parts: piece?.detail ? playedParts(piece.detail, item.movements) : [] };
 	});
 	const withMusic = rows.filter((row) => row.parts.length);
 	if (!withMusic.length) return null;
