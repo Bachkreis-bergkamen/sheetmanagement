@@ -72,3 +72,31 @@ export function cleanReport(report: { source: ErrorSource; place?: unknown; mess
 	const status = typeof report.status === 'number' && Number.isInteger(report.status) ? report.status : undefined;
 	return { source: report.source, place, message, ...(status ? { status } : {}) };
 }
+
+/**
+ * A browser's report of something the script policy (#358) would block, as an error to log:
+ * which rule and what it blocked ("inline", "eval", a site), on which page. Takes the old
+ * report-uri form ({"csp-report": …}) and the Reporting API's ([{type, body}]). Null for
+ * anything else, and for extensions' scripts, which aren't the app's.
+ */
+export function cspViolation(body: unknown): { message: string; place: string } | null {
+	const item = Array.isArray(body) ? body.find((each) => each?.type === 'csp-violation')?.body : (body as Record<string, unknown> | null)?.['csp-report'];
+	if (!item || typeof item !== 'object') return null;
+	const raw = item as Record<string, unknown>;
+	const text = (...keys: string[]) => {
+		const value = keys.map((key) => raw[key]).find((each) => typeof each === 'string' && each);
+		return typeof value === 'string' ? value : '';
+	};
+	const directive = text('effective-directive', 'effectiveDirective', 'violated-directive').split(' ')[0];
+	const blocked = text('blocked-uri', 'blockedURL') || 'inline';
+	if (!directive || /^(chrome|moz|safari(-web)?)-extension:/.test(blocked)) return null;
+	let place = '?';
+	try {
+		place = new URL(text('document-uri', 'documentURL')).pathname;
+	} catch {
+		// No page given: kept as "?".
+	}
+	// A site's address without its path: which site, not which file of it.
+	const what = /^https?:\/\//.test(blocked) ? new URL(blocked).origin : blocked;
+	return { message: `CSP ${directive}: ${what}`, place };
+}

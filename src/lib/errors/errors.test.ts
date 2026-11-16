@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cleanReport, fingerprint, scrub, scrubPlace } from './errors.ts';
+import { cleanReport, cspViolation, fingerprint, scrub, scrubPlace } from './errors.ts';
 
 describe('scrub', () => {
 	it('takes out addresses, ids, queries and long numbers', () => {
@@ -43,5 +43,24 @@ describe('cleanReport', () => {
 		expect(cleanReport({ source: 'client', message: '' })).toBeNull();
 		expect(cleanReport({ source: 'client', message: 42 })).toBeNull();
 		expect(cleanReport({ source: 'client', message: 'boom', place: 7, status: 'x' })).toEqual({ source: 'client', place: '?', message: 'boom' });
+	});
+});
+
+describe('cspViolation', () => {
+	it('reads the old report and the Reporting API’s, the site without its path', () => {
+		expect(
+			cspViolation({
+				'csp-report': { 'document-uri': 'https://app.test/noten/abc?x=1', 'effective-directive': 'script-src-elem', 'blocked-uri': 'https://evil.test/x.js?t=1' }
+			})
+		).toEqual({ message: 'CSP script-src-elem: https://evil.test', place: '/noten/abc' });
+		expect(
+			cspViolation([{ type: 'csp-violation', body: { documentURL: 'https://app.test/', effectiveDirective: 'script-src-elem', blockedURL: 'inline' } }])
+		).toEqual({ message: 'CSP script-src-elem: inline', place: '/' });
+	});
+
+	it('drops extensions and what isn’t a report', () => {
+		expect(cspViolation({ 'csp-report': { 'violated-directive': 'script-src', 'blocked-uri': 'chrome-extension://abc/x.js' } })).toBeNull();
+		expect(cspViolation({ message: 'hi' })).toBeNull();
+		expect(cspViolation(null)).toBeNull();
 	});
 });

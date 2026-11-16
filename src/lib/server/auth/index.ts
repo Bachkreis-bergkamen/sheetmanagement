@@ -146,6 +146,8 @@ export function isPublicPath(path: string): boolean {
 		// Answering a sign-up from a reminder email (#123): the signed link is the proof.
 		path.startsWith('/antwort/') ||
 		path === '/api/health' ||
+		// The browser's reports of what the script policy would block (#358) come without the sign-in.
+		path === '/api/csp' ||
 		// Published concerts for the orchestra's website (#197): only what an organiser published.
 		path === '/api/konzerte' ||
 		path === '/api/konzerte.ics' ||
