@@ -30,7 +30,7 @@ export const legal = {
 		title: 'Datenschutzerklärung',
 		lead: (c: LegalContext) =>
 			`${c.name} betreibt diese Web-App für die eigenen Mitglieder: Noten, Konzerte und Programme an einem Ort. Hier steht, welche personenbezogenen Daten dabei verarbeitet werden.`,
-		sections: (c: LegalContext): LegalSection[] => [
+		sections: (_c: LegalContext): LegalSection[] => [
 			{
 				heading: 'Anmeldung mit Google',
 				paragraphs: [
@@ -183,7 +183,7 @@ export const legal = {
 	terms: {
 		title: 'Nutzungsbedingungen',
 		lead: (c: LegalContext) => `${c.name} stellt diese Web-App den eigenen Mitgliedern kostenlos zur Verfügung.`,
-		sections: (c: LegalContext): LegalSection[] => [
+		sections: (_c: LegalContext): LegalSection[] => [
 			{
 				heading: 'Wer die App nutzen darf',
 				paragraphs: [

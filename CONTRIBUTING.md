@@ -16,11 +16,12 @@ To work against real Google data, copy `.dev.vars.example` to `.dev.vars` and fo
 
 ```bash
 pnpm check     # types
+pnpm lint      # promises not awaited, unused imports (eslint.config.js)
 pnpm test      # unit tests
 pnpm test:e2e  # end-to-end tests against the demo (once: pnpm exec playwright install chromium)
 ```
 
-CI runs all three plus an accessibility check (axe) on desktop and phone sizes; a pull request can only be merged when they pass.
+CI runs all four plus an accessibility check (axe) on desktop and phone sizes; a pull request can only be merged when they pass.
 
 - **One topic per pull request**, with a short description of what changes for the people using the app.
 - **Both languages:** every text lives in `src/lib/i18n/de.ts` and `en.ts`; the type checker complains when one is missing.

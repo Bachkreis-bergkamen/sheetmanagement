@@ -1,4 +1,4 @@
-# Type-check, test and build every pull request and every push to main; after a push to main
+# Type-check, lint, test and build every pull request and every push to main; after a push to main
 # that passes, deploy it (deploy.yml).
 # Branch protection on main requires the "Check, test and build" and "End-to-end tests (demo)" jobs.
 name: CI
@@ -35,6 +35,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
+      # Few rules (eslint.config.js): promises that aren't awaited, and unused imports and variables.
+      - run: pnpm lint
       # The whole unit suite every time: it takes well under a minute, and `vitest --changed`
       # only follows imports, so it would miss a changed fixture or sample data.
       - run: pnpm test

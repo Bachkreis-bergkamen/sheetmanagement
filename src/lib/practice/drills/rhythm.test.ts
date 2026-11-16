@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { barLength, markedTempo } from './meters.ts';
-import { BAR, calibrate, DRIFTED, firstSilent, judgePulse, judgeTaps, PULSE_ORDER, pulseLoudness, pulseOf, onsets, parsePattern, patternOf, PATTERNS, PATTERNS_2_4, PATTERNS_6_8, meterOf, RHYTHM_ORDER, rhythmId, tempoFor, toleranceFor } from './rhythm.ts';
+import { calibrate, DRIFTED, firstSilent, judgePulse, judgeTaps, PULSE_ORDER, pulseLoudness, pulseOf, onsets, parsePattern, patternOf, PATTERNS, PATTERNS_2_4, PATTERNS_6_8, meterOf, RHYTHM_ORDER, rhythmId, tempoFor, toleranceFor } from './rhythm.ts';
 
 describe('patterns', () => {
 	it('are each one bar of 4/4, none twice', () => {
