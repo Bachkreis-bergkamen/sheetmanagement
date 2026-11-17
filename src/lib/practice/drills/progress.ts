@@ -37,6 +37,8 @@ export interface DrillSettings {
 	replay?: boolean;
 	/** Milliseconds from a click to a tap on this device, measured once for the rhythm drill. */
 	tapOffset?: number;
+	/** Who beats time for rhythms, the pulse and count-ins: J. S. Bach (unless chosen otherwise), the figure alone, or nobody. */
+	conductor?: 'bach' | 'pattern' | 'off';
 	/** Scales: a drone under them, the metronome, and the cents kept back until the end. */
 	drone?: 'off' | 'tonic' | 'fifth';
 	click?: boolean;
@@ -129,6 +131,7 @@ export function readData(value: unknown): DrillData {
 		const offset = raw.settings.tapOffset;
 		if (offset !== undefined && !(Number.isFinite(offset) && Math.abs(offset) <= 250)) delete data.settings.tapOffset;
 		if (!['off', 'tonic', 'fifth', undefined].includes(raw.settings.drone)) delete data.settings.drone;
+		if (!['bach', 'pattern', 'off', undefined].includes(raw.settings.conductor)) delete data.settings.conductor;
 		if (raw.settings.sight !== undefined) data.settings.sight = readLevels(raw.settings.sight, MAX_LEVEL);
 		if (raw.settings.entry !== undefined) data.settings.entry = readLevels(raw.settings.entry, MAX_ENTRY_LEVEL);
 		if (raw.settings.reach !== undefined) {
