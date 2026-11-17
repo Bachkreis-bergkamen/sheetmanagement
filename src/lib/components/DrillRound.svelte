@@ -141,6 +141,11 @@
 	/** After an answer: each note right or wrong, and where the taps fell (sixteenths). */
 	let rhythmMarks = $state<('right' | 'wrong' | null)[]>([]);
 	let tapMarks = $state<number[]>([]);
+	/**
+	 * The rhythm was played to the player before they tapped it (#371). It's played only when
+	 * asked, as the aim is to read it at sight, and a right answer after it doesn't count in full.
+	 */
+	let heardFirst = false;
 	// Scales: one take, from the first note to the last, without stopping.
 	let take = $state<'idle' | 'count' | 'playing'>('idle');
 	let readings: Reading[] = [];
@@ -151,6 +156,9 @@
 	let heardNow = $state<{ midi: number; cents: number } | null>(null);
 	let stopDrone: (() => void) | null = null;
 	const drone = $derived(settings.drone ?? 'tonic');
+	/** Who beats time (#368): J. S. Bach unless the member chose the figure alone or nobody. */
+	const conductor = $derived(settings.conductor ?? 'bach');
+	const showConductor = $derived(conductor !== 'off');
 
 	// Tuning into a chord: the chord held, and the note's cents from pure as it's played.
 	let stopChord: (() => void) | null = null;
@@ -224,6 +232,7 @@
 		chosenMelody = null;
 		rhythmMarks = [];
 		tapMarks = [];
+		heardFirst = false;
 		pulseResult = null;
 		calibrating = false;
 		calibrationFailed = false;
@@ -269,8 +278,6 @@
 			bpm = tempoFor(box, asked.meter);
 			tolerance = toleranceFor(box, beatMs(bpm));
 			calibrating = tapOffset === undefined;
-			// A rhythm being learnt is heard before it's tapped; a known one is read.
-			if (!calibrating && (box === undefined || box <= 1)) hearRhythm(asked, true);
 		}
 	}
 
@@ -359,43 +366,24 @@
 		barTimers.push(setTimeout(done, at(beats * length + tail)));
 	}
 
-	/**
-	 * The rhythm as it should sound, after a bar's count-in. With `thenTap`, the player's bar follows
-	 * straight on, as call and response: no second count-in, no button to press.
-	 */
-	async function hearRhythm(q: Extract<Question, { kind: 'rhythm' }>, thenTap = false) {
+	/** The rhythm as it should sound, after a bar's count-in; before the answer only when asked. */
+	async function hearRhythm(q: Extract<Question, { kind: 'rhythm' }>) {
 		stopBar();
+		if (!feedback) heardFirst = true;
 		phase = 'example';
 		const length = beatMs(bpm);
 		const countIn = countInBeats(q.meter);
-		const played = await playBar({ bpm, countIn, beats: q.meter * (thenTap ? 2 : 1), meter: q.meter, notes: onsets(q.events, length, q.meter) });
+		const played = await playBar({ bpm, countIn, beats: q.meter, meter: q.meter, notes: onsets(q.events, length, q.meter) });
 		if (!played || phase !== 'example') {
 			played?.stop();
 			if (!played) phase = 'idle';
 			return;
 		}
 		bar = played;
-		if (!thenTap) {
-			followBar(played, countIn, q.meter, () => {
-				beat = null;
-				phase = 'idle';
-			});
-			return;
-		}
-		followBar(played, countIn, q.meter, () => {});
-		const answerStart = played.start + q.meter * length;
-		barTimers.push(
-			setTimeout(
-				() => {
-					if (phase !== 'example') return;
-					taps = [];
-					tapped = 0;
-					phase = 'tap';
-					followBar({ ...played, start: answerStart }, 0, q.meter, () => judgeRhythm(q, answerStart), Math.min(tolerance, length / 2) + 40);
-				},
-				Math.max(0, answerStart - length / 2 - performance.now())
-			)
-		);
+		followBar(played, countIn, q.meter, () => {
+			beat = null;
+			phase = 'idle';
+		});
 	}
 
 	/** Count in a bar, then take the taps for one bar and judge them. */
@@ -434,7 +422,9 @@
 		const missed = verdict.deviations.filter((deviation) => deviation === null).length;
 		const leaning = Math.abs(verdict.tendency) >= LEANING ? (verdict.tendency > 0 ? tx.dragging : tx.rushing) : undefined;
 		const off = Number.isFinite(verdict.meanOff) ? Math.round(verdict.meanOff) : 999;
-		if (verdict.correct) answer(true, off <= FLUENT_MS.rhythm ? tx.inTime : tx.rhythmLoose(off), leaning, off);
+		// Right after hearing it: right, but not yet fluent, so the item doesn't move up.
+		if (verdict.correct && heardFirst) answer(true, tx.rightHeard, leaning, Math.max(off, FLUENT_MS.rhythm + 1));
+		else if (verdict.correct) answer(true, off <= FLUENT_MS.rhythm ? tx.inTime : tx.rhythmLoose(off), leaning, off);
 		else if (!relative.length) answer(false, tx.noTaps, undefined, off);
 		else answer(false, tx.rhythmWrong(missed, verdict.extra.length), leaning, off);
 	}
@@ -641,7 +631,6 @@
 				oncalibrate(offset);
 				calibrating = false;
 				shownAt = performance.now();
-				if (question?.kind === 'rhythm' && (states[question.id]?.box ?? 0) <= 1) hearRhythm(question, true);
 			},
 			length / 2
 		);
@@ -1066,8 +1055,8 @@
 				{:else if take !== 'idle'}
 					{@const q = question}
 					{#if take === 'count'}
-						<Conductor meter={4} start={beat !== null && conduct ? conduct.start : null} beatMs={conduct?.ms ?? 600} counting />
-						<p class="listening" role="status">{tx.countIn}</p>
+						{#if showConductor}<Conductor meter={4} start={beat !== null && conduct ? conduct.start : null} beatMs={conduct?.ms ?? 600} counting bach={conductor === 'bach'} />{/if}
+						<p class="listening" role="status">{tx.countIn} {beat !== null && beat < 0 ? beat + 5 : ''}</p>
 					{:else}
 						<p class="listening" role="status">
 							<span class="mic live" aria-hidden="true"></span>{tx.playingScale}
@@ -1082,20 +1071,20 @@
 			</div>
 		{:else if question.kind === 'rhythm' || question.kind === 'pulse'}
 			{@const pulse = question.kind === 'pulse'}
+			{@const meter = question.kind === 'rhythm' && phase !== 'calibrate' ? question.meter : 4}
+			<!-- Counted within the bar, as the count-in is one bar of the meter: 1 2 1 2 for 2/4 too. -->
+			{@const counted = beat !== null && beat < 0 ? ((beat + 4 * meter) % meter) + 1 : ''}
 			<div class="tapping">
 				<!-- The bar's beat as a conductor gives it; it rests while the metronome is quiet. -->
-				<Conductor
-					meter={question.kind === 'rhythm' && phase !== 'calibrate' ? question.meter : 4}
-					start={beat !== null && conduct ? conduct.start : null}
-					beatMs={conduct?.ms ?? 600}
-					counting={beat !== null && beat < 0}
-				/>
+				{#if showConductor}
+					<Conductor {meter} start={beat !== null && conduct ? conduct.start : null} beatMs={conduct?.ms ?? 600} counting={beat !== null && beat < 0} bach={conductor === 'bach'} />
+				{/if}
 				<p class="status" role="status">
 					{#if phase === 'example'}{tx.example}
-					{:else if phase === 'count'}{tx.countIn}
+					{:else if phase === 'count'}{tx.countIn} {counted}
 					{:else if phase === 'tap'}{pulse ? tx.tapAlong : tx.tapNow}
 					{:else if phase === 'alone'}{tx.keepPulse}
-					{:else if phase === 'calibrate'}{beat !== null && beat < 0 ? tx.countIn : tx.calibrateNow}
+					{:else if phase === 'calibrate'}{beat !== null && beat < 0 ? `${tx.countIn} ${counted}` : tx.calibrateNow}
 					{:else if calibrationFailed}{tx.calibrateFailed}{/if}
 				</p>
 				{#if phase === 'count' || phase === 'tap' || phase === 'alone' || phase === 'calibrate'}
@@ -1120,6 +1109,17 @@
 							<button type="button" class="btn" onclick={tapRhythm}>{tx.tapStart}</button>
 						{/if}
 					</div>
+					{#if q.kind === 'rhythm' && !calibrating}<p class="hint">{tx.listenCosts}</p>{/if}
+				{/if}
+				{#if !feedback && (phase === 'idle' || phase === 'example') && !calibrating}
+					<label class="field small">
+						{tx.conductor}
+						<select value={conductor} onchange={(event) => onsetting({ conductor: event.currentTarget.value as DrillSettings['conductor'] })}>
+							<option value="bach">{tx.conductorBach}</option>
+							<option value="pattern">{tx.conductorPattern}</option>
+							<option value="off">{tx.conductorOff}</option>
+						</select>
+					</label>
 				{/if}
 			</div>
 		{:else}
