@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GoogleClient } from './client.ts';
-import { createComment, queryString, renameFile, replyToComment, uploadFile } from './drive.ts';
+import { createComment, liveFile, queryString, renameFile, replyToComment, uploadFile } from './drive.ts';
 
 describe('queryString', () => {
 	it('quotes a plain folder id as is', () => {
@@ -66,5 +66,23 @@ describe('uploadFile', () => {
 		expect(parts.at(-1)).toBe('--');
 		expect(JSON.parse(parts[1].split('\r\n\r\n')[1])).toEqual({ name: 'daten-2026-10-30.json', mimeType: 'application/json', parents: ['backups'] });
 		expect(parts[2]).toBe('\r\ncontent-type: application/json\r\n\r\n{"tabs":{}}\r\n');
+	});
+});
+
+describe('liveFile', () => {
+	const answering = (response: () => Response) => new GoogleClient({ getToken: async () => 'token' }, (async () => response()) as typeof fetch);
+
+	it('gives the folder while it is there', async () => {
+		const client = answering(() => Response.json({ id: 'f1', name: 'Let it Snow', mimeType: 'application/vnd.google-apps.folder', trashed: false }));
+		expect((await liveFile(client, 'f1'))?.name).toBe('Let it Snow');
+	});
+
+	it('counts a folder in the bin or deleted for good as gone', async () => {
+		expect(await liveFile(answering(() => Response.json({ id: 'f1', name: 'Let it Snow', mimeType: 'x', trashed: true })), 'f1')).toBeUndefined();
+		expect(await liveFile(answering(() => Response.json({ error: { message: 'File not found' } }, { status: 404 })), 'f1')).toBeUndefined();
+	});
+
+	it('passes other failures on, so a folder is not made twice when Drive just has a hiccup', async () => {
+		await expect(liveFile(answering(() => Response.json({ error: { message: 'Forbidden' } }, { status: 403 })), 'f1')).rejects.toThrow();
 	});
 });

@@ -3461,6 +3461,9 @@ export const de = {
 	archive: {
 		addPiece: 'Stück ohne Noten eintragen',
 		addPieceLead: 'Für gespielte Stücke ohne Noten im Archiv.',
+		addWithMusic: 'Stück mit Noten anlegen',
+		addWithMusicLead: 'Trägt das Stück ein und legt seinen Ordner im Notenarchiv an, mit dem Namen nach der Konvention. Danach gleich die PDFs hochladen.',
+		addWithMusicSave: 'Anlegen und Noten hochladen',
 		orchestra: 'Orchester',
 		pieceTitle: 'Titel',
 		composer: 'Komponist',

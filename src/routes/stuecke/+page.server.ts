@@ -6,6 +6,7 @@ import { parseInstruments, sharedPartsFor } from '#lib/music/my-parts.ts';
 import { forMember } from '#lib/music/part-assignments.ts';
 import type { PieceSummary } from '#lib/music/types.ts';
 import { addPiece } from '#lib/server/archive.ts';
+import { driveWriteEnabled } from '#lib/server/services.ts';
 import { getAccessList, getPartAssignments, getPieceNotes } from '#lib/server/repertoire.ts';
 import { normalize } from '#lib/repertoire/sheet.ts';
 import { pieceFindables } from '#lib/server/piece-search.ts';
@@ -35,9 +36,12 @@ type ListedPiece = PieceSummary & {
 export const load: PageServerLoad = async ({ locals }) => {
 	const [library, pieceNotes, access, assignments] = await Promise.all([getLibrary(), getPieceNotes(), getAccessList().catch(() => null), getPartAssignments()]);
 	const canAdd = locals.access.rights.has('archiv.bearbeiten') && library.sheet === 'ok';
+	// "Stück mit Noten": the piece's folder in Drive right away (#193).
+	const canAddMusic = canAdd && driveWriteEnabled();
 	if (!library.catalog.ok) {
 		return {
 			canAdd,
+			canAddMusic,
 			error: library.catalog.reason,
 			pieces: [] as ListedPiece[],
 			categories: [] as string[],
@@ -111,7 +115,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 		difficulties: difficultyOptions(pieces.flatMap((piece) => (piece.difficulty ? [piece.difficulty] : []))),
 		programs: library.catalog.catalog.programs,
 		categoryFiles,
-		canAdd
+		canAdd,
+		canAddMusic
 	};
 };
 

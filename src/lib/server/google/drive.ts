@@ -1,4 +1,4 @@
-import type { GoogleClient } from './client.ts';
+import { GoogleApiError, type GoogleClient } from './client.ts';
 
 const FILES_URL = 'https://www.googleapis.com/drive/v3/files';
 
@@ -134,6 +134,22 @@ export function getFile(client: GoogleClient, fileId: string): Promise<DriveFile
 	return client.request<DriveFile>(`${FILES_URL}/${encodeURIComponent(fileId)}`, {
 		params: { fields: 'id, name, mimeType, modifiedTime', supportsAllDrives: true }
 	});
+}
+
+/**
+ * The file as Drive has it now, or undefined when it is in the bin or gone for good. For a
+ * check against the cached archive, which learns of deletions only with the next refresh.
+ */
+export async function liveFile(client: GoogleClient, fileId: string): Promise<DriveFile | undefined> {
+	try {
+		const file = await client.request<DriveFile & { trashed?: boolean }>(`${FILES_URL}/${encodeURIComponent(fileId)}`, {
+			params: { fields: 'id, name, mimeType, parents, trashed', supportsAllDrives: true }
+		});
+		return file.trashed ? undefined : file;
+	} catch (cause) {
+		if (cause instanceof GoogleApiError && cause.status === 404) return undefined;
+		throw cause;
+	}
 }
 
 /** Adds a comment to a file (shown in Drive's comment panel). Returns the comment id. */
