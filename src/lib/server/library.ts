@@ -159,8 +159,10 @@ function buildLibrary(
 			playedAt: []
 		});
 	}
+	// A row naming a folder the archive hasn't read (yet), or one deleted in Drive, stays in the
+	// list as a piece without sheet music, under the folder's id, instead of vanishing.
 	for (const row of sheet?.pieces ?? []) {
-		if (idBySheetKey.has(row.key) || row.driveFolderId || !row.title) continue;
+		if (idBySheetKey.has(row.key) || !row.title) continue;
 		idBySheetKey.set(row.key, row.key);
 		pieces.push({
 			id: row.key,

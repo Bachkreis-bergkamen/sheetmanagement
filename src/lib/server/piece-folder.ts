@@ -7,7 +7,7 @@ import { findPieceRow } from '#lib/repertoire/piece-edit.ts';
 import { requireRight } from './auth/index.ts';
 import { canConnectDrive, driveAccount, driveAccountClient } from './drive-account.ts';
 import type { IndexedFile } from './drive-index.ts';
-import { createFolder, createGoogleDoc, isFolderLike, listChildren, startUpload, trashFile } from './google/drive.ts';
+import { createFolder, createGoogleDoc, isFolderLike, listChildren, liveFile, startUpload, trashFile } from './google/drive.ts';
 import { getLibrary, type LibraryPiece } from './library.ts';
 import { checkUploadNames } from './naming.ts';
 import { driveWriteEnabled, getArchiveIndex, getGoogle, putInArchiveIndex, requireSetting } from './services.ts';
@@ -62,8 +62,22 @@ export async function createPieceFolder(locals: App.Locals, pieceId: string, wan
 	const name = wanted.replace(/[\\/]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 150);
 	if (!name) throw new FolderError(400, t.pieceFolder.nameMissing);
 
+	const { client } = getGoogle();
+
+	// The row names a folder the cached archive doesn't have: just made and not read in yet,
+	// or deleted in Drive since. One still there is taken again instead of made twice.
+	const linked = piece.sheet.driveFolderId ? await liveFile(client, piece.sheet.driveFolderId) : undefined;
+	if (linked) {
+		await getArchiveIndex({ force: true }).catch((cause) => console.error('Refreshing the archive failed:', cause));
+		await refreshAfterWrite();
+		return linked.id;
+	}
+
+	// The cached archive hears of a folder deleted in Drive only with its next refresh: a name
+	// is taken only by a folder that is still there.
 	const index = (await getArchiveIndex()).value;
-	if (index.pieces.some((other) => other.name.trim().toLowerCase() === name.toLowerCase())) throw new FolderError(409, t.pieceFolder.nameTaken(name));
+	const sameName = index.pieces.filter((other) => other.name.trim().toLowerCase() === name.toLowerCase());
+	for (const other of sameName) if (await liveFile(client, other.folderId)) throw new FolderError(409, t.pieceFolder.nameTaken(name));
 	let table;
 	try {
 		table = await readTab('pieces');
@@ -74,10 +88,15 @@ export async function createPieceFolder(locals: App.Locals, pieceId: string, wan
 	const row = findPieceRow(table, piece.sheet);
 	if (!row) throw new FolderError(409, t.pieceFolder.notInSheet);
 
-	const folder = await createFolder(getGoogle().client, name, requireSetting('DRIVE_ARCHIVE_FOLDER_ID'));
+	const folder = await createFolder(client, name, requireSetting('DRIVE_ARCHIVE_FOLDER_ID'));
 	await updateRecord('pieces', table, row.row, { driveFolderId: folder.id });
-	// Nothing cached means nothing to patch: the next visitor reads the archive anyway.
-	await putInArchiveIndex({ folderId: folder.id, name: folder.name, files: [] }).catch((cause) => console.error('Updating the cached archive failed:', cause));
+	// Into the cached archive at once, so the empty folder shows; where nothing could be patched
+	// (or a deleted folder of the same name is still in it) the archive is read again.
+	const patched = await putInArchiveIndex({ folderId: folder.id, name: folder.name, files: [] }).catch((cause) => {
+		console.error('Updating the cached archive failed:', cause);
+		return false;
+	});
+	if (!patched || sameName.length) await getArchiveIndex({ force: true }).catch((cause) => console.error('Refreshing the archive failed:', cause));
 	await refreshAfterWrite();
 	return folder.id;
 }

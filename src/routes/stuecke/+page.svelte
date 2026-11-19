@@ -261,7 +261,7 @@
 {/if}
 
 {#if data.canAdd}
-	<AddToArchive result={form} />
+	<AddToArchive result={form} withMusic={data.canAddMusic} />
 {/if}
 
 <style>

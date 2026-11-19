@@ -3408,6 +3408,9 @@ export const en: Texts = {
 	archive: {
 		addPiece: 'Enter a piece without music',
 		addPieceLead: 'For pieces played without music in the library.',
+		addWithMusic: 'Add a piece with music',
+		addWithMusicLead: 'Enters the piece and creates its folder in the music archive, named by the convention. Then upload the PDFs straight away.',
+		addWithMusicSave: 'Create and upload music',
 		orchestra: 'Orchestra',
 		pieceTitle: 'Title',
 		composer: 'Composer',

@@ -1,4 +1,6 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { fail, isHttpError, isRedirect, redirect } from '@sveltejs/kit';
+import { pieceFolderName } from '#lib/music/piece-name.ts';
+import { createPieceFolder } from './piece-folder.ts';
 import { config } from '#lib/config/index.ts';
 import { t } from '#lib/i18n/index.ts';
 import { playedSections } from '#lib/music/my-parts.ts';
@@ -144,10 +146,23 @@ export async function addPiece(locals: App.Locals, request: Request) {
 		await appendRecords('pieces', table, [checked.values]);
 		await refreshAfterWrite();
 	});
-	if (refused) return fail(refused.status, { archiveError: refused.message, values: input });
+	const withFolder = data.get('withFolder') === '1';
+	if (refused) return fail(refused.status, { archiveError: refused.message, values: input, withFolder });
 
 	const added = (await getLibrary()).pieces.find((p) => !p.detail && searchText(p.title) === searchText(input.title.trim()));
-	redirect(303, added ? `/stuecke/${encodeURIComponent(added.id)}` : '/stuecke');
+	if (!added) redirect(303, '/stuecke');
+	if (withFolder) {
+		// "Stück mit Noten": the folder right away, then on to the uploads. Where Drive refuses,
+		// the piece is there all the same and its page offers the folder again.
+		try {
+			const folderId = await createPieceFolder(locals, added.id, pieceFolderName(added, config.naming));
+			redirect(303, `/stuecke/${encodeURIComponent(folderId)}?ordner`);
+		} catch (cause) {
+			if (isHttpError(cause) || isRedirect(cause)) throw cause;
+			console.error('Creating the folder of a new piece failed:', cause);
+		}
+	}
+	redirect(303, `/stuecke/${encodeURIComponent(added.id)}`);
 }
 
 /** A piece as the programme editor picks it: its name in the sheet, and what it shows. */
