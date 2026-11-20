@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { normalizeEmail } from '#lib/access/access.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { beatSeconds, MAX_BEAT_SECONDS, MAX_QUEUED_SECONDS } from '#lib/practice/practice.ts';
 import { getCatalog } from '#lib/server/catalog.ts';
 import { getStore } from '#lib/server/db/index.ts';

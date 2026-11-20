@@ -1,6 +1,6 @@
 <script lang="ts" module>
 	import type { UnitWarning } from '#lib/trips/organising.ts';
-	import { t as texts } from '#lib/i18n/index.ts';
+	import * as texts from '#lib/i18n/texts.ts';
 
 	/** What's wrong with a place, in words. */
 	export function warningText(warning: UnitWarning) {
@@ -13,7 +13,7 @@
 	import type { Snippet } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { FormState } from '#lib/forms.svelte.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import type { BoardPerson } from '#lib/trips/organising.ts';
 	import Icon, { type IconName } from './Icon.svelte';
 

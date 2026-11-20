@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { placeCard, readOutcome, shouldOffer, tourSteps } from './tour.ts';
 
 describe('tourSteps', () => {

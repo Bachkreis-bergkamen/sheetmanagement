@@ -1,5 +1,5 @@
 import { config } from '#lib/config/index.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { fileWords } from '#lib/music/instrument-label.ts';
 import { placeholderName } from '#lib/music/naming.ts';
 import { pieceFolderName } from '#lib/music/piece-name.ts';

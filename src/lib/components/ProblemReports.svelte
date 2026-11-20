@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { FormState } from '#lib/forms.svelte.ts';
 	import { REPORT_KINDS, type ReportKind } from '#lib/feedback/feedback.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import Icon from './Icon.svelte';
 	import InstrumentSelect from './InstrumentSelect.svelte';
 

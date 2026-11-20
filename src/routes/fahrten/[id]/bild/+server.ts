@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { isWikimediaImage, shownPictures, smaller } from '#lib/server/trip-picture.ts';
 import { openTrip } from '#lib/server/trips.ts';
 import type { RequestHandler } from './$types';

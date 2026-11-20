@@ -1,0 +1,37 @@
+/** The orchestra's history (#61). */
+export const chronicle = {
+	title: 'Chronik',
+	lead: 'Alle Konzerte seit den Anfängen, und was das Orchester am liebsten spielt.',
+	views: { label: 'Ansicht', timeline: 'Zeitleiste', numbers: 'In Zahlen' },
+	concerts: (n: number) => (n === 1 ? 'Konzert' : 'Konzerte'),
+	pieces: (n: number) => (n === 1 ? 'Stück' : 'Stücke'),
+	performances: (n: number) => (n === 1 ? 'Aufführung' : 'Aufführungen'),
+	since: 'seit',
+	decade: (decade: number) => `${decade}er`,
+	undated: 'Ohne Datum',
+	yearUnknown: 'Jahr unbekannt',
+	debut: 'neu',
+	debutHint: 'Zum ersten Mal gespielt',
+	noProgram: 'Programm nicht eingetragen',
+	mostPlayed: 'Am häufigsten gespielt',
+	mostPlayedNone: 'Noch kein Stück stand auf mehr als einem Programm.',
+	times: (n: number) => `${n}×`,
+	lastPlayed: (year: number) => `zuletzt ${year}`,
+	playedIn: (first: number, last: number) => (first === last ? `${first}` : `${first}–${last}`),
+	composers: 'Meistgespielte Komponisten',
+	composerLine: (count: number, pieces: number) => `${count}× gespielt, ${pieces === 1 ? '1 Stück' : `${pieces} Stücke`}`,
+	byDecade: 'Nach Jahrzehnten',
+	decadeLine: (concerts: number, pieces: number) =>
+		`${concerts === 1 ? '1 Konzert' : `${concerts} Konzerte`}, ${pieces === 1 ? '1 Stück' : `${pieces} Stücke`}`,
+	longAgo: 'Lange nicht gespielt',
+	longAgoLead: (years: number) => `Seit ${years} Jahren oder länger nicht mehr auf dem Programm, vielleicht wieder einmal?`,
+	plannedAgain: 'wieder geplant',
+	longAgoNone: (years: number) => `Kein Stück liegt länger als ${years} Jahre zurück.`,
+	neverPlayed: 'Noch nie gespielt',
+	neverPlayedLead: (n: number) =>
+		n === 1 ? '1 Stück mit Noten im Archiv stand noch auf keinem Programm.' : `${n} Stücke mit Noten im Archiv standen noch auf keinem Programm.`,
+	andMore: (n: number) => `und ${n} weitere`,
+	empty: 'Noch keine vergangenen Konzerte. Alte Konzerte kommen ins Blatt „Konzerte“, ihre Programme ins Blatt „Programm“; ein Jahr als Datum reicht.',
+	noSheet: 'Die Chronik entsteht aus der Repertoire-Tabelle, die noch nicht verbunden ist.',
+	seasonReport: 'Saisonbericht'
+} as const;

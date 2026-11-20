@@ -1,5 +1,5 @@
 import { entryDay, planRetention, retentionCutoff } from '#lib/access/retention.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { readSettings } from '#lib/settings.ts';
 import { eventDay } from '#lib/repertoire/dates.ts';
 import { config } from '#lib/config/index.ts';

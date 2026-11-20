@@ -1,0 +1,45 @@
+import type { Texts } from '../types.ts';
+
+export const nav: Texts['nav'] = {
+	/** Shown after the orchestra's short name in the header. */
+	appName: 'Music library',
+	beta: 'Beta',
+	betaNote: 'Preview: the app is still being built. Please report bugs and wishes.',
+	home: 'Overview',
+	pieces: 'Library',
+	concerts: 'Calendar',
+	myParts: 'My parts',
+	wishes: 'Wishes',
+	reports: 'Reports',
+	loans: 'Rentals',
+	ensembles: 'Ensembles',
+	kummer: 'Suggestion box',
+	parents: 'Parents',
+	parentMessages: 'Messages',
+	parentNotices: 'Notices to parents',
+	drillsOverview: 'Practice overview',
+	gaps: 'Missing parts',
+	naming: 'File names',
+	admin: 'Members & rights',
+	setup: 'Set up sheet',
+	settings: 'Settings',
+	status: 'Status',
+	polls: 'Date polls',
+	trips: 'Trips',
+	more: 'More',
+	profile: 'Profile',
+	details: 'Complete details',
+	chronicle: 'History',
+	drills: 'Practice room',
+	menu: 'All pages',
+	close: 'Close menu',
+	crumbs: 'Breadcrumbs',
+	groups: { musik: 'Rehearsals & music', mitmachen: 'Take part', pflege: 'Music upkeep', verwaltung: 'App & members', eltern: 'Parents' },
+	/** The organisers' area in the tab bar, the header and "Mehr" (#185). */
+	organise: 'Admin',
+	workspace: 'Area',
+	/** After a tab's count, for screen readers: "Reports 1 open". */
+	open: 'open',
+	skip: 'Skip to content',
+	main: 'Main navigation'
+};

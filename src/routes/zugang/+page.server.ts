@@ -1,6 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { lacksSurname, normalizeEmail } from '#lib/access/access.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { getAccessList } from '#lib/server/repertoire.ts';
 import { appendRecords, readTab, refreshAfterWrite } from '#lib/server/sheet-writes.ts';
 import type { Actions, PageServerLoad } from './$types';

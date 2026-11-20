@@ -1,4 +1,4 @@
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { getStore, type PushDevice } from '../db/index.ts';
 import { orchestra } from '../env.ts';
 import { mailAccount, sendMail, type MailAccount } from '../mail/index.ts';

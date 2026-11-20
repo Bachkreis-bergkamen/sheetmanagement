@@ -1,0 +1,37 @@
+export const setup = {
+	title: 'Repertoire-Tabelle einrichten',
+	lead: 'Legt in der Repertoire-Tabelle die Blätter „Stücke“, „Konzerte“ und „Programm“ mit Überschriften und Auswahllisten an.',
+	notConfigured: 'REPERTOIRE_SHEET_ID ist nicht gesetzt. Lege zuerst eine leere Google-Tabelle an und trage ihre ID ein.',
+	share: (email: string) => `Teile die Tabelle mit ${email} als Bearbeiter.`,
+	failed: 'Auf die Tabelle konnte nicht zugegriffen werden.',
+	sheet: 'Tabelle',
+	open: 'In Google Sheets öffnen',
+	tabs: 'Blätter',
+	present: 'vorhanden',
+	absent: 'fehlt',
+	off: 'nicht nötig, ausgeschaltet',
+	ready: 'Alles eingerichtet. Neue Stücke aus Drive und Konzerte aus dem Kalender werden automatisch eingetragen.',
+	run: 'Jetzt einrichten',
+	rerun: 'Formatierung erneuern',
+	safe: 'Es werden nur fehlende Blätter und Spalten ergänzt. Vorhandene Einträge bleiben unverändert.',
+	done: 'Fertig.',
+	created: (tabs: string) => `Angelegt: ${tabs}.`,
+	addedColumns: (columns: string) => `Ergänzte Spalten: ${columns}.`,
+	database: (migrations: string) => `Datenbank: ${migrations} angewendet.`,
+	removed: (tab: string) => `Das leere Blatt „${tab}“ wurde entfernt.`,
+	problems: 'Hinweise zur Tabelle',
+	problem: {
+		'missing-column': 'Spalte fehlt',
+		'duplicate-piece': 'Stück doppelt',
+		'duplicate-concert': 'Konzert doppelt',
+		'unknown-piece': 'Stück nicht in „Stücke“',
+		'unknown-concert': 'Konzert nicht in „Konzerte“',
+		'ambiguous-concert': 'Mehrere Konzerte heißen so: bitte mit Datum, z. B. „Weihnachtskonzert (21.12.1957)“',
+		'bad-date': 'Datum nicht lesbar',
+		'duplicate-member': 'Mitglied doppelt',
+		'unknown-right': 'Unbekanntes Recht'
+	},
+	row: (n: number) => `Zeile ${n}`,
+	counts: (pieces: number, concerts: number, entries: number) =>
+		`${pieces} Stücke · ${concerts} Konzerte · ${entries} Programmeinträge`
+} as const;

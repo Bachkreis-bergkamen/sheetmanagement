@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { MEMBER_STATUSES } from '#lib/access/access.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import InstrumentPicker from './InstrumentPicker.svelte';
 
 	/** Name, instruments, orchestras and status of one member; read on the server with readMemberForm. */

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { config } from '#lib/config/index.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import BadgeMedal from '#lib/components/BadgeMedal.svelte';
 	import Conductor from '#lib/components/Conductor.svelte';
 	import DrillRound from '#lib/components/DrillRound.svelte';

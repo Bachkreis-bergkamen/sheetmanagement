@@ -1,7 +1,7 @@
 import { error } from '@sveltejs/kit';
 import { composerPortrait, portraitHeaders, portraitImageUrl } from '#lib/server/portraits.ts';
 import type { RequestHandler } from './$types';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 
 /** A month: portraits don't change, and the browser and the offline cache keep them. */
 const MAX_AGE_S = 30 * 24 * 60 * 60;

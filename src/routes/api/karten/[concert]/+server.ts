@@ -1,5 +1,5 @@
 import { error, json } from '@sveltejs/kit';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { isOn } from '#lib/server/env.ts';
 import { publicSale, reserve } from '#lib/server/tickets.ts';
 import type { RequestHandler } from './$types';

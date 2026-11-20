@@ -1,5 +1,5 @@
 import { error, fail } from '@sveltejs/kit';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { listPerson } from '#lib/server/trip-lists.ts';
 import { openTrip } from '#lib/server/trips.ts';
 import { newTripId } from '#lib/server/trips-store.ts';

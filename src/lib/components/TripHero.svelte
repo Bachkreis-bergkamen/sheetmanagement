@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { onMount, untrack } from 'svelte';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 
 	/**
 	 * A trip's header (#334): a photo of each place, one after another, with the trip's name on

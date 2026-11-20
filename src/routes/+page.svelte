@@ -1,6 +1,6 @@
 <script lang="ts">
 	import SeasonMark from '#lib/components/SeasonMark.svelte';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import Icon from '#lib/components/Icon.svelte';
 	import InstallHint from '#lib/components/InstallHint.svelte';
 	import SignupAnswers from '#lib/components/SignupAnswers.svelte';

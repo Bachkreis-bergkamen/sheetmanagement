@@ -1,6 +1,6 @@
 import { LOOKS, parseColour, type Look } from '#lib/branding.ts';
 import { FEATURES, type Feature } from '#lib/features.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import type { InstrumentOverride, OrchestraLink } from '#lib/config/index.ts';
 import { linksText, parseLinks } from '#lib/links.ts';
 import type { Table } from '#lib/repertoire/sheet.ts';

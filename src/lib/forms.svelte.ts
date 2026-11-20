@@ -1,5 +1,5 @@
 import type { SubmitFunction } from '$app/forms';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { RequestIds, stampForm } from '#lib/request-id.ts';
 
 /** One short message at the bottom of the screen, e.g. when saving failed. Shown by Toast.svelte. */

@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { config } from '#lib/config/index.ts';
 	import { FormState } from '#lib/forms.svelte.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { practiceMonth, practiceWeek, totalSeconds, treeStage, type PracticeDay, type TreeStage } from '#lib/practice/practice.ts';
 	import Icon from './Icon.svelte';
 	import PracticeTree from './PracticeTree.svelte';

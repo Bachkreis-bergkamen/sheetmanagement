@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { isCarer } from '#lib/trips/lists.ts';
 import type { Arrangement } from '#lib/trips/organising.ts';
 import type { OpenedTrip } from './trip-lists.ts';

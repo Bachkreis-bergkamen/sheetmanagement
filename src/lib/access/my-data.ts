@@ -1,6 +1,6 @@
 import { normalizeEmail } from '#lib/access/access.ts';
 import { parseVotes, submitterEmail } from '#lib/feedback/feedback.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { LAYOUT, normalize, type Table, type TabKey } from '#lib/repertoire/sheet.ts';
 import type { Poll, PollResponse } from '#lib/polls/polls.ts';
 import type { Participant, Trip } from '#lib/trips/trips.ts';

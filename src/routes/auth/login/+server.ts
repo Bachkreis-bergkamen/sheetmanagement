@@ -4,7 +4,7 @@ import { authorizationUrl, GOOGLE_SIGN_IN_ORIGIN } from '#lib/server/auth/google
 import { safeReturnPath } from '#lib/server/auth/redirect.ts';
 import { randomToken } from '#lib/server/auth/session.ts';
 import type { RequestHandler } from './$types';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 
 export const GET: RequestHandler = ({ url, cookies, locals }) => {
 	const auth = authConfig();

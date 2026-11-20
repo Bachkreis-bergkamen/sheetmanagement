@@ -1,4 +1,4 @@
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import type { Answer } from '#lib/signups/signups.ts';
 import type { FeedEvent } from './ical.ts';
 import type { ShownEvent } from './schedule.ts';

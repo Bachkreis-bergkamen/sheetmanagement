@@ -1,5 +1,5 @@
 import { error, json } from '@sveltejs/kit';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { feedbackUser, formText } from '#lib/server/feedback.ts';
 import { reportFromForm } from '#lib/server/report-form.ts';
 import type { RequestHandler } from './$types';

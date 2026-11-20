@@ -3,7 +3,7 @@ import { currentStatus, normalizeEmail, playsIn, type Member } from '#lib/access
 import { config } from '#lib/config/index.ts';
 import { eventDay, shortDateLabel } from '#lib/repertoire/dates.ts';
 import { splitList } from '#lib/repertoire/lists.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import {
 	choicesFromForm,
 	commonInstruments,

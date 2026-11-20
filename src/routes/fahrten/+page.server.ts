@@ -1,6 +1,6 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { config } from '#lib/config/index.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { requireRight } from '#lib/server/auth/index.ts';
 import { today } from '#lib/server/members.ts';
 import { shownPictures } from '#lib/server/trip-picture.ts';

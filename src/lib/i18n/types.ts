@@ -1,4 +1,4 @@
-import type { de } from './de.ts';
+import type * as de from './de/index.ts';
 
 /** A text table's shape with any wording: the German strings' literal types become string. */
 type Widen<T> = T extends string

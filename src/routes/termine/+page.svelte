@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { config } from '#lib/config/index.ts';
 	import { FormState } from '#lib/forms.svelte.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { optionLabel, type Poll } from '#lib/polls/polls.ts';
 	import Icon from '#lib/components/Icon.svelte';
 	import Nothing from '#lib/components/Nothing.svelte';

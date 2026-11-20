@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 
 	/** Demo mode (#121): says that the data is invented, and switches between the two demo users. */
 	let { role }: { role: 'verwaltung' | 'mitglied' | 'eltern' } = $props();

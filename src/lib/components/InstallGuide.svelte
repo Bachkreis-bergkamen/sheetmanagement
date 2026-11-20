@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { tick } from 'svelte';
 	import { fade } from 'svelte/transition';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { Copier } from '#lib/clipboard.svelte.ts';
 	import type { InstallPlatform } from '#lib/install/install.ts';
 	import { install, promptInstall } from '#lib/install/state.svelte.ts';

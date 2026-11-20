@@ -1,4 +1,4 @@
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { peopleWithRight } from '#lib/reminders/reminders.ts';
 import { authConfig } from '../auth/index.ts';
 import { getStore } from '../db/index.ts';

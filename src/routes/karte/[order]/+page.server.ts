@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { config } from '#lib/config/index.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { getStore } from '#lib/server/db/index.ts';
 import { requireFeature } from '#lib/server/env.ts';
 import { getLibrary } from '#lib/server/library.ts';

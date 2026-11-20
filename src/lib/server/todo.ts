@@ -1,6 +1,6 @@
 import { config } from '#lib/config/index.ts';
 import { reportSubject } from '#lib/feedback/feedback.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { urgentLoans } from '#lib/loans/loans.ts';
 import { eventDay } from '#lib/repertoire/dates.ts';
 import { mayFor, normalizeEmail } from '#lib/access/access.ts';

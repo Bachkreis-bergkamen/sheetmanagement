@@ -1,7 +1,7 @@
 import type { Right } from '#lib/access/access.ts';
 import type { IconName } from '#lib/components/Icon.svelte';
 import { ALL_ON, type Features } from '#lib/features.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 
 /**
  * The app's pages grouped by who uses them: what every member plays and joins in, then the

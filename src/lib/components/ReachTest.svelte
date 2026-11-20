@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { profile, type ProfileId } from '#lib/practice/drills/instruments.ts';
 	import { limits, makeReach, noteAt, writtenStep, type Reach, type Side } from '#lib/practice/drills/reach.ts';
 	import { listenToPitch, rememberedA4, type MicProblem } from '#lib/practice/drills/sound.ts';

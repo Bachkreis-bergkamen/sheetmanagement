@@ -1,7 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import { config } from '#lib/config/index.ts';
 import { mayDeleteWish, safeLink, sortWishes, submitterEmail, WISH_STATUSES, type WishKind, type WishStatus } from '#lib/feedback/feedback.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { searchText } from '#lib/music/text.ts';
 import { shortDateLabel } from '#lib/repertoire/dates.ts';
 import { requireRight } from '#lib/server/auth/index.ts';

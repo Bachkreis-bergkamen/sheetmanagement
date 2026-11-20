@@ -1,5 +1,5 @@
 import { MEMBER_STATUSES, RIGHTS } from '#lib/access/access.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { defaultRows, type SharedParts } from '#lib/music/instrument-groups.ts';
 import { orchestraChoices } from '#lib/repertoire/orchestras.ts';
 import { ALL_ON, FEATURE_TABS, type Features } from '#lib/features.ts';

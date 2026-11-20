@@ -1,7 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import { config } from '#lib/config/index.ts';
 import { formatDay } from '#lib/events/format.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { checkLoan, daysUntilDue, loanState, sortLoans } from '#lib/loans/loans.ts';
 import { normalize } from '#lib/repertoire/sheet.ts';
 import { requireRight } from '#lib/server/auth/index.ts';

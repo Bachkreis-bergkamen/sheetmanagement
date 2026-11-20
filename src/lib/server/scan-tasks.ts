@@ -1,6 +1,6 @@
 import { fail } from '@sveltejs/kit';
 import { normalizeEmail } from '#lib/access/access.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { PRIORITIES, type Priority } from '#lib/repertoire/missing-parts.ts';
 import { peopleWithRight } from '#lib/reminders/reminders.ts';
 import { authConfig, requireRight } from './auth/index.ts';

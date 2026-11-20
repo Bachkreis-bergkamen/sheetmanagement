@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { tick } from 'svelte';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { readScoreText } from '#lib/music/score-text.ts';
 	import { instrumentationFromScore } from '#lib/music/instrumentation.ts';
 	import { config } from '#lib/config/index.ts';

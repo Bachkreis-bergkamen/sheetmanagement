@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { ANSWERS } from '#lib/signups/signups.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import Title from '#lib/components/Title.svelte';
 
 	let { data, form } = $props();

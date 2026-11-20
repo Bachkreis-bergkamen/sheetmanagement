@@ -1,0 +1,25 @@
+export const naming = {
+	title: 'Dateinamen',
+	lead: 'Dateien, die nicht „<Kurztitel> - <Stimme>.pdf“ heißen, mit Vorschlag. Umbenannt wird nur, was angehakt ist.',
+	counts: (rename: number, unclear: number, folders: number) =>
+		`${rename} ${rename === 1 ? 'Vorschlag' : 'Vorschläge'} · ${unclear} unklar · in ${folders} ${folders === 1 ? 'Ordner' : 'Ordnern'}`,
+	shortTitle: 'Kurztitel',
+	openFolder: 'Ordner in Drive',
+	shortTitleHint: 'Steht vor jeder Stimme. Kurz halten, damit die Stimme auf dem Handy lesbar bleibt.',
+	long: 'lang fürs Handy',
+	unclear: 'unklar',
+	unclearHint: (words: string) => `Nicht erkannt: ${words}. Bitte von Hand umbenennen.`,
+	takenHint: (name: string) => `„${name}“ gibt es schon. Bitte von Hand umbenennen.`,
+	nothingHint: 'Keine Stimme erkannt. Bitte von Hand umbenennen.',
+	rename: (n: number) => (n === 1 ? '1 Datei umbenennen' : `${n} Dateien umbenennen`),
+	renamedIn: (n: number, folder: string) => `${n === 1 ? '1 Datei' : `${n} Dateien`} in „${folder}“ umbenannt.`,
+	all: 'Alle auswählen',
+	none: 'Alle Dateinamen folgen der Konvention.',
+	onlyUnclear: 'Nur noch Unklares',
+	noDriveWrite: 'Umbenennen ist aus: Die App darf Drive nur lesen (DRIVE_WRITE ist nicht gesetzt).',
+	progress: (done: number, total: number) => `Benenne um: ${done} von ${total} …`,
+	gone: 'Diesen Ordner gibt es nicht mehr. Bitte die Seite neu laden.',
+	failed: (names: string[]) => `Nicht umbenannt: ${names.join(', ')}`,
+	filter: { all: 'Alle Ordner', rename: 'Mit Vorschlägen', unclear: 'Mit Unklarem' },
+	failedLoad: 'Das Notenarchiv konnte gerade nicht geladen werden.'
+} as const;

@@ -1,4 +1,4 @@
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { authConfig } from '../auth/index.ts';
 import { getStore } from '../db/index.ts';
 import { GoogleApiError } from '../google/client.ts';

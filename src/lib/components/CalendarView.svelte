@@ -4,7 +4,7 @@
 	import { addMonths, eventDayKey, monthGrid } from '#lib/events/calendar.ts';
 	import { dateFormat } from '#lib/events/format.ts';
 	import type { ShownEvent } from '#lib/events/schedule.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import EventRow from './EventRow.svelte';
 	import Icon from './Icon.svelte';
 

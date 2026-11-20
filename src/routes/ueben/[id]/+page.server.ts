@@ -1,6 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
 import { normalizeEmail } from '#lib/access/access.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { youtubeId } from '#lib/links.ts';
 import { FILE_ORIGINS, partUrl, getCatalog } from '#lib/server/catalog.ts';
 import { getStore } from '#lib/server/db/index.ts';

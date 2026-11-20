@@ -1,6 +1,6 @@
 import { MEMBER_STATUSES, parseDay, type MemberStatus } from '#lib/access/access.ts';
 import { config } from '#lib/config/index.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { choicesFromForm, formatInstruments, playableInstruments } from '#lib/music/my-parts.ts';
 import { eventDay } from '#lib/repertoire/dates.ts';
 import type { ColumnKey, Table } from '#lib/repertoire/sheet.ts';

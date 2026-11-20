@@ -5,7 +5,7 @@ import { isJobName, JOB_NAMES, JOBS, lastRuns, runJob, type JobName } from '#lib
 import { config } from '#lib/config/index.ts';
 import { contrast } from '#lib/branding.ts';
 import { FEATURES } from '#lib/features.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { appEnv, features, isDemo, orchestra, unknownFeatures } from '#lib/server/env.ts';
 import { getStore } from '#lib/server/db/index.ts';
 import { usingD1 } from '#lib/server/data-source.ts';

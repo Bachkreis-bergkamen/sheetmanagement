@@ -3,7 +3,7 @@ import { countingMembers, normalizeEmail, type AccessList } from '#lib/access/ac
 import { config } from '#lib/config/index.ts';
 import { formatDay } from '#lib/events/format.ts';
 import { newId } from '#lib/feedback/feedback.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { instrumentLabel } from '#lib/music/instrument-label.ts';
 import { formatInstrument, parseInstruments, playableInstruments, PART_NUMBERS } from '#lib/music/my-parts.ts';
 import { assignmentsOf, checkAssignment, forMember, ownPicksAt, type PartAssignment } from '#lib/music/part-assignments.ts';

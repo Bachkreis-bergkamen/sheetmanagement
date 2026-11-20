@@ -1,7 +1,7 @@
 import { env } from 'cloudflare:workers';
 import { error } from '@sveltejs/kit';
 import { isAdminOnly, normalizeEmail, type AccessList } from '#lib/access/access.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { config } from '#lib/config/index.ts';
 import type { ShownEvent } from '#lib/events/schedule.ts';
 import { eventDay } from '#lib/repertoire/dates.ts';

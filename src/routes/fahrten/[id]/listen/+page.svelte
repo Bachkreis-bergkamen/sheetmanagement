@@ -3,7 +3,7 @@
 	import { enhance } from '$app/forms';
 	import { config } from '#lib/config/index.ts';
 	import { FormState } from '#lib/forms.svelte.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { DIETS, INSURANCES, looksBulky, OWNERS, SEVERITIES, type ListAnswers, type ListKind } from '#lib/trips/lists.ts';
 	import { formatWeekday, localDay } from '#lib/trips/trips.ts';
 	import Icon from '#lib/components/Icon.svelte';

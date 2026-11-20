@@ -4,7 +4,7 @@
 	import { NEW_EVENT_TYPES, type NewEventType } from '#lib/events/new-event.ts';
 	import { splitList } from '#lib/repertoire/lists.ts';
 	import { FormState } from '#lib/forms.svelte.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import DateField from './DateField.svelte';
 	import Icon from './Icon.svelte';
 	import PlaceInput from './PlaceInput.svelte';

@@ -1,4 +1,4 @@
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { usingD1 } from '../data-source.ts';
 import { allData } from '../data-transfer.ts';
 import { driveAccountClient } from '../drive-account.ts';

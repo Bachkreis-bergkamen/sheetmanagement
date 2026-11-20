@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { config } from '#lib/config/index.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { glyphOf } from '#lib/music/instrument-glyph.ts';
 	import { instrumentLabel } from '#lib/music/instrument-label.ts';
 	import { foldIntoSets, PART_NUMBERS, setInstruments, setsFor } from '#lib/music/my-parts.ts';

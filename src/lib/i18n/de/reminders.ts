@@ -1,0 +1,27 @@
+/** What the reminder and check jobs send and report (#157, #144, #159). */
+export const reminders = {
+	pushOff: 'Weder Benachrichtigungen noch E-Mail sind eingerichtet.',
+	quiet: 'Nachtruhe, nichts verschickt.',
+	noDevices: 'Noch hat niemand Benachrichtigungen erlaubt, und kein E-Mail-Konto ist verbunden.',
+	noCalendar: 'Der Kalender konnte nicht geladen werden.',
+	nothing: 'Nichts zu erinnern.',
+	byMail: (n: number) => `${n} davon per E-Mail.`,
+	notReached: (n: number) => `${n} nicht zugestellt, nächstes Mal noch einmal.`,
+	sent: (n: number, left: number) => `${n === 1 ? '1 Erinnerung' : `${n} Erinnerungen`} verschickt${left ? `, ${left} beim nächsten Mal` : ''}.`,
+	signupTitle: (event: string) => `${event}: Kommst du?`,
+	signupBody: (when: string) => `${when}. Du hast noch nicht zu- oder abgesagt.`,
+	loanDueTitle: (piece: string) => `${piece} bald zurückgeben`,
+	loanOverdueTitle: (piece: string) => `${piece} ist überfällig`,
+	loanBody: (from: string, due: string) => `Leihmaterial${from ? ` von ${from}` : ''}, Rückgabe bis ${due}.`,
+	checkOk: 'Archiv, Kalender und Tabelle erreichbar.',
+	checkFailed: (names: string) => `Nicht erreichbar: ${names}.`,
+	checkFailedTitle: 'Verbindung zu Google gestört',
+	checkFailedBody: (what: string) => `Nicht erreichbar: ${what}. Mehr auf der Status-Seite.`,
+	checkOkTitle: 'Verbindung zu Google wieder in Ordnung',
+	checkOkBody: 'Archiv, Kalender und Tabelle sind wieder erreichbar.',
+	adminsTold: (n: number) => (n === 1 ? '1 Admin benachrichtigt.' : `${n} Admins benachrichtigt.`),
+	errorsNone: 'Keine neuen Fehler.',
+	errorsNew: (n: number) => (n === 1 ? '1 neue Fehlerart.' : `${n} neue Fehlerarten.`),
+	errorsTitle: (n: number) => (n === 1 ? 'Ein neuer Fehler in der App' : `${n} neue Fehler in der App`),
+	errorsBody: (place: string, message: string, more: number) => `${place}: ${message}${more ? ` und ${more} weitere` : ''}. Mehr auf der Status-Seite.`
+} as const;

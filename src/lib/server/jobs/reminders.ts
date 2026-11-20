@@ -1,7 +1,7 @@
 import { config } from '#lib/config/index.ts';
 import { dateFormat } from '#lib/events/format.ts';
 import type { ShownEvent } from '#lib/events/schedule.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { loanReminders, peopleWithRight, signupReminders, type Reminder, type ReminderKind } from '#lib/reminders/reminders.ts';
 import { eventDay } from '#lib/repertoire/dates.ts';
 import { eventOrchestra } from '#lib/repertoire/orchestras.ts';

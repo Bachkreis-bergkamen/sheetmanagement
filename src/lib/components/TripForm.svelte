@@ -2,7 +2,7 @@
 	import { untrack } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { FormState } from '#lib/forms.svelte.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { CHOSEN_LISTS, DEFAULT_LISTS, QUESTION_TYPES } from '#lib/trips/lists.ts';
 	import { TRIP_KINDS, type Trip } from '#lib/trips/trips.ts';
 	import Icon from './Icon.svelte';

@@ -4,7 +4,7 @@
 	import InstrumentGlyph from './InstrumentGlyph.svelte';
 	import { enhance } from '$app/forms';
 	import { FormState } from '#lib/forms.svelte.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { readLocal, writeLocal } from '#lib/local-storage.ts';
 	import type { PageData } from '../../routes/kalender/[id]/$types';
 	import SignupAnswers from './SignupAnswers.svelte';

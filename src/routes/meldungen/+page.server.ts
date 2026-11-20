@@ -2,7 +2,7 @@ import { fail } from '@sveltejs/kit';
 import { normalizeEmail } from '#lib/access/access.ts';
 import { config } from '#lib/config/index.ts';
 import { forScanning, hintKind, scanQueue, SUGGESTED_STATUS, type Report } from '#lib/feedback/feedback.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import type { MarkableStatus } from '#lib/music/status-word.ts';
 import { PRIORITIES } from '#lib/repertoire/priority.ts';
 import { requireRight } from '#lib/server/auth/index.ts';

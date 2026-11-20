@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import type { Priority } from '#lib/repertoire/missing-parts.ts';
 	import type { PartStatus } from '#lib/music/types.ts';
 	import Icon from './Icon.svelte';

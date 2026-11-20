@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import AuthCard from '#lib/components/AuthCard.svelte';
 	import Title from '#lib/components/Title.svelte';
 

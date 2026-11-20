@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Conductor from './Conductor.svelte';
 	import { barLength, beatLength, countInBeats, markedTempo } from '#lib/practice/drills/meters.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { noteFrequency } from '#lib/practice/audio.ts';
 	import { FLUENT_MS, kindOf, questionFor, ROUND, type ChordQuality, type Question } from '#lib/practice/drills/decks.ts';
 	import { profile, type ProfileId } from '#lib/practice/drills/instruments.ts';
