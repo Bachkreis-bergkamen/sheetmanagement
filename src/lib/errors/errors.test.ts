@@ -60,6 +60,8 @@ describe('cspViolation', () => {
 
 	it('drops extensions and what isn’t a report', () => {
 		expect(cspViolation({ 'csp-report': { 'violated-directive': 'script-src', 'blocked-uri': 'chrome-extension://abc/x.js' } })).toBeNull();
+		// Facebook's and Instagram's in-app browsers add Meta's script to every page.
+		expect(cspViolation({ 'csp-report': { 'violated-directive': 'script-src-elem', 'blocked-uri': 'https://connect.facebook.net/en_US/fbevents.js', 'document-uri': 'https://x.test/anmelden' } })).toBeNull();
 		expect(cspViolation({ message: 'hi' })).toBeNull();
 		expect(cspViolation(null)).toBeNull();
 	});
