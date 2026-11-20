@@ -127,6 +127,8 @@ test('taking attendance', async ({ page }) => {
 
 test('a YouTube link is saved clean (#133)', async ({ page }) => {
 	await open(page, '/stuecke/demo-egmont/bearbeiten');
+	// The recording is among the fields under "Weitere Angaben" (#185).
+	await page.getByText('Weitere Angaben').click();
 	const field = page.getByLabel('Hörbeispiel');
 	await field.fill('https://youtu.be/dQw4w9WgXcQ?si=Teilen123');
 	await field.blur();
