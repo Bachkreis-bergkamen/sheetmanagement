@@ -4315,6 +4315,7 @@ export const en: Texts = {
 		loading: 'Page loading',
 		saveFailed: "Saving didn't work. What you entered is still there – please try again.",
 		saveUnavailable: "Google isn't answering, nothing was saved. What you entered is still there.",
+		stillSaving: 'This is still being saved. Wait a moment, then tap again.',
 		sheetChanged: 'Someone has changed this in the sheet in the meantime. Reload the page and make your change again.',
 		sheetBusy: 'Many people are saving at the same time. Please try again in a moment.',
 		unsaved: "Your changes aren't saved yet. Leave the page anyway?",

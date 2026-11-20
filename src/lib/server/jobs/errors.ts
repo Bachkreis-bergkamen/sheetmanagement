@@ -3,6 +3,7 @@ import { peopleWithRight } from '#lib/reminders/reminders.ts';
 import { authConfig } from '../auth/index.ts';
 import { getStore } from '../db/index.ts';
 import { getAccessList } from '../repertoire.ts';
+import { KEEP_REQUESTS_HOURS } from '../requests.ts';
 import { channels, channelsSetUp, deliver } from './deliver.ts';
 import type { JobResult } from './index.ts';
 
@@ -17,6 +18,8 @@ export const KEEP_ERRORS_DAYS = 30;
 export async function announceErrors(): Promise<JobResult> {
 	const store = getStore();
 	await store.pruneErrors(KEEP_ERRORS_DAYS);
+	// The saves-happen-once log (#191) has the same hourly rhythm; a day is all it needs.
+	await store.pruneRequests(KEEP_REQUESTS_HOURS);
 	const fresh = (await store.errorLog(KEEP_ERRORS_DAYS)).filter((group) => !group.notified);
 	if (!fresh.length) return { ok: true, summary: t.reminders.errorsNone };
 

@@ -431,6 +431,28 @@ export function sqlStore(db: D1): Store {
 			else await run(`DELETE FROM error_log WHERE last_at < datetime('now', ?)`, `-${days} days`);
 		},
 
+		async claimRequest(key) {
+			// One statement, so two requests with the same id can't both take it.
+			const taken = await all<{ key: string }>(
+				`INSERT INTO request_log (key) VALUES (?)
+				 ON CONFLICT (key) DO UPDATE SET started_at = datetime('now')
+				 WHERE request_log.body IS NULL AND request_log.started_at < datetime('now', '-60 seconds')
+				 RETURNING key`,
+				key
+			);
+			if (taken.length) return 'claimed';
+			const row = await all<{ status: number | null; body: string | null }>('SELECT status, body FROM request_log WHERE key = ?', key);
+			const stored = row[0];
+			return stored?.body != null ? { status: stored.status ?? 200, body: stored.body } : 'running';
+		},
+		async finishRequest(key, result) {
+			if (!result) await run('DELETE FROM request_log WHERE key = ?', key);
+			else await run('UPDATE request_log SET status = ?, body = ? WHERE key = ?', result.status, result.body, key);
+		},
+		async pruneRequests(hours) {
+			await run(`DELETE FROM request_log WHERE started_at <= datetime('now', ?)`, `-${hours} hours`);
+		},
+
 		...sqlData(db, schema),
 		...sqlTickets(db, schema),
 

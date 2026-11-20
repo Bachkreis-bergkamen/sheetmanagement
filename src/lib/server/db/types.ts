@@ -90,6 +90,15 @@ export interface DataState {
 	version: number;
 }
 
+/** What a save answered: the HTTP status and the action result as sent. */
+export interface StoredResult {
+	status: number;
+	body: string;
+}
+
+/** Taken: run the save. Running: another request with this id is saving now. Otherwise its answer. */
+export type RequestClaim = 'claimed' | 'running' | StoredResult;
+
 export interface Store {
 	kind: 'd1' | 'memory';
 	/** The newest migration applied, e.g. "0001_reminders.sql"; null before the first. */
@@ -206,6 +215,17 @@ export interface Store {
 	markErrorsNotified(fingerprints: string[]): Promise<void>;
 	/** Forgets kinds not seen for this many days; 0 forgets all ("erledigt" on /status). */
 	pruneErrors(days: number): Promise<void>;
+
+	/**
+	 * Saves that happen once (#191): takes the request for this save, or says it already ran
+	 * (with its answer) or is still running elsewhere. A request left running for over a minute
+	 * (its instance gone) is taken again.
+	 */
+	claimRequest(key: string): Promise<RequestClaim>;
+	/** The save's answer, to give again to a repeat; null forgets the request, so a retry runs it again. */
+	finishRequest(key: string, result: StoredResult | null): Promise<void>;
+	/** Forgets requests older than this many hours. */
+	pruneRequests(hours: number): Promise<void>;
 
 	/** Where the orchestra's data lives (#186); the sheet until an import. */
 	dataState(): Promise<DataState>;

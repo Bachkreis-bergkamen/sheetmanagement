@@ -10,6 +10,7 @@ import { messageOf, recordError } from '#lib/server/errors.ts';
 import { isScheduledCall } from '#lib/server/jobs/token.ts';
 import { accessForDate } from '#lib/server/library.ts';
 import { refreshStoredSettings } from '#lib/server/repertoire.ts';
+import { once, peekRequestId, requestKey } from '#lib/server/requests.ts';
 import { serverTiming } from '#lib/server/timing.ts';
 
 /** Sent with every response: no framing (clickjacking on the admin forms), no MIME sniffing. */
@@ -75,7 +76,12 @@ export const handle: Handle = async ({ event, resolve }) => {
 		return new Response(t.error.notFound, { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8', ...SECURITY_HEADERS } });
 	}
 	// The page's language for screen readers, hyphenation and translation tools (#124).
-	const response = await resolve(event, { transformPageChunk: ({ html }) => html.replace('%lang%', LANGUAGE) });
+	const render = () => resolve(event, { transformPageChunk: ({ html }) => html.replace('%lang%', LANGUAGE) });
+	// A form sent from the app carries a request id: a repeat gets the first one's answer (#191).
+	// Without sign-in (demo, dev) everyone is one account; the ids are random, so they don't meet.
+	const account = event.locals.access.user?.email ?? (auth.mode === 'on' ? null : 'anonymous');
+	const requestId = write && account && event.request.headers.get('x-sveltekit-action') === 'true' ? await peekRequestId(event.request) : null;
+	const response = requestId ? await once(await requestKey(account!, requestId), render) : await render();
 	mark('page');
 	const headers: Record<string, string> = { ...SECURITY_HEADERS, 'server-timing': serverTiming(marks) };
 	for (const [name, value] of Object.entries(headers)) {
