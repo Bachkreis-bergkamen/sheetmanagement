@@ -7,6 +7,7 @@
 	import { composerAsUsual, searchWorks, suggestGenre, WikidataBusyError, workDetails, type WorkCandidate } from '#lib/music/wikidata.ts';
 	import type { NamingRules } from '#lib/config/index.ts';
 	import { formatDuration } from '#lib/repertoire/duration.ts';
+	import { videoLength as lengthOf } from '#lib/video-length.ts';
 	import { youtubeId } from '#lib/links.ts';
 	import { joinList, LIST_COLUMNS, listHas, splitList } from '#lib/repertoire/lists.ts';
 	import Icon from './Icon.svelte';
@@ -14,9 +15,10 @@
 
 	/**
 	 * Suggestions for a piece's details: one button asks every source in turn (the text on the
-	 * score, read in the browser; the parts' names; Wikidata; the Hörbeispiel's length) and fills
-	 * in the fields still empty. The rest stays offered below, and the score is open underneath to
-	 * type from. Nothing is saved until the form is.
+	 * score, read in the browser; the parts' names; Wikidata; the Hörbeispiel's length) and lists
+	 * what it found for the fields still empty, to tick before anything goes into the form. The
+	 * rest stays offered below, and the score is open underneath to type from. What's taken over
+	 * stays marked in the form until checked; nothing is saved until the form is.
 	 */
 	type Field = 'composer' | 'composerFull' | 'arranger' | 'catalogue' | 'genre' | 'recording' | 'duration' | 'instrumentation';
 	let {
@@ -33,7 +35,8 @@
 	}: {
 		/** The form's current values, to search with and to mark what's already filled in. */
 		values: Record<string, string>;
-		apply: (field: Field, value: string) => void;
+		/** Into the form; the source is named next to the field until someone checks it. */
+		apply: (field: Field, value: string, source: string) => void;
 		/** PDFs to read from: the score first. */
 		files: { id: string; label: string }[];
 		/** Reading needs a signed-in member: the PDF comes through the app. */
@@ -90,12 +93,19 @@
 	);
 
 	/**
-	 * "Automatisch ausfüllen": every source in turn, each filling the fields still empty before the
-	 * next asks, so a composer read off the score narrows the search on Wikidata and a recording
-	 * found there gives the length. What's already in the form is never replaced.
+	 * "Automatisch ausfüllen": every source in turn, each picking for the fields still empty before
+	 * the next asks, so a composer read off the score narrows the search on Wikidata and a recording
+	 * found there gives the length. The picks go into the form only once ticked: a found value is
+	 * easily wrong (another work of the same name, the original's length), and a field that fills
+	 * itself is easily missed. What's already in the form is never replaced.
 	 */
 	let auto = $state<string | null>(null);
 	let filledCount = $state<number | null>(null);
+	/** What "Automatisch ausfüllen" found, one per empty field, waiting to be ticked. */
+	let picks = $state<Suggestion[] | null>(null);
+	let ticked = $state<Field[]>([]);
+	/** The form's value, or what was picked for it in this run. */
+	const valueOf = (field: Field) => (values[field] ?? '').trim() || (picks?.find((s) => s.field === field)?.value ?? '');
 	/** Which source wins a field when several suggest one. */
 	const PREFER: Partial<Record<Field, Suggestion['source'][]>> = {
 		// The recording's length is the orchestra's piece; Wikidata's is the original work's.
@@ -108,42 +118,53 @@
 		const at = order ? order.indexOf(s.source) : 0;
 		return at < 0 ? 99 : at;
 	};
-	async function fillEmpty() {
-		let count = 0;
+	function pickEmpty() {
+		const list = [...(picks ?? [])];
 		for (const field of new Set(shown.map((s) => s.field))) {
-			if ((values[field] ?? '').trim()) continue;
+			if ((values[field] ?? '').trim() || list.some((s) => s.field === field)) continue;
 			const best = shown.filter((s) => s.field === field).sort((a, b) => rank(a) - rank(b))[0];
-			if (!best) continue;
-			apply(field, best.value);
-			count++;
+			if (best) list.push(best);
 		}
-		await tick();
-		return count;
+		picks = list;
 	}
 	async function autoFill() {
 		messages = [];
 		filledCount = null;
-		let count = 0;
+		picks = [];
 		try {
 			if (files.length && canRead) {
 				auto = t.suggest.steps.score;
 				await fromScore();
 			}
-			count += await fillEmpty();
+			pickEmpty();
 			if (values.title?.trim()) {
 				auto = t.suggest.steps.wikidata;
 				await lookUp();
-				count += await fillEmpty();
+				pickEmpty();
 			}
-			if (video) {
+			const found = videoLength ? youtubeId(valueOf('recording')) : undefined;
+			if (found) {
 				auto = t.suggest.steps.video;
-				await fromVideo();
-				count += await fillEmpty();
+				await fromVideo(found);
+				pickEmpty();
 			}
 		} finally {
 			auto = null;
-			filledCount = count;
+			ticked = (picks ?? []).map((s) => s.field);
+			if (!picks?.length) {
+				picks = null;
+				say(t.suggest.nothingNew);
+			}
 		}
+	}
+	/** Picks for fields still empty: one typed in meanwhile isn't overwritten. */
+	const open = $derived((picks ?? []).filter((s) => !(values[s.field] ?? '').trim()));
+	const taking = $derived(open.filter((s) => ticked.includes(s.field)));
+	async function takePicks() {
+		for (const s of taking) apply(s.field, s.value, t.suggest.sources[s.source]);
+		filledCount = taking.length;
+		picks = null;
+		await tick();
 	}
 
 	async function fromScore() {
@@ -209,7 +230,7 @@
 			const title = values.title?.trim();
 			if (!title) return;
 			// One composer is enough to narrow the search.
-			candidates = await searchWorks(title, splitList(values.composer)[0]);
+			candidates = await searchWorks(title, splitList(valueOf('composer'))[0]);
 			if (!candidates.length) say(t.suggest.nothingOnline);
 			else await choose(candidates[0].id);
 		} catch (error) {
@@ -254,15 +275,11 @@
 	}
 
 	// The Hörbeispiel's length: a recording is rarely the orchestra's exact length, so a suggestion.
-	const video = $derived(videoLength ? youtubeId(values.recording ?? '') : undefined);
-	async function fromVideo() {
-		if (!video) return;
+	async function fromVideo(id: string) {
 		busy = 'video';
 		try {
-			const response = await fetch(`/api/youtube/${video}`);
-			if (!response.ok) throw new Error(String(response.status));
-			const { seconds } = (await response.json()) as { seconds: number | null };
-			if (seconds) add([{ field: 'duration', value: formatDuration(seconds), source: 'youtube' }]);
+			const length = await lengthOf(id);
+			if (length) add([{ field: 'duration', value: length, source: 'youtube' }]);
 			else say(t.suggest.videoNoLength);
 		} catch {
 			say(t.suggest.videoFailed);
@@ -292,7 +309,7 @@
 	<p class="muted">{t.suggest.lead}</p>
 
 	<div class="sources">
-		<button class="btn" type="button" onclick={autoFill} disabled={!!busy || !!auto}>
+		<button class="btn secondary" type="button" onclick={autoFill} disabled={!!busy || !!auto}>
 			<Icon name="sparkle" size={16} />{auto ? t.suggest.autoBusy(auto) : t.suggest.auto}
 		</button>
 		{#if scanned && canRead && file}
@@ -306,6 +323,27 @@
 	</div>
 	<p class="hint">{t.suggest.autoLead}</p>
 
+	{#if picks && !auto}
+		<!-- What was found, ticked by default: a wrong one is unticked before it reaches the form. -->
+		<fieldset class="picks">
+			<legend>{t.suggest.picksTitle}</legend>
+			<p class="hint">{t.suggest.picksLead}</p>
+			{#each open as pick (pick.field)}
+				<label>
+					<input type="checkbox" bind:group={ticked} value={pick.field} />
+					<span class="field">{columns[pick.field]}</span>
+					<span class="value">{pick.value}</span>
+					<span class="from">{t.suggest.sources[pick.source]}</span>
+				</label>
+			{/each}
+			<div class="sources">
+				<button class="btn secondary small" type="button" onclick={takePicks} disabled={!taking.length}>
+					<Icon name="check" size={16} />{t.suggest.takePicks(taking.length)}
+				</button>
+				<button class="btn ghost small" type="button" onclick={() => (picks = null)}>{t.suggest.discardPicks}</button>
+			</div>
+		</fieldset>
+	{/if}
 	{#if filledCount !== null}<p class="msg ok" role="status">{t.suggest.autoDone(filledCount)}</p>{/if}
 	{#each messages as text (text)}<p class="msg info" role="status">{text}</p>{/each}
 
@@ -333,9 +371,9 @@
 					{:else}
 						<span class="takes">
 							{#if canAdd(suggestion)}
-								<button class="take" type="button" onclick={() => apply(suggestion.field, added(suggestion))}>{t.suggest.add}</button>
+								<button class="take" type="button" onclick={() => apply(suggestion.field, added(suggestion), t.suggest.sources[suggestion.source])}>{t.suggest.add}</button>
 							{/if}
-							<button class="take" type="button" onclick={() => apply(suggestion.field, suggestion.value)}>{t.suggest.apply}</button>
+							<button class="take" type="button" onclick={() => apply(suggestion.field, suggestion.value, t.suggest.sources[suggestion.source])}>{t.suggest.apply}</button>
 						</span>
 					{/if}
 				</li>
@@ -444,8 +482,39 @@
 		cursor: pointer;
 	}
 
-	.candidates input {
+	.candidates input,
+	.picks input {
 		accent-color: var(--accent);
+	}
+
+	/* What "Automatisch ausfüllen" found, ticked to take over: the same rows as the list below. */
+	.picks {
+		min-inline-size: 0;
+		display: grid;
+		gap: var(--space-1);
+		margin: 0;
+		padding: var(--space-2) var(--space-3) var(--space-3);
+		border: 1px solid var(--accent);
+		border-radius: var(--radius-control);
+		font-size: var(--text-sm);
+	}
+
+	.picks legend {
+		padding: 0 var(--space-1);
+		font-weight: 600;
+	}
+
+	.picks label {
+		display: grid;
+		grid-template-columns: auto 7.5em 1fr auto;
+		align-items: center;
+		gap: var(--space-2);
+		min-height: var(--tap);
+		cursor: pointer;
+	}
+
+	.picks .sources {
+		margin-top: var(--space-1);
 	}
 
 	.list {
@@ -532,6 +601,14 @@
 
 		.from {
 			display: none;
+		}
+
+		.picks label {
+			grid-template-columns: auto 1fr;
+		}
+
+		.picks .value {
+			grid-column: 2;
 		}
 	}
 </style>

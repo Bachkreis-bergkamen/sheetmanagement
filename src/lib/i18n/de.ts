@@ -1471,8 +1471,14 @@ export const de = {
 		lead: '„Übernehmen“ trägt ins Formular ein; gespeichert wird mit „Speichern“.',
 		auto: 'Automatisch ausfüllen',
 		autoBusy: (step: string) => `${step} …`,
-		autoLead: 'Liest die Noten und die Stimmen, schlägt bei Wikidata nach und fragt YouTube nach der Länge. Leere Felder werden gefüllt; alles andere steht unten zur Wahl.',
-		autoDone: (n: number) => (n === 0 ? 'Nichts Neues gefunden.' : n === 1 ? '1 leeres Feld ausgefüllt. Bitte prüfen und speichern.' : `${n} leere Felder ausgefüllt. Bitte prüfen und speichern.`),
+		autoLead: 'Liest die Noten und die Stimmen, schlägt bei Wikidata nach und fragt YouTube nach der Länge. Was es für leere Felder findet, kannst du vor dem Übernehmen prüfen; alles andere steht unten zur Wahl.',
+		autoDone: (n: number) => (n === 0 ? 'Nichts übernommen.' : n === 1 ? '1 Feld übernommen und im Formular markiert. Prüfen, dann speichern.' : `${n} Felder übernommen und im Formular markiert. Prüfen, dann speichern.`),
+		nothingNew: 'Nichts Neues für die leeren Felder gefunden.',
+		/** "Automatisch ausfüllen" lists what it found before anything goes into the form. */
+		picksTitle: 'Gefunden – bitte prüfen',
+		picksLead: 'Nimm das Häkchen weg, wo etwas nicht stimmt.',
+		takePicks: (n: number) => (n === 1 ? '1 übernehmen' : `${n} übernehmen`),
+		discardPicks: 'Verwerfen',
 		steps: { score: 'Lese die Noten', wikidata: 'Suche bei Wikidata', video: 'Frage YouTube' } as Record<string, string>,
 		fromScore: 'Aus den Noten lesen',
 		fileLabel: 'Aus welcher Datei lesen',
@@ -3486,6 +3492,16 @@ export const de = {
 		saved: 'Gespeichert.'
 	},
 	pieceEditor: {
+		/** Next to "Weitere Angaben": how many of the fields under it hold something (#185). */
+		filled: (count: number) => (count === 1 ? '1 ausgefüllt' : `${count} ausgefüllt`),
+		/** A field a suggestion filled, until someone has looked at it. */
+		suggested: (source: string) => `Vorschlag (${source}) – stimmt das?`,
+		confirm: 'Passt',
+		undo: 'Rückgängig',
+		unchecked: (count: number) => (count === 1 ? '1 übernommener Vorschlag ist noch nicht geprüft.' : `${count} übernommene Vorschläge sind noch nicht geprüft.`),
+		/** The length of the video linked as Hörbeispiel, asked once the link is in (#133). */
+		videoLength: (length: string) => `Das Video dauert ${length}.`,
+		useVideoLength: 'Als Dauer übernehmen',
 		title: (piece: string) => `Bearbeiten: ${piece}`,
 		lead: 'Was hier steht, gilt statt dem Ordnernamen.',
 		recordingHint: 'Link zu einer Aufnahme, z. B. YouTube',

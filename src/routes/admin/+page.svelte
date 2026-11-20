@@ -432,10 +432,14 @@
 				<label class="field">{t.admin.email}<input name="email" type="email" required autocomplete="off" /></label>
 				<label class="field">{t.admin.name}<input name="name" autocomplete="off" /></label>
 				<label class="field">{t.admin.instrument}<input name="instrument" autocomplete="off" /></label>
-				<label class="field">
-					{t.admin.groups}
-					<input name="groups" list="group-names" autocomplete="off" placeholder={t.admin.groupsHint} />
-				</label>
+				<!-- A short form (#185): groups are often set later, from the register. -->
+				<details class="wide more">
+					<summary><Icon name="chevron" size={14} />{t.calendar.add.more}</summary>
+					<label class="field">
+						{t.admin.groups}
+						<input name="groups" list="group-names" autocomplete="off" placeholder={t.admin.groupsHint} />
+					</label>
+				</details>
 				<div class="wide"><button class="btn" disabled={saving.busy}><Icon name="plus" size={16} />{t.admin.add}</button></div>
 			</form>
 		</details>
@@ -639,6 +643,26 @@
 {/if}
 
 <style>
+	.more summary {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-1);
+		min-height: var(--tap);
+		color: var(--text-muted);
+		font-size: var(--text-sm);
+		font-weight: 600;
+		list-style: none;
+		cursor: pointer;
+	}
+
+	.more summary::-webkit-details-marker {
+		display: none;
+	}
+
+	.more[open] summary :global(svg) {
+		transform: rotate(90deg);
+	}
+
 	section {
 		margin-bottom: var(--space-6);
 	}

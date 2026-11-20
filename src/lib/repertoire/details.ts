@@ -16,6 +16,9 @@ const LOOKS_FOR: Record<DetailFilter, DetailGap[]> = {
 	werkverzeichnis: ['catalogue']
 };
 
+/** The gaps a filter is about, e.g. the field to put first while working through its list. */
+export const gapsFor = (filter: DetailFilter): DetailGap[] => LOOKS_FOR[filter];
+
 export function parseGapFilter(text: string | null | undefined): DetailFilter | null {
 	return DETAIL_FILTERS.find((filter) => filter === text) ?? null;
 }
