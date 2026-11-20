@@ -1,0 +1,31 @@
+import type { Texts } from '../types.ts';
+
+export const attendance: Texts['attendance'] = {
+	title: 'Attendance',
+	pageTitle: (event: string) => `Attendance: ${event}`,
+	lead: "Tap who was there. Those who said yes are ticked already.",
+	take: 'Take attendance',
+	edit: 'Edit attendance',
+	present: (n: number, of: number) => `${n} of ${of} there`,
+	notTaken: 'No attendance taken for this rehearsal yet.',
+	allYes: 'Everyone who said yes',
+	none: 'Nobody',
+	search: 'Search name …',
+	save: 'Save',
+	saved: 'Attendance saved.',
+	cancel: 'Cancel',
+	answered: { yes: 'yes', maybe: 'maybe', no: 'no' } as Record<string, string>,
+	notYet: 'Attendance can be taken once the rehearsal has started.',
+	notARehearsal: 'Attendance is only for rehearsals.',
+	notSetUp: 'Attendance: not in the sheet yet. Please run “Set up sheet” once.',
+	nobody: 'There are no members and no answers for this rehearsal.',
+	conflict: 'Someone has changed the attendance meanwhile. Reload the page and make your change again.',
+	failed: "The attendance couldn't be saved just now. Please try again.",
+	mine: (present: number, of: number) => `You were at ${present} of ${of} ${of === 1 ? 'rehearsal' : 'rehearsals'} with attendance taken.`,
+	overview: 'Attendance at rehearsals',
+	overviewLead: (taken: number) => (taken === 1 ? 'From 1 rehearsal with attendance taken.' : `From ${taken} rehearsals with attendance taken.`),
+	overviewHint: 'Only visible to the person themselves and everyone with the right “Take attendance”.',
+	person: 'Name',
+	total: 'Rehearsals',
+	count: (present: number, of: number) => `${present}/${of}`
+};

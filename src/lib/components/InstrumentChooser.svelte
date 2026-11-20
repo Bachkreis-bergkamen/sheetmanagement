@@ -2,7 +2,7 @@
 	import { onMount, tick } from 'svelte';
 	import { config } from '#lib/config/index.ts';
 	import type { InstrumentFamily } from '#lib/config/types.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { glyphOf } from '#lib/music/instrument-glyph.ts';
 	import { instrumentLabel } from '#lib/music/instrument-label.ts';
 	import { foldFamily, searchInstruments } from '#lib/music/instrument-list.ts';

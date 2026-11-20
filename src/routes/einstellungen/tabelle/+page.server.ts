@@ -11,7 +11,7 @@ import { getAccessList, getRepertoire } from '#lib/server/repertoire.ts';
 import { setUpSheet } from '#lib/server/repertoire-setup.ts';
 import { getGoogle, NotConfiguredError, requireSetting } from '#lib/server/services.ts';
 import type { Actions, PageServerLoad } from './$types';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 
 // While sign-in is off (no GOOGLE_OAUTH_CLIENT_ID), anyone who can open the app can run
 // this, which is how a new deployment gets set up. It only adds missing tabs, columns,

@@ -3,7 +3,7 @@ import { mayFor } from '#lib/access/access.ts';
 import { concertSummary, getLibrary, isPastConcert, shownDates } from '#lib/server/library.ts';
 import { config } from '#lib/config/index.ts';
 import { newEventFromForm } from '#lib/events/new-event.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { isOpen } from '#lib/polls/polls.ts';
 import { eventDay } from '#lib/repertoire/dates.ts';
 import { addPastConcert } from '#lib/server/archive.ts';

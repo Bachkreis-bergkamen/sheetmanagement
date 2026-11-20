@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import Title from '#lib/components/Title.svelte';
 
 	let { data } = $props();
@@ -14,7 +14,7 @@
 			<h1>{data.concert?.title ?? t.tickets.title}</h1>
 			{#if data.concert}
 				<p class="when">{data.concert.date}{data.concert.time ? ` · ${data.concert.time}` : ''}</p>
-				{#if data.concert.location}<p class="muted">{data.concert.location}</p>{/if}
+				{#if data.concert.location}<p class="ui-muted">{data.concert.location}</p>{/if}
 			{/if}
 		</div>
 	</header>
@@ -22,7 +22,7 @@
 	{#if data.cancelled}
 		<p class="cancelled" role="alert">{t.tickets.ticket.cancelled}</p>
 	{:else}
-		<p class="muted">{t.tickets.ticket.lead}</p>
+		<p class="ui-muted">{t.tickets.ticket.lead}</p>
 	{/if}
 
 	<!-- The bill, with the online surcharge apart from the price; Freikarten have none. -->
@@ -34,7 +34,7 @@
 				{#each data.lines as line (line.text)}<li>{line.text}</li>{/each}
 			</ul>
 			<p class="total"><span>{t.tickets.ticket.total}</span><strong>{data.total}</strong></p>
-			{#if data.hasFee}<p class="muted small">{t.tickets.ticket.fee}</p>{/if}
+			{#if data.hasFee}<p class="ui-muted small">{t.tickets.ticket.fee}</p>{/if}
 			<p class="small">{t.tickets.ticket.payAtDoor}</p>
 		</div>
 	{/if}
@@ -46,7 +46,7 @@
 					<span class="ui-label">{t.tickets.ticket.of(i + 1, data.tickets.length)}</span>
 					<strong>{ticket.label}</strong>
 					<span>{ticket.seat || t.tickets.ticket.freeSeating}</span>
-					<span class="muted small">{ticket.price ? `${ticket.price} · ` : ''}{data.name}</span>
+					<span class="ui-muted small">{ticket.price ? `${ticket.price} · ` : ''}{data.name}</span>
 				</div>
 				<svg class="qr" viewBox="0 0 {ticket.qr.size} {ticket.qr.size}" role="img" aria-label="{t.tickets.ticket.code} {ticket.code}" shape-rendering="crispEdges">
 					<rect width={ticket.qr.size} height={ticket.qr.size} fill="#fff" />
@@ -87,10 +87,6 @@
 
 	.when {
 		font-weight: 600;
-	}
-
-	.muted {
-		color: var(--text-muted);
 	}
 
 	.small {

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { fade, fly } from 'svelte/transition';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import type { NavGroup } from '#lib/nav.ts';
 	import Avatar from './Avatar.svelte';
 	import Icon from './Icon.svelte';

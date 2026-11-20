@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { config } from '#lib/config/index.ts';
 	import { FormState } from '#lib/forms.svelte.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { FEE_CHOICES, formatEuros } from '#lib/trips/organising.ts';
 	import Icon from '#lib/components/Icon.svelte';
 	import Title from '#lib/components/Title.svelte';
@@ -54,7 +54,7 @@
 					<input type="hidden" name="email" value={row.email} />
 					<span class="who">
 						<strong>{row.name}</strong>
-						<span class="muted">{euros(row.fee)}</span>
+						<span class="ui-hint">{euros(row.fee)}</span>
 					</span>
 					<select name="choice" aria-label={c.fee} bind:value={choices[row.email]}>
 						{#each FEE_CHOICES as choice (choice)}
@@ -73,7 +73,7 @@
 		{/each}
 	</ul>
 {:else}
-	<p class="ui-card empty muted">{c.nobody}</p>
+	<p class="ui-card empty ui-hint">{c.nobody}</p>
 {/if}
 
 <style>
@@ -96,11 +96,6 @@
 	.lead {
 		max-width: 62ch;
 		color: var(--text-muted);
-	}
-
-	.muted {
-		color: var(--text-muted);
-		font-size: var(--text-sm);
 	}
 
 	.fees {

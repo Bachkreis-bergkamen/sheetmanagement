@@ -7,7 +7,7 @@ import { readAccessList } from '../repertoire.ts';
 import { linkValid } from './links.ts';
 import { savedAccounts, withAccount, writeSaved } from './saved.ts';
 import { SESSION_DAYS, signSession, verifySession, type Session } from './session.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { switchedOn } from '#lib/text.ts';
 
 export const SESSION_COOKIE = 'session';

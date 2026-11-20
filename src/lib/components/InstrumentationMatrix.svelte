@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { instrumentLabel } from '#lib/music/instrument-label.ts';
 	import type { Coverage } from '#lib/music/my-parts.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 
 	let {
 		instruments,

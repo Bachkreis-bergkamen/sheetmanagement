@@ -1,6 +1,6 @@
 import { normalizeEmail } from '#lib/access/access.ts';
 import { SUGGESTED_STATUS, type Report } from '#lib/feedback/feedback.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import type { Part, PartStatus } from '#lib/music/types.ts';
 import { parsePriority, type Priority } from './priority.ts';
 import { LAYOUT, readTable } from './sheet.ts';

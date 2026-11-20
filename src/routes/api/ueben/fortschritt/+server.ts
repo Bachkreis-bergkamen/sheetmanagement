@@ -1,6 +1,6 @@
 import { error, json } from '@sveltejs/kit';
 import { normalizeEmail } from '#lib/access/access.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { readData } from '#lib/practice/drills/progress.ts';
 import { MAX_SYNC_BYTES, mergeData, sharedCopy } from '#lib/practice/drills/sync.ts';
 import { getStore } from '#lib/server/db/index.ts';

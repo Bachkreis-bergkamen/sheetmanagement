@@ -1,4 +1,4 @@
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import type { Stroke } from './marks.ts';
 import type { PageMarks } from './page-marks.svelte.ts';
 

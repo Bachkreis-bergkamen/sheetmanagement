@@ -1,7 +1,7 @@
 import { error, fail, isHttpError, redirect } from '@sveltejs/kit';
 import { isActiveReport, newId, REPORT_KINDS, type ReportKind } from '#lib/feedback/feedback.ts';
 import { config } from '#lib/config/index.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { normalizeEmail } from '#lib/access/access.ts';
 import { commonInstruments, formatInstrument, matchParts, parseInstruments, playableInstruments, playedParts } from '#lib/music/my-parts.ts';
 import { feedbackUser, formText, playAgain } from '#lib/server/feedback.ts';

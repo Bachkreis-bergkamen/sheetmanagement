@@ -1,0 +1,32 @@
+export const pieceNotes = {
+	title: 'Hinweise aus den Proben',
+	earlier: 'Hinweise zu früheren Konzerten',
+	none: 'Noch keine Hinweise, z. B. Sprünge, Wiederholungen oder Striche.',
+	add: 'Hinweis hinzufügen',
+	text: 'Hinweis',
+	textHint: 'z. B. „Sprung von Takt 40 nach 88“ oder „ohne Wiederholung“',
+	section: 'Für',
+	everyone: 'Alle',
+	sections: 'Register',
+	instruments: 'Instrumente',
+	concert: 'Gilt für',
+	always: 'Jede Aufführung',
+	save: 'Speichern',
+	delete: 'Löschen',
+	deleteNamed: (text: string) => `Hinweis „${text}“ löschen`,
+	forSection: (section: string) => `Für ${section}`,
+	forConcert: (concert: string) => `Nur ${concert}`,
+	meta: (by: string, at: string) => [by, at].filter(Boolean).join(', '),
+	saved: 'Hinweis gespeichert.',
+	deleted: 'Hinweis gelöscht.',
+	failed: 'Der Hinweis konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.',
+	notSetUp: 'Dem Blatt „Hinweise“ fehlen Spalten. Auf der Seite „Tabelle einrichten“ werden sie ergänzt.',
+	gone: 'Den Hinweis gibt es nicht mehr; vielleicht hat ihn jemand schon gelöscht.',
+	problems: {
+		empty: 'Bitte einen Hinweis eintragen.',
+		'too-long': 'Höchstens 500 Zeichen, bitte.',
+		section: 'Bitte ein Register oder Instrument aus der Liste wählen.',
+		concert: 'Bitte ein Konzert aus der Liste wählen.'
+	},
+	inMyParts: 'Hinweise'
+} as const;

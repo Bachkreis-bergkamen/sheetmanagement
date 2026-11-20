@@ -2,7 +2,7 @@ import { error, fail } from '@sveltejs/kit';
 import { countingMembers, isAdminOnly, mayFor, normalizeEmail } from '#lib/access/access.ts';
 import { config } from '#lib/config/index.ts';
 import { coverage, formatInstrument, parseInstruments, playableInstruments, playedParts, programInstruments, sectionsOf } from '#lib/music/my-parts.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { ANSWERS, coverage as signupCoverage, groupSections, totals, type Answer, type SectionCoverage } from '#lib/signups/signups.ts';
 import { feedbackUser, formText } from '#lib/server/feedback.ts';
 import { features, isOn } from '#lib/server/env.ts';

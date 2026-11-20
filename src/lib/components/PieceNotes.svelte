@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { FormState } from '#lib/forms.svelte.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { MAX_NOTE } from '#lib/notes/piece-notes.ts';
 	import Icon from './Icon.svelte';
 
@@ -46,7 +46,7 @@
 				<div class="meta">
 					{#if note.section}<span class="tag">{t.pieceNotes.forSection(note.section)}</span>{/if}
 					{#if note.concert}<span class="tag concert">{t.pieceNotes.forConcert(note.concert)}</span>{/if}
-					<span class="muted">{t.pieceNotes.meta(note.by, note.at)}</span>
+					<span class="ui-muted">{t.pieceNotes.meta(note.by, note.at)}</span>
 					{#if notes.form && note.id}
 						<form method="POST" action="?/deleteNote" use:enhance={saving.submit()}>
 							<input type="hidden" name="id" value={note.id} />
@@ -71,7 +71,7 @@
 		{#if notes.current.length}
 			{@render list(notes.current)}
 		{:else if notes.form}
-			<p class="muted none">{t.pieceNotes.none}</p>
+			<p class="ui-muted none">{t.pieceNotes.none}</p>
 		{/if}
 
 		{#if notes.form}
@@ -110,7 +110,7 @@
 
 		{#if notes.earlier.length}
 			<details class="ui-disclosure earlier">
-				<summary>{t.pieceNotes.earlier} <span class="muted">{notes.earlier.length}</span></summary>
+				<summary>{t.pieceNotes.earlier} <span class="ui-muted">{notes.earlier.length}</span></summary>
 				{@render list(notes.earlier)}
 			</details>
 		{/if}
@@ -176,10 +176,6 @@
 	.tag.concert {
 		background: var(--surface-2);
 		color: var(--text);
-	}
-
-	.muted {
-		color: var(--text-muted);
 	}
 
 	.none {

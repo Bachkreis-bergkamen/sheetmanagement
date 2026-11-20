@@ -13,7 +13,7 @@ import { programSuggestions } from '#lib/repertoire/suggestions.ts';
 import { appendRecords, deleteRows, readTab, refreshAfterWrite, SheetLayoutError, updateRecord } from '#lib/server/sheet-writes.ts';
 import { findConcertRow, programConcert, type SheetConcert } from '#lib/repertoire/sheet.ts';
 import { joinList } from '#lib/repertoire/lists.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { currentProgramAvailable, isCurrentConcert, syncCurrentProgram } from '#lib/server/current-program.ts';
 import type { Actions, PageServerLoad } from './$types';
 

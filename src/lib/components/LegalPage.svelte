@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import type { LegalSection } from '#lib/i18n/legal.de.ts';
 	import type { LegalContact } from '#lib/server/legal.ts';
 	import Title from './Title.svelte';

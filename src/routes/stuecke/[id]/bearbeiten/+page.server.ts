@@ -1,7 +1,7 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { config } from '#lib/config/index.ts';
 import { gapsOf, nextWithGaps, parseGapFilter } from '#lib/repertoire/details.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { searchText } from '#lib/music/text.ts';
 import { checkPieceValues, EDITABLE, findPieceRow, pieceValues, pieceVersion, renameInProgram, writableValues, type PieceValues } from '#lib/repertoire/piece-edit.ts';
 import { requireRight } from '#lib/server/auth/index.ts';

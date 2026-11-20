@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { FormState } from '#lib/forms.svelte.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { pickupsText, type Vehicle } from '#lib/trips/organising.ts';
 	import AssignBoard, { warningText } from '#lib/components/AssignBoard.svelte';
 	import Icon from '#lib/components/Icon.svelte';
@@ -40,7 +40,7 @@
 <header class="head">
 	<h1>{tr.title}</h1>
 	<p class="lead">{tr.lead}</p>
-	{#if !data.organises}<p class="muted">{t.trips.organising.board.readOnly}</p>{/if}
+	{#if !data.organises}<p class="ui-hint">{t.trips.organising.board.readOnly}</p>{/if}
 </header>
 
 <div class="toolbar no-print">
@@ -104,14 +104,14 @@
 {#if data.vehicles.length}
 	<AssignBoard {units} unplaced={data.unplaced} edits={data.organises} hidden={{ leg: data.leg }} search={keep} {tools} />
 {:else}
-	<p class="ui-card empty muted">{tr.none}</p>
+	<p class="ui-card empty ui-hint">{tr.none}</p>
 {/if}
-{#if data.elsewhere}<p class="muted elsewhere">{tr.elsewhere(data.elsewhere)}</p>{/if}
+{#if data.elsewhere}<p class="ui-hint elsewhere">{tr.elsewhere(data.elsewhere)}</p>{/if}
 
 {#if data.bulky.length}
 	<section class="ui-card bulky">
 		<h2><Icon name="music" size={18} />{tr.bulky}</h2>
-		<p class="muted">{tr.bulkyLead}</p>
+		<p class="ui-hint">{tr.bulkyLead}</p>
 		<ul>
 			{#each data.bulky as row, i (i)}<li><strong>{row.name}</strong> · {row.person}</li>{/each}
 		</ul>
@@ -145,11 +145,6 @@
 	.lead {
 		max-width: 62ch;
 		color: var(--text-muted);
-	}
-
-	.muted {
-		color: var(--text-muted);
-		font-size: var(--text-sm);
 	}
 
 	.toolbar {

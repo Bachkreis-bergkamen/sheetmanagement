@@ -2,7 +2,7 @@ import { fail, isHttpError, isRedirect, redirect } from '@sveltejs/kit';
 import { pieceFolderName } from '#lib/music/piece-name.ts';
 import { createPieceFolder } from './piece-folder.ts';
 import { config } from '#lib/config/index.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { playedSections } from '#lib/music/my-parts.ts';
 import { searchText } from '#lib/music/text.ts';
 import { orchestraChoices, sameOrchestra } from '#lib/repertoire/orchestras.ts';

@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { config } from '#lib/config/index.ts';
 	import { FormState } from '#lib/forms.svelte.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { practiceMonth, practiceWeek, totalSeconds, treeStage, type PracticeDay, type TreeStage } from '#lib/practice/practice.ts';
 	import Icon from './Icon.svelte';
 	import PracticeTree from './PracticeTree.svelte';
@@ -48,12 +48,12 @@
 
 <section class="ui-card practice" id="probenzeit">
 	<h3><Icon name="clock" size={18} />{t.practice.title}</h3>
-	<p class="muted">{t.practice.lead}</p>
+	<p class="ui-hint">{t.practice.lead}</p>
 	<p class="private"><Icon name="shield" size={14} />{t.practice.private}</p>
 
 	{#if !on && !days.length}
 		<p><strong>{t.practice.question}</strong></p>
-		<p class="muted small">{t.practice.how}</p>
+		<p class="ui-hint small">{t.practice.how}</p>
 	{:else}
 		<p>{on ? t.practice.on : t.practice.off}</p>
 	{/if}
@@ -72,14 +72,14 @@
 			<div class="stage">
 				<span class="ui-label">{t.practice.tree.title}</span>
 				<strong>{stageName(stage)}</strong>
-				<span class="muted">{t.practice.tree.all(t.practice.duration(total))}</span>
+				<span class="ui-hint">{t.practice.tree.all(t.practice.duration(total))}</span>
 				<div class="progress" role="progressbar" aria-labelledby="practice-next" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(stage.progress * 100)}>
 					<span style:width="{stage.progress * 100}%"></span>
 				</div>
-				<span class="muted small" id="practice-next">{t.practice.tree.next(t.practice.duration(stage.next - total), stageName(nextStage))}</span>
+				<span class="ui-hint small" id="practice-next">{t.practice.tree.next(t.practice.duration(stage.next - total), stageName(nextStage))}</span>
 			</div>
 		</div>
-		<p class="muted small">{t.practice.tree.hint}</p>
+		<p class="ui-hint small">{t.practice.tree.hint}</p>
 
 		<div class="overview">
 			<div class="head">
@@ -122,7 +122,7 @@
 	<!-- Notes drawn in the practice viewer: theirs alone, whether practice time is on or not. -->
 	{#if markedParts}
 		<div class="marks">
-			<p><strong>{t.practice.marks.profileTitle}</strong> <span class="muted">{t.practice.marks.count(markedParts)} {t.practice.marks.private}</span></p>
+			<p><strong>{t.practice.marks.profileTitle}</strong> <span class="ui-hint">{t.practice.marks.count(markedParts)} {t.practice.marks.private}</span></p>
 			<form method="POST" action="?/marksDelete" use:enhance={saving.submit()} onsubmit={(event) => confirm(t.practice.marks.confirmDeleteAll) || event.preventDefault()}>
 				<button class="delete" disabled={saving.busy}>{t.practice.marks.deleteAll}</button>
 			</form>
@@ -146,11 +146,6 @@
 
 	p {
 		margin: 0;
-	}
-
-	.muted {
-		color: var(--text-muted);
-		font-size: var(--text-sm);
 	}
 
 	.small {

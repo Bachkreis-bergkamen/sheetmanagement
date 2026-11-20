@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { FormState } from '#lib/forms.svelte.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import Icon from '#lib/components/Icon.svelte';
 	import Title from '#lib/components/Title.svelte';
 
@@ -32,7 +32,7 @@
 <header class="head">
 	<h1>{data.person?.byParent ? p.forChild(data.person.name) : p.title}</h1>
 	<p class="lead">{p.lead}</p>
-	{#if data.progress}<p class="muted">{p.ready(data.progress.ready, data.progress.of)}</p>{/if}
+	{#if data.progress}<p class="ui-hint">{p.ready(data.progress.ready, data.progress.of)}</p>{/if}
 </header>
 
 {#if form?.error}<p class="msg error" role="alert">{form.error}</p>{/if}
@@ -71,10 +71,10 @@
 				</li>
 			{/each}
 		</ul>
-		{#if !data.person}<p class="muted">{p.notGoing}</p>{/if}
+		{#if !data.person}<p class="ui-hint">{p.notGoing}</p>{/if}
 	</section>
 {:else}
-	<p class="ui-card empty muted">{p.empty}</p>
+	<p class="ui-card empty ui-hint">{p.empty}</p>
 {/if}
 
 {#if data.organises}
@@ -110,11 +110,6 @@
 	.lead {
 		max-width: 62ch;
 		color: var(--text-muted);
-	}
-
-	.muted {
-		color: var(--text-muted);
-		font-size: var(--text-sm);
 	}
 
 	.list {

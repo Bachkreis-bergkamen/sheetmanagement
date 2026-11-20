@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { config } from '#lib/config/index.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import Icon from '#lib/components/Icon.svelte';
 	import Title from '#lib/components/Title.svelte';
 
@@ -75,21 +75,21 @@
 			<ol class="concerts">
 				{#each report.concerts as concert (concert.id)}
 					<li>
-						<p class="concert-head"><strong>{concert.title}</strong> <span class="muted">{[concert.label, concert.location].filter(Boolean).join(' · ')}</span></p>
+						<p class="concert-head"><strong>{concert.title}</strong> <span class="ui-muted">{[concert.label, concert.location].filter(Boolean).join(' · ')}</span></p>
 						{#if concert.program.length}
 							<ol class="program">
 								{#each concert.program as item, i (i)}
-									<li>{item.title}{#if item.composer}<span class="muted">{` · ${item.composer}`}</span>{/if}{#if concert.debuts.includes(i)}<span class="new">{` (${t.season.firstTime})`}</span>{/if}</li>
+									<li>{item.title}{#if item.composer}<span class="ui-muted">{` · ${item.composer}`}</span>{/if}{#if concert.debuts.includes(i)}<span class="new">{` (${t.season.firstTime})`}</span>{/if}</li>
 								{/each}
 							</ol>
 						{:else}
-							<p class="muted">{t.season.noProgram}</p>
+							<p class="ui-muted">{t.season.noProgram}</p>
 						{/if}
 					</li>
 				{/each}
 			</ol>
 		{:else}
-			<p class="muted">{t.season.noConcerts}</p>
+			<p class="ui-muted">{t.season.noConcerts}</p>
 		{/if}
 	</section>
 
@@ -98,11 +98,11 @@
 		{#if report.debuts.length}
 			<ul class="debuts">
 				{#each report.debuts as debut, i (i)}
-					<li><strong>{debut.title}</strong> <span class="muted">{t.season.debutAt(debut.concert)}</span></li>
+					<li><strong>{debut.title}</strong> <span class="ui-muted">{t.season.debutAt(debut.concert)}</span></li>
 				{/each}
 			</ul>
 		{:else}
-			<p class="muted">{t.season.noDebuts}</p>
+			<p class="ui-muted">{t.season.noDebuts}</p>
 		{/if}
 	</section>
 
@@ -114,7 +114,7 @@
 				<p>{report.attendance ? t.season.attendance(report.attendance.rehearsals, average, report.attendance.rate) : t.season.noAttendance}</p>
 			{/if}
 		{:else}
-			<p class="muted">{t.season.noCalendar}</p>
+			<p class="ui-muted">{t.season.noCalendar}</p>
 		{/if}
 	</section>
 
@@ -124,7 +124,7 @@
 		{#if data.wishesOn}<p>{t.season.wishes(report.wishes)}</p>{/if}
 	</section>
 
-	<p class="created muted">{t.season.created(data.today)}</p>
+	<p class="created ui-muted">{t.season.created(data.today)}</p>
 </article>
 
 <style>
@@ -271,10 +271,6 @@
 
 	section p + p {
 		margin-top: var(--space-2);
-	}
-
-	.muted {
-		color: var(--text-muted);
 	}
 
 	.created {

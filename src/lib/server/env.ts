@@ -6,7 +6,7 @@ import { ALL_ON, OPT_IN, resolveFeatures, type Feature, type Features } from '#l
 import { parseLinks } from '#lib/links.ts';
 import { validLogo, type StoredSettings } from '#lib/settings.ts';
 import type { KvStore } from './cache.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import type { LockNamespace } from './sheet-lock.ts';
 import type { D1 } from './db/sql.ts';
 import { switchedOn } from '#lib/text.ts';

@@ -3,7 +3,7 @@ import { countingMembers, isAdminOnly, normalizeEmail } from '#lib/access/access
 import { attendanceVersion, parseTicks, planAttendanceSave } from '#lib/attendance/attendance.ts';
 import { config } from '#lib/config/index.ts';
 import type { ShownEvent } from '#lib/events/schedule.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { formatInstrument } from '#lib/music/my-parts.ts';
 import { sectionOf } from '#lib/signups/signups.ts';
 import { requireRight } from '#lib/server/auth/index.ts';

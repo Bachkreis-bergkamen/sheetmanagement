@@ -6,7 +6,7 @@ import { isOn } from '#lib/server/env.ts';
 import { getLibrary, reportPieces } from '#lib/server/library.ts';
 import { reportScopeOf, setReportScope } from '#lib/server/report-scope.ts';
 import type { Actions, PageServerLoad } from './$types';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 
 /**
  * A concert's programme to print: a handout for the audience, the conductor's setlist, or

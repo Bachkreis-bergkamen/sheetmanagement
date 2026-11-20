@@ -1,0 +1,82 @@
+/** The parents' area (/eltern): what a parent account sees, and the notices written for it. */
+export const parents = {
+	drills: {
+		title: 'Übebereich',
+		lead: 'Was dein Kind im Übebereich der App übt, sieht nur es selbst. Es kann eine kurze Übersicht mit dir teilen. Wochenwertung und Dirigat gibt es für Kinder nur mit deinem Okay.',
+		allowed: 'Darf in der Wochenwertung erscheinen und mit Dirigat und Lehrkräften teilen, wenn es das selbst einschaltet.',
+		notAllowed: 'Erscheint nicht in der Wochenwertung und teilt nichts mit Dirigat und Lehrkräften.',
+		allow: 'Erlauben',
+		takeBack: 'Zurücknehmen',
+		failed: 'Das hat nicht geklappt.',
+		notShared: (name: string) => `${name} teilt die Übersicht (noch) nicht mit dir. Das stellt ${name} im Übebereich ein.`
+	},
+	title: 'Elternbereich',
+	lead: (name: string) => `Hallo ${name}! Hier siehst du die nächsten Termine deiner Kinder, kannst sie entschuldigen, Karten reservieren und der Leitung schreiben.`,
+	noChildren: 'Noch ist kein Kind mit deinem Konto verknüpft. Die Verwaltung trägt deine Kinder bei dir unter „Mitglieder“ ein.',
+	children: 'Deine Kinder',
+	notices: {
+		title: 'Elternmitteilungen',
+		shortTitle: 'Mitteilungen',
+		lead: 'Mitteilungen erscheinen im Elternbereich und, wo die Eltern es erlaubt haben, als Benachrichtigung auf ihren Geräten.',
+		heading: 'Überschrift',
+		body: 'Text',
+		for: 'Für',
+		forHint: 'Nichts angekreuzt: an alle Eltern. Sonst nur an Eltern von Kindern in diesen Orchestern.',
+		forAll: 'alle Eltern',
+		forSome: (orchestras: string) => `Eltern aus ${orchestras}`,
+		send: 'Veröffentlichen',
+		added: 'Veröffentlicht.',
+		remove: 'Löschen',
+		confirmRemove: (title: string) => `Mitteilung „${title}“ löschen? Die Eltern sehen sie dann nicht mehr.`,
+		empty: 'Noch keine Mitteilungen.',
+		by: (name: string, day: string) => (name ? `${name} · ${day}` : day),
+		reaches: (n: number) => (n === 1 ? 'erreicht 1 Elternteil' : `erreicht ${n} Eltern`),
+		noParents: 'Noch ist kein Eltern-Konto mit einem Kind verknüpft. Das geht in der Mitgliederverwaltung: Status „Eltern“ und die Kinder eintragen.',
+		notSetUp: 'Mitteilungen brauchen die Datenbank der App (D1). Sie ist hier noch nicht eingerichtet.',
+		failed: 'Das ging gerade nicht. Bitte versuch es gleich noch einmal.',
+		problems: {
+			title: 'Bitte eine Überschrift angeben.',
+			body: 'Bitte etwas schreiben.',
+			'too-long': 'Das ist zu lang: Überschrift bis 120, Text bis 5000 Zeichen.'
+		} as Record<string, string>
+	},
+	dates: 'Nächste Termine',
+	noDates: 'In den nächsten Wochen steht nichts an.',
+	inDays: (n: number) => (n === 0 ? 'heute' : n === 1 ? 'morgen' : `in ${n} Tagen`),
+	status: { yes: 'kommt', maybe: 'vielleicht', no: 'entschuldigt', open: 'noch keine Antwort' } as Record<string, string>,
+	comes: 'Kommt',
+	excuse: 'Entschuldigen',
+	reason: 'Grund (optional)',
+	reasonHint: 'z. B. krank, Klassenfahrt',
+	excuseSend: 'Entschuldigen',
+	cancel: 'Abbrechen',
+	saved: 'Gespeichert.',
+	/** In the sheet's comment, so the Leitung sees a parent answered. */
+	answeredBy: (name: string) => `eingetragen von ${name}`,
+	answerFailed: 'Das ging gerade nicht. Bitte lade die Seite neu und versuch es noch einmal.',
+	/** Before the Leitung's view of the writer: "Paula Beispiel (Eltern von Mia)". */
+	parentOf: (names: string) => `Eltern von ${names}`,
+	and: 'und',
+	tickets: {
+		title: 'Karten reservieren',
+		left: (n: number) => (n === 1 ? 'Noch 1 Platz frei.' : `Noch ${n} Plätze frei.`),
+		payAtDoor: 'Bezahlt wird an der Abendkasse.',
+		name: 'Auf welchen Namen?',
+		count: (label: string, price: string) => `${label} (${price})`,
+		reserve: 'Reservieren',
+		reserved: 'Reserviert!',
+		mailed: 'Eine Bestätigung ist per E-Mail unterwegs.',
+		show: 'Karten ansehen'
+	},
+	write: 'Der Leitung schreiben',
+	messages: {
+		title: 'Nachrichten',
+		lead: 'Fragen, Hinweise oder eine längere Abwesenheit: an die Leitung, mit deinem Namen. Die Antworten findest du hier.',
+		signedAs: (signature: string) => `Die Leitung sieht als Absender: ${signature}`,
+		newMessage: 'Neue Nachricht',
+		sent: 'Abgeschickt. Die Antwort erscheint hier, sobald die Leitung geschrieben hat.',
+		yours: 'Deine Nachrichten',
+		empty: 'Du hast noch nichts geschrieben.',
+		noLeitung: 'Noch liest niemand die Nachrichten. Die Verwaltung vergibt dafür das Recht „Kummerkasten lesen“.'
+	}
+} as const;

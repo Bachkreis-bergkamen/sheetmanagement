@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { playsIn } from '#lib/access/access.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { isOn, orchestra } from '#lib/server/env.ts';
 import { feedEvents } from '#lib/events/feed.ts';
 import { buildCalendar } from '#lib/events/ical.ts';

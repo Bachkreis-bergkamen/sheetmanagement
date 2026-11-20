@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import { config } from '#lib/config/index.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { checkSection, maxShortTitle, RENAME_BATCH } from '#lib/music/naming.ts';
 	import { createInstrumentMatcher } from '#lib/music/part-name.ts';
 	import Icon from '#lib/components/Icon.svelte';
@@ -203,7 +203,7 @@
 										<span class="badge">{t.naming.unclear}</span>
 										<span class="names">
 											<span>{check.name}</span>
-											<span class="muted">
+											<span class="ui-muted">
 												{#if check.unrecognized.length}
 													{t.naming.unclearHint(check.unrecognized.join(', '))}
 												{:else if check.taken}
@@ -467,10 +467,6 @@
 		color: var(--warn);
 		font-size: var(--text-2xs);
 		font-weight: 700;
-	}
-
-	.muted {
-		color: var(--text-muted);
 	}
 
 	.btn {

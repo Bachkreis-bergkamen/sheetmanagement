@@ -1,4 +1,4 @@
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { isRequestId, REQUEST_FIELD } from '#lib/request-id.ts';
 import { getStore, type Store, type StoredResult } from './db/index.ts';
 

@@ -1,0 +1,81 @@
+import type { Texts } from '../types.ts';
+
+export const parents: Texts['parents'] = {
+	drills: {
+		title: 'Practice area',
+		lead: 'What your child practises in the app’s practice area only they can see. They can share a short summary with you. The weekly board and the conductor are open to children only with your okay.',
+		allowed: 'May appear on the weekly board and share with the conductor and teachers, if they turn it on themselves.',
+		notAllowed: 'Doesn’t appear on the weekly board and shares nothing with the conductor and teachers.',
+		allow: 'Allow',
+		takeBack: 'Take back',
+		failed: 'That didn’t work.',
+		notShared: (name: string) => `${name} doesn’t share the summary with you (yet). ${name} sets that in the practice area.`
+	},
+	title: 'Parents',
+	lead: (name: string) => `Hello ${name}! Here you see your children's next dates, can excuse them, reserve tickets and write to the team.`,
+	noChildren: 'No child is linked to your account yet. The admins add your children to your entry under “Members”.',
+	children: 'Your children',
+	notices: {
+		title: 'Notices to parents',
+		shortTitle: 'Notices',
+		lead: 'Notices show in the parents’ area and, where parents allowed it, as notifications on their devices.',
+		heading: 'Heading',
+		body: 'Text',
+		for: 'For',
+		forHint: 'None ticked: all parents. Otherwise only parents of children in these orchestras.',
+		forAll: 'all parents',
+		forSome: (orchestras: string) => `parents in ${orchestras}`,
+		send: 'Publish',
+		added: 'Published.',
+		remove: 'Delete',
+		confirmRemove: (title: string) => `Delete the notice “${title}”? Parents won't see it any more.`,
+		empty: 'No notices yet.',
+		by: (name: string, day: string) => (name ? `${name} · ${day}` : day),
+		reaches: (n: number) => (n === 1 ? 'reaches 1 parent' : `reaches ${n} parents`),
+		noParents: 'No parent account is linked to a child yet. Do that under members: status “parent” and their children.',
+		notSetUp: 'Notices need the app’s database (D1), which isn’t set up here yet.',
+		failed: "That didn't work just now. Please try again in a moment.",
+		problems: {
+			title: 'Please give a heading.',
+			body: 'Please write something.',
+			'too-long': 'That’s too long: heading up to 120, text up to 5000 characters.'
+		} as Record<string, string>
+	},
+	dates: 'Next dates',
+	noDates: 'Nothing coming up in the next weeks.',
+	inDays: (n: number) => (n === 0 ? 'today' : n === 1 ? 'tomorrow' : `in ${n} days`),
+	status: { yes: 'coming', maybe: 'maybe', no: 'excused', open: 'no answer yet' } as Record<string, string>,
+	comes: 'Coming',
+	excuse: 'Excuse',
+	reason: 'Reason (optional)',
+	reasonHint: 'e.g. ill, school trip',
+	excuseSend: 'Excuse',
+	cancel: 'Cancel',
+	saved: 'Saved.',
+	answeredBy: (name: string) => `entered by ${name}`,
+	answerFailed: "That didn't work just now. Please reload the page and try again.",
+	parentOf: (names: string) => `parent of ${names}`,
+	and: 'and',
+	tickets: {
+		title: 'Reserve tickets',
+		left: (n: number) => (n === 1 ? '1 seat left.' : `${n} seats left.`),
+		payAtDoor: 'You pay at the door.',
+		name: 'In whose name?',
+		count: (label: string, price: string) => `${label} (${price})`,
+		reserve: 'Reserve',
+		reserved: 'Reserved!',
+		mailed: 'A confirmation is on its way by email.',
+		show: 'Show tickets'
+	},
+	write: 'Write to the team',
+	messages: {
+		title: 'Messages',
+		lead: 'Questions, notes or a longer absence: to the team, with your name. You find the answers here.',
+		signedAs: (signature: string) => `The team sees as sender: ${signature}`,
+		newMessage: 'New message',
+		sent: 'Sent. The answer shows here once the team has written.',
+		yours: 'Your messages',
+		empty: "You haven't written anything yet.",
+		noLeitung: 'Nobody reads the messages yet. The admins give the right “Read the suggestion box” for it.'
+	}
+};

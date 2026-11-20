@@ -1,4 +1,4 @@
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { searchText } from '#lib/music/text.ts';
 import { joinList, splitList } from './lists.ts';
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import Icon from '#lib/components/Icon.svelte';
 	import Metronome from '#lib/components/Metronome.svelte';
 	import PracticeScore from '#lib/components/PracticeScore.svelte';

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import type { ShownEvent } from '#lib/events/schedule.ts';
 	import type { Answer } from '#lib/signups/signups.ts';
 	import Icon from './Icon.svelte';

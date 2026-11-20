@@ -2,7 +2,7 @@ import { normalizeEmail, type User } from '#lib/access/access.ts';
 import { config } from '#lib/config/index.ts';
 import { markedStatus, mayDeleteWish, readReportKind, newId, parseVotes, readWishKind, readWishStatus, toggleVote, type ReportKind, type ReportStatus, type WishKind, type WishStatus } from '#lib/feedback/feedback.ts';
 import type { Priority } from '#lib/repertoire/priority.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { withoutStatusWord, withStatusWord, type MarkableStatus } from '#lib/music/status-word.ts';
 import { cleanLink } from '#lib/links.ts';
 import { eventDay } from '#lib/repertoire/dates.ts';

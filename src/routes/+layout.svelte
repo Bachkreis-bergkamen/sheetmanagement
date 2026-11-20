@@ -8,7 +8,7 @@
 	import { navigating, page } from '$app/state';
 	import { DEFAULT_LOGO, shownLogo } from '#lib/branding.ts';
 	import { config, useInstrumentOverrides } from '#lib/config/index.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import DemoBanner from '#lib/components/DemoBanner.svelte';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import SeasonMark from '#lib/components/SeasonMark.svelte';

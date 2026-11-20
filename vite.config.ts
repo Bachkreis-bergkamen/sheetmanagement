@@ -1,6 +1,6 @@
 import adapter from '@sveltejs/adapter-cloudflare';
 import { sveltekit } from '@sveltejs/kit/vite';
-import { loadEnv } from 'vite';
+import { loadEnv, type Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
 import pkg from './package.json' with { type: 'json' };
 import { commit } from './scripts/commit.mjs';
@@ -17,8 +17,24 @@ function language(mode: string): 'de' | 'en' {
 	return value;
 }
 
+// The texts are one module per area, imported through src/lib/i18n/texts.ts (#356). That file
+// re-exports the German ones; an English build points its one import at the English ones, so
+// each page still gets only the areas it reads, in one language.
+function textsLanguage(lang: 'de' | 'en'): Plugin {
+	return {
+		name: 'texts-language',
+		enforce: 'pre',
+		resolveId(source, importer, options) {
+			if (lang === 'de' || source !== './de/index.ts' || !importer) return null;
+			if (!/[\\/]lib[\\/]i18n[\\/]texts\.ts$/.test(importer)) return null;
+			return this.resolve('./en/index.ts', importer, { ...options, skipSelf: true });
+		}
+	};
+}
+
 export default defineConfig(({ mode }) => ({
 	plugins: [
+		textsLanguage(language(mode)),
 		sveltekit({
 			adapter: adapter({ platformProxy: { environment: mode === 'demo' ? 'demo' : undefined } }),
 			// An open app notices a deploy within a few minutes and offers "Neu laden" (#140).

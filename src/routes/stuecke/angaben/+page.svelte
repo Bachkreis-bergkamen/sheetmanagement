@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { FormState } from '#lib/forms.svelte.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import Icon from '#lib/components/Icon.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import Title from '#lib/components/Title.svelte';
@@ -26,7 +26,7 @@
 
 <div class="progress" aria-label={t.details.progress(complete)}>
 	<span class="bar"><span style:width="{complete}%"></span></span>
-	<span class="muted">{t.details.progress(complete)}</span>
+	<span class="ui-hint">{t.details.progress(complete)}</span>
 </div>
 
 <div class="toolbar">
@@ -51,7 +51,7 @@
 				<a href="/stuecke/{encodeURIComponent(piece.id)}/bearbeiten?liste={data.filter}">
 					<span class="main">
 						<strong>{piece.title}</strong>
-						{#if piece.composer || piece.catalogue}<span class="muted">{[piece.composer, piece.catalogue].filter(Boolean).join(' · ')}</span>{/if}
+						{#if piece.composer || piece.catalogue}<span class="ui-hint">{[piece.composer, piece.catalogue].filter(Boolean).join(' · ')}</span>{/if}
 					</span>
 					<span class="gaps">
 						{#each piece.gaps as gap (gap)}<span class="gap">{t.details.missing[gap]}</span>{/each}
@@ -99,11 +99,6 @@
 		display: block;
 		height: 100%;
 		background: var(--accent);
-	}
-
-	.muted {
-		color: var(--text-muted);
-		font-size: var(--text-sm);
 	}
 
 	.toolbar {

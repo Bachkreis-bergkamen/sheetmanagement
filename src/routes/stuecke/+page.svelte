@@ -4,7 +4,7 @@
 	import { onMount } from 'svelte';
 	import { replaceState } from '$app/navigation';
 	import { page } from '$app/state';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { searchText } from '#lib/music/text.ts';
 	import { findPiece, type FoundBy } from '#lib/music/piece-search.ts';
 	import AddToArchive from '#lib/components/AddToArchive.svelte';

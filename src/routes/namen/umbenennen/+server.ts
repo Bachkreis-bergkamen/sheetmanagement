@@ -1,5 +1,5 @@
 import { error, json } from '@sveltejs/kit';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { requireRight } from '#lib/server/auth/index.ts';
 import { renameFile } from '#lib/server/google/drive.ts';
 import { getCatalog } from '#lib/server/catalog.ts';

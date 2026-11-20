@@ -1,6 +1,6 @@
 import { normalizeEmail } from '#lib/access/access.ts';
 import { reportSubject, submitterEmail, type ReportKind } from '#lib/feedback/feedback.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { peopleWithRight } from '#lib/reminders/reminders.ts';
 import { authConfig } from './auth/index.ts';
 import { runInBackground } from './env.ts';

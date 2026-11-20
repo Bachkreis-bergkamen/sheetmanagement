@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { FormState } from '#lib/forms.svelte.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import Icon from '#lib/components/Icon.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import Title from '#lib/components/Title.svelte';
@@ -22,9 +22,9 @@
 
 <div class="card" class:ok={data.source === 'd1'}>
 	<p><strong>{data.source === 'd1' ? t.dataMove.sourceD1 : t.dataMove.sourceSheet}</strong></p>
-	{#if data.source === 'd1'}<p class="muted">{t.dataMove.statusD1(data.rows)}</p>{/if}
-	{#if !data.hasD1}<p class="muted">{t.dataMove.noD1}</p>{/if}
-	<p class="muted small">{t.dataMove.backup}</p>
+	{#if data.source === 'd1'}<p class="ui-muted">{t.dataMove.statusD1(data.rows)}</p>{/if}
+	{#if !data.hasD1}<p class="ui-muted">{t.dataMove.noD1}</p>{/if}
+	<p class="ui-muted small">{t.dataMove.backup}</p>
 </div>
 
 {#if form?.done}
@@ -39,13 +39,13 @@
 {#if data.plan}
 	<section class="card">
 		<h2>{t.dataMove.preview}</h2>
-		<p class="muted">{t.dataMove.previewLead}</p>
+		<p class="ui-muted">{t.dataMove.previewLead}</p>
 		<ul class="tabs">
 			{#each data.plan.tabs as tab (tab.key)}
 				<li>
 					<span>{t.dataMove.tabRows(tab.tab, tab.rows)}</span>
 					{#if tab.unknown.length}<span class="warn">{t.dataMove.unknown(tab.unknown.join(', '))}</span>{/if}
-					{#if tab.missing.length}<span class="muted">{t.dataMove.missing(tab.missing.join(', '))}</span>{/if}
+					{#if tab.missing.length}<span class="ui-muted">{t.dataMove.missing(tab.missing.join(', '))}</span>{/if}
 				</li>
 			{/each}
 		</ul>
@@ -53,10 +53,10 @@
 		{#if data.plan.skipped.length}
 			<details>
 				<summary class="warn">{t.dataMove.skippedTitle} ({data.plan.skipped.length})</summary>
-				<p class="muted small">{t.dataMove.skippedLead}</p>
+				<p class="ui-muted small">{t.dataMove.skippedLead}</p>
 				<ul class="tabs">
 					{#each data.plan.skipped as skip (`${skip.tab} ${skip.row}`)}
-						<li class="muted small">{t.dataMove.skipped[skip.kind](tabName(skip.tab), skip.row, columnName(skip.tab, skip.column), skip.value)}</li>
+						<li class="ui-muted small">{t.dataMove.skipped[skip.kind](tabName(skip.tab), skip.row, columnName(skip.tab, skip.column), skip.value)}</li>
 					{/each}
 				</ul>
 			</details>
@@ -90,7 +90,7 @@
 	<!-- The way back from a backup file (#186): replaces everything in D1. -->
 	<section class="card restore">
 		<h2>{t.dataMove.restoreTitle}</h2>
-		<p class="muted">{t.dataMove.restoreLead}</p>
+		<p class="ui-muted">{t.dataMove.restoreLead}</p>
 		<form method="POST" action="?/restore" enctype="multipart/form-data" onsubmit={ask(t.dataMove.restoreConfirm)} use:enhance={saving.submit()}>
 			<label class="file">
 				<span>{t.dataMove.restoreFile}</span>
@@ -162,10 +162,6 @@
 	.tabs li {
 		display: grid;
 		gap: 2px;
-	}
-
-	.muted {
-		color: var(--text-muted);
 	}
 
 	.small {

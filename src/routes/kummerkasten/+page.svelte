@@ -5,7 +5,7 @@
 	import { config } from '#lib/config/index.ts';
 	import { formatDay } from '#lib/events/format.ts';
 	import { FormState } from '#lib/forms.svelte.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import Icon from '#lib/components/Icon.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import Segmented from '#lib/components/Segmented.svelte';

@@ -1,7 +1,7 @@
 import { error } from '@sveltejs/kit';
 import { countingMembers } from '#lib/access/access.ts';
 import { config } from '#lib/config/index.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { parseInstruments, playedParts } from '#lib/music/my-parts.ts';
 import { partSet } from '#lib/music/part-set.ts';
 import { requireRight } from '#lib/server/auth/index.ts';

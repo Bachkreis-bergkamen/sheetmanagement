@@ -3,7 +3,7 @@ import { exportFileName, myData, pollData, storedData, tripData, tripListData } 
 import { pollStore } from '#lib/server/polls.ts';
 import { tripListsOf, tripStore } from '#lib/server/trips.ts';
 import { getStore } from '#lib/server/db/index.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { orchestra } from '#lib/server/env.ts';
 import { getAccessList, getAttendance, getFeedback, getPieceNotes, getRehearsalNotes, getSignups } from '#lib/server/repertoire.ts';
 import type { RequestHandler } from './$types';

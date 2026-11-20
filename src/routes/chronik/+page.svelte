@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { LONG_AGO_YEARS } from '#lib/repertoire/chronicle.ts';
 	import Icon from '#lib/components/Icon.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
@@ -65,7 +65,7 @@
 			<details class="decade ui-disclosure" open={i === 0}>
 				<summary>
 					<span class="decade-name">{decade.decade === null ? t.chronicle.undated : t.chronicle.decade(decade.decade)}</span>
-					<span class="muted">{t.chronicle.decadeLine(
+					<span class="ui-muted">{t.chronicle.decadeLine(
 						decade.years.reduce((sum, year) => sum + year.concerts.length, 0),
 						new Set(decade.years.flatMap((year) => year.concerts.flatMap((concert) => concert.program.map((item) => item.pieceId ?? item.title)))).size
 					)}</span>
@@ -77,7 +77,7 @@
 							{#each year.concerts as concert (concert.id)}
 								<li class="concert">
 									<a class="concert-title" href="/kalender/{encodeURIComponent(concert.id)}">{concert.title}</a>
-									<span class="muted">{[concert.label, concert.location].filter(Boolean).join(' · ')}</span>
+									<span class="ui-muted">{[concert.label, concert.location].filter(Boolean).join(' · ')}</span>
 									{#if concert.program.length}
 										<ul class="program">
 											{#each concert.program as item, j (j)}
@@ -92,7 +92,7 @@
 											{/each}
 										</ul>
 									{:else}
-										<p class="muted small">{t.chronicle.noProgram}</p>
+										<p class="ui-muted small">{t.chronicle.noProgram}</p>
 									{/if}
 								</li>
 							{/each}
@@ -115,13 +115,13 @@
 								</div>
 								<span class="bar" style:width={width(piece.count, maxPlayed)}></span>
 								{#if piece.firstYear !== undefined && piece.lastYear !== undefined}
-									<span class="muted small">{t.chronicle.playedIn(piece.firstYear, piece.lastYear)}</span>
+									<span class="ui-muted small">{t.chronicle.playedIn(piece.firstYear, piece.lastYear)}</span>
 								{/if}
 							</li>
 						{/each}
 					</ol>
 				{:else}
-					<p class="muted">{t.chronicle.mostPlayedNone}</p>
+					<p class="ui-muted">{t.chronicle.mostPlayedNone}</p>
 				{/if}
 			</section>
 
@@ -136,7 +136,7 @@
 									<span class="count">{t.chronicle.times(composer.count)}</span>
 								</div>
 								<span class="bar" style:width={width(composer.count, maxComposer)}></span>
-								<span class="muted small">{t.chronicle.composerLine(composer.count, composer.pieces)}</span>
+								<span class="ui-muted small">{t.chronicle.composerLine(composer.count, composer.pieces)}</span>
 							</li>
 						{/each}
 					</ol>
@@ -151,7 +151,7 @@
 							<li>
 								<div class="bar-text">
 									<strong>{t.chronicle.decade(decade.decade)}</strong>
-									<span class="muted small">{t.chronicle.decadeLine(decade.concerts, decade.pieces)}{decade.composers.length ? ` · ${decade.composers.join(', ')}` : ''}</span>
+									<span class="ui-muted small">{t.chronicle.decadeLine(decade.concerts, decade.pieces)}{decade.composers.length ? ` · ${decade.composers.join(', ')}` : ''}</span>
 								</div>
 								<span class="bar" style:width={width(decade.concerts, maxDecade)}></span>
 							</li>
@@ -163,7 +163,7 @@
 			<section class="ui-card">
 				<h2 class="card-title">{t.chronicle.longAgo}</h2>
 				{#if stats.longAgo.length}
-					<p class="muted small lead">{t.chronicle.longAgoLead(LONG_AGO_YEARS)}</p>
+					<p class="ui-muted small lead">{t.chronicle.longAgoLead(LONG_AGO_YEARS)}</p>
 					<ul class="plain">
 						{#each stats.longAgo as piece (piece.key)}
 							<li>
@@ -171,29 +171,29 @@
 									{#if piece.pieceId}<a href="/stuecke/{encodeURIComponent(piece.pieceId)}">{piece.title}</a>{:else}<span>{piece.title}</span>{/if}
 									{#if piece.planned}<span class="debut">{t.chronicle.plannedAgain}</span>{/if}
 								</span>
-								<span class="muted small">{t.chronicle.lastPlayed(piece.lastYear!)}</span>
+								<span class="ui-muted small">{t.chronicle.lastPlayed(piece.lastYear!)}</span>
 							</li>
 						{/each}
 					</ul>
 				{:else}
-					<p class="muted">{t.chronicle.longAgoNone(LONG_AGO_YEARS)}</p>
+					<p class="ui-muted">{t.chronicle.longAgoNone(LONG_AGO_YEARS)}</p>
 				{/if}
 			</section>
 
 			{#if stats.neverPlayed.count}
 				<section class="ui-card">
 					<h2 class="card-title">{t.chronicle.neverPlayed}</h2>
-					<p class="muted small lead">{t.chronicle.neverPlayedLead(stats.neverPlayed.count)}</p>
+					<p class="ui-muted small lead">{t.chronicle.neverPlayedLead(stats.neverPlayed.count)}</p>
 					<ul class="plain">
 						{#each stats.neverPlayed.pieces as piece (piece.id)}
 							<li>
 								<a href="/stuecke/{encodeURIComponent(piece.id)}">{piece.title}</a>
-								{#if piece.composer}<span class="muted small">{piece.composer}</span>{/if}
+								{#if piece.composer}<span class="ui-muted small">{piece.composer}</span>{/if}
 							</li>
 						{/each}
 					</ul>
 					{#if stats.neverPlayed.count > stats.neverPlayed.pieces.length}
-						<p class="muted small">{t.chronicle.andMore(stats.neverPlayed.count - stats.neverPlayed.pieces.length)}</p>
+						<p class="ui-muted small">{t.chronicle.andMore(stats.neverPlayed.count - stats.neverPlayed.pieces.length)}</p>
 					{/if}
 				</section>
 			{/if}
@@ -437,10 +437,6 @@
 		flex-wrap: wrap;
 		align-items: center;
 		gap: var(--space-1) var(--space-2);
-	}
-
-	.muted {
-		color: var(--text-muted);
 	}
 
 	.small {

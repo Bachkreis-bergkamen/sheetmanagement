@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { programLength, roundMinutes } from '#lib/repertoire/duration.ts';
 	import type { ProgramItem } from '#lib/server/library.ts';
 	import Icon from './Icon.svelte';

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { config } from '#lib/config/index.ts';
 import { LAYOUT } from '#lib/repertoire/sheet.ts';
 import { parseInstruments } from './my-parts.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { buildPartAssignments, checkAssignment, choicesAt, isOwnPick, ownPicksAt, pickedAt, type PartAssignment } from './part-assignments.ts';
 
 const header = Object.values(LAYOUT.partAssignments.columns);

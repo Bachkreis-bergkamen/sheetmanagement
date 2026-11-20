@@ -1,6 +1,6 @@
 import { countingMembers, isAdminOnly, normalizeEmail, type Member } from '#lib/access/access.ts';
 import type { OrchestraConfig } from '#lib/config/index.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { formatInstrument, parseInstruments, type InstrumentChoice } from '#lib/music/my-parts.ts';
 import { instrumentLabel } from '#lib/music/instrument-label.ts';
 import { LAYOUT, normalize, readTable, type ColumnKey, type Table } from '#lib/repertoire/sheet.ts';
