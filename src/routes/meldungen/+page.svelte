@@ -153,14 +153,14 @@
 						<form method="POST" action="?/toScan" use:enhance={sent} class="triage" title={t.reports.toScanHint}>
 							<input type="hidden" name="id" value={report.id} />
 							{@render jobFields(report)}
-							<button class="btn small" disabled={saving.busy}><Icon name="arrow" size={14} />{t.reports.toScan}</button>
+							<button class="btn secondary small" disabled={saving.busy}><Icon name="arrow" size={14} />{t.reports.toScan}</button>
 							<button class="btn small ghost" formaction="?/dismiss" disabled={saving.busy} title={t.reports.dismissHint}>{t.reports.dismiss}</button>
 						</form>
 					{:else}
 						<form method="POST" use:enhance={submit} class="triage">
 							<input type="hidden" name="id" value={report.id} />
 							{#if report.link && report.recording !== null && report.recording !== report.link}
-								<button class="btn small" formaction="?/useSuggestion" disabled={saving.busy} title={t.reports.useSuggestionHint}><Icon name="headphones" size={14} />{t.reports.useSuggestion}</button>
+								<button class="btn secondary small" formaction="?/useSuggestion" disabled={saving.busy} title={t.reports.useSuggestionHint}><Icon name="headphones" size={14} />{t.reports.useSuggestion}</button>
 							{/if}
 							<button class="btn small ghost" formaction="?/close" disabled={saving.busy}><Icon name="check" size={14} />{t.reports.close}</button>
 							<button class="btn small ghost" formaction="?/dismiss" disabled={saving.busy} title={t.reports.dismissHint}>{t.reports.dismiss}</button>
@@ -180,7 +180,7 @@
 					<form method="POST" action="?/foundToScan" use:enhance={sent} class="triage" title={t.reports.toScanHint}>
 						<input type="hidden" name="fileId" value={found.fileId} />
 						{@render jobFields(found)}
-						<button class="btn small" disabled={saving.busy}><Icon name="arrow" size={14} />{t.reports.toScan}</button>
+						<button class="btn secondary small" disabled={saving.busy}><Icon name="arrow" size={14} />{t.reports.toScan}</button>
 						<button class="btn small ghost" formaction="?/dismissFound" disabled={saving.busy} title={t.reports.dismissHint}>{t.gaps.hintDismiss}</button>
 					</form>
 				</article>
@@ -214,14 +214,14 @@
 								<div class="moves">
 									<form method="POST" action="?/close" use:enhance={submit} title={t.reports.scannedHint}>
 										<input type="hidden" name="id" value={job.id} />
-										<button class="btn small" disabled={saving.busy}><Icon name="check" size={14} />{t.reports.scanned}</button>
+										<button class="btn secondary small" disabled={saving.busy}><Icon name="check" size={14} />{t.reports.scanned}</button>
 									</form>
 									<details class="change">
 										<summary><Icon name="edit" size={13} />{t.reports.changeJob}</summary>
 										<form method="POST" action="?/toScan" use:enhance={sent} class="triage">
 											<input type="hidden" name="id" value={job.id} />
 											{@render jobFields(job)}
-											<button class="btn small" disabled={saving.busy}>{t.gaps.save}</button>
+											<button class="btn secondary small" disabled={saving.busy}>{t.gaps.save}</button>
 											<button class="btn small ghost" formaction="?/reopen" disabled={saving.busy}>{t.reports.backToInbox}</button>
 										</form>
 									</details>

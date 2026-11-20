@@ -74,7 +74,7 @@ Roles: **M** every member · **O** organisers with the right named · **A** admi
 | Organisers' work apart | One "Verwaltung" place; it's no longer in Mehr | #285 |
 | Every admin setting in one place | `/einstellungen` with Orchester · Tabelle & Daten · Status | #286 |
 | Overlapping to-do pages merged | `/zu-erledigen` lists all of it; Meldungen and Fehlende Stimmen stay as the place the work is done | #287 |
-| No page with more than one primary button | **Open.** Pages with the most filled buttons: `/profil` (7), `/admin` (7), `/kalender/[id]/programm`, `/kalender/[id]/karten`, `/einstellungen/status` (3 each). This is a rough count of `.btn` without `ghost`/`secondary`, and some sit in separate sections. | next step |
+| No page with more than one primary button | **Done for what shows at once** (2026-11-20). Each page keeps its main action filled. Actions next to it, per-row buttons in lists (approve, scanned, set status, admit) and copy and link buttons are `secondary`. A count of 2 or more is left only where the buttons are in exclusive branches (send / add) or each sits in its own closed disclosure (`/admin`'s add forms). | |
 | Forms show 2–3 fields, the rest under "Weitere Angaben" | **Open.** Candidates: `/stuecke/[id]/bearbeiten`, the date form, `/admin` (add member) | next step |
 | Fewer top-level pages than before | Menu entries for an admin: **18 → 9** in Mehr (organiser pages moved behind one entry); top-level settings pages **3 → 1** | |
 

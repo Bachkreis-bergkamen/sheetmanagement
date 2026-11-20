@@ -276,7 +276,7 @@
 						</fieldset>
 						<p class="hint">{t.concert.orchestras.hint}</p>
 						{#if form?.orchestraError}<p class="msg error" role="alert">{form.orchestraError}</p>{/if}
-						<button class="btn small" disabled={orchestraSave.busy}>{t.concert.orchestras.save}</button>
+						<button class="btn secondary small" disabled={orchestraSave.busy}>{t.concert.orchestras.save}</button>
 					</form>
 				</details>
 				{#if form?.orchestrasSaved}<p class="saved orchestra-saved" role="status"><Icon name="check" size={16} />{t.concert.orchestras.saved}</p>{/if}
@@ -455,7 +455,7 @@
 			</label>
 			{#if form?.partnersError}<p class="msg error" role="alert">{form.partnersError}</p>{/if}
 			<div class="details-actions">
-				<button class="btn small" disabled={partnersSave.busy}>{t.partners.save}</button>
+				<button class="btn secondary small" disabled={partnersSave.busy}>{t.partners.save}</button>
 				{#if form?.partnersSaved}<span class="saved-inline" role="status"><Icon name="check" size={16} />{t.partners.saved}</span>{/if}
 			</div>
 		</form>
@@ -515,7 +515,7 @@
 						</label>
 					</div>
 					<div class="details-actions">
-						<button class="btn small" disabled={detailsSave.busy}>{t.concert.publish.save}</button>
+						<button class="btn secondary small" disabled={detailsSave.busy}>{t.concert.publish.save}</button>
 						{#if form?.publicDetailsSaved}<span class="saved-inline" role="status"><Icon name="check" size={16} />{t.concert.publish.saved}</span>{/if}
 					</div>
 				</form>

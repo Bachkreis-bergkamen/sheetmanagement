@@ -816,7 +816,7 @@
 					{#if others.length}{' '}{tx.chosenOthers(others.map((id) => tx.instruments[id]).join(', '))}{/if}
 				</p>
 				<div class="row">
-					<button type="button" class="btn" onclick={() => setting({ announced: instrument })}>{tx.chosenOk}</button>
+					<button type="button" class="btn secondary" onclick={() => setting({ announced: instrument })}>{tx.chosenOk}</button>
 					<button
 						type="button"
 						class="btn ghost"
@@ -834,7 +834,7 @@
 				<h2 id="placement-title"><Icon name="flag" size={18} />{tx.placement.offer}</h2>
 				<p class="lead">{tx.placement.offerLead}</p>
 				<div class="row">
-					<button type="button" class="btn" onclick={startPlacement}>{tx.placement.start}</button>
+					<button type="button" class="btn secondary" onclick={startPlacement}>{tx.placement.start}</button>
 					<button type="button" class="btn ghost" onclick={() => setting({ placed: 'skipped' })}>{tx.placement.skip}</button>
 				</div>
 			</section>

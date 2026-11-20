@@ -170,7 +170,7 @@
 										{t.wishes.answer}
 										<input name="answer" value={wish.answer} maxlength="1000" autocomplete="off" />
 									</label>
-									<button class="btn small" disabled={saving.busy}>{t.wishes.setStatus}</button>
+									<button class="btn secondary small" disabled={saving.busy}>{t.wishes.setStatus}</button>
 								</form>
 							</details>
 						{/if}
