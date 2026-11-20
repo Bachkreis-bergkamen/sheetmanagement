@@ -1,5 +1,6 @@
 import type { SubmitFunction } from '$app/forms';
 import { t } from '#lib/i18n/index.ts';
+import { RequestIds, stampForm } from '#lib/request-id.ts';
 
 /** One short message at the bottom of the screen, e.g. when saving failed. Shown by Toast.svelte. */
 export const toast = $state<{ message: string | null }>({ message: null });
@@ -39,6 +40,7 @@ export interface SubmitOptions {
 export class FormState {
 	/** While a form is saving; pages disable their buttons meanwhile. */
 	busy = $state(false);
+	#ids = new RequestIds();
 
 	submit(options: SubmitOptions = {}): SubmitFunction {
 		return (input) => {
@@ -48,9 +50,14 @@ export class FormState {
 				options.offline(input);
 				return;
 			}
+			// The same content sent again without an answer keeps its id, so it isn't saved twice (#191).
+			const id = this.#ids.for(input.formElement, input.formData);
+			if (id) stampForm(input.formData, id);
 			this.busy = true;
 			options.onStart?.(input);
 			return async ({ result, update }) => {
+				// The server answered for this content; an error (or none at all) keeps the id for the retry.
+				if (result.type !== 'error') this.#ids.answered(input.formElement);
 				try {
 					// Without a status the request never got an answer: the network, not the server.
 					if (result.type === 'error' && result.status === undefined && options.offline) {
@@ -58,7 +65,7 @@ export class FormState {
 						return;
 					}
 					if (result.type === 'error') {
-						showToast(result.status === 503 ? t.common.saveUnavailable : t.common.saveFailed);
+						showToast(result.status === 503 ? t.common.saveUnavailable : result.status === 409 ? t.common.stillSaving : t.common.saveFailed);
 						return;
 					}
 					await update({ reset: !!options.reset && result.type === 'success', ...(options.stay ? { navigate: false } : {}) });

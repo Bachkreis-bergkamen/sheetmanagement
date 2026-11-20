@@ -1,5 +1,5 @@
 import { fingerprint, type ErrorGroup } from '#lib/errors/errors.ts';
-import { reminderKey, type Account, type MarkShare, type PageCount, type PageMarks, type PageRole, type PartCheck, type PushDevice, type Store, type TourOutcome } from './types.ts';
+import { reminderKey, type Account, type MarkShare, type PageCount, type PageMarks, type PageRole, type PartCheck, type PushDevice, type Store, type StoredResult, type TourOutcome } from './types.ts';
 import { memoryData } from './data-memory.ts';
 import { memoryTickets } from './tickets-memory.ts';
 import { MIGRATIONS } from './sql.ts';
@@ -7,6 +7,9 @@ import type { Sharing, SummaryRow } from '#lib/practice/drills/sharing.ts';
 
 /** Like SQLite's datetime('now'). */
 const sqlTime = (at: number) => new Date(at).toISOString().slice(0, 19).replace('T', ' ');
+
+/** A save still "running" after this long lost its instance; a retry takes it over. */
+const STALE_REQUEST_MS = 60_000;
 
 /** The store without D1: demo, tests, dev without Wrangler. Gone on restart, like the demo's sheet. */
 export function memoryStore(now = () => Date.now()): Store {
@@ -37,6 +40,7 @@ export function memoryStore(now = () => Date.now()): Store {
 	const hits = new Map<string, { count: number; since: number }>();
 	const partChecks = new Map<string, PartCheck>();
 	const errors = new Map<string, ErrorGroup>();
+	const requests = new Map<string, { startedAt: number; result?: StoredResult }>();
 	const daysAgo = (days: number) => sqlTime(now() - days * 86_400_000);
 	const latest = MIGRATIONS.at(-1)?.[0] ?? null;
 
@@ -242,6 +246,22 @@ export function memoryStore(now = () => Date.now()): Store {
 		},
 		async pruneErrors(days) {
 			for (const [key, group] of errors) if (days <= 0 || group.lastAt < daysAgo(days)) errors.delete(key);
+		},
+
+		async claimRequest(key) {
+			const old = requests.get(key);
+			if (old?.result) return old.result;
+			if (old && now() - old.startedAt < STALE_REQUEST_MS) return 'running';
+			requests.set(key, { startedAt: now() });
+			return 'claimed';
+		},
+		async finishRequest(key, result) {
+			const old = requests.get(key);
+			if (!result) requests.delete(key);
+			else requests.set(key, { startedAt: old?.startedAt ?? now(), result });
+		},
+		async pruneRequests(hours) {
+			for (const [key, request] of requests) if (now() - request.startedAt >= hours * 3_600_000) requests.delete(key);
 		},
 
 		// The orchestra's data (#186).

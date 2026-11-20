@@ -281,6 +281,21 @@ describe.each([
 		expect(await store.shareOf('a@x.org', 'file-1')).toBeNull();
 	});
 
+	it('runs a save once per request id, gives its answer again, and forgets a failed one (#191)', async () => {
+		const store = make();
+		expect(await store.claimRequest('k1')).toBe('claimed');
+		expect(await store.claimRequest('k1')).toBe('running');
+		await store.finishRequest('k1', { status: 200, body: '{"type":"success","status":200}' });
+		expect(await store.claimRequest('k1')).toEqual({ status: 200, body: '{"type":"success","status":200}' });
+		expect(await store.claimRequest('k2')).toBe('claimed');
+		await store.finishRequest('k2', null);
+		expect(await store.claimRequest('k2')).toBe('claimed');
+		await store.pruneRequests(24);
+		expect(await store.claimRequest('k1')).not.toBe('claimed');
+		await store.pruneRequests(0);
+		expect(await store.claimRequest('k1')).toBe('claimed');
+	});
+
 	it('groups errors by kind, until they are notified and forgotten (#191)', async () => {
 		const store = make();
 		const report = { source: 'server' as const, place: '/stuecke/[id]', message: 'Sheet unreadable', status: 500 };
