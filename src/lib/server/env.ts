@@ -9,6 +9,7 @@ import type { KvStore } from './cache.ts';
 import { t } from '#lib/i18n/index.ts';
 import type { LockNamespace } from './sheet-lock.ts';
 import type { D1 } from './db/sql.ts';
+import { switchedOn } from '#lib/text.ts';
 
 /**
  * Deployment settings. Set them with `wrangler secret put <NAME>` in production
@@ -164,12 +165,12 @@ export function requireFeature(feature: Feature) {
 
 /** Demo mode: invented sample data in memory instead of Google, no real accounts. */
 export function isDemo(): boolean {
-	return ['true', '1', 'yes', 'on'].includes((appEnv().DEMO ?? '').trim().toLowerCase());
+	return switchedOn(appEnv().DEMO);
 }
 
 /** The release: hides the "Beta" badge. The demo never shows it either. */
 export function isRelease(): boolean {
-	return ['true', '1', 'yes', 'on'].includes((appEnv().RELEASE ?? '').trim().toLowerCase());
+	return switchedOn(appEnv().RELEASE);
 }
 
 /** Lets work continue after the response is sent (e.g. a cache refresh). */

@@ -1,5 +1,5 @@
 import type { KummerMessage, KummerThread, NewKummer } from '#lib/kummer/kummer.ts';
-import type { SqlDatabase } from './polls-store.ts';
+import type { D1 } from './db/sql.ts';
 
 /**
  * Where the Kummerkasten is kept: in D1 with plain SQL on a deployment, in memory for the demo,
@@ -101,7 +101,7 @@ const LATEST = 'ORDER BY COALESCE(MAX(last_author_at, COALESCE(last_leitung_at, 
 export class SqlKummerStore implements KummerStore {
 	#ready: Promise<void> | null = null;
 
-	constructor(private readonly db: SqlDatabase) {}
+	constructor(private readonly db: D1) {}
 
 	/** The tables are made on first use, so a new D1 database needs no setup step. */
 	private ready(): Promise<void> {
@@ -198,14 +198,15 @@ export class SqlKummerStore implements KummerStore {
 
 	async forget(email: string, authorKey: string, stand: { email: string; name: string }): Promise<void> {
 		await this.ready();
-		const { results } = await this.db.prepare('SELECT id FROM kummer_threads WHERE author_key = ?').bind(authorKey).all<{ id: string }>();
-		for (const { id } of results) {
-			await this.db.prepare('DELETE FROM kummer_messages WHERE thread_id = ?').bind(id).run();
-			await this.db.prepare('DELETE FROM kummer_reads WHERE thread_id = ?').bind(id).run();
-			await this.db.prepare('DELETE FROM kummer_threads WHERE id = ?').bind(id).run();
-		}
-		await this.db.prepare('UPDATE kummer_messages SET sender_email = ?, sender_name = ? WHERE sender_email = ?').bind(stand.email, stand.name, email).run();
-		await this.db.prepare('DELETE FROM kummer_reads WHERE reader = ?').bind(email).run();
+		// One transaction (#351): the threads, their messages and reads go together, and nothing is left half forgotten.
+		const theirs = 'SELECT id FROM kummer_threads WHERE author_key = ?';
+		await this.db.batch([
+			this.db.prepare(`DELETE FROM kummer_messages WHERE thread_id IN (${theirs})`).bind(authorKey),
+			this.db.prepare(`DELETE FROM kummer_reads WHERE thread_id IN (${theirs})`).bind(authorKey),
+			this.db.prepare('DELETE FROM kummer_threads WHERE author_key = ?').bind(authorKey),
+			this.db.prepare('UPDATE kummer_messages SET sender_email = ?, sender_name = ? WHERE sender_email = ?').bind(stand.email, stand.name, email),
+			this.db.prepare('DELETE FROM kummer_reads WHERE reader = ?').bind(email)
+		]);
 	}
 }
 

@@ -2,7 +2,8 @@ import { env } from 'cloudflare:workers';
 import { splitGroups } from '#lib/access/access.ts';
 import type { NewParentNotice, ParentNotice } from '#lib/parents/notices.ts';
 import { isDemo } from './env.ts';
-import { perDatabase, type SqlDatabase } from './polls-store.ts';
+import { perDatabase } from './polls-store.ts';
+import type { D1 } from './db/sql.ts';
 
 /**
  * Where the notices to parents are kept: in the app's database (D1), in memory for the demo;
@@ -42,7 +43,7 @@ interface NoticeRow {
 export class SqlParentNoticeStore implements ParentNoticeStore {
 	#ready: Promise<void> | null = null;
 
-	constructor(private readonly db: SqlDatabase) {}
+	constructor(private readonly db: D1) {}
 
 	/** The table is made on first use, so a new D1 database needs no setup step. */
 	private ready(): Promise<void> {
@@ -101,7 +102,7 @@ const sql = perDatabase((db) => new SqlParentNoticeStore(db));
 /** In D1 (binding "DB"), in memory for the demo; null without a database. */
 export function parentNoticeStore(): ParentNoticeStore | null {
 	if (isDemo()) return (demo ??= new MemoryParentNoticeStore());
-	const db = (env as { DB?: SqlDatabase }).DB;
+	const db = (env as { DB?: D1 }).DB;
 	return db ? sql(db) : null;
 }
 

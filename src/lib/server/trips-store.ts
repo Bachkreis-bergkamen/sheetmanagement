@@ -1,4 +1,4 @@
-import type { SqlDatabase } from './polls-store.ts';
+import type { D1 } from './db/sql.ts';
 import type { Instrument, KeptList, ListEntry, ListKind } from '#lib/trips/lists.ts';
 import { DEFAULT_LISTS } from '#lib/trips/lists.ts';
 import type { Arrangement, Organising } from '#lib/trips/organising.ts';
@@ -310,7 +310,7 @@ const byTime = (a: PlanItem, b: PlanItem) => a.day.localeCompare(b.day) || (a.st
 export class SqlTripStore implements TripStore {
 	#ready: Promise<void> | null = null;
 
-	constructor(private readonly db: SqlDatabase) {}
+	constructor(private readonly db: D1) {}
 
 	/** The tables are made on first use, so a new D1 database needs no setup step. */
 	private ready(): Promise<void> {
@@ -456,14 +456,14 @@ export class SqlTripStore implements TripStore {
 
 	async purgeLists(tripIds: string[]): Promise<number> {
 		await this.ready();
-		let gone = 0;
-		for (const id of tripIds) {
-			const row = await this.db.prepare('SELECT COUNT(*) AS n FROM trip_lists WHERE trip_id = ?').bind(id).first<{ n: number }>();
-			if (!row?.n) continue;
-			gone += Number(row.n);
-			await this.db.prepare('DELETE FROM trip_lists WHERE trip_id = ?').bind(id).run();
-		}
-		return gone;
+		if (!tripIds.length) return 0;
+		// One count and one delete for all the trips (#351), not two statements per trip.
+		const ids = JSON.stringify(tripIds);
+		const these = 'trip_id IN (SELECT value FROM json_each(?))';
+		const row = await this.db.prepare(`SELECT COUNT(*) AS n FROM trip_lists WHERE ${these}`).bind(ids).first<{ n: number }>();
+		if (!row?.n) return 0;
+		await this.db.prepare(`DELETE FROM trip_lists WHERE ${these}`).bind(ids).run();
+		return Number(row.n);
 	}
 
 	async kept(email: string): Promise<KeptList[]> {

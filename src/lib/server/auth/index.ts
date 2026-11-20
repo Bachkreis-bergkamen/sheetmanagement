@@ -8,6 +8,7 @@ import { linkValid } from './links.ts';
 import { savedAccounts, withAccount, writeSaved } from './saved.ts';
 import { SESSION_DAYS, signSession, verifySession, type Session } from './session.ts';
 import { t } from '#lib/i18n/index.ts';
+import { switchedOn } from '#lib/text.ts';
 
 export const SESSION_COOKIE = 'session';
 export const STATE_COOKIE = 'oauth_state';
@@ -33,7 +34,7 @@ export type AuthConfig =
 
 /** FORCE_AUTH=true (or 1, yes, on): sign-in on without Google, with passwords and access links only. */
 export function signInRequired(value: string | undefined): boolean {
-	return ['true', '1', 'yes', 'on'].includes((value ?? '').trim().toLowerCase());
+	return switchedOn(value);
 }
 
 /** FORCE_AUTH=false (or 0, no, off) turns sign-in off; anything else, or nothing, leaves it on. */

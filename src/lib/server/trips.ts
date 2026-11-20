@@ -9,7 +9,8 @@ import { canSeeInside, canSeeTrip, isOrganiser, isYoung, tripOfEvent, type Parti
 import { DEFAULT_LISTS, looksBulky, type Instrument, type ListEntry } from '#lib/trips/lists.ts';
 import { DEMO_ADMIN, DEMO_MEMBER } from './demo/data.ts';
 import { features, isDemo } from './env.ts';
-import { perDatabase, type SqlDatabase } from './polls-store.ts';
+import { perDatabase } from './polls-store.ts';
+import type { D1 } from './db/sql.ts';
 import { getAccessList } from './repertoire.ts';
 import { MemoryTripStore, SqlTripStore, type TripStore } from './trips-store.ts';
 
@@ -23,7 +24,7 @@ const sql = perDatabase((db) => new SqlTripStore(db));
 
 export function tripStore(): TripStore | null {
 	if (isDemo()) return (demo ??= demoTrips());
-	const db = (env as { DB?: SqlDatabase }).DB;
+	const db = (env as { DB?: D1 }).DB;
 	return db ? sql(db) : null;
 }
 

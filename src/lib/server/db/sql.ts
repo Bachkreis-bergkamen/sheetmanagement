@@ -258,8 +258,10 @@ export function sqlStore(db: D1): Store {
 					sharing.parents ? 1 : 0
 				);
 			} else {
-				await run('DELETE FROM drill_sharing WHERE email = ?', email);
-				await run('DELETE FROM drill_days WHERE email = ?', email);
+				await together([
+					['DELETE FROM drill_sharing WHERE email = ?', email],
+					['DELETE FROM drill_days WHERE email = ?', email]
+				]);
 			}
 		},
 		async saveDrillDays(email, rows) {
@@ -493,9 +495,10 @@ export function sqlStore(db: D1): Store {
 				since,
 				since
 			);
-			// Old windows are of no use any more; a day covers every limit the app has.
-			await run(`DELETE FROM rate_limits WHERE window_start < datetime('now', '-1 day')`);
 			return row?.count ?? 1;
+		},
+		async pruneHits(hours) {
+			await run(`DELETE FROM rate_limits WHERE window_start <= datetime('now', ?)`, `-${hours} hours`);
 		},
 
 		async getState(key) {

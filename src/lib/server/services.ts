@@ -6,6 +6,7 @@ import { DEMO_IDS } from './demo/data.ts';
 import { appEnv, isDemo, runInBackground } from './env.ts';
 import { createTokenProvider, parseServiceAccountKey, scopesFor } from './google/auth.ts';
 import { GoogleClient } from './google/client.ts';
+import { germanCollator, switchedOn } from '#lib/text.ts';
 
 /**
  * How soon changes made directly in Drive show up (the app's own are patched in at once). An
@@ -41,7 +42,6 @@ export function calendarWriteEnabled(): boolean {
 	return switchedOn(appEnv().CALENDAR_WRITE);
 }
 
-const switchedOn = (value: string | undefined) => ['true', '1', 'yes', 'on'].includes((value ?? '').trim().toLowerCase());
 
 /** The Google client for this deployment. Token caching lives as long as the Worker instance. */
 export function getGoogle(): { client: GoogleClient; serviceAccountEmail: string } {
@@ -145,14 +145,13 @@ export async function renameInArchiveIndex(names: Map<string, string>): Promise<
  * one with new files (#193). Like renameInArchiveIndex, much faster than a new crawl.
  */
 export async function putInArchiveIndex(piece: IndexedPiece): Promise<boolean> {
-	const collator = new Intl.Collator('de', { sensitivity: 'base', numeric: true });
 	return patchCached<DriveIndex>({
 		key: archiveIndexKey(requireSetting('DRIVE_ARCHIVE_FOLDER_ID'), programFolderIds()),
 		kv: appEnv().CACHE,
 		waitUntil: runInBackground,
 		update: (index) => ({
 			...index,
-			pieces: [...index.pieces.filter((other) => other.folderId !== piece.folderId), piece].sort((a, b) => collator.compare(a.name, b.name))
+			pieces: [...index.pieces.filter((other) => other.folderId !== piece.folderId), piece].sort((a, b) => germanCollator.compare(a.name, b.name))
 		})
 	});
 }

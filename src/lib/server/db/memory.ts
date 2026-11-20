@@ -298,6 +298,9 @@ export function memoryStore(now = () => Date.now()): Store {
 			hits.set(key, next);
 			return next.count;
 		},
+		async pruneHits(hours) {
+			for (const [key, hit] of hits) if (now() - hit.since >= hours * 3_600_000) hits.delete(key);
+		},
 
 		getState: async (key) => state.get(key) ?? null,
 		async setState(key, value) {

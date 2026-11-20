@@ -16,6 +16,7 @@ import { normalize, type SheetConcert, type SheetPiece } from '#lib/repertoire/s
 import { getCatalog } from './catalog.ts';
 import { getAccessList, getMusicConfig, getRepertoire, type RepertoireResult } from './repertoire.ts';
 import { getSchedule, type ScheduleResult } from './schedule.ts';
+import { germanCollator } from '#lib/text.ts';
 
 export interface LibraryPiece extends PieceSummary {
 	/** Parts and folder, for pieces with sheet music in Drive. */
@@ -97,7 +98,6 @@ export interface Library {
 	today: string;
 }
 
-const collator = new Intl.Collator('de', { sensitivity: 'base', numeric: true });
 
 let memo: { today: string; sources: unknown[]; library: Library } | undefined;
 
@@ -177,7 +177,7 @@ function buildLibrary(
 			playedAt: []
 		});
 	}
-	pieces.sort((a, b) => collator.compare(a.title, b.title));
+	pieces.sort((a, b) => germanCollator.compare(a.title, b.title));
 	const piecesById = new Map(pieces.map((piece) => [piece.id, piece]));
 	const piecesByName = new Map(pieces.flatMap((piece) => (piece.sheet?.title ? [[normalize(piece.sheet.title), piece] as const] : [])));
 
@@ -230,7 +230,7 @@ function buildLibrary(
 			concert({ id: event.id, title: event.displayTitle, date: eventDate(event), location: event.location, orchestras: [], partners: [], event, program: [] })
 		);
 	}
-	concerts.sort((a, b) => b.dateKey.localeCompare(a.dateKey) || collator.compare(a.title, b.title));
+	concerts.sort((a, b) => b.dateKey.localeCompare(a.dateKey) || germanCollator.compare(a.title, b.title));
 	const concertsById = new Map(concerts.map((c) => [c.id, c]));
 
 	// Shared programmes, both ways, oldest sharing concert first.

@@ -1,4 +1,4 @@
-// Node's built-in SQLite, used by store.test.ts to run the store's SQL for real; the app has
+// Node's built-in SQLite, used by local-d1.ts to run the stores' SQL for real in tests; the app has
 // no Node type definitions.
 declare module 'node:sqlite' {
 	interface StatementSync {
