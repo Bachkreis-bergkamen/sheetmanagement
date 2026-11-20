@@ -3486,6 +3486,8 @@ export const de = {
 		saved: 'Gespeichert.'
 	},
 	pieceEditor: {
+		/** Next to "Weitere Angaben": how many of the fields under it hold something (#185). */
+		filled: (count: number) => (count === 1 ? '1 ausgefüllt' : `${count} ausgefüllt`),
 		title: (piece: string) => `Bearbeiten: ${piece}`,
 		lead: 'Was hier steht, gilt statt dem Ordnernamen.',
 		recordingHint: 'Link zu einer Aufnahme, z. B. YouTube',

@@ -7,6 +7,7 @@
 	import { eventDay } from '#lib/repertoire/dates.ts';
 	import { cleanLink } from '#lib/links.ts';
 	import { listCompletions, splitList } from '#lib/repertoire/lists.ts';
+	import { gapsFor, type DetailGap } from '#lib/repertoire/details.ts';
 	import { composerLine, contentsComposers, SHOWN_COMPOSERS } from '#lib/repertoire/contents.ts';
 	import Crumbs from '#lib/components/Crumbs.svelte';
 	import Icon from '#lib/components/Icon.svelte';
@@ -23,7 +24,11 @@
 	$effect.pre(() => {
 		current = { ...(values ?? {}) };
 	});
-	const apply = (field: string, value: string) => (current[field] = value);
+	// A suggestion for a field under "Weitere Angaben" opens it, so the change shows.
+	const apply = (field: string, value: string) => {
+		current[field] = value;
+		if (!mainNames.has(field)) moreOpen = true;
+	};
 	guardUnsaved(() => !saving.busy && !!values && Object.keys(current).some((key) => (current[key] ?? '') !== (values[key as keyof typeof values] ?? '')));
 	/** Today in the orchestra's time zone, as the sheet writes dates: "2026-10-21". */
 	const today = () => eventDay({ start: new Date().toISOString(), allDay: false }, config.timeZone);
@@ -51,6 +56,21 @@
 	const fromContents = $derived(contentsComposers(current.contents));
 	// A long list typed by hand that the songs already name: offered to leave to them.
 	const canFollowContents = $derived(!!fromContents && splitList(current.composer).length > SHOWN_COMPOSERS);
+	// A short form (#185): what most edits need up top, the rest under "Weitere Angaben". Working
+	// through "Angaben ergänzen", the field that list is about comes up top too.
+	const GAP_FIELDS: Record<DetailGap, string> = { composer: 'composer', genre: 'genre', recording: 'recording', catalogue: 'catalogue' };
+	const mainNames = $derived(new Set(['title', 'composer', 'instrumentation', ...(data.list ? gapsFor(data.list.filter).map((gap) => GAP_FIELDS[gap]) : [])]));
+	const mainFields = $derived(fields.filter((field) => mainNames.has(field.name)));
+	const moreFields = $derived(fields.filter((field) => !mainNames.has(field.name)));
+	/** How many of the fields below are filled, so a closed section still says there's something in it. */
+	const moreFilled = $derived(
+		[...moreFields.map((field) => field.name), ...(hasContents ? ['contents'] : []), 'notes'].filter((name) => (current[name] ?? '').trim()).length
+	);
+	let moreOpen = $state(false);
+	// A refused save may be about a field down there.
+	$effect.pre(() => {
+		if (form?.message) moreOpen = true;
+	});
 	const missingNames = $derived(data.state === 'ready' ? data.missing.map((column) => columns[column]).join(', ') : '');
 </script>
 
@@ -81,55 +101,61 @@
 		use:enhance={saving.submit()}
 	>
 		<input type="hidden" name="version" value={data.version} />
-		{#each fields as field (field.name)}
-			{#if field.name === 'instrumentation'}
-				<!-- The instrument picker, as on the profile; the sheet keeps it as text (#249). -->
-				<div class="field wide">
-					<InstrumentationField name="instrumentation" label={columns.instrumentation} bind:value={current.instrumentation} instruments={data.instruments} sheets={data.sheets} fromParts={data.fromParts} />
-				</div>
-			{:else}
-			<label class="field" class:wide={'wide' in field}>
-				{columns[field.name]}
-				<span class="input">
-					<input
-						name={field.name}
-						type="text"
-						inputmode={'inputmode' in field ? field.inputmode : undefined}
-						bind:value={current[field.name]}
-						list={'list' in field ? `${field.list}-list` : undefined}
-						required={'required' in field}
-						placeholder={field.name === 'composer' && fromContents ? t.pieceEditor.composerFromContents(composerLine(fromContents) ?? '') : 'placeholder' in field ? field.placeholder : undefined}
-						maxlength="1000"
-						autocomplete="off"
-						onblur={field.name === 'recording' ? () => (current.recording = cleanLink(current.recording ?? '') ?? current.recording) : undefined}
-					/>
-					{#if field.name === 'composer' && canFollowContents}
-						<button class="btn ghost small" type="button" title={t.pieceEditor.useContentsComposersHint} onclick={() => (current.composer = '')}>
-							{t.pieceEditor.useContentsComposers}
-						</button>
-					{:else if field.name === 'reviewedAt'}
-						<button class="btn ghost small" type="button" onclick={() => (current.reviewedAt = today())}>{t.pieceEditor.today}</button>
-					{:else if field.name === 'recording'}
-						<button class="btn ghost small" type="button" title={t.pieceEditor.noRecordingHint} onclick={() => (current.recording = t.sheetValues.noRecording)}>
-							{t.pieceEditor.noRecording}
-						</button>
-					{/if}
-				</span>
-			</label>
-			{/if}
-		{/each}
-		{#if hasContents}
-			<!-- Medleys and suites: one song per line, each found by the search. -->
-			<label class="field wide">
-				{columns.contents}
-				<textarea name="contents" maxlength="4000" rows={Math.min(12, Math.max(3, (current.contents ?? '').split('\n').length + 1))} placeholder={t.pieceEditor.contentsHint} bind:value={current.contents}></textarea>
-				<span class="hint">{t.pieceEditor.contentsLead}</span>
-			</label>
-		{/if}
-		<label class="field wide">
-			{columns.notes}
-			<textarea name="notes" maxlength="1000" bind:value={current.notes}></textarea>
+		{#snippet input(field: (typeof FIELDS)[number])}
+		{#if field.name === 'instrumentation'}
+			<!-- The instrument picker, as on the profile; the sheet keeps it as text (#249). -->
+			<div class="field wide">
+				<InstrumentationField name="instrumentation" label={columns.instrumentation} bind:value={current.instrumentation} instruments={data.instruments} sheets={data.sheets} fromParts={data.fromParts} />
+			</div>
+		{:else}
+		<label class="field" class:wide={'wide' in field}>
+			{columns[field.name]}
+			<span class="input">
+				<input
+					name={field.name}
+					type="text"
+					inputmode={'inputmode' in field ? field.inputmode : undefined}
+					bind:value={current[field.name]}
+					list={'list' in field ? `${field.list}-list` : undefined}
+					required={'required' in field}
+					placeholder={field.name === 'composer' && fromContents ? t.pieceEditor.composerFromContents(composerLine(fromContents) ?? '') : 'placeholder' in field ? field.placeholder : undefined}
+					maxlength="1000"
+					autocomplete="off"
+					onblur={field.name === 'recording' ? () => (current.recording = cleanLink(current.recording ?? '') ?? current.recording) : undefined}
+				/>
+				{#if field.name === 'composer' && canFollowContents}
+					<button class="btn ghost small" type="button" title={t.pieceEditor.useContentsComposersHint} onclick={() => (current.composer = '')}>
+						{t.pieceEditor.useContentsComposers}
+					</button>
+				{:else if field.name === 'reviewedAt'}
+					<button class="btn ghost small" type="button" onclick={() => (current.reviewedAt = today())}>{t.pieceEditor.today}</button>
+				{:else if field.name === 'recording'}
+					<button class="btn ghost small" type="button" title={t.pieceEditor.noRecordingHint} onclick={() => (current.recording = t.sheetValues.noRecording)}>
+						{t.pieceEditor.noRecording}
+					</button>
+				{/if}
+			</span>
 		</label>
+		{/if}
+		{/snippet}
+		{#each mainFields as field (field.name)}{@render input(field)}{/each}
+		<details class="more wide" bind:open={moreOpen}>
+			<summary><Icon name="chevron" size={14} />{t.calendar.add.more}{#if moreFilled}<span class="filled">{t.pieceEditor.filled(moreFilled)}</span>{/if}</summary>
+			<div class="more-fields">
+				{#each moreFields as field (field.name)}{@render input(field)}{/each}
+				{#if hasContents}
+					<!-- Medleys and suites: one song per line, each found by the search. -->
+					<label class="field wide">
+						{columns.contents}
+						<textarea name="contents" maxlength="4000" rows={Math.min(12, Math.max(3, (current.contents ?? '').split('\n').length + 1))} placeholder={t.pieceEditor.contentsHint} bind:value={current.contents}></textarea>
+						<span class="hint">{t.pieceEditor.contentsLead}</span>
+					</label>
+				{/if}
+				<label class="field wide">
+					{columns.notes}
+					<textarea name="notes" maxlength="1000" bind:value={current.notes}></textarea>
+				</label>			</div>
+		</details>
 		{#if missingNames}<p class="hint wide">{t.pieceEditor.missingColumns(missingNames)}</p>{/if}
 		<div class="actions">
 			{#if data.list}
@@ -166,6 +192,47 @@
 {/if}
 
 <style>
+	/* "Weitere Angaben" (#185): the fields most edits don't need, the same grid as above once open. */
+	.more summary {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-1);
+		min-height: var(--tap);
+		color: var(--text-muted);
+		font-size: var(--text-sm);
+		font-weight: 600;
+		list-style: none;
+		cursor: pointer;
+	}
+
+	.more summary::-webkit-details-marker {
+		display: none;
+	}
+
+	.more summary :global(svg) {
+		transition: transform var(--fast) var(--ease);
+	}
+
+	.more[open] summary :global(svg) {
+		transform: rotate(90deg);
+	}
+
+	.filled {
+		font-weight: 400;
+	}
+
+	.filled::before {
+		content: '·';
+		margin-inline: var(--space-1);
+	}
+
+	.more-fields {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+		gap: var(--space-3);
+		padding-top: var(--space-2);
+	}
+
 
 	h1 {
 		margin-bottom: var(--space-2);

@@ -292,7 +292,7 @@
 	<p class="muted">{t.suggest.lead}</p>
 
 	<div class="sources">
-		<button class="btn" type="button" onclick={autoFill} disabled={!!busy || !!auto}>
+		<button class="btn secondary" type="button" onclick={autoFill} disabled={!!busy || !!auto}>
 			<Icon name="sparkle" size={16} />{auto ? t.suggest.autoBusy(auto) : t.suggest.auto}
 		</button>
 		{#if scanned && canRead && file}

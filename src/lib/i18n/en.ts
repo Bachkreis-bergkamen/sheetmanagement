@@ -3433,6 +3433,7 @@ export const en: Texts = {
 		saved: 'Saved.'
 	},
 	pieceEditor: {
+		filled: (count: number) => `${count} filled in`,
 		title: (piece: string) => `Edit: ${piece}`,
 		lead: 'What is entered here applies instead of the folder name.',
 		recordingHint: 'Link to a recording, e.g. YouTube',
