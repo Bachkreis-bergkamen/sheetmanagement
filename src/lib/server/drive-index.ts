@@ -10,6 +10,7 @@ import {
 	type DriveChange,
 	type DriveFile
 } from './google/drive.ts';
+import { germanCollator } from '#lib/text.ts';
 
 /**
  * A snapshot of the sheet music in Drive: one entry per piece folder with its files,
@@ -222,9 +223,8 @@ export async function buildDriveIndex(client: GoogleClient, options: IndexOption
 	}
 	Object.assign(subfolderIds, await listPieceFiles(client, toList));
 
-	const collator = new Intl.Collator('de', { sensitivity: 'base', numeric: true });
-	const sorted = [...pieces.values()].sort((a, b) => collator.compare(a.name, b.name));
-	for (const piece of sorted) piece.files.sort((a, b) => collator.compare(a.name, b.name));
+	const sorted = [...pieces.values()].sort((a, b) => germanCollator.compare(a.name, b.name));
+	for (const piece of sorted) piece.files.sort((a, b) => germanCollator.compare(a.name, b.name));
 
 	return {
 		version: INDEX_VERSION,
@@ -348,8 +348,7 @@ export async function updateDriveIndex(client: GoogleClient, previous: DriveInde
 		client,
 		updated.filter((piece) => pieces.has(piece.folderId))
 	);
-	const collator = new Intl.Collator('de', { sensitivity: 'base', numeric: true });
-	for (const piece of updated) if (pieces.has(piece.folderId)) piece.files.sort((a, b) => collator.compare(a.name, b.name));
+	for (const piece of updated) if (pieces.has(piece.folderId)) piece.files.sort((a, b) => germanCollator.compare(a.name, b.name));
 	const keptSubfolders = Object.entries(tracked.subfolders).filter(([, folderId]) => !pieces.has(folderId));
 	return {
 		...previous,

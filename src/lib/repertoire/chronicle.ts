@@ -1,5 +1,6 @@
 import { splitList } from './lists.ts';
 import { normalize } from './sheet.ts';
+import { germanCollator } from '#lib/text.ts';
 
 /**
  * The orchestra's history (#61): every past concert with its programme, and what it adds
@@ -41,7 +42,6 @@ export const pieceKey = (item: Pick<ChronicleItem, 'pieceId' | 'title'>) => item
 
 const yearOf = (concert: Pick<ChronicleConcert, 'dateKey'>) => (concert.dateKey ? Number(concert.dateKey.slice(0, 4)) : undefined);
 
-const collator = new Intl.Collator('de', { sensitivity: 'base', numeric: true });
 
 /** Oldest first; concerts without a date can't be placed and are left out. */
 function datedOldestFirst<C extends ChronicleConcert>(concerts: C[]): C[] {
@@ -143,7 +143,7 @@ function composerCounts(played: PlayedPiece[]): ComposerCount[] {
 			counts.set(key, entry);
 		}
 	}
-	return [...counts.values()].sort((a, b) => b.count - a.count || b.pieces - a.pieces || collator.compare(a.name, b.name));
+	return [...counts.values()].sort((a, b) => b.count - a.count || b.pieces - a.pieces || germanCollator.compare(a.name, b.name));
 }
 
 /**
@@ -173,7 +173,7 @@ export function chronicleStats(concerts: ChronicleConcert[], archive: ChronicleP
 	const playedTitles = new Set(all.map((piece) => normalize(piece.title)));
 	const never = archive
 		.filter((piece) => piece.hasMusic && !playedIds.has(piece.id) && !playedTitles.has(normalize(piece.title)))
-		.sort((a, b) => collator.compare(a.title, b.title));
+		.sort((a, b) => germanCollator.compare(a.title, b.title));
 
 	return {
 		concerts: concerts.length,
@@ -183,11 +183,11 @@ export function chronicleStats(concerts: ChronicleConcert[], archive: ChronicleP
 		pieces: all.length,
 		mostPlayed: all
 			.filter((piece) => piece.count > 1)
-			.sort((a, b) => b.count - a.count || (b.lastYear ?? 0) - (a.lastYear ?? 0) || collator.compare(a.title, b.title))
+			.sort((a, b) => b.count - a.count || (b.lastYear ?? 0) - (a.lastYear ?? 0) || germanCollator.compare(a.title, b.title))
 			.slice(0, TOP),
 		longAgo: all
 			.filter((piece) => piece.lastYear !== undefined && thisYear - piece.lastYear >= LONG_AGO_YEARS)
-			.sort((a, b) => a.lastYear! - b.lastYear! || collator.compare(a.title, b.title))
+			.sort((a, b) => a.lastYear! - b.lastYear! || germanCollator.compare(a.title, b.title))
 			.map((piece) => ({ ...piece, planned: planned.has(piece.key) })),
 		neverPlayed: {
 			count: never.length,
@@ -212,7 +212,7 @@ export interface TimelineDecade {
 /** The concerts by decade and year, newest first, each programme marked where a piece was new. */
 export function timeline(concerts: ChronicleConcert[]): TimelineDecade[] {
 	const first = firstPerformances(concerts);
-	const sorted = [...concerts].sort((a, b) => b.dateKey.localeCompare(a.dateKey) || collator.compare(a.title, b.title));
+	const sorted = [...concerts].sort((a, b) => b.dateKey.localeCompare(a.dateKey) || germanCollator.compare(a.title, b.title));
 	const decades: TimelineDecade[] = [];
 	for (const concert of sorted) {
 		const year = yearOf(concert) ?? null;

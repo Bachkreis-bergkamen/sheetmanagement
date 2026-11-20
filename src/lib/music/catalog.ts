@@ -5,6 +5,7 @@ import { parsePieceName } from './piece-name.ts';
 import { byLabel, compareSections, sectionName, sharedMovement, type SectionName } from './sections.ts';
 import { searchText, sharedPrefix } from './text.ts';
 import type { Part, PieceDetail, PieceStatus, Section } from './types.ts';
+import { germanCollator } from '#lib/text.ts';
 
 const FOLDER_MIME = 'application/vnd.google-apps.folder';
 
@@ -116,10 +117,9 @@ export interface Catalog {
 
 export function buildCatalog(index: DriveIndex, config: OrchestraConfig): Catalog {
 	const matcher = createInstrumentMatcher(config.instruments);
-	const collator = new Intl.Collator('de', { sensitivity: 'base', numeric: true });
 	const pieces = index.pieces
 		.map((piece) => buildPiece(piece, config, matcher))
-		.sort((a, b) => collator.compare(a.title, b.title));
+		.sort((a, b) => germanCollator.compare(a.title, b.title));
 	return {
 		pieces,
 		programs: index.programs ?? [],
