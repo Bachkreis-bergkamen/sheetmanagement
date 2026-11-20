@@ -1,3 +1,4 @@
+import type { D1 } from './db/sql.ts';
 import type { NewPoll, Poll, PollResponse } from '#lib/polls/polls.ts';
 
 /**
@@ -8,8 +9,8 @@ import type { NewPoll, Poll, PollResponse } from '#lib/polls/polls.ts';
  * One store per database binding, kept between requests (#346): a store makes its tables on
  * first use and remembers that it did, which a new store on every call never could.
  */
-export function perDatabase<T>(make: (db: SqlDatabase) => T): (db: SqlDatabase) => T {
-	let kept: { db: SqlDatabase; store: T } | undefined;
+export function perDatabase<T>(make: (db: D1) => T): (db: D1) => T {
+	let kept: { db: D1; store: T } | undefined;
 	return (db) => {
 		if (kept?.db !== db) kept = { db, store: make(db) };
 		return kept.store;
@@ -33,18 +34,6 @@ export interface PollStore {
 	countBy(email: string): Promise<number>;
 	/** Puts a pseudonym in place of the person, so the answers still count but aren't theirs (#158). */
 	forget(email: string, stand: { email: string; name: string }): Promise<void>;
-}
-
-/** The part of Cloudflare's D1 API used here; node:sqlite is wrapped to look the same in tests. */
-export interface SqlStatement {
-	bind(...values: (string | number | null)[]): SqlStatement;
-	all<T = Record<string, unknown>>(): Promise<{ results: T[] }>;
-	first<T = Record<string, unknown>>(): Promise<T | null>;
-	run(): Promise<unknown>;
-}
-
-export interface SqlDatabase {
-	prepare(sql: string): SqlStatement;
 }
 
 const SCHEMA = [
@@ -122,7 +111,7 @@ const newId = () => crypto.randomUUID().replace(/-/g, '').slice(0, 12);
 export class SqlPollStore implements PollStore {
 	#ready: Promise<void> | null = null;
 
-	constructor(private readonly db: SqlDatabase) {}
+	constructor(private readonly db: D1) {}
 
 	/** The tables are made on first use, so a new D1 database needs no setup step. */
 	private ready(): Promise<void> {
@@ -212,8 +201,8 @@ export class SqlPollStore implements PollStore {
 
 	async remove(id: string): Promise<void> {
 		await this.ready();
-		await this.db.prepare('DELETE FROM poll_responses WHERE poll_id = ?').bind(id).run();
-		await this.db.prepare('DELETE FROM polls WHERE id = ?').bind(id).run();
+		// Together (#351): a poll never stays without its answers or the other way round.
+		await this.db.batch([this.db.prepare('DELETE FROM poll_responses WHERE poll_id = ?').bind(id), this.db.prepare('DELETE FROM polls WHERE id = ?').bind(id)]);
 	}
 
 	async answersOf(email: string) {

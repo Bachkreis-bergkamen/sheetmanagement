@@ -1,26 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { MemoryKummerStore, SqlKummerStore, type KummerStore } from './kummer-store.ts';
-import type { SqlDatabase, SqlStatement } from './polls-store.ts';
-
-interface Sqlite {
-	prepare(sql: string): { all(...values: unknown[]): unknown[]; get(...values: unknown[]): unknown; run(...values: unknown[]): unknown };
-}
-const { DatabaseSync } = (await import(/* @vite-ignore */ `node:${'sqlite'}`)) as { DatabaseSync: new (path: string) => Sqlite };
-
-/** node:sqlite dressed up as D1, so the SQL that runs on Cloudflare runs here too. */
-function sqlite(): SqlDatabase {
-	const db = new DatabaseSync(':memory:');
-	const statement = (sql: string, values: (string | number | null)[] = []): SqlStatement => ({
-		bind: (...more) => statement(sql, [...values, ...more]),
-		all: async <T>() => ({ results: db.prepare(sql).all(...values) as T[] }),
-		first: async <T>() => (db.prepare(sql).get(...values) as T | undefined) ?? null,
-		run: async () => db.prepare(sql).run(...values)
-	});
-	return { prepare: (sql) => statement(sql) };
-}
+import { localD1 } from './db/local-d1.ts';
 
 for (const [name, make] of [
-	['SqlKummerStore (SQLite)', () => new SqlKummerStore(sqlite())],
+	['SqlKummerStore (SQLite)', () => new SqlKummerStore(localD1())],
 	['MemoryKummerStore', () => new MemoryKummerStore()]
 ] as [string, () => KummerStore][]) {
 	describe(name, () => {
