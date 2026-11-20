@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { config } from '#lib/config/index.ts';
 import { LAYOUT } from '#lib/repertoire/sheet.ts';
 import { parseInstruments } from './my-parts.ts';
-import { buildPartAssignments, checkAssignment, choicesAt, type PartAssignment } from './part-assignments.ts';
+import { t } from '#lib/i18n/index.ts';
+import { buildPartAssignments, checkAssignment, choicesAt, isOwnPick, ownPicksAt, pickedAt, type PartAssignment } from './part-assignments.ts';
 
 const header = Object.values(LAYOUT.partAssignments.columns);
 
@@ -106,5 +107,39 @@ describe('checkAssignment', () => {
 		expect(checkAssignment({ who: 'Tuba', part: 'Fagott', concert: '' }, offered, config)).toEqual({ problem: 'who' });
 		expect(checkAssignment({ who: 'Alt-Saxophon', part: 'Gedöns', concert: '' }, offered, config)).toEqual({ problem: 'part' });
 		expect(checkAssignment({ who: 'Alt-Saxophon', part: 'Fagott', concert: 'Neujahr' }, offered, config)).toEqual({ problem: 'concert' });
+	});
+});
+
+describe('a member’s own pick, piece by piece', () => {
+	const mia = { email: 'mia@example.org', choices: parseInstruments('Geige I & II', config) };
+	const own = (part: string, piece: string, concert = 'Herbstkonzert'): PartAssignment => ({ ...assignment('Mia@example.org', part, piece, concert), by: t.partAssignments.ownPick });
+	const at = (piece: string, concert = 'Herbstkonzert') => ({ piece, concerts: [concert] });
+	const picks = [own('Geige I', 'Egmont'), own('Geige II', 'Morgenstimmung')];
+
+	it('plays Geige I in one piece and Geige II in the next, both parts elsewhere', () => {
+		expect(shown(pickedAt(mia, picks, at('Egmont'), config).choices)).toEqual(['Geige1']);
+		expect(shown(pickedAt(mia, picks, at('Morgenstimmung'), config).choices)).toEqual(['Geige2']);
+		expect(shown(pickedAt(mia, picks, at('Peer Gynt'), config).choices)).toEqual(['Geige1&2']);
+	});
+
+	it('holds only at that concert', () => {
+		expect(shown(pickedAt(mia, picks, at('Egmont', 'Frühlingskonzert'), config).choices)).toEqual(['Geige1&2']);
+	});
+
+	it('gives way to the conductor, whose assignment can’t be picked over', () => {
+		const conductor = assignment('mia@example.org', 'Viola', 'Egmont', 'Herbstkonzert');
+		const { choices, locked } = pickedAt(mia, [...picks, conductor], at('Egmont'), config);
+		expect(locked).toBe(true);
+		expect(shown(choices)).toEqual(['Viola*']);
+		expect(pickedAt(mia, [...picks, conductor], at('Morgenstimmung'), config).locked).toBe(false);
+	});
+
+	it('is only theirs, and found per piece or for the whole concert', () => {
+		expect(isOwnPick(picks[0], 'MIA@example.org')).toBe(true);
+		expect(isOwnPick(picks[0], 'anna@example.org')).toBe(false);
+		expect(isOwnPick(assignment('mia@example.org', 'Geige I', 'Egmont'), 'mia@example.org')).toBe(false);
+		expect(ownPicksAt(picks, 'mia@example.org', ['Herbstkonzert'], 'Egmont')).toEqual([picks[0]]);
+		expect(ownPicksAt(picks, 'mia@example.org', ['Herbstkonzert'])).toEqual(picks);
+		expect(ownPicksAt(picks, 'mia@example.org', ['Frühlingskonzert'])).toEqual([]);
 	});
 });

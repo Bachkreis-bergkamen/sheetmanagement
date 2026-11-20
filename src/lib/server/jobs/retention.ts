@@ -19,6 +19,9 @@ export async function applyRetention(): Promise<JobResult> {
 	await getStore()
 		.prunePageCounts(daysBefore(today(), KEEP_DAYS))
 		.catch((error) => console.error('Pruning the page counts failed:', error));
+	await getStore()
+		.pruneVitals(daysBefore(today(), KEEP_DAYS))
+		.catch((error) => console.error('Pruning the speed counts failed:', error));
 	const settings = await readTab('settings').catch((cause) => (cause instanceof SheetLayoutError ? undefined : Promise.reject(cause)));
 	const seasons = settings ? readSettings(settings.rows).retention : undefined;
 	if (!seasons) return { ok: true, summary: t.status.retentionOff };

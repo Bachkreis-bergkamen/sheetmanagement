@@ -1,9 +1,10 @@
-import { playsIn, type Member } from '#lib/access/access.ts';
+import { normalizeEmail, playsIn, type Member } from '#lib/access/access.ts';
 import { config, type OrchestraConfig } from '#lib/config/index.ts';
 import type { Glyph } from '#lib/music/instrument-glyph.ts';
 import { partGlyph } from '#lib/music/instrument-glyph.ts';
-import { matchParts, parseInstruments, playedParts } from '#lib/music/my-parts.ts';
-import { choicesAt, type PartAssignment } from '#lib/music/part-assignments.ts';
+import { matchParts, parseInstruments, playedParts, playingAt, type InstrumentChoice } from '#lib/music/my-parts.ts';
+import { pickedAt, type PartAssignment } from '#lib/music/part-assignments.ts';
+import type { Signups } from '#lib/signups/signups.ts';
 import { isPastConcert, type Library, type LibraryConcert, type ProgramItem } from '#lib/server/library.ts';
 
 const PDF = 'application/pdf';
@@ -29,6 +30,21 @@ export function pickConcerts(concerts: LibraryConcert[], today: string, wanted: 
 	return { shown, focus };
 }
 
+/**
+ * The part a member gave with their answer to a date ("Geige II"), from the first of these
+ * dates that has one: a rehearsal's own answer, then its concert's. None: what they play anyway.
+ */
+export function saidAt(signups: Signups | null | undefined, email: string | undefined, eventIds: (string | undefined)[]): InstrumentChoice[] {
+	if (!signups || !email) return [];
+	const who = normalizeEmail(email);
+	for (const id of eventIds) {
+		const answer = id ? signups.byEvent.get(id)?.find((signup) => signup.email === who) : undefined;
+		const said = answer ? parseInstruments(answer.instrument, config) : [];
+		if (said.length) return said;
+	}
+	return [];
+}
+
 /** A part kept on the device ahead of time, with what "Meine Noten" shows of it offline. */
 export interface UpcomingPart {
 	id: string;
@@ -43,22 +59,31 @@ export interface UpcomingPart {
  * them: their own parts and the shared ones they may play from, or the part assigned to them (#262).
  * The service worker keeps these on the device, so the next rehearsals work without a connection.
  */
-export function upcomingParts(library: Library, member: Member, music: OrchestraConfig, assignments: PartAssignment[], count = 2): UpcomingPart[] {
-	const choices = parseInstruments(member.instrument ?? '', config);
-	if (!choices.length) return [];
+export function upcomingParts(
+	library: Library,
+	member: Member,
+	music: OrchestraConfig,
+	assignments: PartAssignment[],
+	count = 2,
+	signups?: Signups | null
+): UpcomingPart[] {
+	const own = parseInstruments(member.instrument ?? '', config);
+	if (!own.length) return [];
 	const concerts = pickConcerts(library.concerts, library.today, null, member)
 		.shown.filter((concert) => programFor(concert, member).length)
 		.slice(0, count);
 	const found = new Map<string, UpcomingPart>();
 	for (const concert of concerts) {
+		// Only the part they play there, once they said which (Geige II of Geige I & II).
+		const choices = playingAt(own, saidAt(signups, member.email, [concert.id]));
 		for (const item of programFor(concert, member)) {
 			const piece = item.pieceId ? library.piecesById.get(item.pieceId) : undefined;
 			if (!piece?.detail) continue;
 			const parts = playedParts(piece.detail, item.movements);
-			const played = choicesAt(
+			const { choices: played } = pickedAt(
 				{ email: member.email, choices },
 				assignments,
-				{ piece: piece.sheet?.title ?? item.title, concerts: concert.sheet ? [concert.sheet.title] : [] },
+				{ piece: piece.sheet?.title ?? item.title, concerts: concert.sheet ? [concert.sheet.title, concert.sheet.ref] : [] },
 				config
 			);
 			for (const choice of played) {

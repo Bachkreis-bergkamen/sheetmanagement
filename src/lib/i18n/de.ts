@@ -553,6 +553,8 @@ export const de = {
 		forever: 'Immer',
 		meta: (by: string, at: string) => [by, at].filter(Boolean).join(', '),
 		assigned: 'zugeteilt',
+		/** "Von" of a member's own pick of their part for a piece (Meine Noten). */
+		ownPick: 'selbst gewählt',
 		saved: 'Stimme zugeteilt.',
 		deleted: 'Zuteilung gelöscht.',
 		failed: 'Die Zuteilung konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.',
@@ -1157,6 +1159,18 @@ export const de = {
 		missing: 'fehlt im Archiv',
 		summary: (found: number, total: number) => `${found} von ${total} Stücken mit Stimme`,
 		merge: 'Als eine PDF',
+		/** Which of their parts someone plays at one concert: Geige I or Geige II, not both. */
+		playing: {
+			label: 'Im Konzert spielst du',
+			inPiece: (piece: string) => `Deine Stimme in ${piece}`,
+			forAll: 'Gilt für alle Stücke; einzelne Stücke stellst du unten um.',
+			all: 'Alle',
+			allHint: 'Alle deine Stimmen zeigen',
+			pick: (part: string) => `Nur ${part} zeigen`,
+			yes: 'Gilt zugleich als Zusage.',
+			saved: 'Gemerkt, auch bei deiner Antwort zum Konzert.',
+			failed: 'Diese Stimme steht nicht bei deinen Instrumenten.'
+		},
 		/** Playing a concert from a tablet (#194). */
 		concertMode: {
 			open: 'Auftrittsmodus',
@@ -3599,6 +3613,17 @@ export const de = {
 			route: 'Seite',
 			roles: { mitglied: 'Mitglieder', verwaltung: 'Verwaltung', gast: 'Gäste' },
 			none: 'Noch keine Aufrufe gezählt.'
+		},
+		/** Field speed (#187). */
+		vitals: {
+			title: 'Tempo auf den Geräten (30 Tage)',
+			lead: 'Wie schnell die Seiten auf den Geräten der Mitglieder waren, als 75. Perzentil: drei von vier Aufrufen waren mindestens so schnell. Ziel: LCP unter 1,5 s, INP unter 200 ms; was darüber liegt, ist rot. Gezählt werden nur Seite, Gerätetyp und Zeit, nicht wer; nach 180 Tagen wird es gelöscht.',
+			device: 'Gerät',
+			devices: { phone: 'Handy', desktop: 'Computer' },
+			loads: 'Seitenstarts',
+			names: { lcp: 'Bis der Hauptinhalt zu sehen war', inp: 'Wie lange ein Tippen auf die Antwort wartete', ttfb: 'Wie lange der Server brauchte' },
+			atMost: (ms: number) => (ms >= 1000 ? `≤ ${(ms / 1000).toLocaleString('de-DE', { maximumFractionDigits: 2 })} s` : `≤ ${ms} ms`),
+			none: 'Noch nichts gemessen. Safari misst LCP und INP noch nicht; dort zählt nur TTFB.'
 		},
 		title: 'Status',
 		lead: 'Ob die Verbindung zu Google funktioniert.',

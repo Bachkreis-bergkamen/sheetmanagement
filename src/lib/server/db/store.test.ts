@@ -281,6 +281,18 @@ describe.each([
 		expect(await store.shareOf('a@x.org', 'file-1')).toBeNull();
 	});
 
+	it('counts field speed per bucket and sums it over days (#187)', async () => {
+		const store = make();
+		const sample = { route: '/', device: 'phone' as const, metric: 'lcp' as const, bucket: 1000 };
+		await store.countVitals('2026-11-01', [sample, sample, { ...sample, metric: 'inp', bucket: 100 }]);
+		await store.countVitals('2026-11-02', [sample]);
+		const counts = await store.vitals('2026-11-01');
+		expect(counts.find((each) => each.metric === 'lcp')).toMatchObject({ ...sample, count: 3 });
+		expect(counts.find((each) => each.metric === 'inp')).toMatchObject({ bucket: 100, count: 1 });
+		await store.pruneVitals('2026-11-02');
+		expect((await store.vitals('2026-11-01')).map((each) => each.count)).toEqual([1]);
+	});
+
 	it('runs a save once per request id, gives its answer again, and forgets a failed one (#191)', async () => {
 		const store = make();
 		expect(await store.claimRequest('k1')).toBe('claimed');

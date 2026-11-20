@@ -1,4 +1,5 @@
 import { normalizeEmail } from '#lib/access/access.ts';
+import { t } from '#lib/i18n/index.ts';
 import type { OrchestraConfig } from '#lib/config/index.ts';
 import { LAYOUT, normalize, readTable, type ColumnKey, type Table } from '#lib/repertoire/sheet.ts';
 import { parseInstruments, type InstrumentChoice } from './my-parts.ts';
@@ -120,6 +121,41 @@ export function choicesAt(player: Player, assignments: PartAssignment[], occasio
 	// An assigned part that can't be read keeps the player on their own instrument.
 	if (!assigned.length) return player.choices;
 	return [...assigned, ...player.choices.filter((choice) => !replaced.has(choice))];
+}
+
+/**
+ * A member's own pick of their part for one piece at one concert ("Geige I in the Egmont,
+ * Geige II in the rest"): a row for them, the piece and the concert, "Von" saying they chose
+ * it. The conductor's assignments are any others; where one holds, the member can't pick.
+ */
+export const isOwnPick = (assignment: Pick<PartAssignment, 'who' | 'by'>, email: string | undefined) =>
+	!!email && forMember(assignment) && normalizeEmail(assignment.who) === normalizeEmail(email) && normalize(assignment.by) === normalize(t.partAssignments.ownPick);
+
+/** Their own picks at a concert ("Anlass"): of one piece, or of every piece without one. */
+export const ownPicksAt = <A extends Pick<PartAssignment, 'who' | 'by' | 'pieceName' | 'concert'>>(
+	assignments: A[],
+	email: string,
+	concerts: string[],
+	piece?: string
+): A[] =>
+	assignments.filter(
+		(assignment) =>
+			isOwnPick(assignment, email) &&
+			concerts.some((concert) => normalize(concert) === normalize(assignment.concert)) &&
+			(piece === undefined ? !!assignment.pieceName : normalize(assignment.pieceName) === normalize(piece))
+	);
+
+/**
+ * What a member plays from in one piece, and whether they may pick it: the conductor's
+ * assignments decide where they hold (`locked`); else their own pick, else what they play anyway.
+ * Their own pick isn't marked as assigned: it's still their part.
+ */
+export function pickedAt(player: Player, assignments: PartAssignment[], occasion: Occasion, config: OrchestraConfig): { choices: PlayerChoice[]; locked: boolean } {
+	const others = assignments.filter((assignment) => !isOwnPick(assignment, player.email));
+	const decided = choicesAt(player, others, occasion, config);
+	if (decided.some((choice) => choice.assigned)) return { choices: decided, locked: true };
+	const own = assignments.filter((assignment) => isOwnPick(assignment, player.email));
+	return { choices: choicesAt(player, own, occasion, config).map((choice) => ({ ...choice, assigned: false })), locked: false };
 }
 
 /** An assignment's piece, in a list of assignments: its title in "Stücke", compared like the app compares titles. */

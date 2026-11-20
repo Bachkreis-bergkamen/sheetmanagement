@@ -1,3 +1,4 @@
+import { vitalRows } from '#lib/vitals/vitals.ts';
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { isJobName, JOB_NAMES, JOBS, lastRuns, runJob, type JobName } from '#lib/server/jobs/index.ts';
@@ -273,6 +274,11 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 		// How often each page was opened lately, per role (#185): for the page audit.
 		pages: await getStore()
 			.pageCounts(daysBefore(today(), SHOWN_DAYS))
+			.catch(() => null),
+		// How fast pages are on members' devices (#187): p75 per route and kind of device.
+		vitals: await getStore()
+			.vitals(daysBefore(today(), SHOWN_DAYS))
+			.then(vitalRows)
 			.catch(() => null),
 		extras: await extras()
 	};

@@ -1,7 +1,7 @@
 import { error, fail } from '@sveltejs/kit';
 import { countingMembers, isAdminOnly, mayFor, normalizeEmail } from '#lib/access/access.ts';
 import { config } from '#lib/config/index.ts';
-import { coverage, formatInstrument, parseInstruments, playableInstruments, playedParts, programInstruments } from '#lib/music/my-parts.ts';
+import { coverage, formatInstrument, parseInstruments, playableInstruments, playedParts, programInstruments, sectionsOf } from '#lib/music/my-parts.ts';
 import { t } from '#lib/i18n/index.ts';
 import { ANSWERS, coverage as signupCoverage, groupSections, totals, type Answer, type SectionCoverage } from '#lib/signups/signups.ts';
 import { feedbackUser, formText } from '#lib/server/feedback.ts';
@@ -104,9 +104,7 @@ async function signups(event: ShownEvent, orchestra: string | undefined, locals:
 	const member = access?.membersByEmail.get(email);
 	const own = parseInstruments(member?.instrument ?? '', config);
 	// The member's sections one by one ("Geige I", "Geige II", "Viola") to pick from.
-	const ownSections = own.flatMap((choice) =>
-		choice.numbers.length ? choice.numbers.map((n) => formatInstrument({ instrument: choice.instrument, numbers: [n] })) : [formatInstrument(choice)]
-	);
+	const ownSections = sectionsOf(own);
 	const sections = signupCoverage(answers, access?.members ?? [], config, { orchestra, today: today() });
 	const seeAll = locals.access.rights.has('anmeldungen.sehen');
 	const shown = (list: SectionCoverage[]) =>
