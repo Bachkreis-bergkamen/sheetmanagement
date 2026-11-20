@@ -14,8 +14,13 @@ const PER_HOUR = 120;
 export const POST: RequestHandler = async ({ request, locals, getClientAddress }) => {
 	if (locals.auth === 'on' && !locals.access.member) return new Response(null, { status: 204 });
 	const store = getStore();
+	// The dev server and some tests can't name the address; those beacons share one count.
+	let address = 'unknown';
 	try {
-		if ((await store.hit(`tempo:${getClientAddress()}`, 60)) > PER_HOUR) return new Response(null, { status: 204 });
+		address = getClientAddress();
+	} catch {}
+	try {
+		if ((await store.hit(`tempo:${address}`, 60)) > PER_HOUR) return new Response(null, { status: 204 });
 		const samples = parseReport(await request.json().catch(() => null));
 		await store.countVitals(today(), samples);
 	} catch (error) {
