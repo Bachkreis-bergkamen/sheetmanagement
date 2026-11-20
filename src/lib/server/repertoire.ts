@@ -355,15 +355,24 @@ export async function readAccessList({ force = false } = {}): Promise<{ list: Ac
 	}
 }
 
-/** The groups from "Instrumentgruppen"; null when the tab is missing, empty or unreadable. */
-export async function getInstrumentGroups({ force = false } = {}): Promise<InstrumentGroups | null> {
+type Snapshot = Awaited<ReturnType<typeof loadSheet>>['value'];
+
+/**
+ * One part of the sheet snapshot, or `fallback()` when the sheet can't be read (#352). getLibrary already
+ * logs why the sheet failed; `logAs` logs it here too, except when the sheet isn't configured or set up.
+ */
+async function fromSheet<T>(pick: (sheet: Snapshot) => T, fallback: () => T, { force = false, logAs = '' } = {}): Promise<T> {
 	try {
-		return (await loadSheet(force)).value.instrumentGroups;
-	} catch {
-		// getLibrary already logs why the sheet failed.
-		return null;
+		return pick((await loadSheet(force)).value);
+	} catch (error) {
+		if (logAs && !(error instanceof NotConfiguredError) && !(error instanceof SheetNotSetUpError)) console.error(logAs, error);
+		return fallback();
 	}
 }
+
+/** The groups from "Instrumentgruppen"; null when the tab is missing, empty or unreadable. */
+export const getInstrumentGroups = ({ force = false } = {}): Promise<InstrumentGroups | null> =>
+	fromSheet((sheet) => sheet.instrumentGroups, () => null, { force });
 
 /** The config with the orchestra's own instrument groups from the sheet, if it has any. */
 export async function getMusicConfig(): Promise<OrchestraConfig> {
@@ -372,105 +381,39 @@ export async function getMusicConfig(): Promise<OrchestraConfig> {
 }
 
 /** File ids ticked "erledigt" in "Fehlende Stimmen"; empty when the sheet can't be read. */
-export async function getMissingPartsDone(): Promise<Set<string>> {
-	try {
-		return new Set((await loadSheet(false)).value.missingPartsDone);
-	} catch {
-		// getLibrary already logs why the sheet failed.
-		return new Set();
-	}
-}
+export const getMissingPartsDone = (): Promise<Set<string>> => fromSheet((sheet) => new Set(sheet.missingPartsDone), () => new Set());
 
 /** Planned scans by file id; empty when the sheet can't be read. */
-export async function getScanTasks(): Promise<Map<string, ScanTask>> {
-	try {
-		return (await loadSheet(false)).value.scanTasks;
-	} catch {
-		return new Map();
-	}
-}
+export const getScanTasks = (): Promise<Map<string, ScanTask>> => fromSheet((sheet) => sheet.scanTasks, () => new Map());
 
 /** Problem reports and wishes; null when the sheet can't be read. */
-export async function getFeedback({ force = false } = {}): Promise<Feedback | null> {
-	try {
-		return (await loadSheet(force)).value.feedback;
-	} catch (error) {
-		if (!(error instanceof NotConfiguredError) && !(error instanceof SheetNotSetUpError)) {
-			console.error('Loading reports and wishes failed:', error);
-		}
-		return null;
-	}
-}
+export const getFeedback = ({ force = false } = {}): Promise<Feedback | null> =>
+	fromSheet((sheet) => sheet.feedback, () => null, { force, logAs: 'Loading reports and wishes failed:' });
 
 /** Sign-ups for rehearsals and concerts; null when the tab is missing or the sheet can't be read. */
-export async function getSignups({ force = false } = {}): Promise<Signups | null> {
-	try {
-		return (await loadSheet(force)).value.signups;
-	} catch {
-		// getLibrary already logs why the sheet failed.
-		return null;
-	}
-}
+export const getSignups = ({ force = false } = {}): Promise<Signups | null> => fromSheet((sheet) => sheet.signups, () => null, { force });
 
 /** The rehearsal plan; null when the tab is missing or the sheet can't be read. */
-export async function getRehearsalPlan({ force = false } = {}): Promise<RehearsalPlan | null> {
-	try {
-		return (await loadSheet(force)).value.rehearsals;
-	} catch {
-		// getLibrary already logs why the sheet failed.
-		return null;
-	}
-}
+export const getRehearsalPlan = ({ force = false } = {}): Promise<RehearsalPlan | null> =>
+	fromSheet((sheet) => sheet.rehearsals, () => null, { force });
 
 /** Rented and borrowed music; null when the tab is missing or the sheet can't be read. */
-export async function getLoans({ force = false } = {}): Promise<Loans | null> {
-	try {
-		return (await loadSheet(force)).value.loans;
-	} catch {
-		// getLibrary already logs why the sheet failed.
-		return null;
-	}
-}
+export const getLoans = ({ force = false } = {}): Promise<Loans | null> => fromSheet((sheet) => sheet.loans, () => null, { force });
 
 /** Who came to which rehearsal; null when the tab is missing or the sheet can't be read. */
-export async function getAttendance({ force = false } = {}): Promise<Attendance | null> {
-	try {
-		return (await loadSheet(force)).value.attendance;
-	} catch {
-		// getLibrary already logs why the sheet failed.
-		return null;
-	}
-}
+export const getAttendance = ({ force = false } = {}): Promise<Attendance | null> => fromSheet((sheet) => sheet.attendance, () => null, { force });
 
 /** Who plays which part instead of their own (#262); empty when the tab is missing or the sheet can't be read. */
-export async function getPartAssignments({ force = false } = {}): Promise<PartAssignments> {
-	try {
-		return (await loadSheet(force)).value.partAssignments;
-	} catch {
-		// getLibrary already logs why the sheet failed.
-		return buildPartAssignments([]);
-	}
-}
+export const getPartAssignments = ({ force = false } = {}): Promise<PartAssignments> =>
+	fromSheet((sheet) => sheet.partAssignments, () => buildPartAssignments([]), { force });
 
 /** Notes on pieces (#125); empty when the tab is missing or the sheet can't be read. */
-export async function getPieceNotes({ force = false } = {}): Promise<PieceNotes> {
-	try {
-		return (await loadSheet(force)).value.pieceNotes;
-	} catch {
-		// getLibrary already logs why the sheet failed.
-		return buildPieceNotes([]);
-	}
-}
+export const getPieceNotes = ({ force = false } = {}): Promise<PieceNotes> =>
+	fromSheet((sheet) => sheet.pieceNotes, () => buildPieceNotes([]), { force });
 
 /** Notes after rehearsals (#145); empty when the tab is missing or the sheet can't be read. */
-export async function getRehearsalNotes({ force = false } = {}): Promise<RehearsalNotes> {
-	try {
-		return (await loadSheet(force)).value.rehearsalNotes;
-	} catch {
-		// getLibrary already logs why the sheet failed.
-		return buildRehearsalNotes([]);
-	}
-}
+export const getRehearsalNotes = ({ force = false } = {}): Promise<RehearsalNotes> =>
+	fromSheet((sheet) => sheet.rehearsalNotes, () => buildRehearsalNotes([]), { force });
 
 /**
  * Brings the settings from "Einstellungen" and "Instrumente" up to date for this request (#75, #134); the hook
