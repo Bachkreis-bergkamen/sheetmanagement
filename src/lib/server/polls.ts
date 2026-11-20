@@ -3,7 +3,8 @@ import { normalizeEmail } from '#lib/access/access.ts';
 import { canSeePoll, isOpen, type Poll } from '#lib/polls/polls.ts';
 import { DEMO_ADMIN } from './demo/data.ts';
 import { isDemo } from './env.ts';
-import { MemoryPollStore, perDatabase, SqlPollStore, type PollStore, type SqlDatabase } from './polls-store.ts';
+import { MemoryPollStore, perDatabase, SqlPollStore, type PollStore } from './polls-store.ts';
+import type { D1 } from './db/sql.ts';
 import { getAccessList } from './repertoire.ts';
 
 /**
@@ -16,7 +17,7 @@ const sql = perDatabase((db) => new SqlPollStore(db));
 
 export function pollStore(): PollStore | null {
 	if (isDemo()) return (demo ??= demoPolls());
-	const db = (env as { DB?: SqlDatabase }).DB;
+	const db = (env as { DB?: D1 }).DB;
 	return db ? sql(db) : null;
 }
 

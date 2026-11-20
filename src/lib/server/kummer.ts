@@ -4,7 +4,8 @@ import { isFor, unreadForAuthor, unreadForLeitung } from '#lib/kummer/kummer.ts'
 import { authConfig } from './auth/index.ts';
 import { isDemo } from './env.ts';
 import { MemoryKummerStore, SqlKummerStore, type KummerStore } from './kummer-store.ts';
-import { perDatabase, type SqlDatabase } from './polls-store.ts';
+import { perDatabase } from './polls-store.ts';
+import type { D1 } from './db/sql.ts';
 import { getAccessList } from './repertoire.ts';
 
 /**
@@ -19,7 +20,7 @@ const sql = perDatabase((db) => new SqlKummerStore(db));
 
 export function kummerStore(): KummerStore | null {
 	if (isDemo()) return (demo ??= new MemoryKummerStore());
-	const db = (env as { DB?: SqlDatabase }).DB;
+	const db = (env as { DB?: D1 }).DB;
 	return db ? sql(db) : null;
 }
 

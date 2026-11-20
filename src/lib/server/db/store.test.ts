@@ -3,39 +3,8 @@ import { describe, expect, it } from 'vitest';
 import type { TabKey } from '#lib/repertoire/sheet.ts';
 import { memoryStore } from './memory.ts';
 import { DataConflictError, prepareImport, schemaSql } from './schema.ts';
-import { MIGRATIONS, sqlStore, statements, type D1, type D1Statement } from './sql.ts';
-
-/** D1's API over Node's built-in SQLite, so the SQL and the migrations are tested for real. */
-function localD1(): D1 {
-	const db = new DatabaseSync(':memory:');
-	// As in D1, where links are always checked.
-	db.exec('PRAGMA foreign_keys = ON');
-	const statement = (sql: string, values: unknown[] = []): D1Statement => {
-		// As in D1, which allows at most 5 terms in a compound SELECT (a VALUES list doesn't count); Node's SQLite allows 500.
-		if (sql.split(/\b(?:UNION|INTERSECT|EXCEPT)\b/).length > 5) throw new Error('D1_ERROR: too many terms in compound SELECT: SQLITE_ERROR');
-		return {
-			bind: (...next) => statement(sql, next),
-			all: async <T>() => ({ results: db.prepare(sql).all(...values) as T[] }),
-			first: async <T>() => (db.prepare(sql).get(...values) as T) ?? null,
-			run: async () => db.prepare(sql).run(...values)
-		};
-	};
-	return {
-		prepare: (sql) => statement(sql),
-		async batch(list) {
-			db.exec('BEGIN');
-			try {
-				const results = [];
-				for (const item of list) results.push(await item.run());
-				db.exec('COMMIT');
-				return results;
-			} catch (cause) {
-				db.exec('ROLLBACK');
-				throw cause;
-			}
-		}
-	};
-}
+import { localD1 } from './local-d1.ts';
+import { MIGRATIONS, sqlStore, statements } from './sql.ts';
 
 const device = (endpoint: string, email: string) => ({ endpoint, email, p256dh: 'key', auth: 'secret' });
 

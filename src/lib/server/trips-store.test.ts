@@ -1,29 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { NewTrip } from '#lib/trips/trips.ts';
-import type { SqlDatabase, SqlStatement } from './polls-store.ts';
 import { MemoryTripStore, SqlTripStore, type TripStore } from './trips-store.ts';
+import { localD1 } from './db/local-d1.ts';
 
 // Node's own SQLite; the project has no Node types, so the little that's used is typed here.
-interface Sqlite {
-	prepare(sql: string): {
-		all(...values: unknown[]): unknown[];
-		get(...values: unknown[]): unknown;
-		run(...values: unknown[]): unknown;
-	};
-}
-const { DatabaseSync } = (await import(/* @vite-ignore */ `node:${'sqlite'}`)) as { DatabaseSync: new (path: string) => Sqlite };
-
-/** node:sqlite dressed up as D1, so the SQL that runs on Cloudflare runs here too. */
-function sqlite(): SqlDatabase {
-	const db = new DatabaseSync(':memory:');
-	const statement = (sql: string, values: (string | number | null)[] = []): SqlStatement => ({
-		bind: (...more) => statement(sql, [...values, ...more]),
-		all: async <T>() => ({ results: db.prepare(sql).all(...values) as T[] }),
-		first: async <T>() => (db.prepare(sql).get(...values) as T | undefined) ?? null,
-		run: async () => db.prepare(sql).run(...values)
-	});
-	return { prepare: (sql) => statement(sql) };
-}
 
 const weekend: NewTrip = {
 	title: 'Probenwochenende',
@@ -39,7 +19,7 @@ const weekend: NewTrip = {
 };
 
 for (const [name, make] of [
-	['SqlTripStore (SQLite)', () => new SqlTripStore(sqlite())],
+	['SqlTripStore (SQLite)', () => new SqlTripStore(localD1())],
 	['MemoryTripStore', () => new MemoryTripStore()]
 ] as [string, () => TripStore][]) {
 	describe(name, () => {

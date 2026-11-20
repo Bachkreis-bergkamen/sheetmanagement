@@ -258,8 +258,10 @@ export function sqlStore(db: D1): Store {
 					sharing.parents ? 1 : 0
 				);
 			} else {
-				await run('DELETE FROM drill_sharing WHERE email = ?', email);
-				await run('DELETE FROM drill_days WHERE email = ?', email);
+				await together([
+					['DELETE FROM drill_sharing WHERE email = ?', email],
+					['DELETE FROM drill_days WHERE email = ?', email]
+				]);
 			}
 		},
 		async saveDrillDays(email, rows) {

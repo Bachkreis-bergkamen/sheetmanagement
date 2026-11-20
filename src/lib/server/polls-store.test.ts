@@ -1,28 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { NewPoll } from '#lib/polls/polls.ts';
-import { MemoryPollStore, perDatabase, SqlPollStore, type PollStore, type SqlDatabase, type SqlStatement } from './polls-store.ts';
+import { MemoryPollStore, perDatabase, SqlPollStore, type PollStore } from './polls-store.ts';
+import { localD1 } from './db/local-d1.ts';
+import type { D1 } from './db/sql.ts';
 
 // Node's own SQLite; the project has no Node types, so the little that's used is typed here.
-interface Sqlite {
-	prepare(sql: string): {
-		all(...values: unknown[]): unknown[];
-		get(...values: unknown[]): unknown;
-		run(...values: unknown[]): unknown;
-	};
-}
-const { DatabaseSync } = (await import(/* @vite-ignore */ `node:${'sqlite'}`)) as { DatabaseSync: new (path: string) => Sqlite };
-
-/** node:sqlite dressed up as D1, so the SQL that runs on Cloudflare runs here too. */
-function sqlite(): SqlDatabase {
-	const db = new DatabaseSync(':memory:');
-	const statement = (sql: string, values: (string | number | null)[] = []): SqlStatement => ({
-		bind: (...more) => statement(sql, [...values, ...more]),
-		all: async <T>() => ({ results: db.prepare(sql).all(...values) as T[] }),
-		first: async <T>() => (db.prepare(sql).get(...values) as T | undefined) ?? null,
-		run: async () => db.prepare(sql).run(...values)
-	});
-	return { prepare: (sql) => statement(sql) };
-}
 
 const poll: NewPoll = {
 	title: 'Probenwochenende Frühjahr',
@@ -35,7 +17,7 @@ const poll: NewPoll = {
 const vera = { email: 'vera@example.org', name: 'Vera' };
 
 for (const [name, make] of [
-	['SqlPollStore (SQLite)', () => new SqlPollStore(sqlite())],
+	['SqlPollStore (SQLite)', () => new SqlPollStore(localD1())],
 	['MemoryPollStore', () => new MemoryPollStore()]
 ] as [string, () => PollStore][]) {
 	describe(name, () => {
@@ -61,6 +43,15 @@ for (const [name, make] of [
 			expect(await titles('ada@example.org')).toEqual(['Probenwochenende Frühjahr', 'Sommerfest']);
 			await store.respond(second.id, { email: 'ben@example.org', name: 'Ben', choices: { o2: 'no' }, updatedAt: '2027-01-01T10:00:00Z' });
 			expect(await titles('ben@example.org')).toEqual([]);
+		});
+
+		it('removes a poll together with its answers (#351)', async () => {
+			const store = make();
+			const { id } = await store.create(poll, vera);
+			await store.respond(id, { email: 'ben@example.org', name: 'Ben', choices: { o1: 'yes' }, updatedAt: '2027-01-01T10:00:00Z' });
+			await store.remove(id);
+			expect(await store.get(id)).toBeNull();
+			expect(await store.answersOf('ben@example.org')).toEqual([]);
 		});
 
 		it('keeps one answer per person: answering again replaces it', async () => {
@@ -116,13 +107,14 @@ for (const [name, make] of [
 describe('perDatabase (#346)', () => {
 	it('keeps one store per binding, so its tables are made once', async () => {
 		const made: string[] = [];
-		const counting = (): SqlDatabase => {
-			const db = sqlite();
+		const counting = (): D1 => {
+			const db = localD1();
 			return {
 				prepare: (sql) => {
 					if (sql.startsWith('CREATE TABLE')) made.push(sql);
 					return db.prepare(sql);
-				}
+				},
+				batch: (list) => db.batch(list)
 			};
 		};
 		const store = perDatabase((db) => new SqlPollStore(db));
