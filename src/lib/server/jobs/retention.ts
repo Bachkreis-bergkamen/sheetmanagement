@@ -22,6 +22,10 @@ export async function applyRetention(): Promise<JobResult> {
 	await getStore()
 		.pruneVitals(daysBefore(today(), KEEP_DAYS))
 		.catch((error) => console.error('Pruning the speed counts failed:', error));
+	// Old rate-limit windows are of no use any more; a day covers every limit the app has (#350).
+	await getStore()
+		.pruneHits(24)
+		.catch((error) => console.error('Pruning the rate limits failed:', error));
 	const settings = await readTab('settings').catch((cause) => (cause instanceof SheetLayoutError ? undefined : Promise.reject(cause)));
 	const seasons = settings ? readSettings(settings.rows).retention : undefined;
 	if (!seasons) return { ok: true, summary: t.status.retentionOff };

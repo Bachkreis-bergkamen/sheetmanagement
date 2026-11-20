@@ -459,6 +459,8 @@ describe.each([
 		expect(await store.hit('mail:a@x.org', 60)).toBe(1);
 		expect(await store.hit('mail:a@x.org', 60)).toBe(2);
 		expect(await store.hit('mail:b@x.org', 60)).toBe(1);
+		await store.pruneHits(0);
+		expect(await store.hit('mail:a@x.org', 60)).toBe(1);
 	});
 
 	it('keeps values between runs', async () => {

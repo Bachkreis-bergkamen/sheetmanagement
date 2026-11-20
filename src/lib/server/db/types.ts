@@ -280,6 +280,8 @@ export interface Store {
 	 * far, this one included; a window older than that starts again at 1. For rate limits.
 	 */
 	hit(key: string, windowMinutes: number): Promise<number>;
+	/** Forgets rate-limit windows that started this many hours ago or earlier; from the daily retention job. */
+	pruneHits(hours: number): Promise<void>;
 
 	getState(key: string): Promise<string | null>;
 	setState(key: string, value: string): Promise<void>;

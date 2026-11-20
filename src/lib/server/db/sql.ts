@@ -493,9 +493,10 @@ export function sqlStore(db: D1): Store {
 				since,
 				since
 			);
-			// Old windows are of no use any more; a day covers every limit the app has.
-			await run(`DELETE FROM rate_limits WHERE window_start < datetime('now', '-1 day')`);
 			return row?.count ?? 1;
+		},
+		async pruneHits(hours) {
+			await run(`DELETE FROM rate_limits WHERE window_start <= datetime('now', ?)`, `-${hours} hours`);
 		},
 
 		async getState(key) {
