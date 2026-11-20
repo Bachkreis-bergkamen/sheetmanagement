@@ -325,7 +325,7 @@
 					{#if look.accidental}<li>{tx.lookAccidental(look.accidental)}</li>{/if}
 					{#if look.leap}<li>{tx.lookLeap(tx.intervalSteps[look.leap.steps] ?? '', look.leap.bar)}</li>{/if}
 				</ul>
-				<p class="hint">{prepLeft ? tx.prepLeft(prepLeft) : tx.prepDone}</p>
+				<p class="ui-hint">{prepLeft ? tx.prepLeft(prepLeft) : tx.prepDone}</p>
 				<div class="row">
 					<button type="button" class="btn" class:pulse={!prepLeft} onclick={play}>{tx.sightStart}</button>
 				</div>
@@ -341,7 +341,7 @@
 						{tx.readAhead}
 					</label>
 				{/if}
-				<p class="hint">{tx.keepGoing}</p>
+				<p class="ui-hint">{tx.keepGoing}</p>
 			{:else if phase === 'count' || phase === 'play'}
 				<!-- Entries follow the conductor throughout; sight-reading only through the count-in, then the eyes stay on the notes. -->
 				{#if mode === 'entry' || phase === 'count'}
@@ -364,7 +364,7 @@
 				{/if}
 				{#if verdict}
 					<p class="feedback" class:ok={verdict.score >= GOOD}>{tx.sightResult(verdict.right, verdict.inTime, verdict.total)}</p>
-					{#if !verdict.keptGoing}<p class="hint">{tx.stoppedEarly}</p>{/if}
+					{#if !verdict.keptGoing}<p class="ui-hint">{tx.stoppedEarly}</p>{/if}
 				{:else if scores.length < count}
 					<p class="feedback ok">{tx.howWasIt}</p>
 					<div class="row">
@@ -444,11 +444,6 @@
 		gap: var(--space-1);
 		padding: 0;
 		list-style: none;
-		font-size: var(--text-sm);
-	}
-
-	.hint {
-		color: var(--text-muted);
 		font-size: var(--text-sm);
 	}
 

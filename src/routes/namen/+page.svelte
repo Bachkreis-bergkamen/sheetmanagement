@@ -203,7 +203,7 @@
 										<span class="badge">{t.naming.unclear}</span>
 										<span class="names">
 											<span>{check.name}</span>
-											<span class="muted">
+											<span class="ui-muted">
 												{#if check.unrecognized.length}
 													{t.naming.unclearHint(check.unrecognized.join(', '))}
 												{:else if check.taken}
@@ -467,10 +467,6 @@
 		color: var(--warn);
 		font-size: var(--text-2xs);
 		font-weight: 700;
-	}
-
-	.muted {
-		color: var(--text-muted);
 	}
 
 	.btn {

@@ -909,7 +909,7 @@
 					<p class="playing">
 						<Icon name="music" size={18} />
 						<strong>{tx.instruments[instrument]}</strong>
-						<span class="muted">· {clefs.map((clef) => tx.clefs[clef]).join(', ')}{chosenClef ? '' : ` (${tx.auto})`}</span>
+						<span class="ui-muted">· {clefs.map((clef) => tx.clefs[clef]).join(', ')}{chosenClef ? '' : ` (${tx.auto})`}</span>
 						<button type="button" class="link" aria-expanded={changing} onclick={() => (changing = !changing)}>{tx.change}</button>
 					</p>
 					{#if changing}
@@ -940,7 +940,7 @@
 					{#if canGrow(instrument)}
 						{@const [low, high] = reach ? [reach.low, reach.high] : comfortable(instrument)}
 						<p class="playing">
-							<span class="muted">{tx.reach.label(reachName(low), reachName(high))}</span>
+							<span class="ui-muted">{tx.reach.label(reachName(low), reachName(high))}</span>
 							<button type="button" class="link" onclick={() => (reachTest = 'hub')}>{reach ? tx.reach.again : tx.reach.title}</button>
 						</p>
 					{/if}
@@ -1396,10 +1396,6 @@
 		align-items: center;
 		gap: var(--space-2);
 		font-size: var(--text-md);
-	}
-
-	.muted {
-		color: var(--text-muted);
 	}
 
 	.link {

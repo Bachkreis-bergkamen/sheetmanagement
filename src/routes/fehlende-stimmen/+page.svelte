@@ -40,7 +40,7 @@
 	<p class="msg error">{t.gaps.failed}</p>
 {:else if !data.pieces.length}
 	<p class="msg ok"><Icon name="check" size={16} />{t.gaps.none}</p>
-	{#if data.check && data.check.checked < data.check.total}<p class="muted">{t.gaps.checkProgress(data.check.checked, data.check.total)}</p>{/if}
+	{#if data.check && data.check.checked < data.check.total}<p class="ui-hint">{t.gaps.checkProgress(data.check.checked, data.check.total)}</p>{/if}
 {:else}
 	{#if form?.message}<p class="msg error" role="alert">{form.message}</p>{/if}
 	<ul class="counts">
@@ -50,7 +50,7 @@
 			{/if}
 		{/each}
 	</ul>
-	{#if data.check && data.check.checked < data.check.total}<p class="muted progress">{t.gaps.checkProgress(data.check.checked, data.check.total)}</p>{/if}
+	{#if data.check && data.check.checked < data.check.total}<p class="ui-hint progress">{t.gaps.checkProgress(data.check.checked, data.check.total)}</p>{/if}
 
 	{#if filters.length > 1}
 		<div class="filters" role="tablist">
@@ -68,7 +68,7 @@
 				<li class="piece">
 					<div class="head">
 						<a class="title" href="/stuecke/{encodeURIComponent(piece.id)}">{piece.title}</a>
-						{#if piece.composer}<span class="muted">{piece.composer}</span>{/if}
+						{#if piece.composer}<span class="ui-hint">{piece.composer}</span>{/if}
 						{#each piece.programs as program (program)}<span class="tag program">{program}</span>{/each}
 						{#if data.canMark && data.scanners.length && piece.gaps.length > 1}
 							<ScanPlan
@@ -111,7 +111,7 @@
 								{/if}
 								<span class="status {report.status}">{t.piece.partStatus[report.status]}</span>
 								<span class="status reported" title={t.gaps.reportedHint}><Icon name="flag" size={12} />{t.gaps.reported}: {t.feedbackValues.reportKind[report.kind]}</span>
-								{#if report.comment}<span class="muted">{t.common.quote(report.comment)}</span>{/if}
+								{#if report.comment}<span class="ui-hint">{t.common.quote(report.comment)}</span>{/if}
 							</li>
 						{/each}
 						{#each piece.unscored as voice (voice)}
@@ -362,8 +362,4 @@
 		color: var(--ok);
 	}
 
-	.muted {
-		color: var(--text-muted);
-		font-size: var(--text-sm);
-	}
 </style>

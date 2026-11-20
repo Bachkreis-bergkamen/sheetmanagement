@@ -199,7 +199,7 @@
 					<label class="field wide">
 						{columns.contents}
 						<textarea name="contents" maxlength="4000" rows={Math.min(12, Math.max(3, (current.contents ?? '').split('\n').length + 1))} placeholder={t.pieceEditor.contentsHint} bind:value={current.contents}></textarea>
-						<span class="hint">{t.pieceEditor.contentsLead}</span>
+						<span class="ui-hint">{t.pieceEditor.contentsLead}</span>
 					</label>
 				{/if}
 				<label class="field wide">
@@ -207,8 +207,8 @@
 					<textarea name="notes" maxlength="1000" bind:value={current.notes}></textarea>
 				</label>			</div>
 		</details>
-		{#if missingNames}<p class="hint wide">{t.pieceEditor.missingColumns(missingNames)}</p>{/if}
-		{#if markCount}<p class="hint wide unchecked"><Icon name="sparkle" size={14} />{t.pieceEditor.unchecked(markCount)}</p>{/if}
+		{#if missingNames}<p class="ui-hint wide">{t.pieceEditor.missingColumns(missingNames)}</p>{/if}
+		{#if markCount}<p class="ui-hint wide unchecked"><Icon name="sparkle" size={14} />{t.pieceEditor.unchecked(markCount)}</p>{/if}
 		<div class="actions">
 			{#if data.list}
 				<button class="btn" name="liste" value={data.list.filter} disabled={saving.busy}><Icon name="check" size={16} />{t.details.saveNext}</button>
@@ -358,11 +358,6 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: var(--space-2);
-	}
-
-	.hint {
-		color: var(--text-muted);
-		font-size: var(--text-sm);
 	}
 
 	/* A note under one field makes its row taller; the field beside it stays at the top. */

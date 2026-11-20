@@ -239,6 +239,7 @@ Calm, round and thumb-sized. They're quiet until touched.
 - **Border:** a 1px hairline.
 - **Internal Padding:** 24px.
 - **Inset lists:** the same shell with hairlines between rows instead of padding. A pressed row turns Stand Grey at once, before the next page loads.
+- **Shared classes:** `src/app.css` holds the shared pieces as `.ui-*` classes: `.ui-card`, `.ui-list`, `.ui-label`, `.ui-actions` and `.ui-disclosure`. For quiet text there is `.ui-muted` (muted colour) and `.ui-hint` (muted and 0.875rem). A component uses these instead of writing its own copy, and keeps a local rule only where it adds something, such as a margin.
 
 ### Inputs / Fields
 - **Style:** a 1px Pencil Line border, the control radius (12px), a Rehearsal Paper fill (set into the white card), and 9px × 12px padding at 0.9375rem. The label sits above in 0.8125rem 600 muted text.

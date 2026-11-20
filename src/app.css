@@ -501,6 +501,16 @@ a.ui-card:active {
 	border-top: 1px solid var(--hairline);
 }
 
+/* Quiet text: muted colour only, or muted and small for a hint under a field or a row. */
+.ui-muted {
+	color: var(--text-muted);
+}
+
+.ui-hint {
+	color: var(--text-muted);
+	font-size: var(--text-sm);
+}
+
 /* A row of quiet text actions under a heading ("Drucken · Bearbeiten"). */
 .ui-actions {
 	display: flex;

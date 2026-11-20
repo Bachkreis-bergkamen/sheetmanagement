@@ -61,12 +61,12 @@
 		<div class="board">
 			<div class="board-head">
 				<h3>{tx.boardTitle}</h3>
-				<span class="muted">{dayOf(board.week[0])} – {dayOf(board.week[6])}</span>
+				<span class="ui-hint">{dayOf(board.week[0])} – {dayOf(board.week[6])}</span>
 			</div>
 			<p class="challenge">
 				<Icon name={me?.met ? 'check' : 'sparkle'} size={16} />
 				{me?.met ? tx.challengeMet : tx.challenge(CHALLENGE_DAYS, me?.days ?? 0)}
-				<span class="muted">· {tx.challengeCount(board.entries.filter((entry) => entry.met).length, board.entries.length)}</span>
+				<span class="ui-hint">· {tx.challengeCount(board.entries.filter((entry) => entry.met).length, board.entries.length)}</span>
 			</p>
 			<ol class="entries">
 				{#each board.entries as entry, i (i)}
@@ -154,11 +154,6 @@
 	.board-head h3 {
 		margin: 0;
 		font-size: var(--text-base);
-	}
-
-	.muted {
-		color: var(--text-muted);
-		font-size: var(--text-sm);
 	}
 
 	.challenge {

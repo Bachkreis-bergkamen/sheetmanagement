@@ -60,7 +60,7 @@
 				{#each data.report.gaps as gap, i (i)}
 					<li>
 						<strong>{gap.title}</strong>
-						<span class="muted">{gap.missing.map((field) => t.musicReport.missing[field]).join(', ')}</span>
+						<span class="ui-hint">{gap.missing.map((field) => t.musicReport.missing[field]).join(', ')}</span>
 						{#if gap.pieceId && data.report.canFill}
 							<a href="/stuecke/{encodeURIComponent(gap.pieceId)}/bearbeiten">{t.musicReport.fill}</a>
 						{:else if !gap.pieceId}
@@ -73,7 +73,7 @@
 		{:else}
 			<p><Icon name="check" size={16} />{t.musicReport.complete}</p>
 		{/if}
-		<p class="muted">{t.musicReport.fullNames}</p>
+		<p class="ui-hint">{t.musicReport.fullNames}</p>
 	</div>
 {/if}
 
@@ -263,11 +263,6 @@
 	.gaps a {
 		color: var(--accent);
 		font-weight: 600;
-	}
-
-	.muted {
-		color: var(--text-muted);
-		font-size: var(--text-sm);
 	}
 
 	.total {

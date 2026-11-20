@@ -147,7 +147,7 @@
 			{#if data.current.now.length}
 				<ul class="entries">{#each data.current.now as current, i (i)}{@render entry(current)}{/each}</ul>
 			{:else}
-				<p class="muted">{t.trips.days.nothingNow}</p>
+				<p class="ui-muted">{t.trips.days.nothingNow}</p>
 			{/if}
 		</div>
 		<div class="ui-card next">
@@ -155,7 +155,7 @@
 			{#if data.current.next}
 				<ul class="entries">{@render entry(data.current.next)}</ul>
 			{:else}
-				<p class="muted">{t.trips.days.done}</p>
+				<p class="ui-muted">{t.trips.days.done}</p>
 			{/if}
 		</div>
 	</section>
@@ -165,7 +165,7 @@
 			{#if todayPlan.entries.length}
 				<ul class="entries">{#each todayPlan.entries as one, i (i)}{@render entry(one)}{/each}</ul>
 			{:else}
-				<p class="muted">{t.trips.days.empty}</p>
+				<p class="ui-muted">{t.trips.days.empty}</p>
 			{/if}
 		</section>
 	{/if}
@@ -177,7 +177,7 @@
 				{#if plan.entries.length}
 					<ul class="entries">{#each plan.entries as one, j (j)}{@render entry(one)}{/each}</ul>
 				{:else}
-					<p class="muted">{t.trips.days.empty}</p>
+					<p class="ui-muted">{t.trips.days.empty}</p>
 				{/if}
 				{#if data.organises}
 					<details class="add no-print">
@@ -483,10 +483,6 @@
 		color: var(--text-muted);
 		font-size: var(--text-sm);
 		white-space: pre-line;
-	}
-
-	.muted {
-		color: var(--text-muted);
 	}
 
 	.edit summary,

@@ -36,8 +36,8 @@
 <header class="head">
 	<h1>{s.title}</h1>
 	<p class="lead">{s.lead}</p>
-	{#if data.rooms.length}<p class="muted">{s.bedsTotal(data.beds, placed + data.unplaced.length)}</p>{/if}
-	{#if !data.organises}<p class="muted">{t.trips.organising.board.readOnly}</p>{/if}
+	{#if data.rooms.length}<p class="ui-hint">{s.bedsTotal(data.beds, placed + data.unplaced.length)}</p>{/if}
+	{#if !data.organises}<p class="ui-hint">{t.trips.organising.board.readOnly}</p>{/if}
 </header>
 
 {#if form?.error}<p class="msg error" role="alert">{form.error}</p>{/if}
@@ -79,7 +79,7 @@
 {#if data.rooms.length}
 	<AssignBoard {units} unplaced={data.unplaced} edits={data.organises} {tools} />
 {:else}
-	<p class="ui-card empty muted">{s.none}</p>
+	<p class="ui-card empty ui-hint">{s.none}</p>
 {/if}
 
 {#if data.organises}
@@ -122,11 +122,6 @@
 	.lead {
 		max-width: 62ch;
 		color: var(--text-muted);
-	}
-
-	.muted {
-		color: var(--text-muted);
-		font-size: var(--text-sm);
 	}
 
 	.empty {

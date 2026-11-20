@@ -54,7 +54,7 @@
 					<input type="hidden" name="email" value={row.email} />
 					<span class="who">
 						<strong>{row.name}</strong>
-						<span class="muted">{euros(row.fee)}</span>
+						<span class="ui-hint">{euros(row.fee)}</span>
 					</span>
 					<select name="choice" aria-label={c.fee} bind:value={choices[row.email]}>
 						{#each FEE_CHOICES as choice (choice)}
@@ -73,7 +73,7 @@
 		{/each}
 	</ul>
 {:else}
-	<p class="ui-card empty muted">{c.nobody}</p>
+	<p class="ui-card empty ui-hint">{c.nobody}</p>
 {/if}
 
 <style>
@@ -96,11 +96,6 @@
 	.lead {
 		max-width: 62ch;
 		color: var(--text-muted);
-	}
-
-	.muted {
-		color: var(--text-muted);
-		font-size: var(--text-sm);
 	}
 
 	.fees {

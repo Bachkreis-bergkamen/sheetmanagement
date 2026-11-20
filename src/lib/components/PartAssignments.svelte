@@ -52,7 +52,7 @@
 						<div class="meta">
 							{#if assignment.everyPiece}<span class="tag">{t.partAssignments.everyPiece}</span>{/if}
 							<span class="tag concert">{assignment.concert ? t.partAssignments.onlyConcert(assignment.concert) : t.partAssignments.forever}</span>
-							<span class="muted">{t.partAssignments.meta(assignment.by, assignment.at)}</span>
+							<span class="ui-muted">{t.partAssignments.meta(assignment.by, assignment.at)}</span>
 							{#if assignments.form && assignment.id}
 								<form method="POST" action="?/deleteAssignment" use:enhance={saving.submit()}>
 									<input type="hidden" name="id" value={assignment.id} />
@@ -71,14 +71,14 @@
 				{/each}
 			</ul>
 		{:else if assignments.form}
-			<p class="muted none">{t.partAssignments.none}</p>
+			<p class="ui-muted none">{t.partAssignments.none}</p>
 		{/if}
 
 		{#if assignments.form}
 			<details class="add" bind:open={adding}>
 				<summary><Icon name="plus" size={16} />{t.partAssignments.add}</summary>
 				<form method="POST" action="?/addAssignment" use:enhance={saving.submit({ reset: true, onSuccess: () => (adding = false) })}>
-					<p class="muted wide lead">{t.partAssignments.lead}</p>
+					<p class="ui-muted wide lead">{t.partAssignments.lead}</p>
 					<label class="field">
 						{t.partAssignments.who}
 						<select name="who" required>
@@ -187,10 +187,6 @@
 	.tag.concert {
 		background: var(--surface-2);
 		color: var(--text);
-	}
-
-	.muted {
-		color: var(--text-muted);
 	}
 
 	.none {
