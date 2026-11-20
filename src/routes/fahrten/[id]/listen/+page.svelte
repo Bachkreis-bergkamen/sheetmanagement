@@ -302,7 +302,7 @@
 		{:else}
 			<label class="check"><input type="checkbox" name="bulky" bind:checked={newBulky} onchange={() => (bulkyTouched = true)} /><span>{l.instruments.bulky}</span></label>
 		{/if}
-		<div><button class="btn small" disabled={saving.busy}><Icon name="check" size={14} />{l.instruments.save}</button></div>
+		<div><button class="btn secondary small" disabled={saving.busy}><Icon name="check" size={14} />{l.instruments.save}</button></div>
 	</form>
 {/snippet}
 

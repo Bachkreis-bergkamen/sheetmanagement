@@ -253,7 +253,7 @@
 			</div>
 			{#if form && 'instrumentsMessage' in form && form.instrumentsMessage}<p class="msg error" role="alert">{form.instrumentsMessage}</p>{/if}
 			<div class="actions">
-				<button class="btn" disabled={savingInstruments.busy}><Icon name="check" size={16} />{t.settings.saveInstruments}</button>
+				<button class="btn secondary" disabled={savingInstruments.busy}><Icon name="check" size={16} />{t.settings.saveInstruments}</button>
 				{#if form && 'instrumentsSaved' in form}<span class="saved" role="status"><Icon name="check" size={16} />{t.settings.instrumentsSaved}</span>{/if}
 			</div>
 		</details>

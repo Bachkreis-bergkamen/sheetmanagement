@@ -445,7 +445,7 @@
 										<span class="muted">{[day(event.day), event.start].filter(Boolean).join(' · ')}</span>
 									</label>
 								{/each}
-								<div><button class="btn small" disabled={saving.busy}>{t.trips.events.save}</button></div>
+								<div><button class="btn secondary small" disabled={saving.busy}>{t.trips.events.save}</button></div>
 							</form>
 						{:else}
 							<p class="muted">{t.trips.events.noneInWindow}</p>

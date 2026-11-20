@@ -56,7 +56,7 @@
 						<li>
 							<strong>{when.long}</strong>
 							{#if data.calendarUrls[id]}
-								<a class="btn small" href={data.calendarUrls[id]} target="_blank" rel="noopener noreferrer">
+								<a class="btn secondary small" href={data.calendarUrls[id]} target="_blank" rel="noopener noreferrer">
 									<Icon name="calendar" size={14} />{t.polls.toCalendar}<span class="sr-only"> ({when.long})</span>
 								</a>
 							{/if}

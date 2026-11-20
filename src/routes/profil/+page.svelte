@@ -131,11 +131,11 @@
 						<p class="msg info">{t.feed.notSetUp}</p>
 					{:else if data.feed.state === 'none'}
 						<form method="POST" action="?/feed" use:enhance={feeds.submit()}>
-							<button class="btn" disabled={feeds.busy}><Icon name="link" size={16} />{t.feed.create}</button>
+							<button class="btn secondary" disabled={feeds.busy}><Icon name="link" size={16} />{t.feed.create}</button>
 						</form>
 					{:else}
 						<div class="feed-actions">
-							<a class="btn" href={data.feed.webcal}><Icon name="calendar" size={16} />{t.feed.subscribe}</a>
+							<a class="btn secondary" href={data.feed.webcal}><Icon name="calendar" size={16} />{t.feed.subscribe}</a>
 							<button class="btn ghost" type="button" onclick={() => copier.copy(data.feed?.state === 'active' ? data.feed.url : '')}>
 								<Icon name={copier.copied ? 'check' : 'link'} size={16} />{copier.copied ? t.feed.copied : t.feed.copy}
 							</button>
@@ -237,7 +237,7 @@
 					<PasswordFields email={data.email} problem={form && 'passwordProblem' in form ? form.passwordProblem : null} />
 					{#if form && 'passwordMessage' in form && form.passwordMessage}<p class="msg error" role="alert">{form.passwordMessage}</p>{/if}
 					<div class="feed-actions">
-						<button class="btn" disabled={passwords.busy}>{data.password.has ? t.password.change : t.password.set}</button>
+						<button class="btn secondary" disabled={passwords.busy}>{data.password.has ? t.password.change : t.password.set}</button>
 						{#if data.password.has}<a class="muted small" href="/auth/passwort">{t.password.forgot}</a>{/if}
 					</div>
 				</form>
@@ -255,7 +255,7 @@
 					<p class="msg info">{t.feed.notSetUp}</p>
 				{:else if form && 'link' in form && form.link}
 					<div class="feed-actions">
-						<button class="btn" type="button" onclick={() => copier.copy(form && 'link' in form ? String(form.link) : '')}>
+						<button class="btn secondary" type="button" onclick={() => copier.copy(form && 'link' in form ? String(form.link) : '')}>
 							<Icon name={copier.copied ? 'check' : 'link'} size={16} />{copier.copied ? t.feed.copied : t.feed.copy}
 						</button>
 					</div>
@@ -265,13 +265,13 @@
 					<div class="feed-actions">
 						<form method="POST" action="?/link" use:enhance={links.submit()}>
 							<input type="hidden" name="mode" value="show" />
-							<button class="btn" disabled={links.busy}><Icon name="eye" size={16} />{t.ownLink.show}</button>
+							<button class="btn secondary" disabled={links.busy}><Icon name="eye" size={16} />{t.ownLink.show}</button>
 						</form>
 					</div>
 				{:else}
 					<form method="POST" action="?/link" use:enhance={links.submit()}>
 						<input type="hidden" name="mode" value="new" />
-						<button class="btn" disabled={links.busy}><Icon name="link" size={16} />{t.ownLink.create}</button>
+						<button class="btn secondary" disabled={links.busy}><Icon name="link" size={16} />{t.ownLink.create}</button>
 					</form>
 				{/if}
 				{#if data.accessLink.state === 'active'}

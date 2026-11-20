@@ -214,7 +214,7 @@
 					{#if ticket.checkedInAt}
 						<span class="muted">{d.admitted} {time(ticket.checkedInAt)}</span>
 					{:else}
-						<button class="btn small" onclick={() => check(ticket.code)}>{d.admit}</button>
+						<button class="btn secondary small" onclick={() => check(ticket.code)}>{d.admit}</button>
 					{/if}
 				</li>
 			{/each}

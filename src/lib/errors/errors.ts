@@ -79,6 +79,12 @@ export function cleanReport(report: { source: ErrorSource; place?: unknown; mess
  * report-uri form ({"csp-report": …}) and the Reporting API's ([{type, body}]). Null for
  * anything else, and for extensions' scripts, which aren't the app's.
  */
+/**
+ * Scripts that in-app browsers put into every page they open, not the app's: Facebook's and
+ * Instagram's add Meta's, e.g. when a sign-in link is opened from a chat there.
+ */
+const INJECTED = ['https://connect.facebook.net'];
+
 export function cspViolation(body: unknown): { message: string; place: string } | null {
 	const item = Array.isArray(body) ? body.find((each) => each?.type === 'csp-violation')?.body : (body as Record<string, unknown> | null)?.['csp-report'];
 	if (!item || typeof item !== 'object') return null;
@@ -89,7 +95,7 @@ export function cspViolation(body: unknown): { message: string; place: string } 
 	};
 	const directive = text('effective-directive', 'effectiveDirective', 'violated-directive').split(' ')[0];
 	const blocked = text('blocked-uri', 'blockedURL') || 'inline';
-	if (!directive || /^(chrome|moz|safari(-web)?)-extension:/.test(blocked)) return null;
+	if (!directive || /^(chrome|moz|safari(-web)?)-extension:/.test(blocked) || INJECTED.some((site) => blocked.startsWith(site))) return null;
 	let place = '?';
 	try {
 		place = new URL(text('document-uri', 'documentURL')).pathname;

@@ -194,7 +194,7 @@
 						<div class="actions">
 							<form method="POST" action="?/approve" use:enhance={submit}>
 								<input type="hidden" name="email" value={request.email} />
-								<button class="btn small" disabled={saving.busy}>{t.admin.approve}</button>
+								<button class="btn secondary small" disabled={saving.busy}>{t.admin.approve}</button>
 							</form>
 							<form method="POST" action="?/decline" use:enhance={submit}>
 								<input type="hidden" name="email" value={request.email} />
@@ -381,7 +381,7 @@
 						<p><Icon name="check" size={16} />{t.invite.created}</p>
 						<div class="link-row">
 							<input readonly value={form.invited.url} onfocus={(event) => event.currentTarget.select()} aria-label={t.invite.adminTitle} />
-							<button class="btn" type="button" onclick={() => copier.copy(form!.invited!.url)}>{copier.copied ? t.admin.copied : t.admin.copy}</button>
+							<button class="btn secondary" type="button" onclick={() => copier.copy(form!.invited!.url)}>{copier.copied ? t.admin.copied : t.admin.copy}</button>
 						</div>
 					</div>
 				{:else if form?.inviteRevoked}
@@ -514,7 +514,7 @@
 								{/each}
 							</div>
 							<div class="row-buttons">
-								<button class="btn small" disabled={saving.busy}><Icon name="check" size={14} />{t.admin.save}</button>
+								<button class="btn secondary small" disabled={saving.busy}><Icon name="check" size={14} />{t.admin.save}</button>
 								<button class="icon-btn" disabled={saving.busy} formaction="?/removeRole" title={t.admin.remove} aria-label={t.admin.remove} onclick={confirmLink(t.admin.confirmRemoveRole(role.name))}>
 									<Icon name="trash" size={16} />
 								</button>

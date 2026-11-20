@@ -98,7 +98,7 @@
 			<p><strong>{t.tickets.counts.takings}: {data.counts.takings}</strong></p>
 			{#if data.counts.feeCents}<p class="hint">{t.tickets.counts.fees(data.counts.fees)}</p>{/if}
 			<div class="counts-actions">
-				{#if !data.concert.past}<a class="btn" href="/einlass/{encodeURIComponent(data.concert.id)}"><Icon name="check" size={18} />{t.tickets.door}</a>{/if}
+				{#if !data.concert.past}<a class="btn secondary" href="/einlass/{encodeURIComponent(data.concert.id)}"><Icon name="check" size={18} />{t.tickets.door}</a>{/if}
 				{#if data.orders.length}<a class="btn secondary" href="{eventUrl}/karten/gaeste.csv" download><Icon name="download" size={18} />{t.tickets.orders.csv}</a>{/if}
 			</div>
 		</section>
@@ -148,7 +148,7 @@
 			<span>{t.tickets.free.count}</span>
 			<input name="count" type="number" min="1" max="10" inputmode="numeric" required value={freeValues.count} defaultValue="1" />
 		</label>
-		<button class="btn" disabled={giving.busy}>{t.tickets.free.give}</button>
+		<button class="btn secondary" disabled={giving.busy}>{t.tickets.free.give}</button>
 	</form>
 	<small>{t.tickets.free.emailHint}</small>
 </section>
