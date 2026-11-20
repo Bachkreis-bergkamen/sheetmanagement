@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { toCsv } from '#lib/repertoire/music-report.ts';
 import { kitchenRows, listReader, listRows } from '#lib/server/trip-lists.ts';
 import { openTrip } from '#lib/server/trips.ts';

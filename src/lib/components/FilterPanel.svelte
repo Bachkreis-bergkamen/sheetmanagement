@@ -1,6 +1,6 @@
 <script lang="ts" generics="T">
 	import { tick } from 'svelte';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { applyFilters, countWith, type FilterGroup } from '#lib/filters.ts';
 	import Icon from './Icon.svelte';
 

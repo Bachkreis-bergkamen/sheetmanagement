@@ -1,5 +1,5 @@
 import { cleanLink } from '#lib/links.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { searchText } from '#lib/music/text.ts';
 import { ConcertNames, concertKey } from './concert-ref.ts';
 import { fuzzyDateKey, parseFuzzyDate, type FuzzyDate } from './dates.ts';

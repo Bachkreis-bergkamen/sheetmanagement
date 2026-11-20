@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { config } from '#lib/config/index.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import type { ListAnswers, ListKind } from '#lib/trips/lists.ts';
 	import { formatWeekday, localDay } from '#lib/trips/trips.ts';
 	import Icon from '#lib/components/Icon.svelte';

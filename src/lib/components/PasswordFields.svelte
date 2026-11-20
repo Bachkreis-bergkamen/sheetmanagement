@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { MAX_LENGTH, MIN_LENGTH, type PasswordProblem } from '#lib/access/password-rules.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 
 	/** A new password, twice, with the account's email for password managers. */
 	let { email, problem }: { email: string; problem?: PasswordProblem | null } = $props();

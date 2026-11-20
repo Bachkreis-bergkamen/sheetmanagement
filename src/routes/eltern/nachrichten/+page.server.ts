@@ -1,5 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { kummerFromForm, unreadForAuthor } from '#lib/kummer/kummer.ts';
 import { authorKey, getLeitung, kummerStore } from '#lib/server/kummer.ts';
 import { childNames, parentContext } from '#lib/server/parents.ts';

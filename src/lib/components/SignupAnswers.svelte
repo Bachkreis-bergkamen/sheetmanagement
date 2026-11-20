@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import { FormState, showToast } from '#lib/forms.svelte.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { actionPath, dropQueuedAnswer, pendingAnswers, queueAnswer } from '#lib/offline/answers.svelte.ts';
 	import { ANSWERS, type Answer } from '#lib/signups/signups.ts';
 	import Icon from './Icon.svelte';

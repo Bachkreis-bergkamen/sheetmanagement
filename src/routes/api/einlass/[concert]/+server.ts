@@ -1,6 +1,6 @@
 import { error, json } from '@sveltejs/kit';
 import { normalizeEmail } from '#lib/access/access.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { requireRight } from '#lib/server/auth/index.ts';
 import { getStore } from '#lib/server/db/index.ts';
 import { requireFeature } from '#lib/server/env.ts';

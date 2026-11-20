@@ -1,0 +1,87 @@
+import type { Texts } from '../types.ts';
+
+/** /einstellungen: name, logo, colour and features per orchestra (#75, #134). */
+export const settings: Texts['settings'] = {
+	title: 'Settings',
+	lead: 'How the app looks for everyone and what it offers.',
+	/** The settings' sections (#185): one page for every setting. */
+	sections: { label: 'Settings sections', orchestra: 'Orchestra', sheet: 'Sheet & data', status: 'Status' },
+	identity: 'Name',
+	name: 'Name of the orchestra',
+	shortName: 'Short name',
+	shortNameHint: 'For the header on phones, at most 24 characters.',
+	privacy: 'Privacy',
+	retention: 'Keep names on sign-ups and attendance for (seasons)',
+	retentionPlaceholder: 'no limit',
+	retentionHint:
+		'Older entries stay without names, so the Chronik and the season report still count them. A season runs from September to August; the current one counts. Empty keeps all names.',
+	logo: 'Logo',
+	logoField: 'Link to the logo',
+	logoHint: "A square image as an https link, e.g. from the orchestra's website, or a file of the app such as /logo.png.",
+	logoPreview: 'Preview',
+	links: 'Website and social media',
+	linksField: 'Links at the bottom of every page',
+	linksHint: 'One link per line with a name before it, e.g. “Instagram https://www.instagram.com/orchestra/”. Instagram, Facebook and YouTube get their sign. Empty shows none.',
+	colour: 'Colour',
+	accent: 'Accent colour',
+	accentDefault: (colour: string) => `Default colour (${colour})`,
+	presets: 'Suggestions',
+	presetNames: { gold: 'Gold', navy: 'Navy', petrol: 'Petrol', forest: 'Forest green', bordeaux: 'Bordeaux', violet: 'Violet' } as Record<string, string>,
+	colourHint: 'For light and dark, the colour is adjusted just enough for text to stay readable (at least 4.5:1).',
+	light: 'Light',
+	dark: 'Dark',
+	sample: 'Button',
+	link: 'Link',
+	ratio: (value: string) => `Contrast ${value}:1`,
+	look: 'Look',
+	lookDefault: (look: string) => `This installation's default (${look})`,
+	looks: {
+		bold: 'Bold: narrow, heavy headings and the logo large behind the greeting, like on posters',
+		plain: 'Plain: classic serif headings, no logo in the background'
+	} as Record<string, string>,
+	lookNames: { bold: 'bold', plain: 'plain' } as Record<string, string>,
+	features: 'Features',
+	featuresLead: "What the orchestra doesn't use disappears from menus and pages. Entries in the sheet are kept.",
+	featuresFromDefault: 'Not saved here yet: this shows the installation’s default (FEATURES_OFF).',
+	describe: {
+		loans: 'Rented music with return dates.',
+		musicReport: 'The music report for the collecting society when printing a concert.',
+		attendance: 'Who was at the rehearsals.',
+		signups: 'Yes and no for rehearsals and concerts.',
+		wishes: 'Suggest pieces and ideas, with +1.',
+		calendarFeed: 'A personal calendar to subscribe to, on the profile.',
+		seasons: 'Small drawings for the season: a snowflake, a blossom, a pumpkin.',
+		tickets: 'Reserve concert tickets on the website, paid at the door, with check-in by phone.',
+		offline: 'Save parts in “My parts” for rehearsals without a connection.',
+		drills: 'Short exercises in note reading, keys, intervals, rhythm, pitch, scales, sight-reading, playing together and transposing. They run on the device, your progress follows you to your other devices; the time counts toward practice time.'
+	} as Record<string, string>,
+	instruments: 'Instruments',
+	instrumentsLead:
+		'What instruments are called in the app and which spellings in file names are recognised. The file names themselves and the naming check keep the word from the file names.',
+	fileWord: 'In file names',
+	shownAs: 'In the app',
+	moreSpellings: 'More spellings',
+	moreSpellingsHint: 'Separate more spellings with commas, e.g. “Violin, Vl.”.',
+	known: (words: string) => `Known: ${words}`,
+	saveInstruments: 'Save instruments',
+	instrumentsSaved: 'Saved. Applies to everyone at once.',
+	invalidInstrument: (name: string) =>
+		`For “${name}”: at most 30 characters for the name, at most 12 spellings of 40 characters each, only letters, digits, spaces, full stop and hyphen.`,
+	emptyIsDefault: 'Empty fields use the installation’s default, shown in grey in the field.',
+	save: 'Save',
+	saved: 'Saved. The changes apply to everyone at once.',
+	failed: "Saving didn't work. Please try again in a moment.",
+	notConfigured: 'No repertoire sheet is connected yet; the settings are saved there.',
+	readFailed: "The settings couldn't be read just now.",
+	stored: 'Saved in the “Settings” tab of the repertoire sheet.',
+	invalid: {
+		name: 'The name is too long (at most 80 characters).',
+		shortName: 'The short name is too long (at most 24 characters).',
+		logo: 'The logo must be an https link or start with /.',
+		accent: 'The colour must look like #rrggbb.',
+		look: 'Please choose one of the looks.',
+		featuresOff: '',
+		retention: 'Retention is a number of seasons, 1 to 20, or empty.',
+		links: 'Every line needs a link starting with https://; at most 8.'
+	}
+};

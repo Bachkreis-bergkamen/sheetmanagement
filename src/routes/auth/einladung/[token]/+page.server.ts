@@ -1,7 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { normalizeEmail } from '#lib/access/access.ts';
 import { config } from '#lib/config/index.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { commonInstruments, playableInstruments } from '#lib/music/my-parts.ts';
 import { setPassword } from '#lib/server/auth/accounts.ts';
 import { authConfig, startSession } from '#lib/server/auth/index.ts';

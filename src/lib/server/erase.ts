@@ -1,6 +1,6 @@
 import { normalizeEmail } from '#lib/access/access.ts';
 import { ERASE_TABS, planErase, pseudonym, type TabErase } from '#lib/access/erase.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { LAYOUT, type Table, type TabKey } from '#lib/repertoire/sheet.ts';
 import { getStore } from './db/index.ts';
 import { pollStore } from './polls.ts';

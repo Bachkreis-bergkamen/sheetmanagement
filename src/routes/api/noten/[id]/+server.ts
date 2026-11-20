@@ -5,7 +5,7 @@ import { GoogleApiError } from '#lib/server/google/client.ts';
 import { downloadFile } from '#lib/server/google/drive.ts';
 import { getGoogle } from '#lib/server/services.ts';
 import type { RequestHandler } from './$types';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 
 const PDF = 'application/pdf';
 

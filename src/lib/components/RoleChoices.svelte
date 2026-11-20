@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 
 	/**
 	 * A member's roles in /admin, each maybe for some orchestras only (#305): "Dirigat" ticked with

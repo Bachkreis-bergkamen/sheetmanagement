@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { config } from '#lib/config/index.ts';
 	import { FormState } from '#lib/forms.svelte.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { formatEuros } from '#lib/trips/organising.ts';
 	import { formatDays, formatWeekday, tripDays, TRIP_ROLES } from '#lib/trips/trips.ts';
 	import Avatar from '#lib/components/Avatar.svelte';

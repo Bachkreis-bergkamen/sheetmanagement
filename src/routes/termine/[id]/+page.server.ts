@@ -1,7 +1,7 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { isAdminOnly } from '#lib/access/access.ts';
 import { config } from '#lib/config/index.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { bestOption, calendarLink, canSeePoll, choicesFromForm, isOpen, scoreOptions, type Poll } from '#lib/polls/polls.ts';
 import { today } from '#lib/server/members.ts';
 import { pollStore, pollViewer, type PollViewer } from '#lib/server/polls.ts';

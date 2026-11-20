@@ -1,5 +1,5 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { today } from '#lib/server/members.ts';
 import { listPerson, type ListPerson, type OpenedTrip } from '#lib/server/trip-lists.ts';
 import { openTrip } from '#lib/server/trips.ts';

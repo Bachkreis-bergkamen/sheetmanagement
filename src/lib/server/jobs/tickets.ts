@@ -1,4 +1,4 @@
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { pruneTickets } from '../tickets.ts';
 import type { JobResult } from './index.ts';
 

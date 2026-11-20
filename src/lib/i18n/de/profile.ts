@@ -1,0 +1,42 @@
+export const profile = {
+	title: 'Profil',
+	lead: 'Deine Angaben und Einstellungen, nach Themen geordnet.',
+	settings: 'Einstellungen',
+	sections: {
+		jump: 'Auf dieser Seite',
+		about: 'Über dich',
+		aboutLead: 'Was du spielst und ob du gerade dabei bist. Danach richten sich deine Noten und die Besetzung.',
+		notify: 'Benachrichtigungen & Kalender',
+		notifyLead: 'Wie du von Proben und Konzerten erfährst.',
+		app: 'Ansicht & App',
+		appLead: 'Wie die App aussieht, auf diesem Gerät.',
+		practice: 'Üben & deine Daten',
+		practiceLead: 'Was die App nur für dich speichert, und alles zum Mitnehmen.',
+		signIn: 'Anmeldung & Sicherheit',
+		signInLead: 'Womit du dich anmeldest, und abmelden.'
+	},
+	notMember: 'Das Profil gibt es für eingetragene Mitglieder.',
+	name: 'Vor- und Nachname',
+	instruments: 'Instrumente',
+	orchestras: 'Orchester',
+	orchestrasHint: 'Keins angekreuzt: Du siehst die Konzerte aller Orchester.',
+	status: 'Status',
+	statuses: { aktiv: 'aktiv', pausiert: 'pausiert', inaktiv: 'inaktiv', verwaltung: 'nur Verwaltung', eltern: 'Eltern' } as Record<string, string>,
+	statusHints: {
+		aktiv: 'Du zählst bei der Besetzung mit.',
+		pausiert: 'Zum Beispiel Auslandssemester oder Elternzeit. Mit Datum wirst du danach automatisch wieder aktiv.',
+		inaktiv: 'Du behältst den Zugang, zählst aber bei der Besetzung nicht mit.',
+		verwaltung: 'Ein reines Verwaltungskonto, das nicht mitspielt: Es taucht bei Anmeldungen, Anwesenheit und Umfragen nicht auf.',
+		eltern: 'Ein Elternteil, das nicht mitspielt: Es sieht nur den Elternbereich mit den Terminen seiner Kinder, keine Noten.'
+	} as Record<string, string>,
+	pausedUntil: 'Pausiert bis (optional)',
+	pausedUntilShort: (day: string) => `bis ${day}`,
+	save: 'Speichern',
+	saved: 'Gespeichert.',
+	groups: 'Gruppen',
+	groupsHint: 'Gruppen und Rechte vergibt die Verwaltung.',
+	gone: 'Dein Eintrag in „Mitglieder“ wurde nicht gefunden. Bitte die Seite neu laden.',
+	failed: 'Das Profil konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.',
+	unknownStatus: 'Diesen Status gibt es nicht.',
+	badDate: 'Das Datum ist nicht lesbar.'
+} as const;

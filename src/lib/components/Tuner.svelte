@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { readLocalJson, writeLocalJson } from '#lib/local-storage.ts';
 	import { detectPitch, DRONE_HARMONICS, noteFrequency, PitchSmoother } from '#lib/practice/audio.ts';
 	import TunerGauge from './TunerGauge.svelte';

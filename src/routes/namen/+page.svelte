@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import { config } from '#lib/config/index.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { checkSection, maxShortTitle, RENAME_BATCH } from '#lib/music/naming.ts';
 	import { createInstrumentMatcher } from '#lib/music/part-name.ts';
 	import Icon from '#lib/components/Icon.svelte';

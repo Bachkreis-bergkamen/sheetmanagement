@@ -1,7 +1,7 @@
 import { fail, redirect, type Cookies } from '@sveltejs/kit';
 import { currentStatus, normalizeEmail, parseLinkVersion, parseStatus } from '#lib/access/access.ts';
 import { config } from '#lib/config/index.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { commonInstruments, parseInstruments, playableInstruments } from '#lib/music/my-parts.ts';
 import { readMemberForm, today, writable } from '#lib/server/members.ts';
 import { getAccessList } from '#lib/server/repertoire.ts';

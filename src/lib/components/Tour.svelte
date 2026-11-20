@@ -3,7 +3,7 @@
 	import { fade, fly } from 'svelte/transition';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { readLocal, writeLocal } from '#lib/local-storage.ts';
 	import { placeCard, shouldOffer, TOUR_STORAGE_KEY, tourSteps, type Box, type TourOutcome, type TourStep } from '#lib/tour/tour.ts';
 	import { tour } from '#lib/tour/state.svelte.ts';

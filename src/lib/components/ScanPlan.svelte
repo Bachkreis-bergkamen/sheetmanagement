@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { FormState, showToast } from '#lib/forms.svelte.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { PRIORITIES, type Priority } from '#lib/repertoire/missing-parts.ts';
 	import Icon from './Icon.svelte';
 

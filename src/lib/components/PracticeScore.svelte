@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { showToast, toast } from '#lib/forms.svelte.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import type { OpenScore } from '#lib/music/score-reader.ts';
 	import { FloatingBar } from '#lib/practice/floating-bar.svelte.ts';
 	import { MARK_COLORS, MARK_SYMBOLS, markLines, onPage, strokePath, SYMBOL_SIZE, symbolLines, type MarkColor, type MarkSymbol, type Stroke } from '#lib/practice/marks.ts';

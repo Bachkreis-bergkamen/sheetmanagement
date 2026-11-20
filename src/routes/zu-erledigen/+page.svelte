@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { config } from '#lib/config/index.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { shortDateLabel } from '#lib/repertoire/dates.ts';
 	import type { OpenItem } from '#lib/server/todo.ts';
 	import Icon, { type IconName } from '#lib/components/Icon.svelte';

@@ -1,6 +1,7 @@
 import type { Handle, HandleServerError } from '@sveltejs/kit/hooks';
 import { parentMayOpen, resolveAccess } from '#lib/access/access.ts';
-import { LANGUAGE, t } from '#lib/i18n/index.ts';
+import { LANGUAGE } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { featureOfPath } from '#lib/features.ts';
 import { movedPath } from '#lib/nav.ts';
 import { accessFromCookies, authConfig, isPublicPath } from '#lib/server/auth/index.ts';

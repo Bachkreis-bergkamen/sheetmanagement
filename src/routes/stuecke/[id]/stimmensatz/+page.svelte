@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import PartSetBuilder from '#lib/components/PartSetBuilder.svelte';
 
 	let { data } = $props();

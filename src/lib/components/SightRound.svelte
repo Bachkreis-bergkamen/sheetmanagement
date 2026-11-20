@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { noteFrequency, tempoName } from '#lib/practice/audio.ts';
 	import { profile, type ProfileId } from '#lib/practice/drills/instruments.ts';
 	import { segment, type Reading } from '#lib/practice/drills/scales.ts';

@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { requireRight } from '#lib/server/auth/index.ts';
 import { requireFeature } from '#lib/server/env.ts';
 import { getLibrary } from '#lib/server/library.ts';

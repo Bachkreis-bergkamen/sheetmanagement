@@ -2,7 +2,7 @@ import { error, json } from '@sveltejs/kit';
 import { requireRight } from '#lib/server/auth/index.ts';
 import { videoSeconds, youtubeEnabled } from '#lib/server/youtube.ts';
 import type { RequestHandler } from './$types';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 
 /** A video's length for the piece editor's suggestions (#133); only for people who edit pieces. */
 export const GET: RequestHandler = async ({ params, locals }) => {

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { FormState } from '#lib/forms.svelte.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import AuthCard from '#lib/components/AuthCard.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import InstrumentPicker from '#lib/components/InstrumentPicker.svelte';

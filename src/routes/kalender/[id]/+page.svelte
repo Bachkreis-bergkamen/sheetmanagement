@@ -4,7 +4,7 @@
 	import ArchiveConcertForm from '#lib/components/ArchiveConcertForm.svelte';
 	import { enhance } from '$app/forms';
 	import { replaceState } from '$app/navigation';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import Crumbs from '#lib/components/Crumbs.svelte';
 	import EventRow from '#lib/components/EventRow.svelte';
 	import Icon from '#lib/components/Icon.svelte';

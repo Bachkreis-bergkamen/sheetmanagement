@@ -1,0 +1,41 @@
+import type { Texts } from '../types.ts';
+
+/** Email (#123): sign-in links, reminders, the account on /status. */
+export const email: Texts['email'] = {
+	or: 'or',
+	toSignIn: 'To sign-in',
+	hello: (name: string) => (name ? `Hello ${name},` : 'Hello,'),
+	answerLinks: 'Answer:',
+	openInApp: 'In the app:',
+	footer: (orchestra: string, profile: string) => `${orchestra}\nNo more reminders by email: ${profile}`,
+	answerTitle: 'Your answer',
+	answerLead: (name: string) => (name ? `${name}, are you coming?` : 'Are you coming?'),
+	answerSaved: (answer: string) => `Saved: ${answer}. You can change it any time in the app.`,
+	answerInvalid: "This link no longer works: the date is over or you're no longer listed.",
+	answerChange: 'To the date in the app',
+	profileTitle: 'Reminders by email',
+	profileLead: (email: string) => `To ${email}, when you haven't answered a rehearsal or concert in the next days and no device has notifications on.`,
+	profileOn: 'On.',
+	profileOff: 'Turned off.',
+	turnOff: 'Turn off',
+	turnOn: 'Turn on again',
+	profileFailed: "That didn't work. Please try again.",
+	status: 'Email',
+	connected: (email: string, since: string) => `Sent from ${email} (connected on ${since}).`,
+	links: (origin: string) => `Links in emails go to ${origin}.`,
+	optOuts: (n: number) => (n === 1 ? '1 member turned email reminders off.' : `${n} members turned email reminders off.`),
+	notConnected: 'No email account connected: signing up, forgotten passwords and reminders by email are off.',
+	connectHint:
+		"Sign in with the orchestra's Google account that should send the emails. Google asks for permission to send email on its behalf, nothing more. On the OAuth consent screen the app must be 'In production', else the permission ends after 7 days.",
+	needsSignIn: 'Set up sign-in with Google first (step 9).',
+	connect: 'Connect email account',
+	disconnect: 'Disconnect',
+	confirmDisconnect: 'Disconnect the email account? Links to set a password and email reminders then stop.',
+	revoked: 'Google took back the permission to send. Please connect the account again.',
+	lastError: (message: string) => `The last email didn't go out: ${message}`,
+	connectedNow: 'Email account connected.',
+	disconnectedNow: 'Email account disconnected.',
+	connectFailed: "The account couldn't be connected. Please allow sending email on Google's page and try again.",
+	noScope: "Google didn't allow sending. Please tick 'Send email' when connecting.",
+	wrongUser: 'Only admins can connect an email account.'
+};

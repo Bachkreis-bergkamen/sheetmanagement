@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { tick } from 'svelte';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import Icon from '#lib/components/Icon.svelte';
 	import InstrumentGlyph from '#lib/components/InstrumentGlyph.svelte';
 	import InstrumentPicker from '#lib/components/InstrumentPicker.svelte';

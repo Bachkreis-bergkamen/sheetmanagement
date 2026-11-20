@@ -1,5 +1,5 @@
 import { config } from '#lib/config/index.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { currentProgramAvailable, currentProgramInStep, currentProgramStatus, nextConcert, syncCurrentProgram } from '../current-program.ts';
 import { getLibrary } from '../library.ts';
 import type { JobResult } from './index.ts';

@@ -1,4 +1,5 @@
-import { LANGUAGE, t } from '#lib/i18n/index.ts';
+import { LANGUAGE } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { orchestra } from '#lib/server/env.ts';
 import type { RequestHandler } from './$types';
 

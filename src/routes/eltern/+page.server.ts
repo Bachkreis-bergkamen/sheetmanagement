@@ -1,6 +1,6 @@
 import { fail } from '@sveltejs/kit';
 import { playsIn } from '#lib/access/access.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { noticeFor } from '#lib/parents/notices.ts';
 import { ANSWERS, type Answer } from '#lib/signups/signups.ts';
 import { euro } from '#lib/tickets/tickets.ts';

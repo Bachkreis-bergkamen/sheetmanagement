@@ -1,0 +1,30 @@
+/** Invitation links (/admin makes them, /auth/einladung/… uses them): someone new fills in their own details. */
+export const invite = {
+	title: 'Willkommen!',
+	lead: 'Du bist eingeladen. Trag dich hier ein, dann kannst du gleich loslegen.',
+	aboutYou: 'Über dich',
+	signIn: 'So meldest du dich an',
+	signInLead: 'Mit dieser E-Mail-Adresse und dem Passwort meldest du dich ab jetzt an.',
+	join: 'Eintragen und loslegen',
+	nameMissing: 'Bitte deinen Vor- und Nachnamen eintragen.',
+	instrumentMissing: 'Bitte wähl mindestens ein Instrument.',
+	exists: 'Mit dieser E-Mail-Adresse bist du schon eingetragen. Melde dich einfach an.',
+	joinFailed: 'Das Eintragen hat gerade nicht geklappt. Bitte versuch es noch einmal.',
+	invalid: 'Diese Einladung ist abgelaufen oder wurde schon benutzt. Bitte frag die Verwaltung nach einer neuen.',
+	failed: 'Die Einladung konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.',
+	adminTitle: 'Per Link einladen',
+	adminLead: (days: number) =>
+		`Du schickst einen Link, und die Person trägt Name, E-Mail-Adresse, Passwort und Instrument selbst ein. Jeder Link gilt einmal und ${days} Tage.`,
+	label: 'Für wen? (optional)',
+	labelHint: 'Nur für dich, damit du den Link in der Liste wiedererkennst.',
+	roles: 'Rollen (optional)',
+	create: 'Einladungslink erzeugen',
+	created: 'Link erzeugt. Kopier ihn und schick ihn per Messenger oder E-Mail.',
+	open: 'Offene Einladungen',
+	unnamed: 'Ohne Namen',
+	until: (day: string) => `gilt bis ${day}`,
+	revoke: 'Zurückziehen',
+	confirmRevoke: 'Einladung zurückziehen? Der Link funktioniert dann nicht mehr.',
+	revoked: 'Einladung zurückgezogen.',
+	unavailable: 'Einladungen brauchen die Datenbank (D1), weil sich neue Mitglieder mit Passwort anmelden.'
+} as const;

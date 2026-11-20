@@ -1,6 +1,6 @@
 import { error, fail } from '@sveltejs/kit';
 import { normalizeEmail } from '#lib/access/access.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { authorDay, isFor, replyFromForm } from '#lib/kummer/kummer.ts';
 import { authorKey, getLeitung, KUMMER_RIGHT, kummerStore } from '#lib/server/kummer.ts';
 import { getAccessList } from '#lib/server/repertoire.ts';

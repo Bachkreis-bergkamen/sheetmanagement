@@ -2,7 +2,7 @@ import { error } from '@sveltejs/kit';
 import type { User } from '#lib/access/access.ts';
 import { REPORT_KINDS, type ReportKind } from '#lib/feedback/feedback.ts';
 import { config } from '#lib/config/index.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { cleanLink } from '#lib/links.ts';
 import { formatInstrument, playableInstruments } from '#lib/music/my-parts.ts';
 import { addReport, formText } from '#lib/server/feedback.ts';

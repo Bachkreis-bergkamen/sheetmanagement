@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { tick } from 'svelte';
 	import { page as app } from '$app/state';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { mergedFileName } from '#lib/music/my-parts.ts';
 	import { offlineParts } from '#lib/offline/parts.svelte.ts';
 	import type { Stroke } from '#lib/practice/marks.ts';

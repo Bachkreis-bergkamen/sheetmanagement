@@ -1,5 +1,5 @@
 import { beforeNavigate } from '$app/navigation';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 
 /**
  * Asks before leaving an editor with changes that aren't saved yet: on links inside the app

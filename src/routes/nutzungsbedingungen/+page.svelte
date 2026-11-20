@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import LegalPage from '#lib/components/LegalPage.svelte';
 
 	let { data } = $props();

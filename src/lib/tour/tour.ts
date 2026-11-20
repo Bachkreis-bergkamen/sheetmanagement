@@ -1,4 +1,4 @@
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 
 /**
  * The tour for new members, in two short chapters: first the few places a member needs (the

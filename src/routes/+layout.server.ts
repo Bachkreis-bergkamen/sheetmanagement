@@ -2,7 +2,7 @@ import { error, redirect, type Cookies } from '@sveltejs/kit';
 import { normalizeEmail, parentMayOpen } from '#lib/access/access.ts';
 import { shownLogo } from '#lib/branding.ts';
 import { config, instrumentOverrides } from '#lib/config/index.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { DEMO_ROLE_COOKIE, isPublicPath } from '#lib/server/auth/index.ts';
 import { features, isDemo, isRelease, orchestra } from '#lib/server/env.ts';
 import { countsByPage, openWork } from '#lib/server/todo.ts';

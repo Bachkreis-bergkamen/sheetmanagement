@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { config } from '#lib/config/index.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { numericDate } from '#lib/repertoire/concert-ref.ts';
 	import { formatFuzzyDate, fuzzyDateKey, parseFuzzyDate } from '#lib/repertoire/dates.ts';
 	import Icon from './Icon.svelte';

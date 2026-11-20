@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { slide } from 'svelte/transition';
 	import { goto } from '$app/navigation';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { readLocal, writeLocal } from '#lib/local-storage.ts';
 	import { dismissal, hintDue, INSTALL_HINT_KEY } from '#lib/install/install.ts';
 	import { install, promptInstall } from '#lib/install/state.svelte.ts';

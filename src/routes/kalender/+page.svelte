@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import { config } from '#lib/config/index.ts';
 	import { dateFormat } from '#lib/events/format.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { pollDatesByMonth, type PollDate } from '#lib/polls/polls.ts';
 	import type { ShownEvent } from '#lib/events/schedule.ts';
 	import AddEventForm from '#lib/components/AddEventForm.svelte';

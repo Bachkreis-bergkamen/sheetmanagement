@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { MEMBER_STATUSES, RIGHTS } from '#lib/access/access.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import type { GoogleClient } from './google/client.ts';
 import { columnLetter } from './google/sheets.ts';
 import { setUpSheet } from './repertoire-setup.ts';

@@ -4,7 +4,7 @@
 	import { enhance } from '$app/forms';
 	import ConcertMode from '#lib/components/ConcertMode.svelte';
 	import { offlineParts, type OfflinePart } from '#lib/offline/parts.svelte.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import ConcertRow from '#lib/components/ConcertRow.svelte';
 	import Crumbs from '#lib/components/Crumbs.svelte';
 	import EventRow from '#lib/components/EventRow.svelte';

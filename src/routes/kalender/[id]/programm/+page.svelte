@@ -3,7 +3,7 @@
 	import { FormState } from '#lib/forms.svelte.ts';
 	import { guardUnsaved } from '#lib/unsaved.svelte.ts';
 	import { flip } from 'svelte/animate';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { movementsIn, movementWord, withMovements } from '#lib/music/sections.ts';
 	import { searchText } from '#lib/music/text.ts';
 	import { isJoint, programLabel } from '#lib/repertoire/orchestras.ts';

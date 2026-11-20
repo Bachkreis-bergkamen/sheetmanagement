@@ -15,7 +15,7 @@ import {
 	type Right,
 	type Role
 } from '#lib/access/access.ts';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { normalize } from '#lib/repertoire/sheet.ts';
 import { authConfig, requireRight } from '#lib/server/auth/index.ts';
 import { eraseMember, previewErase } from '#lib/server/erase.ts';

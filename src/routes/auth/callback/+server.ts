@@ -6,7 +6,7 @@ import { connectMail } from '#lib/server/mail/index.ts';
 import { exchangeMailCode, GMAIL_SEND_SCOPE } from '#lib/server/mail/gmail.ts';
 import { safeReturnPath } from '#lib/server/auth/redirect.ts';
 import type { RequestHandler } from './$types';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 
 export const GET: RequestHandler = async ({ url, cookies, locals }) => {
 	const auth = authConfig();

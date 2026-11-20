@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { instrumentLabel } from '#lib/music/instrument-label.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 
 	/**
 	 * An instrument dropdown with the usual orchestra instruments; the rest are behind

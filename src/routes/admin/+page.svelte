@@ -4,7 +4,7 @@
 	import { lacksSurname, maskEmail } from '#lib/access/access.ts';
 	import { config } from '#lib/config/index.ts';
 	import { formatDay } from '#lib/events/format.ts';
-	import { t } from '#lib/i18n/index.ts';
+	import * as t from '#lib/i18n/texts.ts';
 	import { Copier } from '#lib/clipboard.svelte.ts';
 	import type { InstrumentFamily } from '#lib/config/types.ts';
 	import { applyFilters, type FilterGroup } from '#lib/filters.ts';

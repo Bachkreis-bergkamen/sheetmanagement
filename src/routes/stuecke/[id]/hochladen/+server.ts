@@ -1,5 +1,5 @@
 import { error, isHttpError, json } from '@sveltejs/kit';
-import { t } from '#lib/i18n/index.ts';
+import * as t from '#lib/i18n/texts.ts';
 import { GoogleApiError } from '#lib/server/google/client.ts';
 import { beginUpload, FolderError, refreshPieceFolder, suggestNames } from '#lib/server/piece-folder.ts';
 import type { RequestHandler } from './$types';
