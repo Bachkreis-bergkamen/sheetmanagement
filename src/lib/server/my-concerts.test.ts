@@ -12,7 +12,18 @@ const { DEMO_MEMBER } = await import('./demo/data.ts');
 const { getLibrary } = await import('./library.ts');
 const { getAccessList, getMusicConfig, getPartAssignments } = await import('./repertoire.ts');
 const { getArchiveIndex } = await import('./services.ts');
-const { pickConcerts, programFor, upcomingParts } = await import('./my-concerts.ts');
+const { pickConcerts, programFor, saidAt, upcomingParts } = await import('./my-concerts.ts');
+const { buildSignups } = await import('#lib/signups/signups.ts');
+const { LAYOUT } = await import('#lib/repertoire/sheet.ts');
+
+/** Sign-ups as the sheet holds them: one row per person and date. */
+const signupsOf = (rows: { eventId: string; email: string; instrument: string }[]) => {
+	const c = LAYOUT.signups.columns;
+	return buildSignups([
+		[c.event, c.who, c.name, c.answer, c.instrument, c.comment, c.answeredAt, c.eventId],
+		...rows.map((row) => ['', row.email, '', 'Zusage', row.instrument, '', '', row.eventId])
+	]);
+};
 
 beforeEach(async () => {
 	resetDemo();
@@ -43,5 +54,42 @@ describe('upcomingParts', () => {
 		const [library, access, music, assignments] = await Promise.all([getLibrary(), getAccessList(), getMusicConfig(), getPartAssignments()]);
 		const member = { ...access!.membersByEmail.get(DEMO_MEMBER.email)!, instrument: '' };
 		expect(upcomingParts(library, member, music, assignments.assignments)).toEqual([]);
+	});
+});
+
+describe('the part given with the answer to a date', () => {
+	const signups = signupsOf([
+		{ eventId: 'probe', email: 'Anna@example.org', instrument: '' },
+		{ eventId: 'konzert', email: 'anna@example.org', instrument: 'Geige II' },
+		{ eventId: 'konzert', email: 'ben@example.org', instrument: 'quatsch' }
+	]);
+
+	it('is the first date’s with one: a rehearsal without falls back to its concert', () => {
+		expect(saidAt(signups, 'anna@example.org', ['probe', 'konzert'])).toEqual([{ instrument: 'Geige', numbers: [2] }]);
+		expect(saidAt(signups, 'anna@example.org', ['probe'])).toEqual([]);
+	});
+
+	it('is nothing without sign-ups, an address, or a part the app can read', () => {
+		expect(saidAt(null, 'anna@example.org', ['konzert'])).toEqual([]);
+		expect(saidAt(signups, undefined, ['konzert'])).toEqual([]);
+		expect(saidAt(signups, 'ben@example.org', ['konzert'])).toEqual([]);
+	});
+
+	it('keeps only that part offline for a member with several', async () => {
+		const [library, access, music, assignments] = await Promise.all([getLibrary(), getAccessList(), getMusicConfig(), getPartAssignments()]);
+		const member = { ...access!.membersByEmail.get(DEMO_MEMBER.email)!, instrument: 'Geige I & II' };
+		const [next] = pickConcerts(library.concerts, library.today, null, member).shown.filter((concert) => programFor(concert, member).length);
+		const pieces = new Set(programFor(next, member).map((item) => item.pieceId));
+		const ofNext = (parts: { label: string; pieceId: string }[]) => parts.filter((part) => pieces.has(part.pieceId)).map((part) => part.label);
+
+		const both = ofNext(upcomingParts(library, member, music, assignments.assignments, 1));
+		const second = ofNext(
+			upcomingParts(library, member, music, assignments.assignments, 1, signupsOf([{ eventId: next.id, email: member.email, instrument: 'Geige II' }]))
+		);
+		// Both violin parts without an answer, only the second with "Geige II".
+		expect(both).toContain('Geige I');
+		expect(both).toContain('Geige II');
+		expect(second).toContain('Geige II');
+		expect(second).not.toContain('Geige I');
 	});
 });

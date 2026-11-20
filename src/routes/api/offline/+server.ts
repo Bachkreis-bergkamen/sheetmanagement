@@ -5,6 +5,7 @@ import { features } from '#lib/server/env.ts';
 import { getLibrary } from '#lib/server/library.ts';
 import { upcomingParts } from '#lib/server/my-concerts.ts';
 import { getAccessList, getMusicConfig, getPartAssignments } from '#lib/server/repertoire.ts';
+import { signupsIfOn } from '#lib/server/signups.ts';
 import type { RequestHandler } from './$types';
 
 /**
@@ -15,13 +16,13 @@ import type { RequestHandler } from './$types';
 export const GET: RequestHandler = async ({ locals }) => {
 	if (locals.auth !== 'on' || !locals.access.member || !locals.access.user) error(403, t.messages.membersOnly);
 	if (!features().offline) error(404, t.messages.noFile);
-	const [library, access, music, assignments] = await Promise.all([getLibrary(), getAccessList(), getMusicConfig(), getPartAssignments()]);
+	const [library, access, music, assignments, signups] = await Promise.all([getLibrary(), getAccessList(), getMusicConfig(), getPartAssignments(), signupsIfOn()]);
 	if (!library.catalog.ok) error(503, t.messages.archiveUnavailable);
 	const member = access?.membersByEmail.get(normalizeEmail(locals.access.user.email));
 	return Response.json(
 		{
 			pieces: library.pieces.map((piece) => piece.id),
-			parts: member ? upcomingParts(library, member, music, assignments.assignments) : []
+			parts: member ? upcomingParts(library, member, music, assignments.assignments, 2, signups) : []
 		},
 		{ headers: { 'cache-control': 'private, no-store' } }
 	);

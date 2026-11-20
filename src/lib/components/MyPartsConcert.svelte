@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
+	import { tick } from 'svelte';
 	import { page as app } from '$app/state';
 	import { t } from '#lib/i18n/index.ts';
 	import { mergedFileName } from '#lib/music/my-parts.ts';
@@ -9,16 +11,20 @@
 	import Icon from './Icon.svelte';
 	import InstrumentGlyph from './InstrumentGlyph.svelte';
 	import QuickReport from './QuickReport.svelte';
+	import Segmented from './Segmented.svelte';
 
 	/** One concert on "Meine Noten": its programme with the member's parts, and the merged PDF. */
 	let {
 		concert,
 		label,
+		sections = [],
 		canMerge
 	}: {
 		concert: PageData['concerts'][number];
 		/** What the member plays, e.g. "Geige I & II, Viola"; empty before they picked. */
 		label: string;
+		/** Each of the member's parts on its own ("Geige I", "Geige II"), to pick per piece. */
+		sections?: string[];
 		canMerge: boolean;
 	} = $props();
 
@@ -52,6 +58,24 @@
 	/** Reporting a problem with a part, or a part that's missing, from here (#306); signed in only. */
 	const canReport = $derived(!!app.data.user);
 	let reporting = $state<{ pieceId: string; fileId?: string; part: string; missing?: { instrument: string; number?: number } } | null>(null);
+
+	/** The part played at this concert, of the member's own; "" for all of them. Saved with their answer. */
+	// Follows what's saved; a tap changes it at once, before the save comes back.
+	let playing = $derived(concert.part?.current ?? '');
+	let playingForm = $state<HTMLFormElement>();
+	const partSaved = $derived(app.form?.partSaved === concert.id);
+	/** Picks piece by piece, shown at once while the save runs. */
+	let piecePicks = $state<Record<string, string>>({});
+	$effect(() => {
+		void concert;
+		piecePicks = {};
+	});
+	async function pickPiece(form: HTMLFormElement | undefined) {
+		await tick();
+		form?.requestSubmit();
+	}
+	const pieceForms: Record<string, HTMLFormElement> = {};
+	const partError = $derived(app.form?.partConcert === concert.id ? (app.form?.partError as string | undefined) : undefined);
 
 	let progress = $state<string | null>(null);
 	let mergeError = $state<string | null>(null);
@@ -201,6 +225,26 @@
 			</div>
 		{/if}
 	</div>
+	{#if concert.part}
+		<!-- Geige I & II in the profile, Geige II in this concert: only that part below, in the PDF and on stage. -->
+		<form class="playing" method="POST" action="?/part" bind:this={playingForm} use:enhance={() => async ({ update }) => update({ reset: false })}>
+			<input type="hidden" name="konzert" value={concert.id} />
+			<input type="hidden" name="instrument" value={playing} />
+			<span class="playing-label">{t.myParts.playing.label}</span>
+			<Segmented
+				label={t.myParts.playing.label}
+				options={[...concert.part.sections.map((name) => ({ value: name, label: name })), { value: '', label: t.myParts.playing.all }]}
+				bind:value={playing}
+				onchange={async () => {
+					await tick();
+					playingForm?.requestSubmit();
+				}}
+			/>
+			{#if partSaved}<span class="muted small" role="status">{t.myParts.playing.saved}</span>
+			{:else if !concert.part.answered}<span class="muted small">{t.myParts.playing.yes}</span>{/if}
+		</form>
+		{#if partError}<p class="msg error" role="alert">{partError}</p>{/if}
+	{/if}
 	{#if savedHere}
 		<p class="offline-note">
 			<Icon name="check" size={14} />{t.pwa.saved(savedHere)}
@@ -241,6 +285,30 @@
 							</div>
 							{#if piece.subtitle}<span class="subtitle muted">{piece.subtitle}</span>{/if}
 						</div>
+						{#if piece.pick && piece.pieceId}
+							<!-- Geige I in this piece, Geige II in the next: saved for this concert only. -->
+							{@const pieceId = piece.pieceId}
+							<form
+								class="piece-part"
+								method="POST"
+								action="?/piecePart"
+								bind:this={pieceForms[pieceId]}
+								use:enhance={() => async ({ update }) => update({ reset: false })}
+							>
+								<input type="hidden" name="konzert" value={piece.pick.concert} />
+								<input type="hidden" name="stueck" value={pieceId} />
+								<input type="hidden" name="instrument" value={piecePicks[pieceId] ?? piece.pick.current} />
+								<Segmented
+									label={t.myParts.playing.inPiece(piece.title)}
+									options={[...sections.map((name) => ({ value: name, label: name })), { value: '', label: t.myParts.playing.all }]}
+									value={piecePicks[pieceId] ?? piece.pick.current}
+									onchange={(value) => {
+										piecePicks[pieceId] = value;
+										pickPiece(pieceForms[pieceId]);
+									}}
+								/>
+							</form>
+						{/if}
 						{#if piece.notes.length}
 							<!-- Agreed in rehearsal (#125): cuts and repeats right where the part is opened. -->
 							<ul class="piece-notes" aria-label={t.pieceNotes.inMyParts}>
@@ -381,6 +449,23 @@
 	}
 
 	/* The two buttons side by side, the count under them. */
+	.playing {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-2) var(--space-3);
+		margin-bottom: var(--space-4);
+	}
+
+	.piece-part {
+		margin: var(--space-2) 0;
+	}
+
+	.playing-label {
+		font-size: var(--text-sm);
+		color: var(--text-muted);
+	}
+
 	.merge {
 		display: flex;
 		flex-wrap: wrap;
