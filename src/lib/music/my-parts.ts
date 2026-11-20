@@ -112,6 +112,25 @@ export function formatPlays(plays: string[], config: OrchestraConfig): string {
 	return words.join(', ');
 }
 
+/**
+ * What a member plays at one date: the part they gave with their answer ("Geige II" of
+ * "Geige I & II, Viola"), else everything they play. A percussionist's setup stays with them.
+ */
+export function playingAt(choices: InstrumentChoice[], said: InstrumentChoice[]): InstrumentChoice[] {
+	if (!said.length) return choices;
+	return said.map((choice) => {
+		const own = choices.find((other) => other.instrument === choice.instrument);
+		return own?.plays && !choice.plays ? { ...choice, plays: own.plays } : choice;
+	});
+}
+
+/** Someone's parts one by one, to pick the one they play at a date: "Geige I", "Geige II", "Viola". */
+export function sectionsOf(choices: InstrumentChoice[]): string[] {
+	return choices.flatMap((choice) =>
+		choice.numbers.length ? choice.numbers.map((n) => formatInstrument({ instrument: choice.instrument, numbers: [n] })) : [formatInstrument(choice)]
+	);
+}
+
 /** The first instrument only, where one is enough (e.g. a missing part's label). */
 export function parseInstrument(text: string, config: OrchestraConfig): InstrumentChoice | null {
 	return parseInstruments(text, config)[0] ?? null;

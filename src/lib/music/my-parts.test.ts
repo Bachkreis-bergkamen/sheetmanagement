@@ -16,7 +16,9 @@ import {
 	movementsOf,
 	playedParts,
 	playedSections,
+	playingAt,
 	programInstruments,
+	sectionsOf,
 	setsFor
 } from './my-parts.ts';
 import { createInstrumentMatcher, parsePartName } from './part-name.ts';
@@ -371,5 +373,33 @@ describe('a piece kept as folders "Section II", "Section III"', () => {
 		expect(labels(playedParts(detail))).toEqual(['Bratsche · Section II', 'Bratsche · Section III']);
 		expect(labels(playedParts(detail, [3]))).toEqual(['Bratsche · Section III']);
 		expect(movementsOf(detail)).toEqual([2, 3]);
+	});
+});
+
+describe('the part played at one concert', () => {
+	const violins = parseInstruments('Geige I & II, Viola', config);
+	const piece = [part('Violine 1.pdf'), part('Violine 2.pdf'), part('Viola.pdf'), part('Partitur.pdf')];
+	const ownParts = (choices: ReturnType<typeof parseInstruments>) => choices.flatMap((choice) => labels(matchParts(piece, choice, config).own));
+
+	it('lists each of someone’s parts on its own to pick from', () => {
+		expect(sectionsOf(violins)).toEqual(['Geige I', 'Geige II', 'Bratsche']);
+		expect(sectionsOf(parseInstruments('Cello', config))).toHaveLength(1);
+	});
+
+	it('shows only the part given with the answer, not every part in the profile', () => {
+		expect(ownParts(violins)).toEqual(['Geige I', 'Geige II', 'Bratsche']);
+		expect(ownParts(playingAt(violins, parseInstruments('Geige II', config)))).toEqual(['Geige II']);
+		expect(ownParts(playingAt(violins, parseInstruments('Viola', config)))).toEqual(['Bratsche']);
+	});
+
+	it('keeps everything without an answer', () => {
+		expect(playingAt(violins, [])).toBe(violins);
+	});
+
+	it('keeps a percussionist’s setup when the answer just says the instrument', () => {
+		const [percussion] = parseInstruments('Schlagwerk (Pauke)', config);
+		expect(percussion.plays).toBeDefined();
+		const [played] = playingAt([percussion], parseInstruments('Schlagwerk', config));
+		expect(played.plays).toEqual(percussion.plays);
 	});
 });

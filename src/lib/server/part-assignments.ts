@@ -6,12 +6,13 @@ import { newId } from '#lib/feedback/feedback.ts';
 import { t } from '#lib/i18n/index.ts';
 import { instrumentLabel } from '#lib/music/instrument-label.ts';
 import { formatInstrument, parseInstruments, playableInstruments, PART_NUMBERS } from '#lib/music/my-parts.ts';
-import { assignmentsOf, checkAssignment, forMember, type PartAssignment } from '#lib/music/part-assignments.ts';
+import { assignmentsOf, checkAssignment, forMember, ownPicksAt, type PartAssignment } from '#lib/music/part-assignments.ts';
 import { formText } from './feedback.ts';
 import { getLibrary, isPastConcert, type Library, type LibraryConcert, type LibraryPiece } from './library.ts';
 import { today } from './members.ts';
 import { getAccessList } from './repertoire.ts';
 import { appendRecords, deleteRows, ensureTab, readTab, refreshAfterWrite, SheetLayoutError } from './sheet-writes.ts';
+import { withSheetLock } from './sheet-lock.ts';
 
 /**
  * The "Stimmenzuteilung" editor (#262) on a piece's page: the conductor (programmes) or the
@@ -152,4 +153,34 @@ export async function deleteAssignment(request: Request, locals: App.Locals) {
 		return fail(503, { assignError: t.partAssignments.failed });
 	}
 	return { assignDeleted: true };
+}
+
+/**
+ * A member's own pick of their part at a concert (Meine Noten): for one piece, replacing their
+ * earlier pick there; without a piece, their picks of every piece there go (the concert's part
+ * holds again). `part` empty: no new pick. The conductor's assignments stay as they are.
+ */
+export async function saveOwnPick(email: string, concert: { title: string; ref: string }, piece: string | undefined, part: string): Promise<void> {
+	await withSheetLock(async () => {
+		if (part) await ensureTab('partAssignments');
+		let table;
+		try {
+			table = await readTab('partAssignments');
+		} catch (cause) {
+			// No tab yet and nothing to add: nothing to clear either.
+			if (!part && cause instanceof SheetLayoutError) return;
+			throw cause;
+		}
+		const rows = table.rows.map((row) => ({ row: row.row, who: row.values.who, by: row.values.by, pieceName: row.values.piece, concert: row.values.concert }));
+		const old = ownPicksAt(rows, email, [concert.ref, concert.title], piece);
+		if (old.length) await deleteRows('partAssignments', table, old.map((row) => row.row));
+		if (part) {
+			// Read again after deleting: the rows moved up.
+			const fresh = old.length ? await readTab('partAssignments') : table;
+			await appendRecords('partAssignments', fresh, [
+				{ who: normalizeEmail(email), part, piece: piece ?? '', concert: concert.ref, by: t.partAssignments.ownPick, at: today(), id: newId() }
+			]);
+		}
+	});
+	await refreshAfterWrite();
 }

@@ -553,6 +553,8 @@ export const de = {
 		forever: 'Immer',
 		meta: (by: string, at: string) => [by, at].filter(Boolean).join(', '),
 		assigned: 'zugeteilt',
+		/** "Von" of a member's own pick of their part for a piece (Meine Noten). */
+		ownPick: 'selbst gewählt',
 		saved: 'Stimme zugeteilt.',
 		deleted: 'Zuteilung gelöscht.',
 		failed: 'Die Zuteilung konnte gerade nicht gespeichert werden. Bitte versuch es noch einmal.',
@@ -1157,6 +1159,18 @@ export const de = {
 		missing: 'fehlt im Archiv',
 		summary: (found: number, total: number) => `${found} von ${total} Stücken mit Stimme`,
 		merge: 'Als eine PDF',
+		/** Which of their parts someone plays at one concert: Geige I or Geige II, not both. */
+		playing: {
+			label: 'Im Konzert spielst du',
+			inPiece: (piece: string) => `Deine Stimme in ${piece}`,
+			forAll: 'Gilt für alle Stücke; einzelne Stücke stellst du unten um.',
+			all: 'Alle',
+			allHint: 'Alle deine Stimmen zeigen',
+			pick: (part: string) => `Nur ${part} zeigen`,
+			yes: 'Gilt zugleich als Zusage.',
+			saved: 'Gemerkt, auch bei deiner Antwort zum Konzert.',
+			failed: 'Diese Stimme steht nicht bei deinen Instrumenten.'
+		},
 		/** Playing a concert from a tablet (#194). */
 		concertMode: {
 			open: 'Auftrittsmodus',

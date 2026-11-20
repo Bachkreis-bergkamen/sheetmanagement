@@ -117,7 +117,7 @@
 {:else}
 	<div class="concerts">
 		{#each shown as concert (concert.id)}
-			<MyPartsConcert {concert} label={data.label} canMerge={data.canMerge} />
+			<MyPartsConcert {concert} label={data.label} sections={data.sections} canMerge={data.canMerge} />
 		{/each}
 	</div>
 	{#if count < data.concerts.length}
