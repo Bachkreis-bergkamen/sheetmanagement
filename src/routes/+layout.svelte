@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { startVitals, vitalsNavigated } from '#lib/vitals/collect.ts';
 	import { sendPending } from '#lib/offline/marks.ts';
 	import { sendQueuedPractice } from '#lib/offline/practice-queue.ts';
 	import { loadPendingAnswers, sendQueuedAnswers } from '#lib/offline/answers.svelte.ts';
@@ -60,6 +61,11 @@
 		// On the first load the navigation may not carry the route yet; the page state does.
 		const route = to?.route.id ?? page.route.id;
 		if (route && navigator.onLine) navigator.sendBeacon?.('/api/seitenaufruf', route);
+		// How fast it was on this device (#187): started on the first page, sent when the route changes.
+		if (route) {
+			startVitals(route);
+			vitalsNavigated(route);
+		}
 	});
 
 	// Whether the app is on the home screen, and the browser's own install dialog where it has one (#279).

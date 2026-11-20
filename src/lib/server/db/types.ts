@@ -1,6 +1,7 @@
 /** The store's types (#161); see index.ts. */
 
 import type { ErrorGroup, ErrorReport } from '#lib/errors/errors.ts';
+import type { Sample, VitalCount } from '#lib/vitals/vitals.ts';
 import type { TabKey } from '#lib/repertoire/sheet.ts';
 import type { PreparedImport } from './schema.ts';
 import type { Stroke } from '#lib/practice/marks.ts';
@@ -139,6 +140,12 @@ export interface Store {
 	pageCounts(since: string): Promise<PageCount[]>;
 	/** Forgets the counts from before a day. */
 	prunePageCounts(before: string): Promise<void>;
+	/** Counts what browsers measured on a day (#187), one more per sample's bucket. */
+	countVitals(day: string, samples: Sample[]): Promise<void>;
+	/** The counts since a day, summed over the days. */
+	vitals(since: string): Promise<VitalCount[]>;
+	/** Forgets the days before this one. */
+	pruneVitals(before: string): Promise<void>;
 
 	/** Whether a member finished or skipped the tour; null while they haven't seen it. */
 	tourOf(email: string): Promise<TourOutcome | null>;

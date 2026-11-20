@@ -4,6 +4,7 @@ import { memoryData } from './data-memory.ts';
 import { memoryTickets } from './tickets-memory.ts';
 import { MIGRATIONS } from './sql.ts';
 import type { Sharing, SummaryRow } from '#lib/practice/drills/sharing.ts';
+import type { Device, Metric, VitalCount } from '#lib/vitals/vitals.ts';
 
 /** Like SQLite's datetime('now'). */
 const sqlTime = (at: number) => new Date(at).toISOString().slice(0, 19).replace('T', ' ');
@@ -41,6 +42,7 @@ export function memoryStore(now = () => Date.now()): Store {
 	const partChecks = new Map<string, PartCheck>();
 	const errors = new Map<string, ErrorGroup>();
 	const requests = new Map<string, { startedAt: number; result?: StoredResult }>();
+	const vitalCounts = new Map<string, number>();
 	const daysAgo = (days: number) => sqlTime(now() - days * 86_400_000);
 	const latest = MIGRATIONS.at(-1)?.[0] ?? null;
 
@@ -115,6 +117,28 @@ export function memoryStore(now = () => Date.now()): Store {
 		},
 		async prunePageCounts(before) {
 			for (const key of pageViews.keys()) if ((JSON.parse(key) as string[])[0] < before) pageViews.delete(key);
+		},
+
+		async countVitals(day, samples) {
+			for (const { route, device, metric, bucket } of samples) {
+				const key = JSON.stringify([day, route, device, metric, bucket]);
+				vitalCounts.set(key, (vitalCounts.get(key) ?? 0) + 1);
+			}
+		},
+		async vitals(since) {
+			const sums = new Map<string, VitalCount>();
+			for (const [key, count] of vitalCounts) {
+				const [day, route, device, metric, bucket] = JSON.parse(key) as [string, string, Device, Metric, number];
+				if (day < since) continue;
+				const id = JSON.stringify([route, device, metric, bucket]);
+				const sum = sums.get(id) ?? { route, device, metric, bucket, count: 0 };
+				sum.count += count;
+				sums.set(id, sum);
+			}
+			return [...sums.values()];
+		},
+		async pruneVitals(before) {
+			for (const key of vitalCounts.keys()) if ((JSON.parse(key) as string[])[0] < before) vitalCounts.delete(key);
 		},
 
 		tourOf: async (email) => tours.get(email) ?? null,

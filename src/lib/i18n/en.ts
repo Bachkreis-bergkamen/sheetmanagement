@@ -3543,6 +3543,16 @@ export const en: Texts = {
 			roles: { mitglied: 'Members', verwaltung: 'Organisers', gast: 'Visitors' },
 			none: 'No views counted yet.'
 		},
+		vitals: {
+			title: 'Speed on devices (30 days)',
+			lead: 'How fast pages were on members’ devices, as the 75th percentile: three out of four page loads were at least this fast. Target: LCP under 1.5 s, INP under 200 ms; anything slower is red. Only the page, the kind of device and the time are counted, not who; it is deleted after 180 days.',
+			device: 'Device',
+			devices: { phone: 'Phone', desktop: 'Computer' },
+			loads: 'Page loads',
+			names: { lcp: 'Until the main content showed', inp: 'How long a tap waited for an answer', ttfb: 'How long the server took' },
+			atMost: (ms: number) => (ms >= 1000 ? `≤ ${(ms / 1000).toLocaleString('en-GB', { maximumFractionDigits: 2 })} s` : `≤ ${ms} ms`),
+			none: 'Nothing measured yet. Safari doesn’t measure LCP and INP yet; there only TTFB counts.'
+		},
 		title: 'Status',
 		lead: 'Whether the connection to Google works.',
 		account: 'Google service account',

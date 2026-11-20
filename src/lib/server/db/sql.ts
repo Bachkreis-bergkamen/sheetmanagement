@@ -1,6 +1,7 @@
 import { sqlData } from './data-sql.ts';
 import { sqlTickets } from './tickets-sql.ts';
 import { fingerprint, type ErrorGroup, type ErrorSource } from '#lib/errors/errors.ts';
+import type { VitalCount } from '#lib/vitals/vitals.ts';
 import { reminderKey, type Account, type MarkShare, type PageCount, type PageMarks, type PartCheck, type PracticeDay, type PushDevice, type SentReminder, type Store, type TourOutcome } from './types.ts';
 
 type ErrorRow = { fingerprint: string; source: ErrorSource; place: string; message: string; status: number | null; count: number; first_at: string; last_at: string; notified: number };
@@ -180,6 +181,30 @@ export function sqlStore(db: D1): Store {
 		},
 		async prunePageCounts(before) {
 			await run('DELETE FROM page_counts WHERE day < ?', before);
+		},
+
+		async countVitals(day, samples) {
+			if (!samples.length) return;
+			await together(
+				samples.map((sample): [string, ...unknown[]] => [
+					`INSERT INTO web_vitals (day, route, device, metric, bucket, count) VALUES (?, ?, ?, ?, ?, 1)
+					 ON CONFLICT (day, route, device, metric, bucket) DO UPDATE SET count = count + 1`,
+					day,
+					sample.route,
+					sample.device,
+					sample.metric,
+					sample.bucket
+				])
+			);
+		},
+		async vitals(since) {
+			return all<VitalCount>(
+				'SELECT route, device, metric, bucket, SUM(count) AS count FROM web_vitals WHERE day >= ? GROUP BY route, device, metric, bucket',
+				since
+			);
+		},
+		async pruneVitals(before) {
+			await run('DELETE FROM web_vitals WHERE day < ?', before);
 		},
 
 		async tourOf(email) {

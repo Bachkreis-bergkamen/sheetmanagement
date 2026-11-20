@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { TARGETS } from '#lib/vitals/vitals.ts';
 	import { t } from '#lib/i18n/index.ts';
 	import Icon, { type IconName } from '#lib/components/Icon.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
@@ -177,6 +178,46 @@
 	</details>
 {/if}
 
+<!-- Field speed (#187): p75 per route and kind of device, red where it misses the target. -->
+{#if data.vitals}
+	<details class="pages">
+		<summary><h2>{t.status.vitals.title}</h2></summary>
+		<p class="hint">{t.status.vitals.lead}</p>
+		{#if data.vitals.length}
+			<div class="table-wrap">
+				<table>
+					<thead>
+						<tr>
+							<th scope="col">{t.status.pages.route}</th>
+							<th scope="col">{t.status.vitals.device}</th>
+							<th scope="col">{t.status.vitals.loads}</th>
+							<th scope="col"><abbr title={t.status.vitals.names.lcp}>LCP</abbr></th>
+							<th scope="col"><abbr title={t.status.vitals.names.inp}>INP</abbr></th>
+							<th scope="col"><abbr title={t.status.vitals.names.ttfb}>TTFB</abbr></th>
+						</tr>
+					</thead>
+					<tbody>
+						{#each data.vitals as row (row.route + row.device)}
+							<tr>
+								<th scope="row"><code>{row.route}</code></th>
+								<td>{t.status.vitals.devices[row.device]}</td>
+								<td>{row.loads}</td>
+								{#each ['lcp', 'inp', 'ttfb'] as const as metric (metric)}
+									{@const value = row[metric]}
+									{@const target = TARGETS[metric]}
+									<td class:miss={value !== null && target !== undefined && value > target}>{value === null ? '–' : t.status.vitals.atMost(value)}</td>
+								{/each}
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+		{:else}
+			<p>{t.status.vitals.none}</p>
+		{/if}
+	</details>
+{/if}
+
 <div class="actions">
 	{#if data.checks.drive.state === 'ok'}
 		<a class="button" href="?refresh" data-sveltekit-reload>
@@ -225,6 +266,12 @@
 
 	.table-wrap {
 		overflow-x: auto;
+	}
+
+	/* Slower than the target of #187. */
+	td.miss {
+		color: var(--danger);
+		font-weight: 600;
 	}
 
 	table {

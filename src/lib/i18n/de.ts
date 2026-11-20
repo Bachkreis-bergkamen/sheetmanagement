@@ -3600,6 +3600,17 @@ export const de = {
 			roles: { mitglied: 'Mitglieder', verwaltung: 'Verwaltung', gast: 'Gäste' },
 			none: 'Noch keine Aufrufe gezählt.'
 		},
+		/** Field speed (#187). */
+		vitals: {
+			title: 'Tempo auf den Geräten (30 Tage)',
+			lead: 'Wie schnell die Seiten auf den Geräten der Mitglieder waren, als 75. Perzentil: drei von vier Aufrufen waren mindestens so schnell. Ziel: LCP unter 1,5 s, INP unter 200 ms; was darüber liegt, ist rot. Gezählt werden nur Seite, Gerätetyp und Zeit, nicht wer; nach 180 Tagen wird es gelöscht.',
+			device: 'Gerät',
+			devices: { phone: 'Handy', desktop: 'Computer' },
+			loads: 'Seitenstarts',
+			names: { lcp: 'Bis der Hauptinhalt zu sehen war', inp: 'Wie lange ein Tippen auf die Antwort wartete', ttfb: 'Wie lange der Server brauchte' },
+			atMost: (ms: number) => (ms >= 1000 ? `≤ ${(ms / 1000).toLocaleString('de-DE', { maximumFractionDigits: 2 })} s` : `≤ ${ms} ms`),
+			none: 'Noch nichts gemessen. Safari misst LCP und INP noch nicht; dort zählt nur TTFB.'
+		},
 		title: 'Status',
 		lead: 'Ob die Verbindung zu Google funktioniert.',
 		account: 'Google-Dienstkonto',

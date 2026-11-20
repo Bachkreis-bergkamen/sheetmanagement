@@ -383,7 +383,7 @@ export const isAdminOnly = (member: Pick<Member, 'status'> | undefined) => membe
  */
 export function parentMayOpen(path: string): boolean {
 	const under = (base: string) => path === base || path.startsWith(base + '/');
-	return ['/eltern', '/profil', '/kummerkasten', '/fahrten', '/karte', '/demo', '/api/seitenaufruf', '/api/push', '/api/fehler', '/api/warm'].some(under);
+	return ['/eltern', '/profil', '/kummerkasten', '/fahrten', '/karte', '/demo', '/api/seitenaufruf', '/api/tempo', '/api/push', '/api/fehler', '/api/warm'].some(under);
 }
 
 /** Members who count for a concert's instrumentation: active ones in its orchestra. */
