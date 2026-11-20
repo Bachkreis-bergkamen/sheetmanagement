@@ -5,7 +5,9 @@
 	import { t } from '#lib/i18n/index.ts';
 	import { config } from '#lib/config/index.ts';
 	import { eventDay } from '#lib/repertoire/dates.ts';
-	import { cleanLink } from '#lib/links.ts';
+	import { cleanLink, youtubeId } from '#lib/links.ts';
+	import { videoLength } from '#lib/video-length.ts';
+	import { untrack } from 'svelte';
 	import { listCompletions, splitList } from '#lib/repertoire/lists.ts';
 	import { gapsFor, type DetailGap } from '#lib/repertoire/details.ts';
 	import { composerLine, contentsComposers, SHOWN_COMPOSERS } from '#lib/repertoire/contents.ts';
@@ -21,14 +23,48 @@
 	const values = $derived(form?.values ?? (data.state === 'ready' ? data.values : undefined));
 	// The form's own copy, so a suggestion can be taken over before saving.
 	let current = $state<Record<string, string>>({});
+	/**
+	 * Fields a suggestion filled, with where it came from and what stood there before: marked until
+	 * someone confirms, undoes or types over it, so a found value isn't saved unseen.
+	 */
+	let marks = $state<Record<string, { source: string; before: string }>>({});
 	$effect.pre(() => {
 		current = { ...(values ?? {}) };
+		// After a save the marks go; after a refused one they stay with what was typed.
+		if (!form?.message) marks = {};
 	});
 	// A suggestion for a field under "Weitere Angaben" opens it, so the change shows.
-	const apply = (field: string, value: string) => {
+	const apply = (field: string, value: string, source: string) => {
+		marks[field] = { source, before: marks[field]?.before ?? current[field] ?? '' };
 		current[field] = value;
 		if (!mainNames.has(field)) moreOpen = true;
 	};
+	const undo = (field: string) => {
+		current[field] = marks[field].before;
+		delete marks[field];
+	};
+	const markCount = $derived(Object.keys(marks).length);
+	// The Hörbeispiel's length, asked as soon as a YouTube link is in (#133): offered next to the
+	// link, not filled in, since a recording is rarely the orchestra's own length.
+	let video = $state<{ id: string; length: string } | null>(null);
+	const recordingId = $derived(data.videoLength ? youtubeId(current.recording ?? '') : undefined);
+	$effect(() => {
+		const id = recordingId;
+		if (!id) return;
+		// The saved link of a piece that has its duration needs no asking.
+		if (untrack(() => video?.id === id || (id === youtubeId(values?.recording ?? '') && !!(current.duration ?? '').trim()))) return;
+		const timer = setTimeout(() => {
+			videoLength(id)
+				.then((length) => {
+					if (length) video = { id, length };
+				})
+				.catch(() => {});
+		}, 400);
+		return () => clearTimeout(timer);
+	});
+	const offerLength = $derived(
+		!!video && video.id === recordingId && (current.duration ?? '').trim() !== video.length && !(data.state === 'ready' && (data.missing as string[]).includes('duration'))
+	);
 	guardUnsaved(() => !saving.busy && !!values && Object.keys(current).some((key) => (current[key] ?? '') !== (values[key as keyof typeof values] ?? '')));
 	/** Today in the orchestra's time zone, as the sheet writes dates: "2026-10-21". */
 	const today = () => eventDay({ start: new Date().toISOString(), allDay: false }, config.timeZone);
@@ -104,11 +140,12 @@
 		{#snippet input(field: (typeof FIELDS)[number])}
 		{#if field.name === 'instrumentation'}
 			<!-- The instrument picker, as on the profile; the sheet keeps it as text (#249). -->
-			<div class="field wide">
+			<div class="field wide" class:suggested={!!marks.instrumentation} oninput={() => delete marks.instrumentation} onchange={() => delete marks.instrumentation}>
 				<InstrumentationField name="instrumentation" label={columns.instrumentation} bind:value={current.instrumentation} instruments={data.instruments} sheets={data.sheets} fromParts={data.fromParts} />
+				{#if marks.instrumentation}{@render mark('instrumentation')}{/if}
 			</div>
 		{:else}
-		<label class="field" class:wide={'wide' in field}>
+		<label class="field" class:wide={'wide' in field} class:suggested={!!marks[field.name]} oninput={() => delete marks[field.name]}>
 			{columns[field.name]}
 			<span class="input">
 				<input
@@ -135,8 +172,22 @@
 					</button>
 				{/if}
 			</span>
+			{#if marks[field.name]}{@render mark(field.name)}{/if}
+			{#if field.name === 'recording' && offerLength && video}
+				<span class="note">
+					{t.pieceEditor.videoLength(video.length)}
+					<button class="btn ghost small" type="button" onclick={() => video && apply('duration', video.length, t.suggest.sources.youtube)}>{t.pieceEditor.useVideoLength}</button>
+				</span>
+			{/if}
 		</label>
 		{/if}
+		{/snippet}
+		{#snippet mark(name: string)}
+			<span class="note mark">
+				<Icon name="sparkle" size={14} />{t.pieceEditor.suggested(marks[name].source)}
+				<button class="btn ghost small" type="button" onclick={() => delete marks[name]}>{t.pieceEditor.confirm}</button>
+				<button class="btn ghost small" type="button" onclick={() => undo(name)}>{t.pieceEditor.undo}</button>
+			</span>
 		{/snippet}
 		{#each mainFields as field (field.name)}{@render input(field)}{/each}
 		<details class="more wide" bind:open={moreOpen}>
@@ -157,6 +208,7 @@
 				</label>			</div>
 		</details>
 		{#if missingNames}<p class="hint wide">{t.pieceEditor.missingColumns(missingNames)}</p>{/if}
+		{#if markCount}<p class="hint wide unchecked"><Icon name="sparkle" size={14} />{t.pieceEditor.unchecked(markCount)}</p>{/if}
 		<div class="actions">
 			{#if data.list}
 				<button class="btn" name="liste" value={data.list.filter} disabled={saving.busy}><Icon name="check" size={16} />{t.details.saveNext}</button>
@@ -311,5 +363,39 @@
 	.hint {
 		color: var(--text-muted);
 		font-size: var(--text-sm);
+	}
+
+	/* A note under one field makes its row taller; the field beside it stays at the top. */
+	.field {
+		align-content: start;
+	}
+
+	/* A field a suggestion filled: outlined in the accent until confirmed, undone or typed over. */
+	.suggested :global(input),
+	.suggested :global(textarea) {
+		border-color: var(--accent);
+		box-shadow: 0 0 0 1px var(--accent);
+	}
+
+	.note {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-1) var(--space-2);
+		color: var(--text-muted);
+		font-size: var(--text-xs);
+		font-weight: 400;
+	}
+
+	.mark {
+		color: var(--accent);
+	}
+
+	.unchecked {
+		display: flex;
+		align-items: center;
+		gap: var(--space-1);
+		margin: 0;
+		color: var(--accent);
 	}
 </style>

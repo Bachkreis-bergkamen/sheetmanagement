@@ -133,9 +133,15 @@ test('a YouTube link is saved clean (#133)', async ({ page }) => {
 	await field.fill('https://youtu.be/dQw4w9WgXcQ?si=Teilen123');
 	await field.blur();
 	await expect(field).toHaveValue('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
-	// One button asks every source; the video's length ("8:30") is among the suggestions.
-	await page.getByRole('button', { name: 'Automatisch ausfüllen' }).click();
-	await expect(page.locator('.list').getByText(/^\d+:\d\d$/)).toBeVisible();
+	// The video's length is asked once the link is in, and offered right there, not filled in.
+	await expect(page.getByText(/^Das Video dauert \d+:\d\d\./)).toBeVisible();
+	await page.getByRole('button', { name: 'Als Dauer übernehmen' }).click();
+	await expect(page.getByLabel('Dauer')).toHaveValue(/^\d+:\d\d$/);
+	// Marked as a suggestion until someone looks at it.
+	await expect(page.getByText('Vorschlag (Video) – stimmt das?')).toBeVisible();
+	await expect(page.getByText('1 übernommener Vorschlag ist noch nicht geprüft.')).toBeVisible();
+	await page.getByRole('button', { name: 'Passt' }).click();
+	await expect(page.getByText('Vorschlag (Video) – stimmt das?')).toHaveCount(0);
 	await page.getByRole('button', { name: 'Speichern' }).click();
 	await expect(page).toHaveURL(/\/stuecke\/demo-egmont(\?|$)/);
 	await expect(page.getByRole('link', { name: /Hörbeispiel/ })).toHaveAttribute('href', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
@@ -145,10 +151,14 @@ test('the Besetzung read from the score flags an instrument without a part (#249
 	await open(page, '/stuecke/demo-egmont/bearbeiten');
 	await page.getByRole('button', { name: 'Automatisch ausfüllen' }).click();
 	// The names at the left of the score, Italian as scores print them, in the orchestra's words,
-	// filled into the empty Besetzung.
-	const suggestion = page.locator('.suggest li').filter({ hasText: 'Piccolo; Flöte 1 & 2; Oboe 1 & 2' });
-	await expect(suggestion).toContainText(/eingetragen|Übernehmen/);
-	if (await suggestion.getByRole('button', { name: 'Übernehmen' }).isVisible()) await suggestion.getByRole('button', { name: 'Übernehmen' }).click();
+	// found for the empty Besetzung: listed to check, nothing in the form yet.
+	const picks = page.getByRole('group', { name: 'Gefunden – bitte prüfen' });
+	const pick = picks.locator('label').filter({ hasText: 'Piccolo; Flöte 1 & 2; Oboe 1 & 2' });
+	await expect(pick.getByRole('checkbox')).toBeChecked();
+	// Only the Besetzung is taken over; whatever else was found is unticked.
+	for (const box of await picks.locator('label').filter({ hasNotText: 'Piccolo' }).getByRole('checkbox').all()) await box.uncheck();
+	await picks.getByRole('button', { name: '1 übernehmen' }).click();
+	await expect(page.getByText('Vorschlag (aus den Noten) – stimmt das?')).toBeVisible();
 	// Taken over into the instrument picker, one chip per instrument.
 	const besetzung = page.getByRole('group', { name: 'Besetzung' });
 	await expect(besetzung).toContainText('Piccolo');
