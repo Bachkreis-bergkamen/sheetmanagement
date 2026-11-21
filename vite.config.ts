@@ -41,14 +41,23 @@ export default defineConfig(({ mode }) => ({
 			version: { pollInterval: 5 * 60 * 1000 },
 			// Which scripts may run (#358): the app's own, SvelteKit's inline ones by nonce, and
 			// WebAssembly (pdf.js's decoders, ZXing at the door, Tesseract). Tesseract's engine comes
-			// from jsDelivr into a blob: worker. Only reported for now (/api/csp, shown on /status);
-			// once the log stays quiet, the same list moves to `directives` and is enforced.
+			// from jsDelivr into a blob: worker. Enforced since the report-only run stayed quiet; what
+			// it still blocks is reported to /api/csp and shows in the error log on /status.
+			// The one inline handler allowed is Svelte's own `onerror="this.__e=event"` (and onload) on
+			// images, which keeps an error from before hydration for the component; the hash is of
+			// exactly that text, so no other inline handler runs.
 			// Styles aren't limited: the brand colours and Svelte's transitions are inline styles.
 			// frame-ancestors stays in hooks.server.ts, which every response gets.
 			csp: {
 				mode: 'auto',
-				reportOnly: {
-					'script-src': ['self', 'wasm-unsafe-eval', 'https://cdn.jsdelivr.net'],
+				directives: {
+					'script-src': [
+						'self',
+						'wasm-unsafe-eval',
+						'https://cdn.jsdelivr.net',
+						'unsafe-hashes',
+						'sha256-7dQwUgLau1NFCCGjfn9FsYptB6ZtWxJin6VohGIu20I='
+					],
 					'worker-src': ['self', 'blob:'],
 					'object-src': ['none'],
 					'base-uri': ['self'],

@@ -7,10 +7,10 @@ import type { RequestHandler } from './$types';
 const PER_HOUR = 60;
 
 /**
- * Where browsers report what the script policy (#358, vite.config.ts) would block. Only
- * reported for now, not blocked: the reports go to the error log on /status, so what the
- * policy still has to allow shows before it is enforced. Browsers send these without the
- * sign-in, so it's open, like the health check.
+ * Where browsers report what the script policy (#358, vite.config.ts) blocked. The reports
+ * go to the error log on /status, so a script the policy should allow shows there before
+ * members report a broken page. Browsers send these without the sign-in, so it's open,
+ * like the health check.
  */
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 	if ((await getStore().hit(`csp:${getClientAddress()}`, 60)) > PER_HOUR) return new Response(null, { status: 429 });
