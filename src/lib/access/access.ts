@@ -22,6 +22,8 @@ export const RIGHTS = [
 	'fahrten.bearbeiten',
 	// The instruments the orchestra lends to members (#296): what there is, who has which one.
 	'instrumente.verwalten',
+	// Dienste for concerts (#298): set up the jobs a date needs, put people down, see who did what.
+	'dienste.verwalten',
 	'mitglieder.verwalten'
 ] as const;
 export type Right = (typeof RIGHTS)[number];
@@ -417,6 +419,8 @@ export const isAdminOnly = (member: Pick<Member, 'status'> | undefined) => membe
  */
 export function parentMayOpen(path: string): boolean {
 	const under = (base: string) => path === base || path.startsWith(base + '/');
+	// A date's Dienste and lifts (#298, #196): parents help out and drive too.
+	if (/^\/kalender\/[^/]+\/dienste\/?$/.test(path)) return true;
 	return ['/eltern', '/profil', '/kummerkasten', '/fahrten', '/karte', '/demo', '/api/seitenaufruf', '/api/tempo', '/api/push', '/api/fehler', '/api/warm'].some(under);
 }
 

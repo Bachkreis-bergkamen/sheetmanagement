@@ -11,5 +11,6 @@ export const features = {
 	tickets: 'Konzertkarten',
 	drills: 'Übebereich',
 	trips: 'Fahrten',
-	lending: 'Leihinstrumente'
+	lending: 'Leihinstrumente',
+	duties: 'Dienste'
 } as const;

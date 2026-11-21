@@ -13,6 +13,7 @@ export const nav: Texts['nav'] = {
 	reports: 'Reports',
 	loans: 'Rentals',
 	lending: 'Instrument loans',
+	duties: 'Duties',
 	ensembles: 'Ensembles',
 	kummer: 'Suggestion box',
 	parents: 'Parents',

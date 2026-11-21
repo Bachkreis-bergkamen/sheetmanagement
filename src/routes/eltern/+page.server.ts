@@ -10,6 +10,7 @@ import { formText } from '#lib/server/feedback.ts';
 import { getLibrary, orchestraOf } from '#lib/server/library.ts';
 import { parentNoticeStore } from '#lib/server/parent-notices.ts';
 import { parentContext } from '#lib/server/parents.ts';
+import { dutySummaries } from '#lib/server/duties.ts';
 import { childrenDrills, drillsAccessList } from '#lib/server/drills.ts';
 import { getStore } from '#lib/server/db/index.ts';
 import { getSignups } from '#lib/server/repertoire.ts';
@@ -54,6 +55,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 			: []
 	);
 
+	// Dienste and lifts for the dates (#298, #196): parents help out and drive too.
+	const duties = await dutySummaries(dates.map(({ event }) => event.id));
+
 	// The children's Übebereich (#300): the parent's consent, and their summary when they share it.
 	const list = isOn('drills') ? await drillsAccessList() : null;
 	const drills = list ? await childrenDrills(list, parent.email, parent.children).catch(() => []) : [];
@@ -78,6 +82,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 				daysUntil: event.daysUntil,
 				location: event.location,
 				orchestra: orchestraOf(library, event),
+				duties: duties.get(event.id) ?? null,
 				children: children.map((child) => ({
 					email: child.email,
 					name: child.name,

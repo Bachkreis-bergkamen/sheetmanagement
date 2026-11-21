@@ -11,6 +11,7 @@ export const todo = {
 		wish: 'Wünsche',
 		loan: 'Leihmaterial zurückgeben',
 		instrument: 'Leihinstrumente zurücknehmen',
+		duty: 'Dienste besetzen',
 		attendance: 'Anwesenheit eintragen',
 		poll: 'Terminumfragen beantworten',
 		other: 'Außerdem'

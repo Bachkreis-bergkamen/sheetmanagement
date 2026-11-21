@@ -13,6 +13,6 @@ export const load: PageServerLoad = async ({ locals }) => {
 	if (!groups.length) redirect(303, '/');
 	const work = await openWork(locals).catch(() => null);
 	// Everything waiting, for the "Zu erledigen" row on top (#185).
-	const open = work ? work.reports + work.wishes + work.requests + work.loans + work.instruments + work.attendance + work.polls + work.scans + work.kummerAnswers + work.kummerInbox : 0;
+	const open = work ? work.reports + work.wishes + work.requests + work.loans + work.instruments + work.duties + work.attendance + work.polls + work.scans + work.kummerAnswers + work.kummerInbox : 0;
 	return { counts: countsByPage(work), open };
 };

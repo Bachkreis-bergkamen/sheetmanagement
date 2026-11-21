@@ -6,6 +6,8 @@ import { commonInstruments, parseInstruments, playableInstruments } from '#lib/m
 import { formatDay } from '#lib/events/format.ts';
 import { instrumentDetails, instrumentName } from '#lib/lending/lending.ts';
 import { myInstrumentLoans } from '#lib/server/lending.ts';
+import { jobTime } from '#lib/duties/duties.ts';
+import { myDuties } from '#lib/server/duties.ts';
 import { readMemberForm, today, writable } from '#lib/server/members.ts';
 import { getAccessList } from '#lib/server/repertoire.ts';
 import { setPassword, withinAttempts } from '#lib/server/auth/accounts.ts';
@@ -50,11 +52,27 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		mail: await mail(member.email),
 		practice: await practice(member.email),
 		lent: await lent(member.email),
+		duties: await upcomingDuties(member.email),
 		instruments: playableInstruments(config),
 		common: commonInstruments(config),
 		orchestras: config.orchestras
 	};
 };
+
+/** The jobs this member took for dates from today on (#298), the next first. */
+async function upcomingDuties(email: string) {
+	const day = today();
+	return (await myDuties(email))
+		.filter(({ slot }) => slot.eventDay >= day)
+		.map(({ slot }) => ({
+			id: slot.id,
+			task: slot.task,
+			event: slot.eventTitle,
+			day: formatDay(slot.eventDay, config.locale),
+			time: jobTime(slot, t.duties.startsAt),
+			href: `/kalender/${encodeURIComponent(slot.eventId)}/dienste`
+		}));
+}
 
 /** The orchestra's instruments this member has right now (#296). */
 async function lent(email: string) {

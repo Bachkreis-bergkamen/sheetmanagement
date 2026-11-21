@@ -131,6 +131,8 @@ export function navGroups({ auth, rights, features = ALL_ON, polls = false, pare
 				...(has(rights, 'eltern.informieren') && auth === 'on' ? [{ href: '/eltern/mitteilungen', label: t.nav.parentNotices, icon: 'bell' as const }] : []),
 				// The instruments the orchestra lends to members (#296).
 				...(has(rights, 'instrumente.verwalten') && features.lending && auth === 'on' ? [{ href: '/leihinstrumente', label: t.nav.lending, icon: 'loan' as const }] : []),
+				// Dienste for concerts (#298): open places and who did how many.
+				...(has(rights, 'dienste.verwalten') && features.duties && auth === 'on' ? [{ href: '/dienste', label: t.nav.duties, icon: 'users' as const }] : []),
 				// What members share from the Übebereich with their conductor and teachers (#300).
 				...(has(rights, 'ueben.begleiten') && features.drills && auth === 'on' ? [{ href: '/ueben/stand', label: t.nav.drillsOverview, icon: 'note' as const }] : []),
 				// Every setting in one place (#185): the orchestra, the sheet and data, the status.

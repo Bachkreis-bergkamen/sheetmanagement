@@ -12,7 +12,7 @@ import type { Signup } from '#lib/signups/signups.ts';
 /** A rehearsal or concert this many days ahead (or less) reminds those who haven't answered. */
 export const SIGNUP_REMINDER_DAYS = 3;
 
-export type ReminderKind = 'signup' | 'loan-due' | 'loan-overdue';
+export type ReminderKind = 'signup' | 'loan-due' | 'loan-overdue' | 'duty' | 'duty-nudge';
 
 export interface Reminder<T> {
 	kind: ReminderKind;

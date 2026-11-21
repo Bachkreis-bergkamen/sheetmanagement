@@ -122,7 +122,7 @@
 	// Everything waiting, as one number; the list is on "Zu erledigen" (#185).
 	const todoCount = $derived(
 		data.todo
-			? [data.todo.reports, data.todo.wishes, data.todo.requests, data.todo.loans, data.todo.instruments, data.todo.attendance, data.todo.polls, data.todo.scans, data.todo.kummerAnswers, data.todo.kummerInbox].reduce((sum, n) => sum + n, 0)
+			? [data.todo.reports, data.todo.wishes, data.todo.requests, data.todo.loans, data.todo.instruments, data.todo.duties, data.todo.attendance, data.todo.polls, data.todo.scans, data.todo.kummerAnswers, data.todo.kummerInbox].reduce((sum, n) => sum + n, 0)
 			: 0
 	);
 </script>
@@ -232,7 +232,7 @@
 	<!-- Below the next date, not above it: on phones, until the app is on the home screen or the member said no (#279). -->
 	<InstallHint name={data.orchestraShortName} logo={data.logo} />
 
-	{#if later.length || todoCount}
+	{#if later.length || todoCount || data.help.length}
 		<div class="side">
 			{#if later.length}
 				<section aria-labelledby="later-title">
@@ -264,6 +264,27 @@
 							{/if}
 						</article>
 					{/each}
+				</section>
+			{/if}
+
+			{#if data.help.length}
+				<!-- Dienste where help is wanted soon (#196); taking one is on the date's duties page. -->
+				<section class="help" aria-labelledby="help-title">
+					<h2 class="section-title" id="help-title">{t.duties.helpTitle}</h2>
+					<ul>
+						{#each data.help as date (date.id)}
+							<li>
+								<a class="summary" href={date.href}>
+									<Icon name="users" size={18} />
+									<span class="help-body">
+										<span class="help-what">{date.title}</span>
+										<small>{[date.day, date.free ? t.duties.helpFree(date.free) : '', date.offered ? t.duties.helpOffered(date.offered) : ''].filter(Boolean).join(' · ')}</small>
+									</span>
+									<span class="chevron"><Icon name="chevron" size={16} /></span>
+								</a>
+							</li>
+						{/each}
+					</ul>
 				</section>
 			{/if}
 
@@ -754,6 +775,52 @@
 
 	.todo .summary:hover {
 		background: var(--surface-2);
+	}
+
+	.help ul {
+		display: grid;
+		gap: var(--space-2);
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.help .summary {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		min-height: var(--tap);
+		padding: var(--space-2) var(--space-4);
+		border: 1px solid var(--hairline);
+		border-radius: var(--radius-m);
+		background: var(--surface);
+		color: inherit;
+		transition: background var(--fast) var(--ease);
+	}
+
+	.help .summary:hover {
+		background: var(--surface-2);
+	}
+
+	.help-body {
+		display: grid;
+		min-width: 0;
+	}
+
+	.help-what {
+		font-weight: 600;
+		overflow-wrap: anywhere;
+	}
+
+	.help small {
+		color: var(--text-muted);
+		font-size: var(--text-sm);
+	}
+
+	.help .chevron {
+		display: grid;
+		margin-left: auto;
+		color: var(--text-muted);
 	}
 
 	.todo .chevron {

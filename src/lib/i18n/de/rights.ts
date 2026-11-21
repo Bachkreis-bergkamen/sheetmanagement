@@ -13,5 +13,6 @@ export const rights = {
 	'ueben.begleiten': 'Übestand der Mitglieder sehen, die ihn teilen',
 	'fahrten.bearbeiten': 'Konzert- und Probenfahrten planen und sehen, wer mitfährt',
 	'instrumente.verwalten': 'Leihinstrumente verwalten: Bestand, Verleih und Rückgabe',
+	'dienste.verwalten': 'Dienste für Konzerte einteilen: Aufbau, Kasse, Kuchen und wer sie übernimmt',
 	'mitglieder.verwalten': 'Mitglieder und Rechte verwalten'
 } as const;
