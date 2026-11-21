@@ -6,7 +6,7 @@
 	import { FLUENT_MS, kindOf, questionFor, ROUND, type ChordQuality, type Question } from '#lib/practice/drills/decks.ts';
 	import { profile, type ProfileId } from '#lib/practice/drills/instruments.ts';
 	import { NoteJudge, type Verdict } from '#lib/practice/drills/judge.ts';
-	import { dayNumber, isMastered, median, pickNext, type States } from '#lib/practice/drills/scheduler.ts';
+	import { dayNumber, isMastered, median, pickNext, roundPoints, type States } from '#lib/practice/drills/scheduler.ts';
 	import {
 		beatMs,
 		calibrate,
@@ -103,6 +103,8 @@
 	let times = $state<number[]>([]);
 	let recent: string[] = [];
 	let introduced = $state(0);
+	/** Right answers only after hearing the question first, worth less in the score (#371). */
+	let rightAfterHearing = $state(0);
 	let question = $state<Question | null>(null);
 	let isNew = $state(false);
 	/** The question is the try at a new note; and whether it's been asked this round. */
@@ -423,8 +425,10 @@
 		const leaning = Math.abs(verdict.tendency) >= LEANING ? (verdict.tendency > 0 ? tx.dragging : tx.rushing) : undefined;
 		const off = Number.isFinite(verdict.meanOff) ? Math.round(verdict.meanOff) : 999;
 		// Right after hearing it: right, but not yet fluent, so the item doesn't move up.
-		if (verdict.correct && heardFirst) answer(true, tx.rightHeard, leaning, Math.max(off, FLUENT_MS.rhythm + 1));
-		else if (verdict.correct) answer(true, off <= FLUENT_MS.rhythm ? tx.inTime : tx.rhythmLoose(off), leaning, off);
+		if (verdict.correct && heardFirst) {
+			rightAfterHearing++;
+			answer(true, tx.rightHeard, leaning, Math.max(off, FLUENT_MS.rhythm + 1));
+		} else if (verdict.correct) answer(true, off <= FLUENT_MS.rhythm ? tx.inTime : tx.rhythmLoose(off), leaning, off);
 		else if (!relative.length) answer(false, tx.noTaps, undefined, off);
 		else answer(false, tx.rhythmWrong(missed, verdict.extra.length), leaning, off);
 	}
@@ -785,6 +789,7 @@
 	}
 
 	const right = $derived(answers.filter(Boolean).length);
+	const points = $derived(new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(roundPoints(right, rightAfterHearing)));
 	const masteredNow = $derived(order.filter((id) => isMastered(states[id], FLUENT_MS[kindOf(id)])).length);
 	const transposition = $derived(profile(instrument).transposition);
 
@@ -1160,7 +1165,12 @@
 		<div class="done">
 			<p class="big">{tx.done}</p>
 			<ul class="facts">
-				<li><strong>{tx.doneRight(right, answers.length)}</strong></li>
+				{#if rightAfterHearing}
+					<li><strong>{tx.donePoints(points, answers.length)}</strong></li>
+					<li>{tx.doneHeard(rightAfterHearing)}</li>
+				{:else}
+					<li><strong>{tx.doneRight(right, answers.length)}</strong></li>
+				{/if}
 				{#if times.length}<li>{tx.doneTime(new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(median(times) / 1000))}</li>{/if}
 				{#if introduced}<li>{tx.doneNew(introduced)}</li>{/if}
 				<li>{tx.mastered(masteredNow, order.length)}</li>
@@ -1175,6 +1185,7 @@
 						answers = [];
 						times = [];
 						introduced = 0;
+						rightAfterHearing = 0;
 						finished = false;
 						next();
 					}}>{tx.again}</button
