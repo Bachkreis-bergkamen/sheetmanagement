@@ -330,9 +330,13 @@
 		sendDays();
 	}
 
-	/** `measure` is what counts for fluency: the time to answer, or for a rhythm how far the taps were off. */
+	/**
+	 * `measure` is what counts for fluency: the time to answer, or for a rhythm how far the taps
+	 * were off. A rhythm heard first never counts as fluent (see DrillRound), so a fluent one was
+	 * tapped at sight and is mastered at once (#370).
+	 */
 	function onanswer(id: string, correct: boolean, ms: number, measure = ms) {
-		drills.items[id] = record(drills.items[id], correct, measure, dayNumber(), FLUENT_MS[kindOf(id)]);
+		drills.items[id] = record(drills.items[id], correct, measure, dayNumber(), FLUENT_MS[kindOf(id)], { atSight: kindOf(id) === 'rhythm' });
 		practised(correct, ms, kindOf(id));
 	}
 

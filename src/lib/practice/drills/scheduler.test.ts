@@ -1,9 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { isMastered, median, pickNext, record, successRate, summary, type States } from './scheduler.ts';
+import { INTERVALS, isMastered, MASTERED_BOX, median, pickNext, record, successRate, summary, type States } from './scheduler.ts';
 
 const FLUENT = 2000;
 
 describe('record', () => {
+	it('masters an item done fluently at sight, and only then (#370)', () => {
+		const atSight = { atSight: true };
+		expect(record(undefined, true, 900, 100, FLUENT, atSight)).toMatchObject({ box: MASTERED_BOX, due: 100 + INTERVALS[MASTERED_BOX] });
+		expect(record({ box: 1, due: 0, seen: 1, right: 1, times: [3000] }, true, 900, 100, FLUENT, atSight).box).toBe(MASTERED_BOX);
+		expect(record({ box: 5, due: 0, seen: 4, right: 4, times: [900] }, true, 900, 100, FLUENT, atSight).box).toBe(6);
+		expect(record(undefined, true, 5000, 100, FLUENT, atSight).box).toBe(1);
+		expect(record(undefined, false, 900, 100, FLUENT, atSight).box).toBe(0);
+	});
+
 	it('puts a first answer that was right and fast high: the player knew it', () => {
 		expect(record(undefined, true, 900, 100, FLUENT)).toMatchObject({ box: 3, due: 104, seen: 1, right: 1, times: [900] });
 		expect(record(undefined, true, 5000, 100, FLUENT)).toMatchObject({ box: 1, due: 101 });
