@@ -1,12 +1,14 @@
 import { config } from '#lib/config/index.ts';
 import { reportSubject } from '#lib/feedback/feedback.ts';
 import * as t from '#lib/i18n/texts.ts';
+import { instrumentName, urgentInstrumentLoans } from '#lib/lending/lending.ts';
 import { urgentLoans } from '#lib/loans/loans.ts';
 import { eventDay } from '#lib/repertoire/dates.ts';
 import { mayFor, normalizeEmail } from '#lib/access/access.ts';
 import { getLibrary, orchestraOf } from './library.ts';
 import { getAccessList, getAttendance, getFeedback, getLoans, getScanTasks } from './repertoire.ts';
 import { features } from './env.ts';
+import { LENDING_RIGHT, lendingStore } from './lending.ts';
 import { unansweredPolls } from './polls.ts';
 import { unreadKummer } from './kummer.ts';
 import { getSchedule } from './schedule.ts';
@@ -20,6 +22,8 @@ export interface OpenWork {
 	requests: number;
 	/** Rented music due within two weeks or overdue (#119). */
 	loans: number;
+	/** The orchestra's instruments due back within two weeks or overdue (#296). */
+	instruments: number;
 	attendance: number;
 	/** The oldest rehearsal without attendance. */
 	attendanceUrl?: string;
@@ -48,6 +52,7 @@ export async function openWork(locals: App.Locals): Promise<OpenWork | null> {
 		wishes: open.wishes.length,
 		requests: open.requests.length,
 		loans: open.loans.length,
+		instruments: open.instruments.length,
 		attendance: open.untaken.length,
 		attendanceUrl: open.untaken[0] ? attendanceUrl(open.untaken[0].id) : undefined,
 		polls: open.polls.length,
@@ -61,7 +66,7 @@ export async function openWork(locals: App.Locals): Promise<OpenWork | null> {
 
 /** One thing waiting for someone, on the "Zu erledigen" list (#185). */
 export interface OpenItem {
-	kind: 'report' | 'wish' | 'request' | 'loan' | 'attendance' | 'poll' | 'scans' | 'kummerAnswers' | 'kummerInbox';
+	kind: 'report' | 'wish' | 'request' | 'loan' | 'instrument' | 'attendance' | 'poll' | 'scans' | 'kummerAnswers' | 'kummerInbox';
 	/** What it is about: the piece, the wish, the person, the rehearsal. */
 	title: string;
 	/** What to do or what's wrong, short. */
@@ -94,6 +99,7 @@ export async function openItems(locals: App.Locals): Promise<OpenItem[]> {
 		...open.requests.map((request) => ({ kind: 'request' as const, title: request.name || request.email, detail: request.email, date: day(request.requestedAt), href: '/admin' })),
 		...open.wishes.map((wish) => ({ kind: 'wish' as const, title: wish.title, detail: wish.composer || undefined, date: day(wish.submittedAt), href: '/wuensche' })),
 		...open.loans.map((loan) => ({ kind: 'loan' as const, title: loan.pieceName, detail: loan.from || undefined, date: loan.dueAt, href: '/leihmaterial' })),
+		...open.instruments.map(({ loan, instrument }) => ({ kind: 'instrument' as const, title: instrumentName(instrument), detail: loan.name, date: loan.due, href: `/leihinstrumente/${instrument.id}` })),
 		...open.untaken.map((event) => ({ kind: 'attendance' as const, title: event.displayTitle, date: day(event.start), href: attendanceUrl(event.id) })),
 		...open.polls.map((poll) => ({ kind: 'poll' as const, title: poll.title, date: poll.deadline, href: `/termine/${poll.id}` })),
 		...(open.gapScans ? [{ kind: 'scans' as const, title: t.home.todo.scans(open.gapScans), count: open.gapScans, href: '/fehlende-stimmen?meine' }] : []),
@@ -124,7 +130,8 @@ async function read(locals: App.Locals) {
 	const today = eventDay({ start: new Date().toISOString(), allDay: false }, config.timeZone);
 	const polls = locals.auth === 'on' ? await unansweredPolls(locals, today).catch(() => []) : [];
 	const kummer = await unreadKummer(locals).catch(() => ({ answers: 0, inbox: 0 }));
-	if (!reports && !admin && !attendance && !polls.length && !kummer.answers && !kummer.inbox) return null;
+	const instruments = rights.has(LENDING_RIGHT) && locals.auth === 'on' ? await dueInstruments(today) : [];
+	if (!reports && !admin && !attendance && !polls.length && !kummer.answers && !kummer.inbox && !instruments.length) return null;
 	const [feedback, access, loans, taken, schedule, scans] = await Promise.all([
 		getFeedback(),
 		admin ? getAccessList() : null,
@@ -155,6 +162,7 @@ async function read(locals: App.Locals) {
 		wishes: admin && on.wishes ? (feedback?.wishes.filter((wish) => wish.status === 'open') ?? []) : [],
 		requests: admin ? (access?.requests ?? []) : [],
 		loans: loans ? urgentLoans(loans.loans, today) : [],
+		instruments,
 		untaken,
 		polls,
 		// Parts to scan: gaps planned in "Fehlende Stimmen", and reports handed to the scanning team.
@@ -164,9 +172,26 @@ async function read(locals: App.Locals) {
 	};
 }
 
+/** Lent instruments that are overdue or due soon, with the instrument; none without the store. */
+async function dueInstruments(today: string) {
+	try {
+		const store = await lendingStore();
+		if (!store) return [];
+		const [loans, instruments] = await Promise.all([store.loans(), store.instruments()]);
+		const byId = new Map(instruments.map((instrument) => [instrument.id, instrument]));
+		return urgentInstrumentLoans(loans, today).flatMap((loan) => {
+			const instrument = byId.get(loan.instrumentId);
+			return instrument ? [{ loan, instrument }] : [];
+		});
+	} catch (cause) {
+		console.error('Reading the instrument loans for the to-do list failed:', cause);
+		return [];
+	}
+}
+
 /** The counts by page, for tabs and menus: only pages with something open. */
 export function countsByPage(work: OpenWork | null): Record<string, number> {
 	if (!work) return {};
-	const counts: Record<string, number> = { '/meldungen': work.reports + work.scans - work.gapScans, '/wuensche': work.wishes, '/admin': work.requests, '/leihmaterial': work.loans, '/fehlende-stimmen': work.gapScans, '/kummerkasten': work.kummerAnswers + work.kummerInbox };
+	const counts: Record<string, number> = { '/meldungen': work.reports + work.scans - work.gapScans, '/wuensche': work.wishes, '/admin': work.requests, '/leihmaterial': work.loans, '/leihinstrumente': work.instruments, '/fehlende-stimmen': work.gapScans, '/kummerkasten': work.kummerAnswers + work.kummerInbox };
 	return Object.fromEntries(Object.entries(counts).filter(([, count]) => count > 0));
 }

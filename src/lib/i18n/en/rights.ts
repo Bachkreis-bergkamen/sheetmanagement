@@ -14,5 +14,6 @@ export const rights: Texts['rights'] = {
 	'eltern.informieren': 'Write notices to parents',
 	'ueben.begleiten': 'See the practice of members who share it',
 	'fahrten.bearbeiten': 'Plan concert tours and rehearsal trips, and see who comes along',
+	'instrumente.verwalten': 'Manage the instruments on loan: inventory, lending and returns',
 	'mitglieder.verwalten': 'Manage members and rights'
 };

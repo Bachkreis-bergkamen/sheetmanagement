@@ -10,6 +10,7 @@ export const todo = {
 		request: 'Zugangsanfragen',
 		wish: 'Wünsche',
 		loan: 'Leihmaterial zurückgeben',
+		instrument: 'Leihinstrumente zurücknehmen',
 		attendance: 'Anwesenheit eintragen',
 		poll: 'Terminumfragen beantworten',
 		other: 'Außerdem'

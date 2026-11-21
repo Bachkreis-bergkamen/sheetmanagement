@@ -20,6 +20,8 @@ export const RIGHTS = [
 	'ueben.begleiten',
 	// Konzert- and Probenfahrten (#334): plan trips, see who comes, edit the plan of each day.
 	'fahrten.bearbeiten',
+	// The instruments the orchestra lends to members (#296): what there is, who has which one.
+	'instrumente.verwalten',
 	'mitglieder.verwalten'
 ] as const;
 export type Right = (typeof RIGHTS)[number];
