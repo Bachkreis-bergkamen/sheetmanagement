@@ -81,6 +81,17 @@ export function successRate(answers: boolean[]) {
 	return last.length ? last.filter(Boolean).length / last.length : 1;
 }
 
+/** What a right answer is worth in the round's score after the question was played first (#371). */
+export const HEARD_POINTS = 0.5;
+
+/**
+ * The round's score: a point for each right answer, half of one for each right only after
+ * hearing it first (#371), since the aim is to read it at sight, not to copy it.
+ */
+export function roundPoints(right: number, heard: number) {
+	return right - heard * (1 - HEARD_POINTS);
+}
+
 /**
  * The next item to ask, and whether it's new. In order of preference: one being learnt (half
  * the time, so it comes back soon but not at once), a new one while things go well, a due one,

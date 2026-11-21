@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { INTERVALS, isMastered, MASTERED_BOX, median, pickNext, record, successRate, summary, type States } from './scheduler.ts';
+import { INTERVALS, isMastered, MASTERED_BOX, median, pickNext, record, roundPoints, successRate, summary, type States } from './scheduler.ts';
 
 const FLUENT = 2000;
 
@@ -112,5 +112,14 @@ describe('summary', () => {
 	it('counts items known at first sight, waiting for their check', () => {
 		const states: States = { a: { box: 3, due: 12, seen: 1, right: 1, times: [700] }, b: { box: 3, due: 10, seen: 1, right: 1, times: [700] } };
 		expect(summary(['a', 'b'], states, 10, () => FLUENT)).toMatchObject({ known: 1, due: 1, mastered: 0 });
+	});
+});
+
+describe('roundPoints', () => {
+	it('gives half a point for a right answer only after hearing it first (#371)', () => {
+		expect(roundPoints(8, 0)).toBe(8);
+		expect(roundPoints(8, 2)).toBe(7);
+		expect(roundPoints(3, 3)).toBe(1.5);
+		expect(roundPoints(0, 0)).toBe(0);
 	});
 });
