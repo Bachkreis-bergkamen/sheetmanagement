@@ -80,6 +80,7 @@ APP_LANGUAGE=en pnpm dev:demo
 | `pnpm check` | Type-check |
 | `pnpm test` | Unit tests |
 | `pnpm test:e2e` | End-to-end tests against the demo (Playwright; once: `pnpm exec playwright install chromium`) |
+| `pnpm budget` | After `pnpm build`: each page's JavaScript against its budget (`--update` writes new budgets) |
 | `pnpm preview` | Build and run the real Worker locally with Wrangler |
 | `pnpm run deploy` | Build and deploy to Cloudflare |
 

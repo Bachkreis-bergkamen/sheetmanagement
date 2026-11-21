@@ -41,6 +41,9 @@ jobs:
       # only follows imports, so it would miss a changed fixture or sample data.
       - run: pnpm test
       - run: pnpm build
+      # The JS a first visit to each page loads, against .github/js-budget.json (#187). When a page
+      # is meant to grow: `pnpm build && pnpm budget --update`, and commit the file.
+      - run: pnpm budget
 
   # A pull request runs the specs its changes can reach (.github/scripts/e2e-specs.mjs); a push to
   # main runs them all, for whatever that map misses. The job always runs, so the required check
