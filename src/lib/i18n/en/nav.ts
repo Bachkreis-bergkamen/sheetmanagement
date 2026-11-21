@@ -12,6 +12,8 @@ export const nav: Texts['nav'] = {
 	wishes: 'Wishes',
 	reports: 'Reports',
 	loans: 'Rentals',
+	lending: 'Instrument loans',
+	duties: 'Duties',
 	ensembles: 'Ensembles',
 	kummer: 'Suggestion box',
 	parents: 'Parents',

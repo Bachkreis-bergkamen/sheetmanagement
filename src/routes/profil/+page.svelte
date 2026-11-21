@@ -92,6 +92,39 @@
 					{#if form?.saved}<span class="saved" role="status"><Icon name="check" size={16} />{t.profile.saved}</span>{/if}
 				</div>
 			</form>
+
+			<!-- The jobs they took for the next dates (#298); only shown while they have one. -->
+			{#if data.duties?.length}
+				<section class="ui-card feed" id="dienste">
+					<h3><Icon name="users" size={18} />{t.duties.mineTitle}</h3>
+					<p class="muted">{t.duties.mineLead}</p>
+					<ul class="lent">
+						{#each data.duties as duty (duty.id)}
+							<li>
+								<a href={duty.href}><strong>{duty.task}</strong></a>
+								<span class="muted small">{[duty.event, duty.day, duty.time].filter(Boolean).join(' · ')}</span>
+							</li>
+						{/each}
+					</ul>
+				</section>
+			{/if}
+
+			<!-- The orchestra's instruments they have (#296); only shown while they have one. -->
+			{#if data.lent?.length}
+				<section class="ui-card feed" id="leihinstrumente">
+					<h3><Icon name="loan" size={18} />{t.lending.mine}</h3>
+					<p class="muted">{t.lending.mineLead}</p>
+					<ul class="lent">
+						{#each data.lent as loan (loan.id)}
+							<li>
+								<strong>{loan.name}</strong>
+								{#if loan.details.length}<span class="muted small">{loan.details.join(' · ')}</span>{/if}
+								<span class="muted small">{[t.lending.since(loan.from), loan.due ? t.loans.dueAt(loan.due) : t.lending.noDue, loan.accessories].filter(Boolean).join(' · ')}</span>
+							</li>
+						{/each}
+					</ul>
+				</section>
+			{/if}
 		</section>
 	{/if}
 
@@ -382,6 +415,19 @@
 	}
 
 	/* Cards linked to from elsewhere (/profil#kalender) land below the sticky header. */
+	.lent {
+		display: grid;
+		gap: var(--space-3);
+		margin: var(--space-3) 0 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.lent li {
+		display: grid;
+		gap: 2px;
+	}
+
 	.group :global(section.ui-card) {
 		scroll-margin-top: var(--space-6);
 	}

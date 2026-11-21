@@ -7,7 +7,7 @@
 
 import type { TabKey } from '#lib/repertoire/sheet.ts';
 
-export const FEATURES = ['loans', 'musicReport', 'attendance', 'signups', 'wishes', 'calendarFeed', 'offline', 'seasons', 'tickets', 'drills', 'trips'] as const;
+export const FEATURES = ['loans', 'musicReport', 'attendance', 'signups', 'wishes', 'calendarFeed', 'offline', 'seasons', 'tickets', 'drills', 'trips', 'lending', 'duties'] as const;
 
 export type Feature = (typeof FEATURES)[number];
 export type Features = Record<Feature, boolean>;
@@ -37,7 +37,11 @@ const ALIASES: Record<string, Feature> = {
 	übebereich: 'drills',
 	fahrten: 'trips',
 	konzertfahrten: 'trips',
-	probenfahrten: 'trips'
+	probenfahrten: 'trips',
+	leihinstrumente: 'lending',
+	instrumente: 'lending',
+	dienste: 'duties',
+	dienstplan: 'duties'
 };
 
 const byName = new Map<string, Feature>([...FEATURES.map((feature) => [feature.toLowerCase(), feature] as const), ...Object.entries(ALIASES)]);
@@ -70,6 +74,8 @@ export function featureOfPath(path: string): Feature | undefined {
 	if (path === '/leihmaterial' || path.startsWith('/leihmaterial/')) return 'loans';
 	if (path === '/wuensche' || path.startsWith('/wuensche/')) return 'wishes';
 	if (path === '/fahrten' || path.startsWith('/fahrten/')) return 'trips';
+	if (path === '/leihinstrumente' || path.startsWith('/leihinstrumente/')) return 'lending';
+	if (path === '/dienste' || path.startsWith('/dienste/') || /^\/kalender\/[^/]+\/dienste(\/|$)/.test(path)) return 'duties';
 	// The feed sits next to the calendar's pages: only the .ics file itself.
 	if (/^\/kalender\/[^/]+\.ics$/.test(path)) return 'calendarFeed';
 	if (/^\/kalender\/[^/]+\/anwesenheit(\/|$)/.test(path)) return 'attendance';

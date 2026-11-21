@@ -12,6 +12,8 @@ export const todo: Texts['todo'] = {
 		request: 'Access requests',
 		wish: 'Wishes',
 		loan: 'Rented music to return',
+		instrument: 'Take instruments back',
+		duty: 'Fill duties',
 		attendance: 'Take attendance',
 		poll: 'Date polls to answer',
 		other: 'Also'

@@ -3,6 +3,11 @@ import { currentStatus, normalizeEmail, parseLinkVersion, parseStatus } from '#l
 import { config } from '#lib/config/index.ts';
 import * as t from '#lib/i18n/texts.ts';
 import { commonInstruments, parseInstruments, playableInstruments } from '#lib/music/my-parts.ts';
+import { formatDay } from '#lib/events/format.ts';
+import { instrumentDetails, instrumentName } from '#lib/lending/lending.ts';
+import { myInstrumentLoans } from '#lib/server/lending.ts';
+import { jobTime } from '#lib/duties/duties.ts';
+import { myDuties } from '#lib/server/duties.ts';
 import { readMemberForm, today, writable } from '#lib/server/members.ts';
 import { getAccessList } from '#lib/server/repertoire.ts';
 import { setPassword, withinAttempts } from '#lib/server/auth/accounts.ts';
@@ -46,11 +51,36 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		push: await push(member.email),
 		mail: await mail(member.email),
 		practice: await practice(member.email),
+		lent: await lent(member.email),
+		duties: await upcomingDuties(member.email),
 		instruments: playableInstruments(config),
 		common: commonInstruments(config),
 		orchestras: config.orchestras
 	};
 };
+
+/** The jobs this member took for dates from today on (#298), the next first. */
+async function upcomingDuties(email: string) {
+	const day = today();
+	return (await myDuties(email))
+		.filter(({ slot }) => slot.eventDay >= day)
+		.map(({ slot }) => ({
+			id: slot.id,
+			task: slot.task,
+			event: slot.eventTitle,
+			day: formatDay(slot.eventDay, config.locale),
+			time: jobTime(slot, t.duties.startsAt),
+			href: `/kalender/${encodeURIComponent(slot.eventId)}/dienste`
+		}));
+}
+
+/** The orchestra's instruments this member has right now (#296). */
+async function lent(email: string) {
+	const date = (day: string) => formatDay(day, config.locale);
+	return (await myInstrumentLoans(email))
+		.filter(({ loan }) => !loan.returned)
+		.map(({ loan, instrument }) => ({ id: loan.id, name: instrumentName(instrument), details: instrumentDetails(instrument), accessories: instrument.accessories, from: date(loan.from), due: loan.due ? date(loan.due) : undefined }));
+}
 
 /** The accounts kept on this device for switching (saved.ts), without their tokens; null in the demo. */
 async function deviceAccounts(cookies: Cookies) {

@@ -518,8 +518,8 @@ describe('parents', () => {
 	});
 
 	it('lets a parent account open its area, profile and messages only', () => {
-		for (const path of ['/eltern', '/eltern/nachrichten', '/profil', '/kummerkasten/abc', '/karte/xyz', '/api/push']) expect(parentMayOpen(path)).toBe(true);
-		for (const path of ['/', '/stuecke', '/meine-noten', '/kalender/abc', '/api/noten/1', '/elternabend', '/admin']) expect(parentMayOpen(path)).toBe(false);
+		for (const path of ['/eltern', '/eltern/nachrichten', '/profil', '/kummerkasten/abc', '/karte/xyz', '/api/push', '/kalender/abc/dienste']) expect(parentMayOpen(path)).toBe(true);
+		for (const path of ['/', '/stuecke', '/meine-noten', '/kalender/abc', '/kalender/abc/anwesenheit', '/kalender/abc/dienste/x', '/api/noten/1', '/elternabend', '/admin']) expect(parentMayOpen(path)).toBe(false);
 	});
 });
 

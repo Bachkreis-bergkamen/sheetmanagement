@@ -10,6 +10,8 @@ export const nav = {
 	wishes: 'Wünsche',
 	reports: 'Meldungen',
 	loans: 'Leihmaterial',
+	lending: 'Leihinstrumente',
+	duties: 'Dienste',
 	ensembles: 'Ensembles',
 	kummer: 'Kummerkasten',
 	/** The parents' area (/eltern) and what parent accounts see in the menu. */

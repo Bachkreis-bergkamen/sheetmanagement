@@ -14,11 +14,13 @@ import { getLibrary } from '../library.ts';
 import type { Notice } from '../push/index.ts';
 import { getAccessList, getLoans, getSignups } from '../repertoire.ts';
 import { channels, channelsSetUp, deliver, reachable } from './deliver.ts';
+import { dutyReminders } from './duty-reminders.ts';
 import type { JobResult } from './index.ts';
 
 /**
  * Reminders on members' devices or by email (#157, #144, #123): a rehearsal or concert in the
- * next days that someone hasn't answered, and rented music that is due or overdue. Each
+ * next days that someone hasn't answered, rented music that is due or overdue, and Dienste
+ * (#298): the day before a job, and the organisers' call for help. Each
  * reminder goes out once (logged in the store), whichever way reaches the person (see
  * deliver.ts); a few per run, the rest on the next one, so a run stays small. Nobody is woken
  * up: nothing is sent at night.
@@ -90,6 +92,14 @@ export async function sendReminders(now = Date.now()): Promise<JobResult> {
 					tag: `loan-${reminder.subject}`
 				}
 			});
+		}
+	}
+
+	if (on.duties) {
+		try {
+			pending.push(...(await dutyReminders(today, access, now)));
+		} catch (cause) {
+			console.error('Reading the Dienste for reminders failed:', cause);
 		}
 	}
 
