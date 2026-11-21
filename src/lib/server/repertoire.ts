@@ -26,6 +26,7 @@ import { getGoogle, NotConfiguredError, requireSetting } from './services.ts';
 import { appendRecords, replaceRows } from './sheet-writes.ts';
 import { dataState, gridOf, usingD1 } from './data-source.ts';
 import { getStore } from './db/index.ts';
+import { lazyFields } from './lazy.ts';
 
 /** People edit the sheet by hand, so changes should show up quickly. */
 const SHEET_MAX_AGE_MS = 60 * 1000;
@@ -250,36 +251,48 @@ async function loadD1Sheet(force: boolean): Promise<{ value: RawSheet; storedAt:
 	return d1Reading.promise;
 }
 
-// Built once per sheet snapshot and Worker instance, not on every request.
+// Kept once per sheet snapshot and Worker instance, not made again on every request.
 const snapshots = new WeakMap<RawSheet, SheetSnapshot>();
+
+/**
+ * Each part is built the first time a request reads it, then kept with the snapshot (#355). The
+ * request hook reads only the settings and the member list, and most pages a few parts more. On a
+ * fresh instance building all of them took about 12 ms of CPU on the demo data, more than the
+ * free plan's 10 ms per request, and with D1 every save makes a new snapshot.
+ */
+function buildSnapshot(sheet: RawSheet): SheetSnapshot {
+	return lazyFields<SheetSnapshot>({
+		repertoire: () => buildRepertoire(sheet.values),
+		access: () => buildAccessList(sheet.access),
+		feedback: () => buildFeedback(sheet.feedback),
+		missingPartsDone: () => doneFileIds(sheet.missingParts ?? []),
+		scanTasks: () => scanTasks(sheet.missingParts ?? []),
+		instrumentGroups: () =>
+			readInstrumentGroups(
+				sheet.instrumentGroups,
+				config.instruments.map((instrument) => instrument.name)
+			),
+		signups: () => (sheet.signups ? buildSignups(sheet.signups) : null),
+		rehearsals: () => (sheet.rehearsals ? buildRehearsalPlan(sheet.rehearsals) : null),
+		loans: () => (sheet.loans ? buildLoans(sheet.loans) : null),
+		attendance: () => (sheet.attendance ? buildAttendance(sheet.attendance) : null),
+		settings: () => readSettings(readTable(sheet.settings ?? [], LAYOUT.settings.columns).rows),
+		instruments: () =>
+			readInstrumentOverrides(
+				readTable(sheet.instruments ?? [], LAYOUT.instruments.columns).rows,
+				PRESET_INSTRUMENTS.map((instrument) => instrument.name)
+			),
+		pieceNotes: () => buildPieceNotes(sheet.pieceNotes ?? []),
+		partAssignments: () => buildPartAssignments(sheet.partAssignments ?? []),
+		rehearsalNotes: () => buildRehearsalNotes(sheet.rehearsalNotes ?? [])
+	});
+}
 
 async function loadSheet(force: boolean): Promise<{ value: SheetSnapshot; sheet: RawSheet; storedAt: number }> {
 	const { value: sheet, storedAt } = await loadRawSheet(force);
 	let snapshot = snapshots.get(sheet);
 	if (!snapshot) {
-		snapshot = {
-			repertoire: buildRepertoire(sheet.values),
-			access: buildAccessList(sheet.access),
-			feedback: buildFeedback(sheet.feedback),
-			missingPartsDone: doneFileIds(sheet.missingParts ?? []),
-			scanTasks: scanTasks(sheet.missingParts ?? []),
-			instrumentGroups: readInstrumentGroups(
-				sheet.instrumentGroups,
-				config.instruments.map((instrument) => instrument.name)
-			),
-			signups: sheet.signups ? buildSignups(sheet.signups) : null,
-			rehearsals: sheet.rehearsals ? buildRehearsalPlan(sheet.rehearsals) : null,
-			loans: sheet.loans ? buildLoans(sheet.loans) : null,
-			attendance: sheet.attendance ? buildAttendance(sheet.attendance) : null,
-			settings: readSettings(readTable(sheet.settings ?? [], LAYOUT.settings.columns).rows),
-			instruments: readInstrumentOverrides(
-				readTable(sheet.instruments ?? [], LAYOUT.instruments.columns).rows,
-				PRESET_INSTRUMENTS.map((instrument) => instrument.name)
-			),
-			pieceNotes: buildPieceNotes(sheet.pieceNotes ?? []),
-			partAssignments: buildPartAssignments(sheet.partAssignments ?? []),
-			rehearsalNotes: buildRehearsalNotes(sheet.rehearsalNotes ?? [])
-		};
+		snapshot = buildSnapshot(sheet);
 		snapshots.set(sheet, snapshot);
 	}
 	return { value: snapshot, sheet, storedAt };
