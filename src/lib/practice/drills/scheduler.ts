@@ -41,14 +41,17 @@ export const median = (values: number[]) => {
  * The item's state after an answer. Seen for the first time and answered right and fast: the
  * player knew it already, so it goes straight to box 3 (that's how experienced players get past
  * the basics quickly). Right but slow: stays where it is, not yet fluent. Wrong: back to learning.
+ * `atSight`: done right and fluently without hearing it first, as a rhythm tapped straight from
+ * the page (#370); that's the skill itself, so the item counts as mastered at once.
  */
-export function record(state: ItemState | undefined, correct: boolean, ms: number, day: number, fluentMs: number): ItemState {
+export function record(state: ItemState | undefined, correct: boolean, ms: number, day: number, fluentMs: number, { atSight = false } = {}): ItemState {
 	const fast = ms <= fluentMs;
 	const times = correct ? [...(state?.times ?? []), Math.round(ms)].slice(-TIMES_KEPT) : (state?.times ?? []);
 	let box: number;
 	if (!correct) box = 0;
 	else if (!state) box = fast ? 3 : 1;
 	else box = fast ? Math.min(TOP_BOX, Math.max(1, state.box + 1)) : Math.max(1, state.box);
+	if (correct && fast && atSight) box = Math.max(box, MASTERED_BOX);
 	return { box, due: day + INTERVALS[box], seen: (state?.seen ?? 0) + 1, right: (state?.right ?? 0) + (correct ? 1 : 0), times };
 }
 
