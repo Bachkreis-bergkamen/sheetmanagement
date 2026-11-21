@@ -4,6 +4,7 @@ import * as t from '#lib/i18n/texts.ts';
 import { LAYOUT, normalize, type Table, type TabKey } from '#lib/repertoire/sheet.ts';
 import type { Poll, PollResponse } from '#lib/polls/polls.ts';
 import { instrumentName, type InstrumentLoan, type LendInstrument } from '#lib/lending/lending.ts';
+import type { DutySlot, DutyTake } from '#lib/duties/duties.ts';
 import type { Participant, Trip } from '#lib/trips/trips.ts';
 import type { Instrument, KeptList, ListEntry } from '#lib/trips/lists.ts';
 import type { Arrangement } from '#lib/trips/organising.ts';
@@ -150,6 +151,18 @@ export function lendingData(entries: { loan: InstrumentLoan; instrument: LendIns
 		[e.returnNote]: loan.returnNote ?? ''
 	}));
 	return rows.length ? { [t.lending.title]: rows } : {};
+}
+
+/** The duties the member took for dates (#298): which date, which job, when. */
+export function dutyData(entries: { take: DutyTake; slot: DutySlot }[]): MyData {
+	const e = t.duties.exported;
+	const rows = entries.map(({ slot }) => ({
+		[e.event]: slot.eventTitle,
+		[e.day]: slot.eventDay,
+		[e.task]: slot.task,
+		[e.time]: slot.from ? [slot.from, slot.to].filter(Boolean).join('–') : ''
+	}));
+	return rows.length ? { [t.duties.title]: rows } : {};
 }
 
 /** The member's sign-ups for trips (#334): which trip, as what, and what they told the organisers. */

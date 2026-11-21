@@ -122,7 +122,7 @@
 	// Everything waiting, as one number; the list is on "Zu erledigen" (#185).
 	const todoCount = $derived(
 		data.todo
-			? [data.todo.reports, data.todo.wishes, data.todo.requests, data.todo.loans, data.todo.instruments, data.todo.attendance, data.todo.polls, data.todo.scans, data.todo.kummerAnswers, data.todo.kummerInbox].reduce((sum, n) => sum + n, 0)
+			? [data.todo.reports, data.todo.wishes, data.todo.requests, data.todo.loans, data.todo.instruments, data.todo.duties, data.todo.attendance, data.todo.polls, data.todo.scans, data.todo.kummerAnswers, data.todo.kummerInbox].reduce((sum, n) => sum + n, 0)
 			: 0
 	);
 </script>

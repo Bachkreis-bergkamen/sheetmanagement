@@ -13,5 +13,6 @@ export const features: Texts['features'] = {
 	offline: 'Save parts offline',
 	drills: 'Practice room',
 	trips: 'Trips',
-	lending: 'Instruments on loan'
+	lending: 'Instruments on loan',
+	duties: 'Duties'
 };

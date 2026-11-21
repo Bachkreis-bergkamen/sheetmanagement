@@ -6,6 +6,7 @@ import { getStore } from './db/index.ts';
 import { pollStore } from './polls.ts';
 import { getAccessList } from './repertoire.ts';
 import { lendingStore } from './lending.ts';
+import { dutyStore } from './duties.ts';
 import { tripStore } from './trips.ts';
 import { authorKey, kummerStore } from './kummer.ts';
 import { deleteRows, readTab, SheetLayoutError, updateRecords } from './sheet-writes.ts';
@@ -13,7 +14,7 @@ import { deleteRows, readTab, SheetLayoutError, updateRecords } from './sheet-wr
 /**
  * "Mitglied löschen" (#158): what the app keeps about one member, first as a preview, then
  * gone in one go: their rows in the sheet (see #lib/access/erase.ts), and in D1 their
- * devices, reminders, settings, practice time and marks, their poll answers and trip sign-ups;
+ * devices, reminders, settings, practice time and marks, their poll answers, trip sign-ups and duties;
  * the instruments they borrowed stay on record under a pseudonym.
  */
 
@@ -62,7 +63,7 @@ async function kummerCount(email: string): Promise<number> {
 
 async function storedItems(email: string): Promise<EraseItem[]> {
 	const store = getStore();
-	const [devices, reminders, optOut, tour, practiceOn, practice, marks, polls, kummer, drillSharing, drillConsent, trips, drillProgress, lent] = await Promise.all([
+	const [devices, reminders, optOut, tour, practiceOn, practice, marks, polls, kummer, drillSharing, drillConsent, trips, drillProgress, lent, duties] = await Promise.all([
 		store.pushOf(email),
 		store.remindersOf(email),
 		store.mailOptOuts(),
@@ -76,7 +77,8 @@ async function storedItems(email: string): Promise<EraseItem[]> {
 		store.drillConsentOf(email),
 		tripStore()?.countBy(email) ?? 0,
 		store.drillProgressOf(email),
-		lendingStore().then((lending) => lending?.countBy(email) ?? 0)
+		lendingStore().then((lending) => lending?.countBy(email) ?? 0),
+		dutyStore().then((store) => store?.countBy(email) ?? 0)
 	]);
 	const items: EraseItem[] = [
 		{ where: t.erase.stored.devices, count: devices.length, how: 'remove' },
@@ -88,6 +90,7 @@ async function storedItems(email: string): Promise<EraseItem[]> {
 		{ where: t.erase.stored.polls, count: polls, how: 'anonymise' },
 		{ where: t.erase.stored.trips, count: trips, how: 'remove' },
 		{ where: t.lending.erased, count: lent, how: 'anonymise' },
+		{ where: t.duties.erased, count: duties, how: 'remove' },
 		{ where: t.erase.stored.kummer, count: kummer, how: 'remove' }
 	];
 	return items.filter((item) => item.count > 0);
@@ -133,6 +136,7 @@ export async function eraseMember(address: string): Promise<ErasePreview> {
 		pollStore()?.forget(email, stand),
 		tripStore()?.forget(email, stand),
 		lendingStore().then((lending) => lending?.forget(email, stand)),
+		dutyStore().then((store) => store?.forget(email)),
 		authorKey(email).then((key) => (key ? kummerStore()?.forget(email, key, stand) : undefined))
 	]);
 

@@ -253,6 +253,21 @@
 			</a>
 		</li>
 	{/if}
+	{#if data.kind === 'event' && data.duties}
+		{@const duties = data.duties}
+		<!-- Its Dienste (#298): what's still free, and what the viewer took. -->
+		<li>
+			<a class="fact" href={duties.href}>
+				<span class="icon"><Icon name="users" size={18} /></span>
+				<span class="fact-body">
+					<span class="over">{t.duties.card}</span>
+					<strong>{duties.places ? t.duties.places(duties.places.free, duties.places.needed) : t.duties.setUp}</strong>
+					<span>{duties.mine.length ? t.duties.yours(duties.mine.join(', ')) : duties.places ? t.duties.open : t.duties.setUpHint}</span>
+				</span>
+				<span class="trail"><Icon name="chevron" size={16} /></span>
+			</a>
+		</li>
+	{/if}
 	{#if data.kind === 'event' && data.orchestras}
 		{@const orchestras = data.orchestras}
 		<li>

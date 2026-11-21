@@ -23,6 +23,7 @@ import { getAccessList, getAttendance, getFeedback, getLoans, getMusicConfig, ge
 import { checkRehearsalNote, isEmptyNote, type RehearsalNote } from '#lib/notes/rehearsal-notes.ts';
 import { requireRight } from '#lib/server/auth/index.ts';
 import { tripLink } from '#lib/server/trips.ts';
+import { dutyLink } from '#lib/server/duties.ts';
 import { publicDetails, publishedIds, readDetails, setPublicDetails, setPublished } from '#lib/server/public-concerts.ts';
 import { appendRecords, deleteRows, ensureTab, readTab, refreshAfterWrite, SheetLayoutError, updateRecord, withSheetLock } from '#lib/server/sheet-writes.ts';
 import { formatDay } from '#lib/events/format.ts';
@@ -470,6 +471,8 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		concert: event.concertId ? lookup(event.concertId) : undefined,
 		// The Konzert- or Probenfahrt this date belongs to (#334).
 		trip: await tripLink(locals, event.id),
+		// Its Dienste (#298): free places, and the viewer's own.
+		duties: await dutyLink(locals, event),
 		// Whose rehearsal it is, changed here by those who plan dates (several orchestras only).
 		orchestras:
 			event.type !== 'konzert' && config.orchestras.length > 1

@@ -63,6 +63,7 @@ export { print } from './print.ts';
 export { trips } from './trips.ts';
 export { kummer } from './kummer.ts';
 export { lending } from './lending.ts';
+export { duties } from './duties.ts';
 export { parents } from './parents.ts';
 export { ensembles } from './ensembles.ts';
 export { partners } from './partners.ts';
