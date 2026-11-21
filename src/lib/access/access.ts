@@ -419,6 +419,8 @@ export const isAdminOnly = (member: Pick<Member, 'status'> | undefined) => membe
  */
 export function parentMayOpen(path: string): boolean {
 	const under = (base: string) => path === base || path.startsWith(base + '/');
+	// A date's Dienste and lifts (#298, #196): parents help out and drive too.
+	if (/^\/kalender\/[^/]+\/dienste\/?$/.test(path)) return true;
 	return ['/eltern', '/profil', '/kummerkasten', '/fahrten', '/karte', '/demo', '/api/seitenaufruf', '/api/tempo', '/api/push', '/api/fehler', '/api/warm'].some(under);
 }
 

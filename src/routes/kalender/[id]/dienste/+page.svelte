@@ -19,10 +19,13 @@
 	let addOpen = $state(data.manage && !data.slots.length);
 	const title = $derived(`${t.duties.title} · ${data.event.title}`);
 	const confirmRemove = (event: SubmitEvent) => confirm(t.duties.removeQuestion) || event.preventDefault();
+	let rideKind = $state<'offer' | 'request'>('offer');
+	const offers = $derived(data.rides.filter((ride) => ride.kind === 'offer'));
+	const requests = $derived(data.rides.filter((ride) => ride.kind === 'request'));
 </script>
 
 <Title {title} />
-<a class="back" href="/kalender/{encodeURIComponent(data.event.id)}"><Icon name="back" size={16} />{data.event.title}</a>
+<a class="back" href={data.back}><Icon name="back" size={16} />{data.event.title}</a>
 <PageHeader title={t.duties.title} lead={`${data.event.title} · ${data.event.dateText}`} />
 
 <p class="lead">{data.manage ? t.duties.leadManage : t.duties.lead}</p>
@@ -50,6 +53,7 @@
 					{#each slot.on as person (person.email)}
 						<li class:me={person.me}>
 							<Icon name="user" size={14} /><span>{person.name}</span>
+							{#if person.offered}<span class="chip free">{t.duties.offered}</span>{/if}
 							{#if data.manage}
 								<form method="POST" action="?/unassign" use:enhance={saving.submit()}>
 									<input type="hidden" name="slot" value={slot.id} />
@@ -64,16 +68,31 @@
 				</ul>
 				<div class="actions">
 					{#if data.canTake && slot.mine}
+						{@const offered = slot.on.some((person) => person.me && person.offered)}
 						<span class="ok"><Icon name="check" size={16} />{t.duties.mine}</span>
+						<form method="POST" action="?/offer" use:enhance={saving.submit()}>
+							<input type="hidden" name="slot" value={slot.id} />
+							<input type="hidden" name="offered" value={offered ? '0' : '1'} />
+							<button class="btn small ghost" disabled={saving.busy} title={offered ? undefined : t.duties.offerHint}>{offered ? t.duties.unoffer : t.duties.offer}</button>
+						</form>
 						<form method="POST" action="?/leave" use:enhance={saving.submit()}>
 							<input type="hidden" name="slot" value={slot.id} />
 							<button class="btn small ghost" disabled={saving.busy}>{t.duties.leave}</button>
 						</form>
-					{:else if data.canTake && slot.free}
-						<form method="POST" action="?/take" use:enhance={saving.submit()}>
-							<input type="hidden" name="slot" value={slot.id} />
-							<button class="btn small" disabled={saving.busy}><Icon name="plus" size={14} />{t.duties.take}</button>
-						</form>
+					{:else if data.canTake}
+						{#if slot.free}
+							<form method="POST" action="?/take" use:enhance={saving.submit()}>
+								<input type="hidden" name="slot" value={slot.id} />
+								<button class="btn small" disabled={saving.busy}><Icon name="plus" size={14} />{t.duties.take}</button>
+							</form>
+						{/if}
+						{#each slot.on.filter((person) => person.offered) as person (person.email)}
+							<form method="POST" action="?/takeOver" use:enhance={saving.submit()}>
+								<input type="hidden" name="slot" value={slot.id} />
+								<input type="hidden" name="from" value={person.email} />
+								<button class="btn small" disabled={saving.busy}><Icon name="refresh" size={14} />{t.duties.takeOver(person.name)}</button>
+							</form>
+						{/each}
 					{/if}
 					{#if data.manage && slot.free}
 						<form method="POST" action="?/assign" class="assign" use:enhance={saving.submit()}>
@@ -110,6 +129,79 @@
 {:else}
 	<p class="msg info">{data.manage ? t.duties.noneManage : t.duties.none}</p>
 {/if}
+
+{#if data.nudge}
+	<!-- Members with no job here yet get a reminder through the reminders job: push or mail, never at night. -->
+	<form method="POST" action="?/nudge" class="ui-card section nudge" use:enhance={saving.submit()}>
+		<p>{t.duties.nudgeHint(data.nudge.waiting)}{#if data.nudge.last}{' '}{t.duties.nudgedAt(data.nudge.last)}{/if}</p>
+		<button class="btn small ghost" disabled={saving.busy || !data.nudge.waiting}><Icon name="bell" size={14} />{t.duties.nudge}</button>
+	</form>
+{/if}
+
+<section class="section rides" aria-labelledby="rides-title">
+	<h2 id="rides-title" class="ui-label">{t.duties.rides}</h2>
+	<p class="muted">{t.duties.ridesLead}</p>
+	{#if data.rides.length}
+		<div class="ride-lists">
+			{#each [{ label: t.duties.offers, list: offers }, { label: t.duties.requests, list: requests }] as group (group.label)}
+				{#if group.list.length}
+					<div>
+						<h3>{group.label}</h3>
+						<ul class="ui-list">
+							{#each group.list as ride (ride.id)}
+								<li class="ride">
+									<span class="ride-main">
+										<strong>{ride.name}</strong>
+										<span>{ride.kind === 'offer' ? t.duties.rideOffer(ride.from, ride.seats) : t.duties.rideRequest(ride.from)}</span>
+										{#if ride.note}<span class="muted">{ride.note}</span>{/if}
+									</span>
+									{#if ride.mine}
+										<form method="POST" action="?/removeRide" use:enhance={saving.submit()}>
+											<input type="hidden" name="ride" value={ride.id} />
+											<button class="icon-btn" disabled={saving.busy} aria-label={t.duties.removeRide} title={t.duties.removeRide}><Icon name="trash" size={14} /></button>
+										</form>
+									{/if}
+								</li>
+							{/each}
+						</ul>
+					</div>
+				{/if}
+			{/each}
+		</div>
+	{:else}
+		<p class="msg info">{t.duties.noRides}</p>
+	{/if}
+	{#if data.me && !data.event.past}
+		<details class="ui-card add-ride" open={!!form && 'ride' in form}>
+			<summary><Icon name="plus" size={16} />{t.duties.addRide}</summary>
+			<form method="POST" action="?/addRide" class="grid" use:enhance={saving.submit({ reset: true })} onreset={() => (rideKind = 'offer')}>
+				<fieldset class="wide kind">
+					<legend>{t.duties.rideKind}</legend>
+					<!-- Not bound: a form reset after saving would clear the choice; it goes back to "offer" instead. -->
+					<label class="check"><input type="radio" name="kind" value="offer" defaultChecked onchange={() => (rideKind = 'offer')} />{t.duties.kindOffer}</label>
+					<label class="check"><input type="radio" name="kind" value="request" onchange={() => (rideKind = 'request')} />{t.duties.kindRequest}</label>
+				</fieldset>
+				<label class="field">
+					{t.duties.rideFrom}
+					<input name="from" required maxlength="100" placeholder={t.duties.rideFromHint} />
+				</label>
+				{#if rideKind === 'offer'}
+					<label class="field">
+						{t.duties.rideSeats}
+						<input name="seats" type="number" min="1" max="8" value="1" required />
+					</label>
+				{/if}
+				<label class="field wide">
+					{t.duties.rideNote}
+					<input name="note" maxlength="300" placeholder={t.duties.rideNoteHint} />
+				</label>
+				<div class="wide">
+					<button class="btn" disabled={saving.busy}><Icon name="plus" size={16} />{t.duties.addRide}</button>
+				</div>
+			</form>
+		</details>
+	{/if}
+</section>
 
 {#snippet jobFields(v: Record<string, string> | undefined)}
 	<label class="field wide">
@@ -404,6 +496,81 @@
 
 	.inline .field {
 		flex: 1 1 14rem;
+	}
+
+	.nudge {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-2) var(--space-4);
+	}
+
+	.nudge p {
+		flex: 1 1 18rem;
+		margin: 0;
+		font-size: var(--text-sm);
+	}
+
+	.rides h3 {
+		margin: var(--space-3) 0 var(--space-2);
+		font-size: var(--text-sm);
+	}
+
+	.ride-lists {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+		gap: 0 var(--space-4);
+	}
+
+	.ride {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		padding: var(--space-3) var(--space-4);
+	}
+
+	.ride-main {
+		display: grid;
+		flex: 1;
+		min-width: 0;
+		gap: 2px;
+		overflow-wrap: anywhere;
+	}
+
+	.add-ride {
+		margin-top: var(--space-3);
+		padding: var(--space-4) var(--space-5);
+	}
+
+	.add-ride summary {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		min-height: 32px;
+		color: var(--accent);
+		font-weight: 600;
+		cursor: pointer;
+		list-style: none;
+	}
+
+	.add-ride summary::-webkit-details-marker {
+		display: none;
+	}
+
+	.kind {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-2) var(--space-4);
+		margin: 0;
+		padding: 0;
+		border: 0;
+	}
+
+	.kind legend {
+		margin-bottom: var(--space-1);
+		font-size: var(--text-sm);
+		font-weight: 600;
 	}
 
 	@media (max-width: 480px) {

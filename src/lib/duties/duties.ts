@@ -1,8 +1,10 @@
 /**
  * Dienste for concerts and other dates (#298, #196): the jobs a date needs, such as setting up
  * chairs, the cake stand or the box office, each with how many people it needs, and who took
- * which place. Members take a free place themselves; organisers set the jobs up, can put
- * people down, and see over a season who did how many. Kept in D1 next to the date's id.
+ * which place. Members take a free place themselves, or hand theirs on to someone else;
+ * organisers set the jobs up, can put people down, and see over a season who did how many.
+ * Members also offer and look for rides to the date (Fahrgemeinschaften, #196). Kept in D1
+ * next to the date's id.
  */
 
 /** One job on one date: "Aufbau, 17:00–18:00, 3 people". */
@@ -37,8 +39,31 @@ export interface DutyTake {
 	name: string;
 	/** Who put them down, when it wasn't themselves. */
 	by?: string;
+	/** They can't after all and look for someone to take over ("sucht Ersatz"). */
+	offered?: boolean;
 	createdAt: string;
 }
+
+/** A ride to a date: offered with free seats, or asked for. Matching is left to the people. */
+export interface Ride {
+	id: string;
+	eventId: string;
+	eventDay: string;
+	eventTitle: string;
+	email: string;
+	name: string;
+	kind: 'offer' | 'request';
+	/** Where from: "Bergkamen, Marktplatz". */
+	from: string;
+	/** Free seats of an offer; 1 for a request. */
+	seats: number;
+	/** "Zurück auch", "Platz für ein Cello", a phone number. */
+	note?: string;
+	createdAt: string;
+}
+
+export type NewRide = Omit<Ride, 'id' | 'createdAt'>;
+export const MAX_SEATS = 8;
 
 /** A set of jobs used again, like "Konzert in der Aula". */
 export interface DutyTemplate {
@@ -98,20 +123,20 @@ export function sortSlots<T extends Pick<DutySlot, 'from' | 'createdAt'>>(slots:
 	});
 }
 
-/** Who has a job, in the order they came, and how many places are still free. */
+/** Who has a job, in the order they came, how many places are still free, and how many are up for taking over. */
 export function placesOf(slot: Pick<DutySlot, 'id' | 'needed'>, takes: DutyTake[]) {
 	const on = takes.filter((take) => take.slotId === slot.id).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-	return { on, free: Math.max(0, slot.needed - on.length) };
+	return { on, free: Math.max(0, slot.needed - on.length), offered: on.filter((take) => take.offered).length };
 }
 
 /** Free places over all jobs of a date, and how many it needs in all. */
 export function eventPlaces(slots: DutySlot[], takes: DutyTake[]) {
 	return slots.reduce(
 		(sum, slot) => {
-			const { on, free } = placesOf(slot, takes);
-			return { needed: sum.needed + slot.needed, taken: sum.taken + Math.min(on.length, slot.needed), free: sum.free + free };
+			const { on, free, offered } = placesOf(slot, takes);
+			return { needed: sum.needed + slot.needed, taken: sum.taken + Math.min(on.length, slot.needed), free: sum.free + free, offered: sum.offered + offered };
 		},
-		{ needed: 0, taken: 0, free: 0 }
+		{ needed: 0, taken: 0, free: 0, offered: 0 }
 	);
 }
 
@@ -120,15 +145,42 @@ const addDays = (day: string, days: number) => new Date(Date.parse(`${day}T12:00
 /** How far ahead open places count as urgent for the organisers. */
 export const SOON_DAYS = 14;
 
-/** Dates from today on within two weeks that still have free places, the nearest first. */
-export function urgentDuties(slots: DutySlot[], takes: DutyTake[], today: string, days = SOON_DAYS) {
+/** Dates from today on within two weeks with places free or up for taking over, the nearest first. */
+export function openDuties(slots: DutySlot[], takes: DutyTake[], today: string, days = SOON_DAYS) {
 	const last = addDays(today, days);
 	const byEvent = new Map<string, DutySlot[]>();
 	for (const slot of slots) if (slot.eventDay >= today && slot.eventDay <= last) byEvent.set(slot.eventId, [...(byEvent.get(slot.eventId) ?? []), slot]);
 	return [...byEvent.values()]
-		.map((mine) => ({ eventId: mine[0].eventId, eventDay: mine[0].eventDay, eventTitle: mine[0].eventTitle, free: eventPlaces(mine, takes).free }))
-		.filter((one) => one.free > 0)
+		.map((mine) => {
+			const places = eventPlaces(mine, takes);
+			return { eventId: mine[0].eventId, eventDay: mine[0].eventDay, eventTitle: mine[0].eventTitle, free: places.free, offered: places.offered, needed: places.needed };
+		})
+		.filter((one) => one.free > 0 || one.offered > 0)
 		.sort((a, b) => a.eventDay.localeCompare(b.eventDay));
+}
+
+/** Dates from today on within two weeks that still have free places, for the organisers. */
+export const urgentDuties = (slots: DutySlot[], takes: DutyTake[], today: string, days = SOON_DAYS) =>
+	openDuties(slots, takes, today, days)
+		.filter((one) => one.free > 0)
+		.map(({ eventId, eventDay, eventTitle, free }) => ({ eventId, eventDay, eventTitle, free }));
+
+/** The day before a job and on its day, those on it get a reminder. */
+export const remindNow = (slot: Pick<DutySlot, 'eventDay'>, today: string) => slot.eventDay === today || slot.eventDay === addDays(today, 1);
+
+export type RideProblem = 'from-missing' | 'bad-seats' | 'bad-kind';
+
+/** A ride from the form: offered or asked for, from where, how many seats, a note. */
+export function rideFromForm(data: FormData): Checked<Pick<Ride, 'kind' | 'from' | 'seats' | 'note'>, RideProblem> {
+	const kind = String(data.get('kind') ?? '');
+	if (kind !== 'offer' && kind !== 'request') return { problem: 'bad-kind' };
+	const from = text(data, 'from', 100);
+	if (!from) return { problem: 'from-missing' };
+	const seatsText = String(data.get('seats') ?? '').trim();
+	const seats = kind === 'request' || seatsText === '' ? 1 : Number(seatsText);
+	if (!Number.isInteger(seats) || seats < 1 || seats > MAX_SEATS) return { problem: 'bad-seats' };
+	const note = text(data, 'note', 300);
+	return { values: { kind, from, seats, ...(note ? { note } : {}) } };
 }
 
 /** Per person, how many jobs they did between two days, the most first; for spreading the work. */

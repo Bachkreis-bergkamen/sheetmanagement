@@ -72,13 +72,58 @@ for (const [name, make] of [
 			expect((await store.templates()).map((template) => template.name)).toEqual(['Kirche']);
 		});
 
-		it('frees the places of a deleted member', async () => {
+		it('hands a place on only when it was offered, to someone not on the job yet', async () => {
+			const store = make();
+			const job = await store.addSlot({ ...herbst, task: 'Getränke', needed: 2 });
+			await store.take(job.id, mia, '2026-11-02T10:00:00Z');
+			await store.take(job.id, greta, '2026-11-02T10:01:00Z');
+			expect(await store.takeOver(job.id, mia.email, paul)).toBe('gone');
+			expect(await store.offer(job.id, mia.email, true)).toBe(true);
+			expect(await store.offer(job.id, paul.email, true)).toBe(false);
+			expect((await store.takesOf('herbst')).find((take) => take.email === mia.email)?.offered).toBe(true);
+			expect(await store.takeOver(job.id, mia.email, greta)).toBe('already');
+			expect(await store.takeOver(job.id, mia.email, paul, '2026-11-03T10:00:00Z')).toBe('taken');
+			expect(await store.takeOver(job.id, mia.email, { email: 'ida@example.org', name: 'Ida' })).toBe('gone');
+			expect((await store.takesOf('herbst')).map((take) => [take.email, take.offered ?? false])).toEqual([
+				[greta.email, false],
+				[paul.email, false]
+			]);
+			// Changed one's mind: the place stays theirs and isn't up any more.
+			await store.offer(job.id, greta.email, true);
+			await store.offer(job.id, greta.email, false);
+			expect(await store.takeOver(job.id, greta.email, mia)).toBe('gone');
+		});
+
+		it('keeps one call for help per date, the latest', async () => {
+			const store = make();
+			await store.nudge('herbst', 'vera@example.org', '2026-11-20T10:00:00Z');
+			await store.nudge('herbst', 'vera@example.org', '2026-11-21T10:00:00Z');
+			expect(await store.nudges()).toEqual([{ eventId: 'herbst', by: 'vera@example.org', requestedAt: '2026-11-21T10:00:00Z' }]);
+		});
+
+		it('keeps lifts per date; only their owner deletes one', async () => {
+			const store = make();
+			const offer = await store.addRide({ ...herbst, ...greta, kind: 'offer', from: 'Bergkamen', seats: 3, note: 'zurück auch' }, '2026-11-02T10:00:00Z');
+			await store.addRide({ ...herbst, ...paul, kind: 'request', from: 'Unna', seats: 1 }, '2026-11-02T10:01:00Z');
+			await store.addRide({ eventId: 'weihnacht', eventDay: '2026-12-20', eventTitle: 'Weihnachtskonzert', ...mia, kind: 'offer', from: 'Kamen', seats: 1 });
+			expect(await store.ridesOf('herbst')).toEqual([
+				{ ...herbst, ...greta, id: offer.id, kind: 'offer', from: 'Bergkamen', seats: 3, note: 'zurück auch', createdAt: '2026-11-02T10:00:00Z' },
+				expect.objectContaining({ email: paul.email, kind: 'request', from: 'Unna' })
+			]);
+			expect(await store.removeRide(offer.id, paul.email)).toBe(false);
+			expect(await store.removeRide(offer.id, greta.email)).toBe(true);
+			expect((await store.rides()).map((ride) => ride.email)).toEqual([paul.email, mia.email]);
+		});
+
+		it('frees the places and drops the lifts of a deleted member', async () => {
 			const store = make();
 			const job = await store.addSlot({ ...herbst, task: 'Aufbau', needed: 1 });
 			await store.take(job.id, mia);
-			expect(await store.countBy(mia.email)).toBe(1);
+			await store.addRide({ ...herbst, ...mia, kind: 'request', from: 'Kamen', seats: 1 });
+			expect(await store.countBy(mia.email)).toBe(2);
 			await store.forget(mia.email);
 			expect(await store.countBy(mia.email)).toBe(0);
+			expect(await store.rides()).toEqual([]);
 			expect(await store.take(job.id, greta)).toBe('taken');
 		});
 	});

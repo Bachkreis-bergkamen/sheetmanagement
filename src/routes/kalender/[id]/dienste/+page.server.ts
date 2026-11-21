@@ -1,7 +1,8 @@
 import { error, fail } from '@sveltejs/kit';
 import { normalizeEmail } from '#lib/access/access.ts';
 import { config } from '#lib/config/index.ts';
-import { eventPlaces, jobFromForm, jobsOf, jobTime, placesOf, sortSlots } from '#lib/duties/duties.ts';
+import { eventPlaces, jobFromForm, jobsOf, jobTime, placesOf, rideFromForm, sortSlots } from '#lib/duties/duties.ts';
+import { dateFormat } from '#lib/events/format.ts';
 import { formatDay } from '#lib/events/format.ts';
 import * as t from '#lib/i18n/texts.ts';
 import { eventDay } from '#lib/repertoire/dates.ts';
@@ -14,9 +15,13 @@ import { getAccessList } from '#lib/server/repertoire.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /**
- * The Dienste of one date (#298): what it needs, who took which place, taking and leaving one
- * for members, and for organisers setting the jobs up, putting people down and templates.
+ * The Dienste of one date (#298): what it needs, who took which place, taking, leaving and
+ * handing on one for members and parents (#299), and for organisers setting the jobs up,
+ * putting people down, templates and a reminder to those without a job. Below, the date's
+ * Fahrgemeinschaften (#196): lifts offered and asked for.
  */
+
+const nudgeDate = dateFormat(config.locale, { day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit', timeZone: config.timeZone });
 
 /** The store and the date: from the calendar, or as the jobs remember it once it left the calendar. */
 async function dateOf(id: string) {
@@ -40,13 +45,23 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const list = await getAccessList().catch(() => null);
 	const me = await dutyPerson(locals, list);
 	const manage = locals.access.rights.has(DUTY_RIGHT);
-	const [slots, takes, templates] = await Promise.all([store.slotsOf(event.id), store.takesOf(event.id), manage ? store.templates() : []]);
+	const [slots, takes, templates, rides, nudges] = await Promise.all([
+		store.slotsOf(event.id),
+		store.takesOf(event.id),
+		manage ? store.templates() : [],
+		store.ridesOf(event.id),
+		manage ? store.nudges() : []
+	]);
 	// The calendar is the truth for the title and day; the jobs keep a copy for when it's gone.
-	if (event.inCalendar && slots.some((slot) => slot.eventTitle !== event.title || slot.eventDay !== event.day)) {
+	if (event.inCalendar && [...slots, ...rides].some((one) => one.eventTitle !== event.title || one.eventDay !== event.day)) {
 		await store.renameEvent(event.id, event.day, event.title).catch((cause) => console.error('Renaming the Dienste of a date failed:', cause));
 	}
+	const busy = new Set(takes.map((take) => take.email));
+	const nudged = nudges.find((one) => one.eventId === event.id);
 	return {
 		event: { id: event.id, title: event.title, dateText: event.dateText, past: event.past },
+		// A parent account (#299) can't open the date's page; back to their area.
+		back: locals.access.parent?.only ? '/eltern' : `/kalender/${encodeURIComponent(event.id)}`,
 		slots: sortSlots(slots).map((slot) => {
 			const { on, free } = placesOf(slot, takes);
 			return {
@@ -58,15 +73,22 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 				needed: slot.needed,
 				note: slot.note ?? '',
 				free,
-				on: on.map((take) => ({ email: take.email, name: take.name, me: take.email === me?.email })),
+				on: on.map((take) => ({ email: take.email, name: take.name, me: take.email === me?.email, offered: !!take.offered })),
 				mine: !!me && on.some((take) => take.email === me.email)
 			};
 		}),
 		places: eventPlaces(slots, takes),
 		canTake: !!me && !event.past,
 		manage,
-		people: manage ? helpers(list) : [],
-		templates: templates.map((template) => ({ id: template.id, name: template.name, count: template.jobs.length }))
+		people: manage ? helpers(list, { parents: true }) : [],
+		templates: templates.map((template) => ({ id: template.id, name: template.name, count: template.jobs.length })),
+		// Members without a job here, for the reminder; parents aren't asked unprompted.
+		nudge:
+			manage && slots.length && !event.past && eventPlaces(slots, takes).free
+				? { waiting: helpers(list).filter((person) => !busy.has(person.email)).length, last: nudged ? nudgeDate.format(new Date(nudged.requestedAt)) : undefined }
+				: null,
+		me: me?.email ?? '',
+		rides: rides.map((ride) => ({ id: ride.id, kind: ride.kind, name: ride.name, from: ride.from, seats: ride.seats, note: ride.note ?? '', mine: ride.email === me?.email }))
 	};
 };
 
@@ -114,6 +136,84 @@ export const actions: Actions = {
 		return { saved: t.duties.left };
 	},
 
+	offer: async ({ locals, params, request }) => {
+		requireFeature('duties');
+		const me = await dutyPerson(locals);
+		if (!me) error(403, t.messages.noRight);
+		const data = await request.formData();
+		const { store, event, slot } = await jobIn(params.id, data);
+		if (event.past) return fail(409, { message: t.duties.past });
+		if (!slot) return fail(404, { message: t.duties.gone });
+		const offered = data.get('offered') === '1';
+		try {
+			if (!(await store.offer(slot.id, me.email, offered))) return fail(409, { message: t.duties.gone });
+		} catch (cause) {
+			return failed('Handing a duty on', cause);
+		}
+		return { saved: offered ? t.duties.offeredDone : t.duties.unoffered };
+	},
+
+	takeOver: async ({ locals, params, request }) => {
+		requireFeature('duties');
+		const me = await dutyPerson(locals);
+		if (!me) error(403, t.messages.noRight);
+		const data = await request.formData();
+		const { store, event, slot } = await jobIn(params.id, data);
+		if (event.past) return fail(409, { message: t.duties.past });
+		if (!slot) return fail(404, { message: t.duties.gone });
+		const from = normalizeEmail(String(data.get('from') ?? ''));
+		try {
+			const before = (await store.takesOf(slot.eventId)).find((take) => take.slotId === slot.id && take.email === from);
+			const result = await store.takeOver(slot.id, from, me);
+			if (result !== 'taken') return fail(409, { message: t.duties.problems[result === 'gone' ? 'not-offered' : result] });
+			return { saved: t.duties.tookOver(before?.name ?? from) };
+		} catch (cause) {
+			return failed('Taking over a duty', cause);
+		}
+	},
+
+	nudge: async ({ locals, params }) => {
+		requireFeature('duties');
+		requireRight(locals, DUTY_RIGHT);
+		const { store, event } = await dateOf(params.id);
+		if (event.past) return fail(409, { message: t.duties.past });
+		try {
+			await store.nudge(event.id, normalizeEmail(locals.access.user?.email ?? ''));
+		} catch (cause) {
+			return failed('Asking for a duty reminder', cause);
+		}
+		return { saved: t.duties.nudged };
+	},
+
+	addRide: async ({ locals, params, request }) => {
+		requireFeature('duties');
+		const me = await dutyPerson(locals);
+		if (!me) error(403, t.messages.noRight);
+		const { store, event } = await dateOf(params.id);
+		if (event.past) return fail(409, { message: t.duties.past });
+		const checked = rideFromForm(await request.formData());
+		if ('problem' in checked) return fail(400, { message: t.duties.problems[checked.problem], ride: true });
+		try {
+			await store.addRide({ ...checked.values, ...me, eventId: event.id, eventDay: event.day, eventTitle: event.title });
+		} catch (cause) {
+			return failed('Adding a ride', cause);
+		}
+		return { saved: t.duties.rideAdded };
+	},
+
+	removeRide: async ({ locals, params, request }) => {
+		requireFeature('duties');
+		const me = await dutyPerson(locals);
+		if (!me) error(403, t.messages.noRight);
+		const { store } = await dateOf(params.id);
+		try {
+			if (!(await store.removeRide(String((await request.formData()).get('ride') ?? ''), me.email))) return fail(404, { message: t.duties.gone });
+		} catch (cause) {
+			return failed('Deleting a ride', cause);
+		}
+		return { saved: t.duties.rideRemoved };
+	},
+
 	assign: async ({ locals, params, request }) => {
 		requireFeature('duties');
 		requireRight(locals, DUTY_RIGHT);
@@ -121,7 +221,7 @@ export const actions: Actions = {
 		const { store, slot } = await jobIn(params.id, data);
 		if (!slot) return fail(404, { message: t.duties.gone });
 		const email = normalizeEmail(String(data.get('email') ?? ''));
-		const person = helpers(await getAccessList().catch(() => null)).find((one) => one.email === email);
+		const person = helpers(await getAccessList().catch(() => null), { parents: true }).find((one) => one.email === email);
 		if (!person) return fail(400, { message: t.duties.problems['who-missing'] });
 		try {
 			const by = normalizeEmail(locals.access.user?.email ?? '');

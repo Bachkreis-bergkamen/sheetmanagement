@@ -1,4 +1,4 @@
-import type { DutyJob, DutySlot, DutyTake, DutyTemplate, NewDutySlot } from '#lib/duties/duties.ts';
+import type { DutyJob, DutySlot, DutyTake, DutyTemplate, NewDutySlot, NewRide, Ride } from '#lib/duties/duties.ts';
 import type { D1 } from './db/sql.ts';
 
 /**
@@ -24,15 +24,30 @@ export interface DutyStore {
 	take(slotId: string, person: { email: string; name: string; by?: string }, now?: string): Promise<'taken' | 'full' | 'already' | 'gone'>;
 	/** Takes someone off a job; false when they weren't on it. */
 	leave(slotId: string, email: string): Promise<boolean>;
+	/** Marks a place as up for taking over, or not any more; false when they weren't on it. */
+	offer(slotId: string, email: string, offered: boolean): Promise<boolean>;
+	/** Someone takes over a place that was offered; refused when it wasn't, or they're on the job already. */
+	takeOver(slotId: string, from: string, person: { email: string; name: string }, now?: string): Promise<'taken' | 'gone' | 'already'>;
+
+	/** An organiser asked to remind everyone without a job on this date; the reminders job sends it. */
+	nudge(eventId: string, by: string, now?: string): Promise<void>;
+	nudges(): Promise<{ eventId: string; by: string; requestedAt: string }[]>;
+
+	/** Every ride offered or asked for, by date; few enough to read whole. */
+	rides(): Promise<Ride[]>;
+	ridesOf(eventId: string): Promise<Ride[]>;
+	addRide(ride: NewRide, now?: string): Promise<Ride>;
+	/** Only one's own; false when it isn't theirs or is gone. */
+	removeRide(id: string, email: string): Promise<boolean>;
 
 	templates(): Promise<DutyTemplate[]>;
 	/** Saved under its name: one with the same name is replaced. */
 	saveTemplate(name: string, jobs: DutyJob[], now?: string): Promise<DutyTemplate>;
 	removeTemplate(id: string): Promise<void>;
 
-	/** How many jobs carry this address; for "Mitglied löschen" (#158). */
+	/** How many jobs and rides carry this address; for "Mitglied löschen" (#158). */
 	countBy(email: string): Promise<number>;
-	/** Their places go: a job someone left is free again, and the count per person drops them. */
+	/** Their places and rides go: a job someone left is free again, and the count per person drops them. */
 	forget(email: string): Promise<void>;
 }
 
@@ -56,6 +71,7 @@ const SCHEMA = [
 		email TEXT NOT NULL,
 		name TEXT NOT NULL,
 		by_email TEXT,
+		offered INTEGER NOT NULL DEFAULT 0,
 		created_at TEXT NOT NULL,
 		PRIMARY KEY (slot_id, email)
 	)`,
@@ -66,7 +82,26 @@ const SCHEMA = [
 		name TEXT NOT NULL UNIQUE,
 		jobs TEXT NOT NULL,
 		created_at TEXT NOT NULL
-	)`
+	)`,
+	`CREATE TABLE IF NOT EXISTS duty_nudges (
+		event_id TEXT PRIMARY KEY,
+		by_email TEXT NOT NULL,
+		requested_at TEXT NOT NULL
+	)`,
+	`CREATE TABLE IF NOT EXISTS duty_rides (
+		id TEXT PRIMARY KEY,
+		event_id TEXT NOT NULL,
+		event_day TEXT NOT NULL,
+		event_title TEXT NOT NULL,
+		email TEXT NOT NULL,
+		name TEXT NOT NULL,
+		kind TEXT NOT NULL,
+		from_place TEXT NOT NULL,
+		seats INTEGER NOT NULL,
+		note TEXT,
+		created_at TEXT NOT NULL
+	)`,
+	`CREATE INDEX IF NOT EXISTS duty_rides_event ON duty_rides (event_id)`
 ];
 
 interface SlotRow {
@@ -88,6 +123,21 @@ interface TakeRow {
 	email: string;
 	name: string;
 	by_email: string | null;
+	offered: number;
+	created_at: string;
+}
+
+interface RideRow {
+	id: string;
+	event_id: string;
+	event_day: string;
+	event_title: string;
+	email: string;
+	name: string;
+	kind: string;
+	from_place: string;
+	seats: number;
+	note: string | null;
 	created_at: string;
 }
 
@@ -117,6 +167,21 @@ const toTake = (row: TakeRow): DutyTake => ({
 	email: row.email,
 	name: row.name,
 	...(row.by_email ? { by: row.by_email } : {}),
+	...(row.offered ? { offered: true } : {}),
+	createdAt: row.created_at
+});
+
+const toRide = (row: RideRow): Ride => ({
+	id: row.id,
+	eventId: row.event_id,
+	eventDay: row.event_day,
+	eventTitle: row.event_title,
+	email: row.email,
+	name: row.name,
+	kind: row.kind as Ride['kind'],
+	from: row.from_place,
+	seats: row.seats,
+	...(row.note ? { note: row.note } : {}),
 	createdAt: row.created_at
 });
 
@@ -187,6 +252,7 @@ export class SqlDutyStore implements DutyStore {
 	async renameEvent(eventId: string, day: string, title: string): Promise<void> {
 		await this.ready();
 		await this.db.prepare('UPDATE duty_slots SET event_day = ?, event_title = ? WHERE event_id = ?').bind(day, title, eventId).run();
+		await this.db.prepare('UPDATE duty_rides SET event_day = ?, event_title = ? WHERE event_id = ?').bind(day, title, eventId).run();
 	}
 
 	async takes(): Promise<DutyTake[]> {
@@ -233,6 +299,75 @@ export class SqlDutyStore implements DutyStore {
 		return true;
 	}
 
+	async offer(slotId: string, email: string, offered: boolean): Promise<boolean> {
+		await this.ready();
+		const on = await this.db.prepare('SELECT 1 FROM duty_takes WHERE slot_id = ? AND email = ?').bind(slotId, email).first();
+		if (!on) return false;
+		await this.db.prepare('UPDATE duty_takes SET offered = ? WHERE slot_id = ? AND email = ?').bind(offered ? 1 : 0, slotId, email).run();
+		return true;
+	}
+
+	async takeOver(slotId: string, from: string, person: { email: string; name: string }, now = new Date().toISOString()) {
+		await this.ready();
+		if (await this.db.prepare('SELECT 1 FROM duty_takes WHERE slot_id = ? AND email = ?').bind(slotId, person.email).first()) return 'already' as const;
+		// One statement, so two people taking over the same place can't both get it.
+		await this.db
+			.prepare(
+				`UPDATE duty_takes SET email = ?, name = ?, by_email = NULL, offered = 0, created_at = ?
+				WHERE slot_id = ? AND email = ? AND offered = 1
+				AND NOT EXISTS (SELECT 1 FROM duty_takes WHERE slot_id = ? AND email = ?)`
+			)
+			.bind(person.email, person.name, now, slotId, from, slotId, person.email)
+			.run();
+		const row = await this.db.prepare('SELECT 1 FROM duty_takes WHERE slot_id = ? AND email = ?').bind(slotId, person.email).first();
+		return row ? ('taken' as const) : ('gone' as const);
+	}
+
+	async nudge(eventId: string, by: string, now = new Date().toISOString()): Promise<void> {
+		await this.ready();
+		await this.db
+			.prepare('INSERT INTO duty_nudges (event_id, by_email, requested_at) VALUES (?, ?, ?) ON CONFLICT (event_id) DO UPDATE SET by_email = excluded.by_email, requested_at = excluded.requested_at')
+			.bind(eventId, by, now)
+			.run();
+	}
+
+	async nudges() {
+		await this.ready();
+		const { results } = await this.db.prepare('SELECT * FROM duty_nudges').all<{ event_id: string; by_email: string; requested_at: string }>();
+		return results.map((row) => ({ eventId: row.event_id, by: row.by_email, requestedAt: row.requested_at }));
+	}
+
+	async rides(): Promise<Ride[]> {
+		await this.ready();
+		const { results } = await this.db.prepare('SELECT * FROM duty_rides ORDER BY event_day, created_at').all<RideRow>();
+		return results.map(toRide);
+	}
+
+	async ridesOf(eventId: string): Promise<Ride[]> {
+		await this.ready();
+		const { results } = await this.db.prepare('SELECT * FROM duty_rides WHERE event_id = ? ORDER BY created_at').bind(eventId).all<RideRow>();
+		return results.map(toRide);
+	}
+
+	async addRide(ride: NewRide, now = new Date().toISOString()): Promise<Ride> {
+		await this.ready();
+		const id = newId();
+		await this.db
+			.prepare('INSERT INTO duty_rides (id, event_id, event_day, event_title, email, name, kind, from_place, seats, note, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+			.bind(id, ride.eventId, ride.eventDay, ride.eventTitle, ride.email, ride.name, ride.kind, ride.from, ride.seats, ride.note ?? null, now)
+			.run();
+		const { note, ...rest } = ride;
+		return { ...rest, ...(note ? { note } : {}), id, createdAt: now };
+	}
+
+	async removeRide(id: string, email: string): Promise<boolean> {
+		await this.ready();
+		const row = await this.db.prepare('SELECT 1 FROM duty_rides WHERE id = ? AND email = ?').bind(id, email).first();
+		if (!row) return false;
+		await this.db.prepare('DELETE FROM duty_rides WHERE id = ? AND email = ?').bind(id, email).run();
+		return true;
+	}
+
 	async templates(): Promise<DutyTemplate[]> {
 		await this.ready();
 		const { results } = await this.db.prepare('SELECT * FROM duty_templates ORDER BY name').all<TemplateRow>();
@@ -257,13 +392,17 @@ export class SqlDutyStore implements DutyStore {
 
 	async countBy(email: string): Promise<number> {
 		await this.ready();
-		const row = await this.db.prepare('SELECT COUNT(*) AS n FROM duty_takes WHERE email = ?').bind(email).first<{ n: number }>();
+		const row = await this.db
+			.prepare('SELECT (SELECT COUNT(*) FROM duty_takes WHERE email = ?) + (SELECT COUNT(*) FROM duty_rides WHERE email = ?) AS n')
+			.bind(email, email)
+			.first<{ n: number }>();
 		return row?.n ?? 0;
 	}
 
 	async forget(email: string): Promise<void> {
 		await this.ready();
 		await this.db.prepare('DELETE FROM duty_takes WHERE email = ?').bind(email).run();
+		await this.db.prepare('DELETE FROM duty_rides WHERE email = ?').bind(email).run();
 	}
 }
 
@@ -271,6 +410,8 @@ export class MemoryDutyStore implements DutyStore {
 	private jobs = new Map<string, DutySlot>();
 	private people: DutyTake[] = [];
 	private kept = new Map<string, DutyTemplate>();
+	private asked = new Map<string, { eventId: string; by: string; requestedAt: string }>();
+	private lifts: Ride[] = [];
 
 	private ordered(slots: DutySlot[]) {
 		return slots
@@ -316,6 +457,7 @@ export class MemoryDutyStore implements DutyStore {
 
 	async renameEvent(eventId: string, day: string, title: string) {
 		for (const slot of this.jobs.values()) if (slot.eventId === eventId) Object.assign(slot, { eventDay: day, eventTitle: title });
+		for (const ride of this.lifts) if (ride.eventId === eventId) Object.assign(ride, { eventDay: day, eventTitle: title });
 	}
 
 	async takes() {
@@ -346,6 +488,52 @@ export class MemoryDutyStore implements DutyStore {
 		return this.people.length < before;
 	}
 
+	async offer(slotId: string, email: string, offered: boolean) {
+		const take = this.people.find((one) => one.slotId === slotId && one.email === email);
+		if (!take) return false;
+		if (offered) take.offered = true;
+		else delete take.offered;
+		return true;
+	}
+
+	async takeOver(slotId: string, from: string, person: { email: string; name: string }, now = new Date().toISOString()) {
+		if (this.people.some((one) => one.slotId === slotId && one.email === person.email)) return 'already' as const;
+		const take = this.people.find((one) => one.slotId === slotId && one.email === from && one.offered);
+		if (!take) return 'gone' as const;
+		this.people = this.people.filter((one) => one !== take);
+		this.people.push({ slotId, eventId: take.eventId, ...person, createdAt: now });
+		return 'taken' as const;
+	}
+
+	async nudge(eventId: string, by: string, now = new Date().toISOString()) {
+		this.asked.set(eventId, { eventId, by, requestedAt: now });
+	}
+
+	async nudges() {
+		return [...this.asked.values()].map((one) => ({ ...one }));
+	}
+
+	async rides() {
+		return this.lifts.map((ride) => structuredClone(ride)).sort((a, b) => a.eventDay.localeCompare(b.eventDay) || a.createdAt.localeCompare(b.createdAt));
+	}
+
+	async ridesOf(eventId: string) {
+		return (await this.rides()).filter((ride) => ride.eventId === eventId);
+	}
+
+	async addRide(ride: NewRide, now = new Date().toISOString()) {
+		const { note, ...rest } = ride;
+		const added: Ride = { ...rest, ...(note ? { note } : {}), id: newId(), createdAt: now };
+		this.lifts.push(added);
+		return structuredClone(added);
+	}
+
+	async removeRide(id: string, email: string) {
+		const before = this.lifts.length;
+		this.lifts = this.lifts.filter((ride) => !(ride.id === id && ride.email === email));
+		return this.lifts.length < before;
+	}
+
 	async templates() {
 		return [...this.kept.values()].map((template) => structuredClone(template)).sort((a, b) => a.name.localeCompare(b.name));
 	}
@@ -362,10 +550,11 @@ export class MemoryDutyStore implements DutyStore {
 	}
 
 	async countBy(email: string) {
-		return this.people.filter((take) => take.email === email).length;
+		return this.people.filter((take) => take.email === email).length + this.lifts.filter((ride) => ride.email === email).length;
 	}
 
 	async forget(email: string) {
 		this.people = this.people.filter((take) => take.email !== email);
+		this.lifts = this.lifts.filter((ride) => ride.email !== email);
 	}
 }

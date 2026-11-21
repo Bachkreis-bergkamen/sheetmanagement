@@ -23,6 +23,41 @@ export const duties = {
 	assigned: (name: string) => `${name} ist eingetragen.`,
 	unassign: (name: string) => `${name} austragen`,
 	unassigned: (name: string) => `${name} ist ausgetragen.`,
+	/** Handing a place on (#298): "sucht Ersatz", and someone else takes over. */
+	offer: 'Ersatz suchen',
+	offerHint: 'Du bleibst eingetragen, bis jemand übernimmt.',
+	offered: 'sucht Ersatz',
+	offeredDone: 'Du suchst Ersatz. Wer übernimmt, wird statt dir eingetragen; bis dahin bleibst du dabei.',
+	unoffer: 'Doch selbst machen',
+	unoffered: 'Du bleibst dabei.',
+	takeOver: (name: string) => `Für ${name} übernehmen`,
+	tookOver: (name: string) => `Du übernimmst für ${name}. Danke!`,
+	/** Reminding everyone without a job on this date. */
+	nudge: 'Alle ohne Dienst erinnern',
+	nudgeHint: (n: number) => `Schickt ${n === 1 ? 'dem einen Mitglied' : `den ${n} Mitgliedern`}, die für diesen Termin noch keinen Dienst haben, eine Erinnerung: aufs Handy oder per E-Mail, nicht nachts.`,
+	nudged: 'Die Erinnerung geht in der nächsten halben Stunde raus.',
+	nudgedAt: (when: string) => `Zuletzt angestoßen am ${when}.`,
+	/** Fahrgemeinschaften (#196). */
+	rides: 'Fahrgemeinschaften',
+	ridesLead: 'Wer fährt und hat Plätze frei, wer sucht eine Mitfahrt? Absprechen müsst ihr euch selbst, z. B. in der Gruppe.',
+	noRides: 'Noch niemand hat eine Fahrt angeboten oder gesucht.',
+	offers: 'Biete',
+	requests: 'Suche',
+	rideOffer: (from: string, seats: number) => `ab ${from} · ${seats} ${seats === 1 ? 'Platz' : 'Plätze'} frei`,
+	rideRequest: (from: string) => `ab ${from}`,
+	addRide: 'Fahrt eintragen',
+	rideKind: 'Ich …',
+	kindOffer: 'fahre und nehme jemanden mit',
+	kindRequest: 'suche eine Mitfahrt',
+	rideFrom: 'Ab',
+	rideFromHint: 'z. B. Bergkamen, Marktplatz',
+	rideSeats: 'Freie Plätze',
+	rideNote: 'Hinweis',
+	rideNoteHint: 'Abfahrt, zurück auch, Telefon …',
+	rideAdded: 'Eingetragen.',
+	removeRide: 'Löschen',
+	rideRemoved: 'Gelöscht.',
+	ridesLine: (offers: number, requests: number) => `Fahrgemeinschaften: ${offers} ${offers === 1 ? 'Angebot' : 'Angebote'}, ${requests} ${requests === 1 ? 'Gesuch' : 'Gesuche'}`,
 	add: 'Dienst anlegen',
 	fields: {
 		task: 'Dienst',
@@ -68,7 +103,11 @@ export const duties = {
 		'who-missing': 'Wen? Wähl ein Mitglied.',
 		'template-name': 'Wie soll die Vorlage heißen?',
 		'no-jobs': 'Es gibt noch keine Dienste, die sich als Vorlage speichern lassen.',
-		'no-template': 'Diese Vorlage gibt es nicht mehr.'
+		'no-template': 'Diese Vorlage gibt es nicht mehr.',
+		'not-offered': 'Der Platz wird nicht mehr abgegeben, oder jemand anderes war schneller.',
+		'from-missing': 'Ab wo?',
+		'bad-seats': 'Wie viele Plätze? Eine Zahl von 1 bis 8.',
+		'bad-kind': 'Bietest du eine Fahrt an oder suchst du eine?'
 	} as Record<string, string>,
 	/** On the date's page. */
 	card: 'Dienste',
@@ -88,10 +127,20 @@ export const duties = {
 	periodFrom: 'Von',
 	periodTo: 'Bis',
 	show: 'Anzeigen',
+	/** On the start page and in the parents' area: jobs within two weeks where help is wanted. */
+	helpTitle: 'Hilfe gesucht',
+	helpLead: 'Bei diesen Terminen sind noch Dienste frei.',
+	helpFree: (free: number) => `${free} ${free === 1 ? 'Platz' : 'Plätze'} frei`,
+	helpOffered: (n: number) => `${n} zum Übernehmen`,
+	/** Reminders (#298): the day before a job, and the organisers' nudge. */
+	remindTitle: (task: string, today: boolean) => `Dein Dienst ${today ? 'heute' : 'morgen'}: ${task}`,
+	remindBody: (event: string, time: string, note: string) => [event, time, note].filter(Boolean).join(' · '),
+	nudgeTitle: (event: string) => `${event}: Wer hilft mit?`,
+	nudgeBody: (free: number, tasks: string) => `Bei den Diensten ${free === 1 ? 'ist noch 1 Platz' : `sind noch ${free} Plätze`} frei: ${tasks}. Trag dich in der App ein.`,
 	/** On /profil. */
 	mineTitle: 'Deine Dienste',
 	mineLead: 'Was du für die nächsten Termine übernommen hast. Austragen kannst du dich auf der Dienste-Seite des Termins.',
 	/** In the data export and "Mitglied löschen". */
-	exported: { event: 'Termin', day: 'Datum', task: 'Dienst', time: 'Zeit' },
-	erased: 'Dienste (die Plätze werden wieder frei)'
+	exported: { event: 'Termin', day: 'Datum', task: 'Dienst', time: 'Zeit', kind: 'Art', from: 'Ab', seats: 'Plätze', note: 'Hinweis' },
+	erased: 'Dienste und Fahrgemeinschaften (die Plätze werden wieder frei)'
 } as const;

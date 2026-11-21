@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dutyCounts, eventPlaces, jobFromForm, jobsOf, jobTime, parseTime, placesOf, sortSlots, urgentDuties, type DutySlot, type DutyTake } from './duties.ts';
+import { dutyCounts, eventPlaces, jobFromForm, jobsOf, jobTime, openDuties, parseTime, placesOf, remindNow, rideFromForm, sortSlots, urgentDuties, type DutySlot, type DutyTake } from './duties.ts';
 
 const form = (values: Record<string, string>) => {
 	const data = new FormData();
@@ -54,7 +54,8 @@ describe('places on the jobs', () => {
 	it('counts who is on a job and what is still free', () => {
 		expect(placesOf(slots[0], takes)).toMatchObject({ free: 1 });
 		expect(placesOf(slots[0], takes).on.map((one) => one.email)).toEqual(['mia@example.org', 'greta@example.org']);
-		expect(eventPlaces(slots, takes)).toEqual({ needed: 9, taken: 3, free: 6 });
+		expect(eventPlaces(slots, takes)).toEqual({ needed: 9, taken: 3, free: 6, offered: 0 });
+		expect(placesOf(slots[1], [{ ...takes[2], offered: true }])).toMatchObject({ free: 1, offered: 1 });
 	});
 
 	it('puts the jobs in the order of the day, untimed ones last', () => {
@@ -84,11 +85,33 @@ describe('for the organisers', () => {
 		expect(urgentDuties(slots, takes, '2026-11-21')).toEqual([{ eventId: 'soon', eventDay: '2026-11-28', eventTitle: 'soon', free: 2 }]);
 	});
 
+	it('shows members what is free or handed on soon, and reminds the day before and on the day', () => {
+		const handedOn = takes.map((one) => (one.slotId === 'c' ? { ...one, offered: true } : one));
+		expect(openDuties(slots, handedOn, '2026-11-21').map((one) => [one.eventId, one.free, one.offered])).toEqual([
+			['full', 0, 1],
+			['soon', 2, 0]
+		]);
+		expect(['2026-11-20', '2026-11-21', '2026-11-22', '2026-11-23'].map((eventDay) => remindNow({ eventDay }, '2026-11-21'))).toEqual([false, true, true, false]);
+	});
+
 	it('counts the jobs per person in a period, the most first', () => {
 		expect(dutyCounts(slots, takes, { from: '2026-09-01', to: '2026-11-30' })).toEqual([
 			{ email: 'mia@example.org', name: 'mia', count: 3, tasks: ['a', 'c', 'e'] },
 			{ email: 'greta@example.org', name: 'greta', count: 1, tasks: ['e'] }
 		]);
 		expect(dutyCounts(slots, takes, { from: '2026-11-20', to: '2026-11-30' }).map((one) => [one.email, one.count])).toEqual([['mia@example.org', 2]]);
+	});
+});
+
+describe('lifts to a date', () => {
+	it('offers seats or asks for one, from somewhere', () => {
+		expect(rideFromForm(form({ kind: 'offer', from: ' Bergkamen ', seats: '3', note: 'zurück auch' }))).toEqual({ values: { kind: 'offer', from: 'Bergkamen', seats: 3, note: 'zurück auch' } });
+		expect(rideFromForm(form({ kind: 'request', from: 'Unna', seats: '5' }))).toEqual({ values: { kind: 'request', from: 'Unna', seats: 1 } });
+	});
+
+	it('needs to know which, from where, and a sensible number of seats', () => {
+		expect(rideFromForm(form({ from: 'Unna' }))).toEqual({ problem: 'bad-kind' });
+		expect(rideFromForm(form({ kind: 'offer', from: ' ' }))).toEqual({ problem: 'from-missing' });
+		for (const seats of ['0', '9', 'viele']) expect(rideFromForm(form({ kind: 'offer', from: 'Unna', seats }))).toEqual({ problem: 'bad-seats' });
 	});
 });

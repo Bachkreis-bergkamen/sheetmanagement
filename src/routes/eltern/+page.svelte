@@ -71,6 +71,13 @@
 							</p>
 							<h3>{date.title}</h3>
 							<p class="meta">{[date.date.long, date.date.time, date.location].filter(Boolean).join(' · ')}</p>
+							{#if date.duties}
+								<!-- Dienste and lifts (#298, #196): parents help out and drive too. -->
+								<a class="duties" href={date.duties.href}>
+									<Icon name="users" size={14} />
+									{[date.duties.places ? t.duties.places(date.duties.places.free, date.duties.places.needed) : '', date.duties.rides ? t.duties.rides : ''].filter(Boolean).join(' · ')}
+								</a>
+							{/if}
 
 							{#if data.signups}
 								<ul class="answers">
@@ -429,5 +436,15 @@
 	.write small {
 		color: var(--text-muted);
 		font-size: var(--text-sm);
+	}
+
+	.duties {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-1);
+		min-height: 32px;
+		color: var(--accent);
+		font-size: var(--text-sm);
+		font-weight: 600;
 	}
 </style>

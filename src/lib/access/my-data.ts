@@ -4,7 +4,7 @@ import * as t from '#lib/i18n/texts.ts';
 import { LAYOUT, normalize, type Table, type TabKey } from '#lib/repertoire/sheet.ts';
 import type { Poll, PollResponse } from '#lib/polls/polls.ts';
 import { instrumentName, type InstrumentLoan, type LendInstrument } from '#lib/lending/lending.ts';
-import type { DutySlot, DutyTake } from '#lib/duties/duties.ts';
+import type { DutySlot, DutyTake, Ride } from '#lib/duties/duties.ts';
 import type { Participant, Trip } from '#lib/trips/trips.ts';
 import type { Instrument, KeptList, ListEntry } from '#lib/trips/lists.ts';
 import type { Arrangement } from '#lib/trips/organising.ts';
@@ -153,8 +153,8 @@ export function lendingData(entries: { loan: InstrumentLoan; instrument: LendIns
 	return rows.length ? { [t.lending.title]: rows } : {};
 }
 
-/** The duties the member took for dates (#298): which date, which job, when. */
-export function dutyData(entries: { take: DutyTake; slot: DutySlot }[]): MyData {
+/** The duties the member took for dates (#298), and the lifts they offered or asked for (#196). */
+export function dutyData(entries: { take: DutyTake; slot: DutySlot }[], rides: Ride[] = []): MyData {
 	const e = t.duties.exported;
 	const rows = entries.map(({ slot }) => ({
 		[e.event]: slot.eventTitle,
@@ -162,7 +162,15 @@ export function dutyData(entries: { take: DutyTake; slot: DutySlot }[]): MyData 
 		[e.task]: slot.task,
 		[e.time]: slot.from ? [slot.from, slot.to].filter(Boolean).join('–') : ''
 	}));
-	return rows.length ? { [t.duties.title]: rows } : {};
+	const lifts = rides.map((ride) => ({
+		[e.event]: ride.eventTitle,
+		[e.day]: ride.eventDay,
+		[e.kind]: ride.kind === 'offer' ? t.duties.offers : t.duties.requests,
+		[e.from]: ride.from,
+		[e.seats]: String(ride.seats),
+		[e.note]: ride.note ?? ''
+	}));
+	return { ...(rows.length ? { [t.duties.title]: rows } : {}), ...(lifts.length ? { [t.duties.rides]: lifts } : {}) };
 }
 
 /** The member's sign-ups for trips (#334): which trip, as what, and what they told the organisers. */

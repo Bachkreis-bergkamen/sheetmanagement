@@ -261,8 +261,9 @@
 				<span class="icon"><Icon name="users" size={18} /></span>
 				<span class="fact-body">
 					<span class="over">{t.duties.card}</span>
-					<strong>{duties.places ? t.duties.places(duties.places.free, duties.places.needed) : t.duties.setUp}</strong>
-					<span>{duties.mine.length ? t.duties.yours(duties.mine.join(', ')) : duties.places ? t.duties.open : t.duties.setUpHint}</span>
+					<strong>{duties.places ? t.duties.places(duties.places.free, duties.places.needed) : duties.manage ? t.duties.setUp : t.duties.rides}</strong>
+					<span>{duties.mine.length ? t.duties.yours(duties.mine.join(', ')) : duties.places ? t.duties.open : duties.manage ? t.duties.setUpHint : t.duties.ridesLead}</span>
+					{#if duties.rides.offers || duties.rides.requests}<span>{t.duties.ridesLine(duties.rides.offers, duties.rides.requests)}</span>{/if}
 				</span>
 				<span class="trail"><Icon name="chevron" size={16} /></span>
 			</a>

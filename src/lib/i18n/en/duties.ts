@@ -23,6 +23,41 @@ export const duties = {
 	assigned: (name: string) => `${name} is down for it.`,
 	unassign: (name: string) => `Take ${name} off`,
 	unassigned: (name: string) => `${name} is off it.`,
+	/** Handing a place on (#298): "looking for a stand-in", and someone else takes over. */
+	offer: 'Find a stand-in',
+	offerHint: "You stay down for it until someone takes over.",
+	offered: 'looking for a stand-in',
+	offeredDone: "You're looking for a stand-in. Whoever takes over replaces you; until then you stay on it.",
+	unoffer: "I'll do it after all",
+	unoffered: "You're staying on it.",
+	takeOver: (name: string) => `Take over from ${name}`,
+	tookOver: (name: string) => `You took over from ${name}. Thank you!`,
+	/** Reminding everyone without a job on this date. */
+	nudge: 'Remind everyone without a duty',
+	nudgeHint: (n: number) => `Sends a reminder to the ${n === 1 ? 'one member' : `${n} members`} with no duty on this date yet: to their phone or by email, not at night.`,
+	nudged: 'The reminder goes out within the next half hour.',
+	nudgedAt: (when: string) => `Last sent on ${when}.`,
+	/** Car-pools (#196). */
+	rides: 'Car-pools',
+	ridesLead: "Who's driving and has seats, who needs a lift? Arrange the rest yourselves, e.g. in the group chat.",
+	noRides: 'Nobody has offered or asked for a lift yet.',
+	offers: 'Offering',
+	requests: 'Looking',
+	rideOffer: (from: string, seats: number) => `from ${from} · ${seats} ${seats === 1 ? 'seat' : 'seats'} free`,
+	rideRequest: (from: string) => `from ${from}`,
+	addRide: 'Add a lift',
+	rideKind: 'I …',
+	kindOffer: "am driving and can take people",
+	kindRequest: 'need a lift',
+	rideFrom: 'From',
+	rideFromHint: 'e.g. Bergkamen, market square',
+	rideSeats: 'Free seats',
+	rideNote: 'Note',
+	rideNoteHint: 'Leaving at, way back too, phone …',
+	rideAdded: 'Added.',
+	removeRide: 'Delete',
+	rideRemoved: 'Deleted.',
+	ridesLine: (offers: number, requests: number) => `Car-pools: ${offers} ${offers === 1 ? 'offer' : 'offers'}, ${requests} ${requests === 1 ? 'request' : 'requests'}`,
 	add: 'Add a duty',
 	fields: {
 		task: 'Duty',
@@ -68,7 +103,11 @@ export const duties = {
 		'who-missing': 'Who? Choose a member.',
 		'template-name': 'What should the template be called?',
 		'no-jobs': 'There are no duties yet to save as a template.',
-		'no-template': 'This template no longer exists.'
+		'no-template': 'This template no longer exists.',
+		'not-offered': "This place isn't up for taking over any more, or someone was quicker.",
+		'from-missing': 'From where?',
+		'bad-seats': 'How many seats? A number from 1 to 8.',
+		'bad-kind': 'Are you offering a lift or looking for one?'
 	} as Record<string, string>,
 	/** On the date's page. */
 	card: 'Duties',
@@ -88,10 +127,20 @@ export const duties = {
 	periodFrom: 'From',
 	periodTo: 'To',
 	show: 'Show',
+	/** On the start page and in the parents' area: jobs within two weeks where help is wanted. */
+	helpTitle: 'Help wanted',
+	helpLead: 'These dates still have duties free.',
+	helpFree: (free: number) => `${free} ${free === 1 ? 'place' : 'places'} free`,
+	helpOffered: (n: number) => `${n} to take over`,
+	/** Reminders (#298): the day before a job, and the organisers' nudge. */
+	remindTitle: (task: string, today: boolean) => `Your duty ${today ? 'today' : 'tomorrow'}: ${task}`,
+	remindBody: (event: string, time: string, note: string) => [event, time, note].filter(Boolean).join(' · '),
+	nudgeTitle: (event: string) => `${event}: who can help?`,
+	nudgeBody: (free: number, tasks: string) => `${free === 1 ? '1 duty place is' : `${free} duty places are`} still free: ${tasks}. Sign up in the app.`,
 	/** On /profil. */
 	mineTitle: 'Your duties',
 	mineLead: "What you took on for the next dates. You can drop out on the date's duties page.",
 	/** In the data export and "Mitglied löschen". */
-	exported: { event: 'Date', day: 'Day', task: 'Duty', time: 'Time' },
-	erased: 'Duties (the places become free again)'
+	exported: { event: 'Date', day: 'Day', task: 'Duty', time: 'Time', kind: 'Kind', from: 'From', seats: 'Seats', note: 'Note' },
+	erased: 'Duties and car-pools (the places become free again)'
 } as const;
