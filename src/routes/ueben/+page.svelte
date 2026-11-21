@@ -6,7 +6,7 @@
 	import Conductor from '#lib/components/Conductor.svelte';
 	import DrillRound from '#lib/components/DrillRound.svelte';
 	import DrillStaff from '#lib/components/DrillStaff.svelte';
-	import Icon, { type IconName } from '#lib/components/Icon.svelte';
+	import Icon from '#lib/components/Icon.svelte';
 	import PageHeader from '#lib/components/PageHeader.svelte';
 	import PracticeTree from '#lib/components/PracticeTree.svelte';
 	import { treeStage, type TreeStage } from '#lib/practice/practice.ts';
@@ -15,27 +15,47 @@
 	import ReachTest from '#lib/components/ReachTest.svelte';
 	import SightStaff from '#lib/components/SightStaff.svelte';
 	import Title from '#lib/components/Title.svelte';
-	import { EAR_DECK, EAR_ORDER, FLUENT_MS, interleave, KEY_ORDER, kindOf, notesOrder, playOrder, transOrder } from '#lib/practice/drills/decks.ts';
+	import { EAR_ORDER, FLUENT_MS, KEY_ORDER, kindOf } from '#lib/practice/drills/decks.ts';
 	import { isProfileId, PROFILE_IDS, profile, profileFor, useReaches, type ProfileId } from '#lib/practice/drills/instruments.ts';
 	import { afterTry, canGrow, comfortable, nextTry, noteAt, type Reach, type Side } from '#lib/practice/drills/reach.ts';
 	import { clefLadder, UNLOCK_AT } from '#lib/practice/drills/levels.ts';
-	import { PULSE_ORDER, RHYTHM_ORDER } from '#lib/practice/drills/rhythm.ts';
-	import { scaleOrder } from '#lib/practice/drills/scales.ts';
-	import { knownOf, newlyOpen, progression, STAGES, type DrillCard } from '#lib/practice/drills/progression.ts';
+	import { RHYTHM_ORDER } from '#lib/practice/drills/rhythm.ts';
+	import { knownOf, newlyOpen, progression, type DrillCard } from '#lib/practice/drills/progression.ts';
 	import { firstLevel, makeMelody, MAX_LEVEL, seeded, type SightLevel } from '#lib/practice/drills/sight.ts';
-	import { makeEntry, MAX_ENTRY_LEVEL, tuneOrder } from '#lib/practice/drills/together.ts';
-	import { makePlacement, masteredState, nextProbe, placementResult, progress as placementProgress, recordProbe, type Placement, type PlacementResult } from '#lib/practice/drills/placement.ts';
-	import { badgeProgress, badgesFor, newBadges, type Badge, type BadgeGroup } from '#lib/practice/drills/badges.ts';
-	import { addAnswer, DAILY_GOAL_MINUTES, dayKey, emptyData, history, MAX_UNSENT, REFLECTION_MAX, streak, type DrillData } from '#lib/practice/drills/progress.ts';
+	import { makeEntry, MAX_ENTRY_LEVEL } from '#lib/practice/drills/together.ts';
+	import { makePlacement, nextProbe, placementResult, progress as placementProgress, recordProbe, type Placement, type PlacementResult } from '#lib/practice/drills/placement.ts';
+	import { badgeProgress, badgesFor, newBadges, type BadgeGroup } from '#lib/practice/drills/badges.ts';
+	import { addAnswer, DAILY_GOAL_MINUTES, dayKey, history, MAX_UNSENT, REFLECTION_MAX, streak, type DrillData } from '#lib/practice/drills/progress.ts';
 	import PracticeHistory from '#lib/components/PracticeHistory.svelte';
 	import DrillSharing from '#lib/components/DrillSharing.svelte';
 	import DailyRound from '#lib/components/DailyRound.svelte';
 	import { invalidateAll } from '$app/navigation';
-	import { sharesAny, summaryRows, type Sharing } from '#lib/practice/drills/sharing.ts';
+	import { sharesAny, type Sharing } from '#lib/practice/drills/sharing.ts';
 	import { dayNumber, record, summary } from '#lib/practice/drills/scheduler.ts';
-	import { clearDrills, loadDrills, saveDrills, syncDrills } from '#lib/practice/drills/store.ts';
-	import { mergeData, withDevice } from '#lib/practice/drills/sync.ts';
-	import { alterInKey, CLEFS, pitchAt, type Clef, type Pitch } from '#lib/practice/drills/theory.ts';
+	import { CLEFS, type Clef } from '#lib/practice/drills/theory.ts';
+	import { DrillStore } from '#lib/practice/hub/drill-store.svelte.ts';
+	import {
+		badgeName,
+		currentStage,
+		DAILY_REVIEW,
+		dailyPlan,
+		drillOrders,
+		keepPractised,
+		nextDailyStep,
+		PLAYED,
+		PREVIEW,
+		placeInto,
+		previewClef as clefOfPreview,
+		previewNotes as notesOfPreview,
+		shownKinds,
+		stageList as stagesOf,
+		treeSeconds,
+		warmupScale as warmupOf,
+		type DailyStep,
+		type Kind
+	} from '#lib/practice/hub/hub.ts';
+	import { Milestones } from '#lib/practice/hub/milestones.svelte.ts';
+	import { sendDays as postDays, sendTime as postTime } from '#lib/practice/hub/reports.ts';
 
 	let { data } = $props();
 	const tx = t.drills;
@@ -43,53 +63,33 @@
 	/** The member's own instrument, from "Mitglieder", the first one the drills know. */
 	const own = $derived(data.instruments.map(profileFor).find((id): id is ProfileId => !!id) ?? 'treble');
 
-	let drills = $state<DrillData>(emptyData());
-	let ready = $state(false);
-	let saved = $state(true);
+	// svelte-ignore state_referenced_locally
+	const store = new DrillStore(data.account, !!data.synced);
+	const drills = $derived(store.drills);
+	const ready = $derived(store.ready);
+	const saved = $derived(store.saved);
+	const synced = $derived(store.synced);
+	const persist = () => store.persist();
+
 	onMount(() => {
-		begin();
+		store.begin(keepPractised, () => {
+			syncUnlocks();
+			syncBadges();
+			sendTime();
+			sendDays();
+		});
 		const closing = () => {
-			if (document.visibilityState === 'hidden') syncNow(true);
+			if (document.visibilityState === 'hidden') store.syncNow(true);
 		};
-		const online = () => syncNow();
+		const online = () => store.syncNow();
 		document.addEventListener('visibilitychange', closing);
 		window.addEventListener('online', online);
 		return () => {
-			clearTimeout(syncTimer);
+			store.stop();
 			document.removeEventListener('visibilitychange', closing);
 			window.removeEventListener('online', online);
 		};
 	});
-
-	/** How long the page waits for the progress from the other devices before it starts without. */
-	const FIRST_SYNC_MS = 4000;
-	async function begin() {
-		const loaded = await loadDrills(data.account);
-		drills = loaded.data;
-		saved = loaded.saved;
-		// Progress from before progression: the drills practised then stay open.
-		if (!drills.unlocked) {
-			drills.unlocked = STAGES.flat().filter((card) =>
-				card === 'sight' || card === 'entry' ? !!drills.settings[card] && !drills.settings.placed : Object.keys(drills.items).some((id) => cardOf(id) === card)
-			);
-		}
-		// What was practised on another device, before the page offers a placement test or a first round.
-		if (data.synced) {
-			const sentAt = drills.changed;
-			const remote = await Promise.race([syncDrills(drills), new Promise<null>((resolve) => setTimeout(() => resolve(null), FIRST_SYNC_MS))]);
-			if (remote) {
-				drills = withDevice(mergeData(drills, remote), drills);
-				synced = drills.changed === sentAt;
-				saveDrills(data.account, drills).then((ok) => (saved = ok));
-			} else synced = false;
-		}
-		ready = true;
-		syncUnlocks();
-		syncBadges();
-		sendTime();
-		sendDays();
-		if (synced === false) syncNow();
-	}
 
 	const instrument = $derived<ProfileId>(isProfileId(drills.settings.instrument) ? drills.settings.instrument : own);
 	const prof = $derived(profile(instrument));
@@ -117,85 +117,10 @@
 		persist();
 	}
 
-	function persist() {
-		drills.changed = Date.now();
-		saveDrills(data.account, drills).then((ok) => (saved = ok));
-		if (data.synced) {
-			clearTimeout(syncTimer);
-			syncTimer = setTimeout(syncNow, SYNC_AFTER_MS);
-		}
-	}
-
-	/**
-	 * The progress on the member's other devices (#300): this copy goes to the server a few
-	 * seconds after a change, when the page opens, is hidden or comes back online, and what comes
-	 * back is merged in, so answers given meanwhile stay.
-	 */
-	const SYNC_AFTER_MS = 3000;
-	let syncTimer: ReturnType<typeof setTimeout> | undefined;
-	let syncing = false;
-	let syncAgain = false;
-	/** Whether the server has this device's latest copy; shown, so a member knows it's safe to switch. */
-	let synced = $state<boolean | null>(null);
-	async function syncNow(closing = false) {
-		clearTimeout(syncTimer);
-		if (!data.synced || !ready) return;
-		if (syncing) {
-			syncAgain = true;
-			return;
-		}
-		syncing = true;
-		try {
-			const sentAt = drills.changed;
-			const remote = await syncDrills(drills, closing);
-			if (!remote) {
-				synced = false;
-				return;
-			}
-			const merged = withDevice(mergeData(drills, remote), drills);
-			if (JSON.stringify(merged) !== JSON.stringify(drills)) {
-				drills = merged;
-				saveDrills(data.account, drills).then((ok) => (saved = ok));
-			}
-			synced = drills.changed === sentAt;
-		} finally {
-			syncing = false;
-			if (syncAgain) {
-				syncAgain = false;
-				syncNow(closing);
-			}
-		}
-	}
-
-	type Kind = 'mix' | 'notes' | 'keys' | 'ear' | 'rhythm' | 'pulse' | 'play' | 'scale' | 'sight' | 'entry' | 'tune' | 'trans';
-	const orders = $derived.by<Record<Kind, string[]>>(() => {
-		void reach;
-		const notes = interleave(...clefs.map(notesOrder));
-		return {
-			mix: interleave(notes, KEY_ORDER, EAR_DECK),
-			notes,
-			keys: KEY_ORDER,
-			ear: EAR_DECK,
-			rhythm: RHYTHM_ORDER,
-			pulse: PULSE_ORDER,
-			play: interleave(...clefs.map((clef) => playOrder(instrument, clef))),
-			scale: scaleOrder(instrument),
-			// Sight-reading and entries have no items: every melody is new.
-			sight: [],
-			entry: [],
-			tune: tuneOrder(instrument),
-			trans: transOrder(instrument)
-		};
-	});
+	const orders = $derived((void reach, drillOrders(clefs, instrument)));
 
 	const day = dayNumber();
 	const standing = (order: string[]) => summary(order, drills.items, day, (id) => FLUENT_MS[kindOf(id)]);
-
-	/** The drill card an item belongs to. */
-	const cardOf = (id: string): DrillCard | null => {
-		const kind = kindOf(id) as string;
-		return (STAGES.flat() as string[]).includes(kind) ? (kind as DrillCard) : null;
-	};
 
 	/** Which drills are open (#300): each once what it builds on is known; once open, for good. */
 	const cards = $derived(
@@ -239,30 +164,23 @@
 		window.scrollTo({ top: 0 });
 	});
 
-	/** A clef, and drills, that opened during the last round or the placement test, to celebrate. */
-	let unlocked = $state<Clef | null>(null);
-	let freshCards = $state<DrillCard[]>([]);
-	let openBefore: Clef[] = [];
-	let cardsBefore: string[] = [];
-	let badgesBefore: string[] = [];
-	let freshBadges = $state<Badge[]>([]);
-	function remember() {
-		badgesBefore = Object.keys(drills.badges ?? {});
-		freshBadges = [];
-		openBefore = ladder.filter((step) => step.open).map((step) => step.clef);
-		cardsBefore = [...(drills.unlocked ?? [])];
-		unlocked = null;
-		freshCards = [];
-	}
+	/** A clef, drills and badges that opened during the last round or the placement test, to celebrate. */
+	const milestones = new Milestones(() => ({
+		clefs: ladder.filter((step) => step.open).map((step) => step.clef),
+		unlocked: drills.unlocked ?? [],
+		cards,
+		shown: kinds.map((each) => each.kind),
+		badges,
+		earned: drills.badges ?? {}
+	}));
+	const unlocked = $derived(milestones.clef);
+	const freshCards = $derived(milestones.cards);
+	const freshBadges = $derived(milestones.badges);
 	function announce() {
-		unlocked = ladder.find((step) => step.open && !openBefore.includes(step.clef))?.clef ?? null;
 		syncUnlocks();
-		freshCards = newlyOpen(cardsBefore, cards).filter((card) => kinds.some((each) => each.kind === card));
 		syncBadges();
-		freshBadges = badges.filter((badge) => drills.badges?.[badge.id] && !badgesBefore.includes(badge.id));
+		milestones.announce();
 	}
-	/** Drills where notes are played: the range is asked for first, once per instrument, where it can grow. */
-	const PLAYED: Kind[] = ['play', 'scale', 'sight', 'entry', 'tune'];
 	/** The range test, and the drill to go on to after it ('hub' when started from the settings). */
 	let reachTest = $state<Kind | 'hub' | null>(null);
 	/** This round's try at a note beyond the range. */
@@ -280,7 +198,7 @@
 	}
 
 	function start(kind: Kind) {
-		remember();
+		milestones.remember();
 		if (PLAYED.includes(kind) && !reach && canGrow(instrument)) {
 			reachTest = kind;
 			return;
@@ -289,36 +207,19 @@
 		tryNote = found && { id: found.id, name: reachName(found.step), side: found.side };
 		playing = kind;
 		if (kind === 'mix') {
-			dailySteps = dailyPlan();
+			dailySteps = dailyPlan(cards, warmupScale);
 			daily = dailySteps[0];
 			dailyFrom = drills.days[dayKey()]?.ms ?? 0;
 		}
 	}
 
-	/**
-	 * The daily round (#315): about five minutes, the daily goal, made of what's due. A scale to warm up over a
-	 * drone, once scales are open; the notes, keys and intervals due for review; one new melody at
-	 * sight, once sight-reading is open; and a line for what was hard. Short, mixed and regular,
-	 * as spacing research suggests.
-	 */
-	type DailyStep = 'warmup' | 'review' | 'sight' | 'done';
+	/** The daily round (#315), its steps as planned when it started (see hub.ts). */
 	let daily = $state<DailyStep>('review');
 	let dailySteps = $state<DailyStep[]>(['review', 'done']);
 	let dailyFrom = 0;
-	/** Questions in the review step: with a warm-up and a melody around it, fewer than a full round. */
-	const DAILY_REVIEW = 8;
-	const dailyPlan = (): DailyStep[] => [
-		...(cards.scale.open && warmupScale ? (['warmup'] as const) : []),
-		'review',
-		...(cards.sight.open ? (['sight'] as const) : []),
-		'done'
-	];
-	/** The scale to warm up with: the one most overdue among those met, else the next new one. */
-	const warmupScale = $derived(
-		orders.scale.filter((id) => drills.items[id]).sort((a, b) => drills.items[a].due - drills.items[b].due)[0] ?? orders.scale[0] ?? null
-	);
+	const warmupScale = $derived(warmupOf(orders.scale, drills.items));
 	function nextDaily() {
-		daily = dailySteps[dailySteps.indexOf(daily) + 1] ?? 'done';
+		daily = nextDailyStep(dailySteps, daily);
 		if (daily === 'done') roundDone = true;
 		sendDays();
 	}
@@ -358,45 +259,22 @@
 	 * round ends and when the page opens (time kept while offline). Only with practice time on.
 	 */
 	async function sendTime() {
-		const seconds = Math.round(drills.unsent);
-		if (!data.practising || seconds < 1) return;
-		try {
-			const response = await fetch('/api/ueben/runde', {
-				method: 'POST',
-				headers: { 'content-type': 'application/json' },
-				body: JSON.stringify({ seconds }),
-				keepalive: true
-			});
-			// Counted, or practice time turned off meanwhile: either way nothing more to send.
-			if (response.ok || response.status === 409) {
-				drills.unsent = Math.max(0, drills.unsent - seconds);
-				if (response.ok) sent += seconds;
-				persist();
-			}
-		} catch {
-			// Offline: kept for the next time.
-		}
+		if (!data.practising) return;
+		const { done, counted } = await postTime(drills.unsent);
+		if (!done) return;
+		drills.unsent = Math.max(0, drills.unsent - done);
+		sent += counted;
+		persist();
 	}
 
 	/**
-	 * What the member shares (#300), and the summary sent when a round ends and the page opens:
-	 * the last four weeks per day and skill, replacing what was sent before. Only while sharing.
+	 * What the member shares (#300), and the summary sent when a round ends and the page opens.
+	 * Set here as it changes, until the next load brings the same back.
 	 */
-	// Set here as it changes, until the next load brings the same back.
 	let sharing = $derived(data.sharing);
 	async function sendDays() {
 		if (!sharesAny(sharing?.chosen)) return;
-		try {
-			const response = await fetch('/api/ueben/tage', {
-				method: 'POST',
-				headers: { 'content-type': 'application/json' },
-				body: JSON.stringify({ rows: summaryRows(drills.days, dayKey()) }),
-				keepalive: true
-			});
-			if (response.status === 409 && sharing) sharing = { ...sharing, chosen: null };
-		} catch {
-			// Offline: sent with the next round.
-		}
+		if (!(await postDays(drills.days)) && sharing) sharing = { ...sharing, chosen: null };
 	}
 	async function share(next: Sharing) {
 		const response = await fetch('/api/ueben/teilen', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(next) });
@@ -421,41 +299,17 @@
 	const offerPlacement = $derived(ready && !Object.keys(drills.items).length && !drills.settings.placed);
 
 	function startPlacement() {
-		remember();
+		milestones.remember();
 		placement = makePlacement(prof);
 		testProgress = 0;
 		placed = null;
 		testing = true;
 	}
 
-	/**
-	 * What the test found into the member's progress: known items they haven't met yet (never
-	 * over progress they have), clefs to open, and where sight-reading and entries start (only if
-	 * not started yet).
-	 */
 	function finishPlacement() {
 		if (!placement) return;
 		const result = placementResult(placement, dayNumber());
-		for (const [id, state] of Object.entries(result.states)) drills.items[id] ??= state;
-		drills.opened = [...new Set([...drills.opened, ...result.opened])];
-		// A professional: every drill open, every clef, and what the test didn't ask counted as mastered too.
-		if (result.expert) {
-			const day = dayNumber();
-			const all = [
-				...prof.clefs.flatMap((clef) => [...notesOrder(clef), ...playOrder(instrument, clef)]),
-				...Object.values(orders).flat()
-			];
-			for (const id of new Set(all)) drills.items[id] ??= masteredState(day, FLUENT_MS[kindOf(id)] * 0.6);
-			drills.opened = [...new Set([...drills.opened, ...prof.clefs])];
-			drills.unlocked = [...new Set([...(drills.unlocked ?? []), ...STAGES.flat()])];
-		}
-		const level = (value: number) => ({ level: value, good: 0, poor: 0 });
-		drills.settings = {
-			...drills.settings,
-			placed: dayKey(),
-			sight: { ...drills.settings.sight, [instrument]: drills.settings.sight?.[instrument] ?? level(result.sightLevel) },
-			entry: { ...drills.settings.entry, [instrument]: drills.settings.entry?.[instrument] ?? level(result.entryLevel) }
-		};
+		placeInto(drills, result, { prof, instrument, orders, day: dayNumber() });
 		persist();
 		placed = result;
 		testing = false;
@@ -465,51 +319,22 @@
 		sendDays();
 	}
 
-	/**
-	 * The practice tree as it stands: the total from the server, with what this visit has sent
-	 * since and what's still waiting to be sent, so it grows as the member practises.
-	 */
+	/** The practice tree as it stands, growing as the member practises. */
 	let sent = $state(0);
-	const tree = $derived(treeStage((data.treeSeconds ?? 0) + sent + (data.practising ? drills.unsent : 0)));
+	const treeTime = $derived(treeSeconds(data.treeSeconds, sent, drills.unsent, !!data.practising));
+	const tree = $derived(treeStage(treeTime));
 	const nextTree = $derived(treeStage(tree.next));
 	const treeName = (stage: TreeStage) => (stage.kind === 'tree' ? t.practice.tree.tree(stage.age) : t.practice.tree[stage.kind]);
-	const treeLeft = $derived(Math.max(0, tree.next - ((data.treeSeconds ?? 0) + sent + (data.practising ? drills.unsent : 0))));
+	const treeLeft = $derived(Math.max(0, tree.next - treeTime));
 
 	const bx = tx.badges;
-	/** A badge's name, from what it stands for. */
-	function badgeName(badge: Badge): string {
-		const kind = badge.kind;
-		switch (kind.type) {
-			case 'staff':
-				return bx.staff(tx.clefs[kind.clef]);
-			case 'ledger':
-				return bx.ledger(tx.clefs[kind.clef]);
-			case 'keys':
-				return bx.keys[kind.set];
-			case 'ear':
-				return bx.ear(kind.harmonic);
-			case 'trans':
-				return bx.trans(kind.parts);
-			case 'sight':
-				return bx.sight(kind.level);
-			case 'streak':
-				return bx.streak(kind.days);
-			case 'scales':
-				return bx.scales(kind.octaves);
-			default:
-				return bx[kind.type];
-		}
-	}
 	const BADGE_GROUPS: BadgeGroup[] = ['read', 'hear', 'play', 'steady'];
 	const earnedCount = $derived(badges.filter((badge) => drills.badges?.[badge.id]).length);
 	const dateOf = (day: string) => new Date(`${day}T12:00:00`).toLocaleDateString(config.locale, { day: 'numeric', month: 'short' });
 
 	async function reset() {
 		if (!confirm(tx.confirmReset)) return;
-		await clearDrills(data.account);
-		// The reset time drops the copies from before it, on the server and the other devices.
-		drills = { ...emptyData(), unlocked: [], since: Date.now() };
-		persist();
+		await store.reset();
 		syncUnlocks();
 	}
 
@@ -523,72 +348,21 @@
 	const announceInstrument = $derived(ready && !drills.settings.instrument && drills.settings.announced !== instrument);
 	let changing = $state(false);
 
-	const KINDS: { kind: Kind; icon: IconName }[] = [
-		{ kind: 'mix', icon: 'sparkle' },
-		{ kind: 'notes', icon: 'note' },
-		{ kind: 'keys', icon: 'tag' },
-		{ kind: 'ear', icon: 'headphones' },
-		{ kind: 'rhythm', icon: 'activity' },
-		{ kind: 'pulse', icon: 'clock' },
-		{ kind: 'play', icon: 'gauge' },
-		{ kind: 'scale', icon: 'music' },
-		{ kind: 'sight', icon: 'eye' },
-		{ kind: 'entry', icon: 'users' },
-		{ kind: 'tune', icon: 'sliders' },
-		{ kind: 'trans', icon: 'refresh' }
-	];
-	/**
-	 * A small picture for each card, as staff positions (0 the bottom line, 8 the top), so the
-	 * notes sit on the staff in whichever clef is shown; spelt in the key, as the drill would.
-	 */
-	const PREVIEW: Record<Kind, { fifths?: number; positions?: number[]; together?: boolean }> = {
-		mix: { fifths: 2, positions: [3] },
-		notes: { positions: [2] },
-		keys: { fifths: -3 },
-		ear: { positions: [1, 5] },
-		rhythm: {},
-		pulse: {},
-		sight: {},
-		entry: {},
-		tune: { positions: [1, 3, 5], together: true },
-		play: { positions: [5] },
-		scale: { fifths: 1, positions: [2, 3, 4] },
-		trans: { positions: [4] }
-	};
-	/** Transposing is read in treble clef; every other picture in the clef the member reads first. */
-	const previewClef = (kind: Kind): Clef => (kind === 'trans' ? 'treble' : clefs[0]);
-	function previewNotes(kind: Kind): Pitch[] {
-		const { positions = [], fifths = 0 } = PREVIEW[kind];
-		return positions.map((position) => {
-			const pitch = pitchAt(previewClef(kind), position);
-			return { ...pitch, alter: alterInKey(pitch.step, fifths) };
-		});
-	}
-	/** The transposing drill only for instruments that transpose or read parts in other keys; scales and sight-reading only for those that play them. */
-	const kinds = $derived(
-		KINDS.filter(({ kind }) =>
-			kind === 'sight' || kind === 'entry' ? !!sightPreview : (kind !== 'trans' && kind !== 'scale' && kind !== 'tune') || orders[kind].length
-		)
-	);
+	const previewClef = (kind: Kind) => clefOfPreview(kind, clefs[0]);
+	const previewNotes = (kind: Kind) => notesOfPreview(kind, clefs[0]);
 	const sightLevel = $derived<SightLevel>(drills.settings.sight?.[instrument] ?? firstLevel());
 	const entryLevel = $derived<SightLevel>(drills.settings.entry?.[instrument] ?? firstLevel());
 	const entryPreview = $derived(instrument === 'timpani' ? null : makeEntry(instrument, prof.clefs[0], 3, seeded(4)));
 	/** A small melody of the member's level for the card, the same one each visit. */
-	const sightPreview = $derived(instrument === 'timpani' ? null : makeMelody(instrument, prof.clefs[0], 1, seeded(3)))
+	const sightPreview = $derived(instrument === 'timpani' ? null : makeMelody(instrument, prof.clefs[0], 1, seeded(3)));
 	const steps = $derived(prof.clefs.length > 1 && !prof.together ? ladder : []);
+	const kinds = $derived(shownKinds(orders, !!sightPreview));
 
-	/** Each stage with its drills for this instrument and how many are open, for the strip and the headings. */
-	const stageList = $derived(
-		STAGES.map((stage, number) => {
-			// The daily round, once open, has its own card on top (see `featured`), not one in its stage.
-			const shown = kinds.filter(({ kind }) => (stage as string[]).includes(kind) && !(kind === 'mix' && featured));
-			return { number, shown, open: shown.filter(({ kind }) => cards[kind as DrillCard].open).length };
-		}).filter((stage) => stage.shown.length)
-	);
 	/** The daily round as the way in, once it's open: the first thing on the page, with a big start. */
 	const featured = $derived(ready && cards.mix.open);
+	const stageList = $derived(stagesOf(kinds, cards, featured));
 	/** Its steps as they'd be today, for the card. */
-	const todaysSteps = $derived(featured ? dailyPlan().filter((step) => step !== 'done') : []);
+	const todaysSteps = $derived(featured ? dailyPlan(cards, warmupScale).filter((step) => step !== 'done') : []);
 	/** A daily round finished on this visit: the card then offers another, and the programme. */
 	let roundDone = $state(false);
 
@@ -623,7 +397,7 @@
 	});
 
 	/** The stage the member is working in: the last one with a drill open. */
-	const current = $derived(stageList.reduce((at, stage) => (stage.open ? stage.number : at), 0));
+	const current = $derived(currentStage(stageList));
 
 	// A round starts at the top of the screen, not where the button that started it was.
 	const inRound = $derived(!!((testing && placement) || playing || reachTest));
