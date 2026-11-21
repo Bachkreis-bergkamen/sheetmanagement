@@ -12,5 +12,6 @@ export const rights = {
 	'eltern.informieren': 'Mitteilungen an die Eltern schreiben',
 	'ueben.begleiten': 'Übestand der Mitglieder sehen, die ihn teilen',
 	'fahrten.bearbeiten': 'Konzert- und Probenfahrten planen und sehen, wer mitfährt',
+	'instrumente.verwalten': 'Leihinstrumente verwalten: Bestand, Verleih und Rückgabe',
 	'mitglieder.verwalten': 'Mitglieder und Rechte verwalten'
 } as const;

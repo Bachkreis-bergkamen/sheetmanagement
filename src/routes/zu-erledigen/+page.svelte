@@ -16,6 +16,7 @@
 		{ key: 'report', icon: 'flag', kinds: ['report'] },
 		{ key: 'request', icon: 'user', kinds: ['request'] },
 		{ key: 'loan', icon: 'loan', kinds: ['loan'] },
+		{ key: 'instrument', icon: 'loan', kinds: ['instrument'] },
 		{ key: 'wish', icon: 'bulb', kinds: ['wish'] },
 		{ key: 'other', icon: 'mail', kinds: ['scans', 'kummerAnswers', 'kummerInbox'] }
 	];
@@ -23,7 +24,7 @@
 	function when(item: OpenItem) {
 		if (!item.date) return '';
 		const label = shortDateLabel(item.date, data.today, config.locale);
-		return item.kind === 'poll' || item.kind === 'loan' ? t.todo.until(label) : label;
+		return item.kind === 'poll' || item.kind === 'loan' || item.kind === 'instrument' ? t.todo.until(label) : label;
 	}
 
 	const groups = $derived(

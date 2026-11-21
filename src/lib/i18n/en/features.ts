@@ -12,5 +12,6 @@ export const features: Texts['features'] = {
 	tickets: 'Concert tickets',
 	offline: 'Save parts offline',
 	drills: 'Practice room',
-	trips: 'Trips'
+	trips: 'Trips',
+	lending: 'Instruments on loan'
 };

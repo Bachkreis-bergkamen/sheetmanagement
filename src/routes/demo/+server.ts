@@ -10,6 +10,7 @@ import { isDemo } from '#lib/server/env.ts';
 import { resetDemoPolls } from '#lib/server/polls.ts';
 import { resetDemoTrips } from '#lib/server/trips.ts';
 import { resetDemoKummer } from '#lib/server/kummer.ts';
+import { resetDemoLending } from '#lib/server/lending.ts';
 import { resetDemoParentNotices } from '#lib/server/parent-notices.ts';
 import { getArchiveIndex } from '#lib/server/services.ts';
 import { refreshAfterWrite } from '#lib/server/sheet-writes.ts';
@@ -28,6 +29,7 @@ export const POST: RequestHandler = async ({ request, cookies, url }) => {
 		resetDemoPolls();
 		resetDemoTrips();
 		resetDemoKummer();
+		resetDemoLending();
 		resetDemoParentNotices();
 		// Both demo users are new again: the tour is offered once more, and their practice time and
 		// notes are the sample ones.
