@@ -522,3 +522,53 @@ describe('parents', () => {
 		for (const path of ['/', '/stuecke', '/meine-noten', '/kalender/abc', '/api/noten/1', '/elternabend', '/admin']) expect(parentMayOpen(path)).toBe(false);
 	});
 });
+
+describe('other addresses of a member (#190)', () => {
+	const school = buildAccessList({
+		members: [
+			['E-Mail', 'Name', 'Instrument', 'Gruppen', 'Orchester', 'Status', 'Kinder', 'Weitere Adressen'],
+			['mia@example.org', 'Mia Beispiel', 'Geige', 'Vorstand', '', 'aktiv', '', 'Mia.Beispiel@Schule.example; mia@example.org'],
+			['ben@example.org', 'Ben Beispiel', 'Cello', '', '', 'aktiv', '', 'mia.beispiel@schule.example, ben@schule.example, anna@example.org'],
+			['petra@example.org', 'Petra Beispiel', '', '', '', 'Eltern', 'ben@schule.example', ''],
+			['anna@example.org', 'Anna Beispiel', 'Flöte', '', '', 'aktiv', '', '']
+		],
+		rights: [
+			['Wer', 'Recht'],
+			['Vorstand', 'termine.planen']
+		]
+	});
+
+	it('leads each other address to its member, once', () => {
+		expect(school.membersByEmail.get('mia.beispiel@schule.example')?.email).toBe('mia@example.org');
+		expect(school.membersByEmail.get('mia@example.org')?.aliases).toEqual(['mia.beispiel@schule.example']);
+		expect(school.membersByEmail.get('ben@schule.example')?.email).toBe('ben@example.org');
+		expect(school.members).toHaveLength(4);
+	});
+
+	it("keeps an address with whoever had it first, and a row's own address with that row", () => {
+		expect(school.membersByEmail.get('ben@example.org')?.aliases).toEqual(['ben@schule.example']);
+		expect(school.membersByEmail.get('anna@example.org')?.name).toBe('Anna Beispiel');
+		expect(school.problems.map((p) => [p.kind, p.value])).toEqual([
+			['duplicate-member', 'mia.beispiel@schule.example'],
+			['duplicate-member', 'anna@example.org']
+		]);
+	});
+
+	it('signs in under the member’s own address, keeping the one used', () => {
+		const mia = resolveAccess(user('MIA.beispiel@schule.example'), school, []);
+		expect(mia.member).toBe(true);
+		expect(mia.user).toEqual({ email: 'mia@example.org', name: 'MIA.beispiel@schule.example', signedInAs: 'mia.beispiel@schule.example' });
+		expect(mia.rights.has('termine.planen')).toBe(true);
+		expect(resolveAccess(user('mia@example.org'), school, []).user?.signedInAs).toBeUndefined();
+	});
+
+	it('links a child named by another address', () => {
+		expect(school.membersByEmail.get('petra@example.org')?.children).toEqual(['ben@example.org']);
+	});
+
+	it('never makes another address a bootstrap admin', () => {
+		const mia = resolveAccess(user('mia.beispiel@schule.example'), school, ['mia@example.org']);
+		expect(mia.bootstrapAdmin).toBe(false);
+		expect(mia.rights.has('mitglieder.verwalten')).toBe(false);
+	});
+});

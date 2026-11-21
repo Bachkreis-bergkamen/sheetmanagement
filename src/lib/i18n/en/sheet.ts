@@ -79,7 +79,8 @@ export const sheet: Texts['sheet'] = {
 			pausedUntil: 'Paused until',
 			linkVersion: 'Link version',
 			feedVersion: 'Calendar version',
-			children: 'Children'
+			children: 'Children',
+			aliases: 'Other addresses'
 		}
 	},
 	groups: {

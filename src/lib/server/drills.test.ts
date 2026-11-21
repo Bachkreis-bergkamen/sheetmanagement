@@ -11,7 +11,7 @@ vi.mock('./repertoire.ts', () => ({ getAccessList: async () => null }));
 const { boardFor, childrenDrills, leaderOverview, sharingState } = await import('./drills.ts');
 
 const member = (email: string, name: string, orchestras: string[] = ['EO'], children: string[] = []): Member =>
-	({ row: 0, email, name, groups: [], roles: [], orchestras, status: children.length ? 'eltern' : 'aktiv', children, linkVersion: 0, feedVersion: 0 }) as Member;
+	({ row: 0, email, name, groups: [], roles: [], orchestras, status: children.length ? 'eltern' : 'aktiv', children, aliases: [], linkVersion: 0, feedVersion: 0 }) as Member;
 
 function listOf(...members: Member[]): AccessList {
 	return { present: true, members, membersByEmail: new Map(members.map((each) => [each.email, each])), groups: [], grants: [], requests: [], tables: {}, problems: [] };

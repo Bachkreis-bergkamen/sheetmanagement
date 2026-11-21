@@ -267,6 +267,12 @@
 									<input name="children" value={member.children.join(', ')} list="member-names" autocomplete="off" />
 									<span class="meta">{t.admin.childrenHint}</span>
 								</label>
+								<!-- More addresses that lead to this member (#190), e.g. the school's. -->
+								<label class="field">
+									{t.admin.aliases}
+									<input name="aliases" value={member.aliases.join(', ')} autocomplete="off" />
+									<span class="meta">{t.admin.aliasesHint}</span>
+								</label>
 								<div class="link-box">
 									<span class="caption">{t.admin.accessLink}</span>
 									<p class="meta">{t.admin.linkHint}</p>
@@ -329,7 +335,7 @@
 									{#if lacksSurname(member.name)}<span class="chip warn" title={t.admin.noSurnameHint}>{t.admin.noSurname}</span>{/if}
 								</strong>
 								<span class="meta">
-									{[member.instrument, mail(member.email), member.orchestras.join(', ')].filter(Boolean).join(' · ')}
+									{[member.instrument, [member.email, ...member.aliases].map(mail).join(', '), member.orchestras.join(', ')].filter(Boolean).join(' · ')}
 								</span>
 							</div>
 							{#if member.groups.length || member.children.length || member.link || member.current !== 'aktiv'}
