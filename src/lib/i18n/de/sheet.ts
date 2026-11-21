@@ -89,7 +89,9 @@ export const sheet = {
 			/** The personal calendar feed (#122): like "Link-Version", a new link ends the old one. */
 			feedVersion: 'Kalender-Version',
 			/** For a parent account: their children among the members, by name or email. */
-			children: 'Kinder'
+			children: 'Kinder',
+			/** More addresses the member signs in with (#190), e.g. the school's and a private one. */
+			aliases: 'Weitere Adressen'
 		}
 	},
 	groups: {

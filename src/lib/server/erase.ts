@@ -4,6 +4,7 @@ import * as t from '#lib/i18n/texts.ts';
 import { LAYOUT, type Table, type TabKey } from '#lib/repertoire/sheet.ts';
 import { getStore } from './db/index.ts';
 import { pollStore } from './polls.ts';
+import { getAccessList } from './repertoire.ts';
 import { tripStore } from './trips.ts';
 import { authorKey, kummerStore } from './kummer.ts';
 import { deleteRows, readTab, SheetLayoutError, updateRecords } from './sheet-writes.ts';
@@ -109,8 +110,11 @@ export async function eraseMember(address: string): Promise<ErasePreview> {
 
 	const store = getStore();
 	const devices = await store.pushOf(email);
+	// Their other addresses (#190) may have password accounts of their own; all else is under `email`.
+	const aliases = (await getAccessList())?.membersByEmail.get(email)?.aliases ?? [];
 	await Promise.all([
 		...devices.map((device) => store.deletePush(device.endpoint)),
+		...aliases.map((alias) => store.deleteAccount(alias)),
 		store.deleteRemindersOf(email),
 		store.setMailOptOut(email, false),
 		store.setTour(email, null),

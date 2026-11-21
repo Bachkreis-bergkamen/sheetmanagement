@@ -105,6 +105,11 @@ export const admin = {
 	children: 'Kinder',
 	childrenHint: 'Für Eltern: ihre Kinder, die bei uns spielen, mit Komma getrennt (Name oder E-Mail). Mit Status „Eltern“ sieht das Konto nur den Elternbereich.',
 	childrenUnknown: (names: string) => `Nicht in der Mitgliederliste: ${names}`,
+	/** More addresses one member signs in with (#190). */
+	aliases: 'Weitere Adressen',
+	aliasesHint: 'Weitere E-Mail-Adressen, mit denen sich dieses Mitglied anmeldet, z. B. die der Schule. Mit Komma getrennt; alle führen zum selben Mitglied.',
+	aliasInvalid: (address: string) => `Keine gültige E-Mail-Adresse: ${address}`,
+	aliasTaken: (address: string, name: string) => `${address} gehört schon zu ${name}.`,
 	linkUnavailable: 'Zugangslinks brauchen die Anmeldung mit SESSION_SECRET.',
 	accessLink: 'Zugangslink',
 	accessLinkActive: 'Zugang per Link',

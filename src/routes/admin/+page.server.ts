@@ -4,6 +4,7 @@ import {
 	formatRoles,
 	missingRoles,
 	normalizeEmail,
+	parseEmailList,
 	parseLinkVersion,
 	planApproval,
 	planRoleRights,
@@ -59,7 +60,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		bootstrapAdmins: auth.mode === 'on' ? auth.bootstrapAdmins : [],
 		requests: list?.requests.map(({ email, name, requestedAt }) => ({ email, name, requestedAt })) ?? [],
 		members:
-			list?.members.map(({ email, name, instrument, groups, roles, orchestras, status, pausedUntil, linkVersion, children }) => {
+			list?.members.map(({ email, name, instrument, groups, roles, orchestras, status, pausedUntil, linkVersion, children, aliases }) => {
 				return {
 					email,
 					name,
@@ -71,6 +72,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 					roles,
 					// A parent's children, by name, as the edit form shows them.
 					children: children.map((child) => list!.membersByEmail.get(child)?.name ?? child),
+					// Other addresses they sign in with (#190).
+					aliases,
 					orchestras,
 					status,
 					pausedUntil,
@@ -169,6 +172,24 @@ const whoKey = (who: string) => (who.includes('@') ? normalizeEmail(who) : norma
 /** One request ("email") or all shown at once (several "email" fields). */
 const emails = (data: FormData) => data.getAll('email').map((value) => normalizeEmail(String(value).slice(0, 200))).filter(Boolean);
 
+/**
+ * A member's other addresses (#190) as typed in /admin: each a valid address, and none that
+ * already leads to someone else, as their own or as another of theirs. A problem as text.
+ */
+function checkAliases(text: string, email: string, members: { rows: { values: { email: string; name: string; aliases: string } }[] }): string[] | string {
+	const typed = text.split(/[,;\s]+/).filter(Boolean);
+	const wrong = typed.find((address) => !EMAIL.test(normalizeEmail(address)));
+	if (wrong) return t.admin.aliasInvalid(wrong);
+	const aliases = [...new Set(typed.map(normalizeEmail))].filter((alias) => alias !== email);
+	for (const alias of aliases) {
+		const owner = members.rows.find(
+			({ values: v }) => normalizeEmail(v.email) !== email && (normalizeEmail(v.email) === alias || parseEmailList(v.aliases).includes(alias))
+		);
+		if (owner) return t.admin.aliasTaken(alias, owner.values.name || owner.values.email);
+	}
+	return aliases;
+}
+
 async function approve(list: string[]) {
 	const [members, requests] = await Promise.all([readTab('members'), readTab('requests')]);
 	const plan = planApproval(
@@ -201,7 +222,7 @@ export const actions: Actions = {
 			const email = normalizeEmail(field(data, 'email'));
 			if (!EMAIL.test(email)) return t.admin.invalidEmail;
 			const members = await readTab('members');
-			if (members.rows.some((row) => normalizeEmail(row.values.email) === email)) return t.admin.exists;
+			if (members.rows.some((row) => normalizeEmail(row.values.email) === email || parseEmailList(row.values.aliases).includes(email))) return t.admin.exists;
 			await appendRecords('members', members, [
 				{
 					email,
@@ -229,9 +250,17 @@ export const actions: Actions = {
 			const unknown = children.filter((_, i) => !found[i]);
 			if (unknown.length) return t.admin.childrenUnknown(unknown.join(', '));
 			const childEmails = [...new Set(found.map((other) => normalizeEmail(other!.values.email)).filter((child) => child !== email))];
-			const table = childEmails.length && members.missing.includes('children') ? await ensureColumns('members', ['children']) : members;
+			const aliases = checkAliases(field(data, 'aliases'), email, members);
+			if (typeof aliases === 'string') return aliases;
+			const needed = [...(childEmails.length ? ['children' as const] : []), ...(aliases.length ? ['aliases' as const] : [])].filter((key) => members.missing.includes(key));
+			const table = needed.length ? await ensureColumns('members', needed) : members;
 			// Roles as ticked; the form lists every group the member has, so none is lost.
-			await updateRecord('members', table, row.row, writable(table, { ...form.values, groups: formatRoles(rolesFromForm(data)), children: childEmails.join(', ') }));
+			await updateRecord(
+				'members',
+				table,
+				row.row,
+				writable(table, { ...form.values, groups: formatRoles(rolesFromForm(data)), children: childEmails.join(', '), aliases: aliases.join(', ') })
+			);
 		}),
 
 	removeMember: ({ request, locals }) =>

@@ -57,6 +57,11 @@ export interface Member {
 	pausedUntil?: string;
 	/** For a parent: the emails of their children among the members ("Kinder", by name or email). */
 	children: string[];
+	/**
+	 * Other addresses they sign in with ("Weitere Adressen", #190), e.g. the school's. Each leads
+	 * to this member, who is still known by `email` everywhere else.
+	 */
+	aliases: string[];
 	/** Personal access link: 0 none, n > 0 link n is valid, -n link n was revoked (see server/auth/links.ts). */
 	linkVersion: number;
 	/** Personal calendar feed, counted the same way (see server/auth/feed.ts). */
@@ -141,6 +146,7 @@ export function buildAccessList(values: AccessValues): AccessList {
 
 	const members: Member[] = [];
 	const membersByEmail = new Map<string, Member>();
+	const aliasTexts: [Member, string][] = [];
 	for (const { row, values: v } of tables.members?.rows ?? []) {
 		const email = normalizeEmail(v.email);
 		if (!email) continue;
@@ -159,12 +165,29 @@ export function buildAccessList(values: AccessValues): AccessList {
 			status: parseStatus(v.status),
 			pausedUntil: parseDay(v.pausedUntil),
 			children: splitGroups(v.children ?? ''),
+			aliases: [],
 			linkVersion: parseLinkVersion(v.linkVersion),
 			feedVersion: parseLinkVersion(v.feedVersion)
 		};
 		member.groups = member.roles.map((role) => role.name);
 		members.push(member);
 		membersByEmail.set(email, member);
+		if (v.aliases) aliasTexts.push([member, v.aliases]);
+	}
+
+	// Other addresses (#190), after every member's own, so a row's own address wins over another
+	// row's alias wherever the rows stand. One address leads to one member only.
+	for (const [member, text] of aliasTexts) {
+		for (const alias of parseEmailList(text)) {
+			const owner = membersByEmail.get(alias);
+			if (owner === member) continue;
+			if (owner) {
+				problems.push({ kind: 'duplicate-member', tab: LAYOUT.members.tab, row: member.row, value: alias });
+				continue;
+			}
+			member.aliases.push(alias);
+			membersByEmail.set(alias, member);
+		}
 	}
 
 	// Children named by email or by name; whoever isn't (or no longer) a member is left out.
@@ -202,8 +225,14 @@ export function buildAccessList(values: AccessValues): AccessList {
 }
 
 export interface User {
+	/** Signed in as a member: the member's own address, also when they used another of theirs. */
 	email: string;
 	name: string;
+	/**
+	 * The address they signed in with, when it's one of the member's other addresses (#190).
+	 * Their password belongs to that one; everything else to `email`.
+	 */
+	signedInAs?: string;
 }
 
 export interface Access {
@@ -240,6 +269,9 @@ export function resolveAccess(user: User | null, list: AccessList | null, bootst
 	}
 	const member = list?.membersByEmail.get(email);
 	if (!member) return { user, member: false, bootstrapAdmin: false, rights: new Set() };
+	// Signed in with another of their addresses (#190): from here on the member's own. Only the
+	// sheet's rights, never a bootstrap admin's: those hold for the address in the settings alone.
+	if (member.email !== email) return resolveAccess({ ...user, email: member.email, signedInAs: email }, list, []);
 
 	// A parent account sees their area only: no music, no rights from roles.
 	if (member.status === 'eltern') return { user, member: true, bootstrapAdmin: false, rights: new Set(), parent: { children: member.children, only: true } };

@@ -40,7 +40,8 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 			groups: member.groups
 		},
 		feed: await feed(member.email, member.feedVersion, !!list?.tables.members?.missing.includes('feedVersion'), url.origin),
-		password: await password(member.email, cookies),
+		// The password belongs to the address they signed in with, maybe another of theirs (#190).
+		password: await password(user.signedInAs ?? member.email, cookies),
 		accessLink: accessLink(member.linkVersion, !!list?.tables.members?.missing.includes('linkVersion'), !!locals.access.viaLink),
 		push: await push(member.email),
 		mail: await mail(member.email),
@@ -149,7 +150,8 @@ export const actions: Actions = {
 		const user = locals.access.user;
 		const auth = authConfig();
 		if (auth.mode === 'off' || !user) redirect(303, '/anmelden');
-		const email = normalizeEmail(user.email);
+		// The account of the address they signed in with, which may be another of theirs (#190).
+		const email = normalizeEmail(user.signedInAs ?? user.email);
 		const data = await request.formData();
 		const next = String(data.get('password') ?? '');
 		const problem = passwordProblem(next, String(data.get('repeat') ?? ''));
