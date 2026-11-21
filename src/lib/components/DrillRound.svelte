@@ -3,32 +3,39 @@
 	import { barLength, beatLength, countInBeats, markedTempo } from '#lib/practice/drills/meters.ts';
 	import * as t from '#lib/i18n/texts.ts';
 	import { noteFrequency } from '#lib/practice/audio.ts';
-	import { FLUENT_MS, kindOf, questionFor, ROUND, type ChordQuality, type Question } from '#lib/practice/drills/decks.ts';
+	import { FLUENT_MS, kindOf, questionFor, type ChordQuality, type Question } from '#lib/practice/drills/decks.ts';
 	import { profile, type ProfileId } from '#lib/practice/drills/instruments.ts';
 	import { NoteJudge, type Verdict } from '#lib/practice/drills/judge.ts';
-	import { dayNumber, isMastered, median, pickNext, roundPoints, type States } from '#lib/practice/drills/scheduler.ts';
-	import {
-		beatMs,
-		calibrate,
-		CALIBRATION,
-		DRIFTED,
-		firstSilent,
-		judgePulse,
-		judgeTaps,
-		LEANING,
-		onsets,
-		PULSE,
-		PULSE_ROUND,
-		pulseLoudness,
-		tempoFor,
-		toleranceFor,
-		type PulseVerdict
-	} from '#lib/practice/drills/rhythm.ts';
+	import { isMastered, type States } from '#lib/practice/drills/scheduler.ts';
+	import { beatMs, calibrate, CALIBRATION, firstSilent, judgePulse, judgeTaps, onsets, PULSE, pulseLoudness, tempoFor, toleranceFor, type PulseVerdict } from '#lib/practice/drills/rhythm.ts';
 	import type { DrillSettings } from '#lib/practice/drills/progress.ts';
-	import { droneMidi, IN_TUNE, isArpeggio, isMinor, judgeScale, scaleRows, scaleTempo, segment, UNEVEN, type NoteMark, type Reading } from '#lib/practice/drills/scales.ts';
-	import { listenToPitch, playArpeggio, playBar, playChord, playTone, rememberedA4, startChord, startDrone, tapTime, triad, type MicProblem, type PlayedBar } from '#lib/practice/drills/sound.ts';
+	import { droneMidi, isArpeggio, isMinor, scaleRows, scaleTempo } from '#lib/practice/drills/scales.ts';
+	import { listenToPitch, playArpeggio, playBar, playChord, playTone, rememberedA4, startChord, startDrone, tapTime, triad, type MicProblem } from '#lib/practice/drills/sound.ts';
 	import { TUNED } from '#lib/practice/drills/together.ts';
 	import { midiOf, tonic, type Clef } from '#lib/practice/drills/theory.ts';
+	import { BarClock } from '#lib/practice/round/bar-clock.svelte.ts';
+	import {
+		chordFeedback,
+		heardFeedback,
+		intervalFeedback,
+		keyFeedback,
+		keyLabel,
+		melodyFeedback,
+		midiName,
+		noteFeedback,
+		noteName,
+		pitchFeedback,
+		pulseFeedback,
+		rhythmFeedback,
+		scaleFeedback,
+		skippedFeedback,
+		tuneFeedback,
+		type Feedback
+	} from '#lib/practice/round/feedback.ts';
+	import { autoNextMs, isHeard, replaysAfter } from '#lib/practice/round/pace.ts';
+	import { roundKey } from '#lib/practice/round/round-keys.ts';
+	import { scaleCaptions, scaleMarks, ScaleTake } from '#lib/practice/round/scale-take.svelte.ts';
+	import { RoundTally } from '#lib/practice/round/tally.svelte.ts';
 	import DrillStaff from './DrillStaff.svelte';
 	import Icon from './Icon.svelte';
 	import RhythmStaff from './RhythmStaff.svelte';
@@ -39,6 +46,11 @@
 	 * with a tap, a key or by playing it. Right answers move on by themselves, so a fluent player
 	 * keeps a quick pace; wrong ones wait, so the feedback can be read. Key signatures and
 	 * intervals are shown in any of `clefs`, so a new clef turns up between familiar ones.
+	 *
+	 * The rules live in `#lib/practice/round` (#357): which question comes next and the tally
+	 * (tally), what an answer gets said (feedback), the bar playing (bar-clock), a scale's take
+	 * (scale-take), the keys (round-keys) and the pace (pace). This file holds the sound, the
+	 * microphone and the markup.
 	 */
 	let {
 		order,
@@ -93,29 +105,20 @@
 	} = $props();
 
 	const tx = t.drills;
-	/** Questions in a round; fewer for keeping the pulse, where each take lasts half a minute. */
-	const roundLength = $derived(length ?? (order.length && order.every((id) => id.startsWith('pulse:')) ? PULSE_ROUND : ROUND));
-	const day = dayNumber();
 	const a4 = rememberedA4();
+	const tally = new RoundTally(() => ({ order, states, length, test, tryNote }));
+	const clock = new BarClock();
+	const scale = new ScaleTake(a4);
 
-	let count = $state(0);
-	let answers = $state<boolean[]>([]);
-	let times = $state<number[]>([]);
-	let recent: string[] = [];
-	let introduced = $state(0);
-	/** Right answers only after hearing the question first, worth less in the score (#371). */
-	let rightAfterHearing = $state(0);
 	let question = $state<Question | null>(null);
 	let isNew = $state(false);
-	/** The question is the try at a new note; and whether it's been asked this round. */
+	/** The question is the try at a new note. */
 	let trying = $state(false);
-	let tried = false;
 	let shownAt = 0;
 	let feedback = $state<{ correct: boolean; text: string; tip?: string; gentle?: boolean } | null>(null);
 	let chosen = $state<number | null>(null);
 	let chosenChord = $state<ChordQuality | null>(null);
 	let chosenMelody = $state<number | null>(null);
-	let finished = $state(false);
 	let autoNext: ReturnType<typeof setTimeout> | undefined;
 
 	// "Play the note": the microphone stays on for the round once started.
@@ -126,18 +129,7 @@
 	/** The note the microphone hears now, kept so the next question's judge knows it's left over. */
 	let sounding: number | null = null;
 
-	// Rhythm: the bar playing, the taps into it, and what's shown while it plays.
-	/** 'alone': keeping the pulse once the metronome has gone quiet. */
-	type Phase = 'idle' | 'example' | 'count' | 'tap' | 'alone' | 'calibrate';
-	let phase = $state<Phase>('idle');
-	/** The beat lit while a bar plays: -4 to -1 counting in, 0 to 3 in the bar. */
-	let beat = $state<number | null>(null);
-	/** The conductor's clock for the bar under way: when its count-in began, and a beat's length. */
-	let conduct = $state<{ start: number; ms: number } | null>(null);
-	let bar: PlayedBar | null = null;
-	let barTimers: ReturnType<typeof setTimeout>[] = [];
-	let taps: number[] = [];
-	let tapped = $state(0);
+	// Rhythm: the tempo and how close a tap must be.
 	let bpm = $state(72);
 	let tolerance = 150;
 	/** After an answer: each note right or wrong, and where the taps fell (sixteenths). */
@@ -148,14 +140,6 @@
 	 * asked, as the aim is to read it at sight, and a right answer after it doesn't count in full.
 	 */
 	let heardFirst = false;
-	// Scales: one take, from the first note to the last, without stopping.
-	let take = $state<'idle' | 'count' | 'playing'>('idle');
-	let readings: Reading[] = [];
-	let playFrom = 0;
-	let lastSound = 0;
-	/** Each note's mark so far while playing, and the verdict after. */
-	let liveMarks = $state<NoteMark[]>([]);
-	let heardNow = $state<{ midi: number; cents: number } | null>(null);
 	let stopDrone: (() => void) | null = null;
 	const drone = $derived(settings.drone ?? 'tonic');
 	/** Who beats time (#368): J. S. Bach unless the member chose the figure alone or nobody. */
@@ -173,14 +157,7 @@
 	let calibrating = $state(false);
 	let calibrationFailed = $state(false);
 
-	const noteName = (step: number, alter = 0) => tx.noteName(step, alter);
-	const keyLabel = (fifths: number, mode: 'major' | 'minor') => {
-		const key = tonic(fifths, mode);
-		return tx.keyName(noteName(key.step, key.alter), mode);
-	};
-	const midiName = (midi: number) => `${t.practice.tuner.notes[((midi % 12) + 12) % 12]}${Math.floor(midi / 12) - 1}`;
 	const frequencyOf = (midi: number) => noteFrequency(((midi % 12) + 12) % 12, Math.floor(midi / 12) - 1, a4);
-	const pitchName = (pitchClass: number) => t.practice.tuner.notes[pitchClass];
 	const instrumentName = $derived(tx.instruments[instrument]);
 	/** "Stimme in D" for a part's key. */
 	const partLabel = (q: Extract<Question, { kind: 'trans' }>) => (q.part ? tx.partIn(noteName(q.part.step, q.part.alter)) : null);
@@ -188,7 +165,7 @@
 	/**
 	 * What a question sounds like: the note as it sounds on the instrument; for a key its tonic
 	 * triad as an arpeggio (C major: C E G C); for an interval its two notes, one after the other
-	 * or together.
+	 * or together. How long each rings is `soundMs` in pace.ts.
 	 */
 	function sound(q: Question) {
 		if (q.kind === 'keys') playArpeggio(triad(midiOf({ ...tonic(q.fifths, q.mode), octave: 4 }) % 12, q.mode).map(frequencyOf));
@@ -210,24 +187,9 @@
 		else playTone(frequencyOf(q.kind === 'play' ? q.midi : midiOf(q.pitch)));
 	}
 
-	/** Drills where the question is heard, not read: the next one is a sound of its own. */
-	const isHeard = (q: Question) => q.kind === 'ear' || q.kind === 'chord' || q.kind === 'dict';
-
-	/** Until what sound() plays has died away: its last note starts, then rings about 1.2 s. */
-	function soundMs(q: Question): number {
-		const ring = 1200;
-		if (q.kind === 'ear') return (q.harmonic ? 0 : 700) + ring;
-		if (q.kind === 'chord') return 1600 + ring;
-		if (q.kind === 'dict') return (q.options[q.answer].length - 1) * 600 + ring;
-		return ring;
-	}
-
-	/** Silence between the replayed answer and the next question, so the two don't run together. */
-	const PAUSE_MS = 700;
-
 	function next() {
 		clearTimeout(autoNext);
-		stopBar();
+		clock.stop();
 		feedback = null;
 		chosen = null;
 		chosenChord = null;
@@ -239,26 +201,19 @@
 		calibrating = false;
 		calibrationFailed = false;
 		stopTake();
-		liveMarks = [];
+		scale.clear();
 		holdChord(null);
 		liveCents = null;
-		if (!test && count >= roundLength) {
-			finish();
-			return;
-		}
-		const tested = test?.();
-		trying = !test && !!tryNote && !tried && count >= 2;
-		if (trying) tried = true;
-		const pick = trying ? { id: tryNote!.id, isNew: false } : test ? (tested ? { id: tested, isNew: false } : null) : pickNext({ order, states, day, answers, recent });
+		const pick = tally.pick();
 		const asked = pick && questionFor(pick.id, clefs[Math.floor(Math.random() * clefs.length)]);
+		trying = !!pick?.trying;
 		if (!pick || !asked) {
 			finish();
 			return;
 		}
-		recent = [...recent.slice(-4), pick.id];
+		tally.shown(pick);
 		question = asked;
 		isNew = pick.isNew;
-		count++;
 		shownAt = performance.now();
 		judge =
 			asked.kind === 'play'
@@ -270,7 +225,7 @@
 		// With the microphone already on, the next chord sounds straight away.
 		if (asked.kind === 'tune' && listening) holdChord(asked);
 		// Sound before symbol: an interval is heard first, and its notes shown only after the answer.
-		if (asked.kind === 'ear' || asked.kind === 'chord' || asked.kind === 'dict') sound(asked);
+		if (isHeard(asked)) sound(asked);
 		if (asked.kind === 'pulse') {
 			bpm = asked.bpm;
 			calibrating = tapOffset === undefined;
@@ -288,10 +243,10 @@
 			onfinish();
 			return;
 		}
-		finished = true;
+		tally.finish();
 		question = null;
 		stopListening();
-		stopBar();
+		clock.stop();
 		stopTake();
 		holdChord(null);
 	}
@@ -306,18 +261,7 @@
 	const chordHeard = (q: Extract<Question, { kind: 'tune' }>, midi: number) =>
 		q.tune.held.some((ratio) => (((midi - q.tune.rootMidi - Math.round(12 * Math.log2(ratio))) % 12) + 12) % 12 === 0);
 
-	function tuneHeard(q: Extract<Question, { kind: 'tune' }>, verdict: Verdict) {
-		holdChord(null);
-		if (verdict.result !== 'right') {
-			answer(false, verdict.octave ? tx.octave : tx.heard(midiName(verdict.midi)), undefined, 99);
-			return;
-		}
-		const off = Math.round(verdict.cents - q.tune.pure);
-		const tip = tx.pureTips[q.tune.role];
-		answer(Math.abs(off) <= TUNED, Math.abs(off) <= TUNED ? tx.tunedPure(off) : tx.tunedOff(off), tip, Math.abs(off));
-	}
-
-	function answer(correct: boolean, text: string, tip?: string, measure?: number) {
+	function answer({ correct, text, tip, measure, heard }: Feedback) {
 		if (!question || feedback) return;
 		if (trying && tryNote) {
 			ontry?.(correct);
@@ -332,59 +276,31 @@
 		}
 		const ms = performance.now() - shownAt;
 		const fluent = (measure ?? ms) <= FLUENT_MS[kindOf(question.id)];
-		answers = [...answers, correct];
-		// The typical time to answer, of the drills where speed is the point.
-		if (correct && measure === undefined) times = [...times, ms];
-		if (isNew) introduced++;
+		tally.record(correct, isNew, measure === undefined ? ms : undefined, heard);
 		onanswer(question.id, correct, ms, measure);
 		judge = null;
-		feedback = { correct, text: correct ? (text || (fluent ? tx.right : tx.rightSlow)) : text, tip };
-		// A rhythm tapped right was just heard; a wrong one is played as it should be. A heard
-		// question again only if the member wants it: the next one follows with a sound of its own.
-		const replay = withSound && question.kind !== 'pulse' && (question.kind !== 'rhythm' || !correct) && (!isHeard(question) || settings.replay !== false);
-		if (replay) sound(question);
-		// Right: on by itself, a little longer when it was a new one to look at, or taps to see;
-		// not after a scale, whose notes and cents take a moment to read. After a replayed
-		// interval, chord or melody only once it has died away, and a moment of silence.
-		const wait = trying ? 2600 : question.kind === 'rhythm' ? 1800 : isNew ? 1600 : 800;
-		if (correct && question.kind !== 'scale' && question.kind !== 'pulse') autoNext = setTimeout(next, replay && isHeard(question) ? Math.max(wait, soundMs(question) + PAUSE_MS) : wait);
-	}
-
-	function stopBar() {
-		bar?.stop();
-		bar = null;
-		barTimers.forEach(clearTimeout);
-		barTimers = [];
-		beat = null;
-		phase = 'idle';
-	}
-
-	/** Light the beats as they're heard, `countIn` before the bar and `beats` in it; then `done`. */
-	function followBar(played: PlayedBar, countIn: number, beats: number, done: () => void, tail = 0) {
-		const length = beatMs(bpm);
-		conduct = { start: played.start - countIn * length, ms: length };
-		const at = (time: number) => Math.max(0, played.start + time - performance.now());
-		for (let i = -countIn; i < beats; i++) barTimers.push(setTimeout(() => (beat = i), at(i * length)));
-		barTimers.push(setTimeout(done, at(beats * length + tail)));
+		feedback = { correct, text: correct ? text || (fluent ? tx.right : tx.rightSlow) : text, tip };
+		const replayed = replaysAfter(question, correct, withSound, settings.replay !== false);
+		if (replayed) sound(question);
+		const wait = autoNextMs(question, correct, { trying, isNew, replayed });
+		if (wait !== null) autoNext = setTimeout(next, wait);
 	}
 
 	/** The rhythm as it should sound, after a bar's count-in; before the answer only when asked. */
 	async function hearRhythm(q: Extract<Question, { kind: 'rhythm' }>) {
-		stopBar();
+		clock.begin('example');
 		if (!feedback) heardFirst = true;
-		phase = 'example';
 		const length = beatMs(bpm);
 		const countIn = countInBeats(q.meter);
 		const played = await playBar({ bpm, countIn, beats: q.meter, meter: q.meter, notes: onsets(q.events, length, q.meter) });
-		if (!played || phase !== 'example') {
+		if (!played || clock.phase !== 'example') {
 			played?.stop();
-			if (!played) phase = 'idle';
+			if (!played) clock.phase = 'idle';
 			return;
 		}
-		bar = played;
-		followBar(played, countIn, q.meter, () => {
-			beat = null;
-			phase = 'idle';
+		clock.follow(played, length, countIn, q.meter, () => {
+			clock.beat = null;
+			clock.phase = 'idle';
 		});
 	}
 
@@ -392,45 +308,32 @@
 	async function tapRhythm() {
 		if (question?.kind !== 'rhythm' || feedback) return;
 		const q = question;
-		stopBar();
-		taps = [];
-		tapped = 0;
-		phase = 'count';
+		clock.begin('count');
 		const length = beatMs(bpm);
-		const played = await playBar({ bpm, countIn: countInBeats(q.meter), beats: q.meter, meter: q.meter });
+		const countIn = countInBeats(q.meter);
+		const played = await playBar({ bpm, countIn, beats: q.meter, meter: q.meter });
 		if (!played) {
-			phase = 'idle';
+			clock.phase = 'idle';
 			return;
 		}
-		if (phase !== 'count') return played.stop();
-		bar = played;
-		barTimers.push(
-			setTimeout(() => {
-				if (phase === 'count') phase = 'tap';
-			}, Math.max(0, played.start - length / 2 - performance.now()))
-		);
+		if (clock.phase !== 'count') return played.stop();
+		clock.hold(played);
+		clock.at(played, -length / 2, () => {
+			if (clock.phase === 'count') clock.phase = 'tap';
+		});
 		// Judged once the last note's window has passed.
-		followBar(played, countInBeats(q.meter), q.meter, () => judgeRhythm(q, played.start), Math.min(tolerance, length / 2) + 40);
+		clock.follow(played, length, countIn, q.meter, () => judgeRhythm(q, played.start), Math.min(tolerance, length / 2) + 40);
 	}
 
 	function judgeRhythm(q: Extract<Question, { kind: 'rhythm' }>, start: number) {
 		const length = beatMs(bpm);
 		// Taps along with the count-in don't count against the bar.
-		const relative = taps.map((time) => time - start - (tapOffset ?? 0)).filter((time) => time > -length / 2);
+		const relative = clock.taps.map((time) => time - start - (tapOffset ?? 0)).filter((time) => time > -length / 2);
 		const verdict = judgeTaps(onsets(q.events, length, q.meter), relative, tolerance);
-		stopBar();
+		clock.stop();
 		rhythmMarks = verdict.deviations.map((deviation) => (deviation === null ? 'wrong' : 'right'));
 		tapMarks = relative.map((time) => (time / length) * beatLength(q.meter)).filter((at) => at >= -1 && at <= barLength(q.meter) + 0.5);
-		const missed = verdict.deviations.filter((deviation) => deviation === null).length;
-		const leaning = Math.abs(verdict.tendency) >= LEANING ? (verdict.tendency > 0 ? tx.dragging : tx.rushing) : undefined;
-		const off = Number.isFinite(verdict.meanOff) ? Math.round(verdict.meanOff) : 999;
-		// Right after hearing it: right, but not yet fluent, so the item doesn't move up.
-		if (verdict.correct && heardFirst) {
-			rightAfterHearing++;
-			answer(true, tx.rightHeard, leaning, Math.max(off, FLUENT_MS.rhythm + 1));
-		} else if (verdict.correct) answer(true, off <= FLUENT_MS.rhythm ? tx.inTime : tx.rhythmLoose(off), leaning, off);
-		else if (!relative.length) answer(false, tx.noTaps, undefined, off);
-		else answer(false, tx.rhythmWrong(missed, verdict.extra.length), leaning, off);
+		answer(rhythmFeedback(verdict, relative.length, heardFirst));
 	}
 
 	/**
@@ -440,42 +343,30 @@
 	async function tapPulse() {
 		if (question?.kind !== 'pulse' || feedback) return;
 		const q = question;
-		stopBar();
-		taps = [];
-		tapped = 0;
-		phase = 'count';
+		clock.begin('count');
 		const length = beatMs(q.bpm);
 		const beats = firstSilent() + q.silent * 4 + 1;
 		const played = await playBar({ bpm: q.bpm, countIn: 4, beats, loudness: (i) => pulseLoudness(i, q.silent) });
 		if (!played) {
-			phase = 'idle';
+			clock.phase = 'idle';
 			return;
 		}
-		if (phase !== 'count') return played.stop();
-		bar = played;
-		conduct = { start: played.start - 4 * length, ms: length };
-		const at = (time: number) => Math.max(0, played.start + time - performance.now());
+		if (clock.phase !== 'count') return played.stop();
+		clock.hold(played);
+		clock.conductFrom(played, 4, length);
 		for (let i = -4; i < beats; i++) {
-			if (pulseLoudness(i + 4, q.silent) >= 0.25) barTimers.push(setTimeout(() => (beat = i), at(i * length)));
-			else barTimers.push(setTimeout(() => (beat = null), at(i * length)));
+			const heard = pulseLoudness(i + 4, q.silent) >= 0.25;
+			clock.at(played, i * length, () => (clock.beat = heard ? i : null));
 		}
-		barTimers.push(setTimeout(() => phase === 'count' && (phase = 'tap'), at(-length / 2)));
-		barTimers.push(setTimeout(() => phase === 'tap' && (phase = 'alone'), at((PULSE.heard * 4 + 2) * length)));
+		clock.at(played, -length / 2, () => clock.phase === 'count' && (clock.phase = 'tap'));
+		clock.at(played, (PULSE.heard * 4 + 2) * length, () => clock.phase === 'tap' && (clock.phase = 'alone'));
 		// Judged half a beat after the click that comes back.
-		barTimers.push(setTimeout(() => judgePulseTake(q, played.start), at((beats - 1) * length + length / 2)));
-	}
-
-	function judgePulseTake(q: Extract<Question, { kind: 'pulse' }>, start: number) {
-		const relative = taps.map((time) => time - start - (tapOffset ?? 0));
-		const verdict = judgePulse(q.bpm, q.silent, relative);
-		stopBar();
-		pulseResult = verdict;
-		const missed = verdict.deviations.filter((deviation) => deviation === null).length;
-		const off = Number.isFinite(verdict.meanOff) ? Math.round(verdict.meanOff) : 999;
-		const drift = Math.abs(verdict.end) >= DRIFTED ? (verdict.end < 0 ? tx.pulseSped(Math.round(-verdict.end)) : tx.pulseSlowed(Math.round(verdict.end))) : undefined;
-		if (verdict.correct) answer(true, off <= FLUENT_MS.pulse ? tx.pulseHeld : tx.pulseLoose(off), drift, off);
-		else if (!verdict.deviations.some((deviation) => deviation !== null)) answer(false, tx.noTaps, undefined, off);
-		else answer(false, tx.pulseLost(missed, verdict.extra.length), drift, off);
+		clock.at(played, (beats - 1) * length + length / 2, () => {
+			const verdict = judgePulse(q.bpm, q.silent, clock.taps.map((time) => time - played.start - (tapOffset ?? 0)));
+			clock.stop();
+			pulseResult = verdict;
+			answer(pulseFeedback(verdict));
+		});
 	}
 
 	/** The scale's name: "G-Dur-Tonleiter", "a-Moll harmonisch", "D-Dur-Dreiklang". */
@@ -490,143 +381,79 @@
 
 	/** Microphone on, the drone and (if wanted) a count-in with the metronome, then play. */
 	async function startTake() {
-		if (question?.kind !== 'scale' || feedback || take !== 'idle') return;
+		if (question?.kind !== 'scale' || feedback || scale.take !== 'idle') return;
 		const q = question;
-		readings = [];
-		liveMarks = [];
+		scale.clear();
 		micProblem = null;
-		const cheap = droneHeard(q);
 		try {
-			stopMic = await listenToPitch((frequency, time) => onScaleReading(q, cheap, frequency, time));
+			stopMic = await listenToPitch((frequency, time) => {
+				if (scale.reading(frequency, time)) finishTake();
+			});
 		} catch (problem) {
 			micProblem = problem as MicProblem;
 			return;
 		}
 		listening = true;
 		if (drone !== 'off') stopDrone = startDrone(frequencyOf(droneMidi(q.item.midis[0])), drone === 'fifth');
-		lastSound = playFrom = performance.now();
-		take = 'playing';
-		if (settings.click) {
-			bpm = scaleTempoNow;
-			take = 'count';
-			playFrom = Infinity;
-			const played = await playBar({ bpm, countIn: 4, beats: q.item.midis.length + 1 });
-			if (!played || take !== 'count') {
-				played?.stop();
-				if (!played) take = 'playing';
-				playFrom = lastSound = performance.now();
-				return;
-			}
-			bar = played;
-			// What's played before the count-in ends is the player getting ready.
-			playFrom = played.start - beatMs(bpm) / 2;
-			lastSound = played.start;
-			followBar(played, 4, 0, () => {
-				if (take === 'count') take = 'playing';
-				beat = null;
-			});
+		scale.begin(q.item.midis, droneHeard(q), performance.now());
+		if (!settings.click) return;
+		bpm = scaleTempoNow;
+		scale.countIn();
+		const played = await playBar({ bpm, countIn: 4, beats: q.item.midis.length + 1 });
+		if (!played || !scale.counting) {
+			played?.stop();
+			if (!played) scale.take = 'playing';
+			scale.listenFrom(performance.now());
+			return;
 		}
-	}
-
-	function onScaleReading(q: Extract<Question, { kind: 'scale' }>, cheap: (midi: number) => boolean, frequency: number | null, time: number) {
-		if (take === 'idle' || time < playFrom) return;
-		readings.push({ time, frequency });
-		if (frequency) {
-			const semitones = 69 + 12 * Math.log2(frequency / a4);
-			const midi = Math.round(semitones);
-			heardNow = { midi, cents: Math.round((semitones - midi) * 100) };
-			if (!cheap(midi) || q.item.midis.includes(midi)) lastSound = time;
-		}
-		const expected = q.item.midis;
-		const verdict = judgeScale(expected, segment(readings, a4), cheap);
-		liveMarks = verdict.marks;
-		const last = verdict.marks[expected.length - 1];
-		const right = verdict.marks.filter((mark) => mark.state === 'right').length;
-		// Done once the last note has sounded a moment, after most of the scale; or after a long silence.
-		const ended = last.state === 'right' && right >= expected.length / 2 && time - last.onset >= 700;
-		if (ended || (readings.some((reading) => reading.frequency) && time - lastSound > 3000) || time - playFrom > 90_000) finishTake(q);
+		// What's played before the count-in ends is the player getting ready.
+		scale.listenFrom(played.start - beatMs(bpm) / 2, played.start);
+		clock.follow(played, beatMs(bpm), 4, 0, () => {
+			if (scale.counting) scale.take = 'playing';
+			clock.beat = null;
+		});
 	}
 
 	function stopTake() {
 		stopDrone?.();
 		stopDrone = null;
-		if (take !== 'idle') stopListening();
-		take = 'idle';
-		heardNow = null;
+		if (scale.take !== 'idle') stopListening();
+		scale.stop();
 	}
 
-	function finishTake(q: Extract<Question, { kind: 'scale' }>) {
-		if (take === 'idle') return;
-		const cheap = droneHeard(q);
+	function finishTake() {
+		if (scale.take === 'idle') return;
 		stopTake();
-		stopBar();
-		const verdict = judgeScale(q.item.midis, segment(readings, a4), cheap);
-		liveMarks = verdict.marks;
-		const off = Number.isFinite(verdict.meanCents) ? Math.round(verdict.meanCents) : 999;
-		const tip =
-			verdict.leaning > 0
-				? tx.scaleSharp
-				: verdict.leaning < 0
-					? tx.scaleFlat
-					: verdict.unevenness !== null && verdict.unevenness > UNEVEN
-						? tx.scaleUneven
-						: undefined;
-		if (verdict.correct) answer(true, off <= IN_TUNE ? tx.scaleClean : tx.scaleCents(off), tip, off);
-		else if (verdict.marks.every((mark) => mark.state === 'missed')) answer(false, tx.noNotes, undefined, off);
-		else answer(false, tx.scaleWrong(verdict.wrong, verdict.missed, verdict.extra), tip, off);
+		clock.stop();
+		answer(scaleFeedback(scale.verdict()));
 	}
 
-	/** Each note's colour on the staff: while playing only as far as played, and the tuning only when it's shown. */
-	const scaleMarks = $derived.by(() => {
-		const reached = liveMarks.findLastIndex((mark) => mark && mark.state !== 'missed');
-		const showTuning = !!feedback || !settings.hideCents;
-		return liveMarks.map((mark, i) => {
-			if (!mark || (!feedback && i > reached)) return null;
-			if (mark.state !== 'right') return 'wrong' as const;
-			return showTuning && Math.abs(mark.cents) > IN_TUNE ? ('off' as const) : ('right' as const);
-		});
-	});
-	/** Under each note after the take: cents off, the note heard instead, or a dash for one left out. */
-	const scaleCaptions = $derived(
-		feedback
-			? liveMarks.map((mark) =>
-					!mark ? '' : mark.state === 'missed' ? '–' : mark.state === 'wrong' ? pitchName(((mark.midi % 12) + 12) % 12) : Math.abs(mark.cents) > IN_TUNE ? `${mark.cents > 0 ? '+' : ''}${mark.cents}` : ''
-				)
-			: []
-	);
-
-	/** A tap, timed by the event itself (the clock `playBar` reports on), not when it's handled. */
-	function tap(time: number) {
-		if (phase !== 'count' && phase !== 'tap' && phase !== 'alone' && phase !== 'calibrate') return;
-		taps.push(time);
-		tapped++;
-	}
+	/** Each note's colour on the staff, and the captions under them after the take. */
+	const shownScaleMarks = $derived(scaleMarks(scale.marks, !!feedback, !!feedback || !settings.hideCents));
+	const shownScaleCaptions = $derived(feedback ? scaleCaptions(scale.marks) : []);
 
 	/** Eight taps along with clicks, to learn this device's delay. */
 	async function startCalibration() {
-		stopBar();
 		calibrationFailed = false;
-		taps = [];
-		tapped = 0;
+		clock.begin('calibrate');
 		const saved = bpm;
 		bpm = CALIBRATION.bpm;
-		phase = 'calibrate';
 		const played = await playBar({ bpm, countIn: 4, beats: CALIBRATION.beats });
 		if (!played) {
 			bpm = saved;
-			phase = 'idle';
+			clock.phase = 'idle';
 			return;
 		}
-		bar = played;
 		const length = beatMs(bpm);
-		followBar(
+		clock.follow(
 			played,
+			length,
 			4,
 			CALIBRATION.beats,
 			() => {
 				const clicks = Array.from({ length: CALIBRATION.beats }, (_, i) => i * length);
-				const offset = calibrate(clicks, taps.map((time) => time - played.start));
-				stopBar();
+				const offset = calibrate(clicks, clock.taps.map((time) => time - played.start));
+				clock.stop();
 				bpm = saved;
 				if (offset === null) {
 					calibrationFailed = true;
@@ -644,59 +471,47 @@
 	function answerNote(step: number | null) {
 		if (question?.kind !== 'notes' || feedback) return;
 		chosen = step;
-		const right = question.pitch.step;
-		if (step === right) return answer(true, '');
-		// The letter named, the nearest way up or down from the right one: feedback that says what's off.
-		const steps = ((((step ?? right) - right + 3) % 7) + 7) % 7 - 3;
-		answer(false, step === null ? tx.itIs(noteName(right)) : tx.wrongNote(noteName(right), noteName(step), steps));
+		answer(noteFeedback(question, step));
 	}
 
-	/** A key answered, or null for "don't know"; a wrong one comes with the rule to find it. */
+	/** A key answered, or null for "don't know". */
 	function answerKey(fifths: number | null) {
 		if (question?.kind !== 'keys' || feedback) return;
 		chosen = fifths;
-		const { fifths: right, mode } = question;
-		if (fifths === right) return answer(true, '');
-		const tip = mode === 'minor' ? tx.tips.minor : right > 0 ? tx.tips.sharps : right < 0 ? tx.tips.flats : undefined;
-		answer(false, tx.itIs(`${keyLabel(right, mode)} (${tx.accidentals(Math.abs(right), right > 0)})`), tip);
+		answer(keyFeedback(question, fifths));
 	}
 
 	/** An interval answered (its semitones), or null for "don't know". */
 	function answerInterval(semitones: number | null) {
 		if (question?.kind !== 'ear' || feedback) return;
 		chosen = semitones;
-		const right = question.semitones;
-		answer(semitones === right, semitones === right ? '' : tx.intervalWas(tx.intervals[right], right));
+		answer(intervalFeedback(question, semitones));
 	}
 
 	/** A chord answered by its quality, or null for "don't know". */
 	function answerChord(quality: ChordQuality | null) {
 		if (question?.kind !== 'chord' || feedback) return;
 		chosenChord = quality;
-		const right = question.quality;
-		answer(quality === right, quality === right ? '' : tx.chordWas(tx.chordQualities[right], tx.chordHow[right]));
+		answer(chordFeedback(question, quality));
 	}
 
 	/** A melody picked among the three written ones, or null for "don't know". */
 	function answerMelody(index: number | null) {
 		if (question?.kind !== 'dict' || feedback) return;
 		chosenMelody = index;
-		answer(index === question.answer, index === question.answer ? '' : tx.melodyWas(question.answer + 1));
+		answer(melodyFeedback(question, index));
 	}
 
-	/** A note answered by its pitch class (any spelling counts), or null; a wrong one comes with how to transpose. */
+	/** A note answered by its pitch class, or null for "don't know". */
 	function answerPitch(pitchClass: number | null) {
 		if (question?.kind !== 'trans' || feedback) return;
 		chosen = pitchClass;
-		const { answer: right, shift, part } = question;
-		if (pitchClass === right) return answer(true, '');
-		const how = shift ? tx.shift(tx.intervals[Math.abs(shift)], shift) : '';
-		answer(false, tx.itIs(pitchName(right)), !how ? undefined : part ? tx.partTip(how) : tx.concertTip(instrumentName, how));
+		answer(pitchFeedback(question, pitchClass, instrumentName));
 	}
 
-	function heard(verdict: Verdict) {
-		if (verdict.result === 'right') answer(true, Math.abs(verdict.cents) <= 10 ? tx.inTune : tx.cents(verdict.cents));
-		else answer(false, verdict.octave ? tx.octave : tx.heard(midiName(verdict.midi)));
+	function heard(q: Question | null, verdict: Verdict) {
+		if (q?.kind === 'tune') holdChord(null);
+		answer(q?.kind === 'tune' ? tuneFeedback(q, verdict) : heardFeedback(verdict));
 	}
 
 	async function startListening() {
@@ -713,9 +528,7 @@
 				}
 				sounding = frequency ? Math.round(69 + 12 * Math.log2(frequency / a4)) : null;
 				const verdict = judge?.push(frequency, time);
-				if (!verdict) return;
-				if (q?.kind === 'tune') tuneHeard(q, verdict);
-				else heard(verdict);
+				if (verdict) heard(q, verdict);
 			});
 			if (question?.kind === 'tune') holdChord(question);
 			listening = true;
@@ -739,57 +552,32 @@
 		else if (question.kind === 'chord') answerChord(null);
 		else if (question.kind === 'dict') answerMelody(null);
 		else if (question.kind === 'trans') answerPitch(null);
-		else if (question.kind === 'rhythm') {
-			stopBar();
-			answer(false, tx.rhythmShown, undefined, 999);
-		} else if (question.kind === 'pulse') {
-			stopBar();
-			answer(false, tx.pulseSkipped, undefined, 999);
-		} else if (question.kind === 'scale') {
-			stopTake();
-			stopBar();
-			answer(false, tx.scaleShown, undefined, 999);
-		} else if (question.kind === 'tune') {
-			holdChord(null);
-			answer(false, tx.tuneShown, undefined, 99);
-		} else answer(false, tx.itIs(midiName(midiOf(question.pitch))));
+		else {
+			if (question.kind === 'scale') stopTake();
+			if (question.kind === 'tune') holdChord(null);
+			clock.stop();
+			answer(skippedFeedback(question));
+		}
 	}
 
 	function onkeydown(event: KeyboardEvent) {
-		if (event.metaKey || event.ctrlKey || event.altKey || finished) return;
-		// Rhythm: the space bar taps, or starts the count-in.
-		if ((question?.kind === 'rhythm' || question?.kind === 'pulse') && !feedback && event.key === ' ') {
-			event.preventDefault();
-			if (event.repeat) return;
-			if (phase === 'idle' && !calibrating) {
-				if (question.kind === 'pulse') tapPulse();
-				else tapRhythm();
-			}
-			else tap(tapTime(event.timeStamp, performance.now()));
-			return;
-		}
-		if (feedback && (event.key === ' ' || event.key === 'Enter')) {
-			event.preventDefault();
-			next();
-			return;
-		}
-		if (question?.kind === 'notes') {
-			const step = tx.letterKeys.indexOf(event.key.toLowerCase());
-			if (step >= 0) answerNote(step);
-		} else if (question?.kind === 'dict') {
-			const index = Number(event.key) - 1;
-			if (index >= 0 && index < question.options.length) answerMelody(index);
-		} else if (question?.kind === 'keys' || question?.kind === 'ear' || question?.kind === 'chord') {
-			const index = Number(event.key) - 1;
-			if (index < 0 || index >= question.options.length) return;
-			if (question.kind === 'keys') answerKey(question.options[index]);
-			else if (question.kind === 'chord') answerChord(question.options[index]);
-			else answerInterval(question.options[index]);
+		const key = roundKey(event, { question, answered: !!feedback, finished: tally.finished, idle: clock.phase === 'idle', calibrating, letterKeys: tx.letterKeys });
+		if (!key) return;
+		if (key.do === 'hold' || key.do === 'tap' || key.do === 'start' || key.do === 'next') event.preventDefault();
+		if (key.do === 'tap') clock.tap(tapTime(event.timeStamp, performance.now()));
+		else if (key.do === 'start') {
+			if (question?.kind === 'pulse') tapPulse();
+			else tapRhythm();
+		} else if (key.do === 'next') next();
+		else if (key.do === 'letter') answerNote(key.step);
+		else if (key.do === 'option') {
+			if (question?.kind === 'dict') answerMelody(key.index);
+			else if (question?.kind === 'keys') answerKey(question.options[key.index]);
+			else if (question?.kind === 'chord') answerChord(question.options[key.index]);
+			else if (question?.kind === 'ear') answerInterval(question.options[key.index]);
 		}
 	}
 
-	const right = $derived(answers.filter(Boolean).length);
-	const points = $derived(new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(roundPoints(right, rightAfterHearing)));
 	const masteredNow = $derived(order.filter((id) => isMastered(states[id], FLUENT_MS[kindOf(id)])).length);
 	const transposition = $derived(profile(instrument).transposition);
 
@@ -797,7 +585,7 @@
 	$effect(() => () => {
 		clearTimeout(autoNext);
 		stopListening();
-		stopBar();
+		clock.stop();
 	});
 </script>
 
@@ -806,11 +594,11 @@
 <section class="round ui-card" aria-labelledby="round-title">
 	<header class="top">
 		<h2 id="round-title">{title}</h2>
-		{#if !finished && !test}<span class="count" aria-label="{count} / {roundLength}">{tx.question(count, roundLength)}</span>{/if}
-		<button type="button" class="btn ghost small" onclick={onexit}>{finished ? tx.back : tx.stop}</button>
+		{#if !tally.finished && !test}<span class="count" aria-label="{tally.count} / {tally.length}">{tx.question(tally.count, tally.length)}</span>{/if}
+		<button type="button" class="btn ghost small" onclick={onexit}>{tally.finished ? tx.back : tx.stop}</button>
 	</header>
-	{#if !finished}
-		<div class="bar" aria-hidden="true"><span style:width="{(test ? (progress ?? 0) : count / roundLength) * 100}%"></span></div>
+	{#if !tally.finished}
+		<div class="bar" aria-hidden="true"><span style:width="{(test ? (progress ?? 0) : tally.count / tally.length) * 100}%"></span></div>
 	{/if}
 
 	{#if question}
@@ -847,8 +635,8 @@
 						clef={row.clef}
 						fifths={question.item.fifths}
 						notes={question.item.pitches.slice(row.from, row.to)}
-						marks={scaleMarks.slice(row.from, row.to)}
-						captions={scaleCaptions.slice(row.from, row.to)}
+						marks={shownScaleMarks.slice(row.from, row.to)}
+						captions={shownScaleCaptions.slice(row.from, row.to)}
 						spacing={28}
 						label={rows.length > 1 ? `${scaleName(question)} (${i + 1}/${rows.length})` : scaleName(question)}
 					/>
@@ -1035,7 +823,7 @@
 			</div>
 		{:else if question.kind === 'scale'}
 			<div class="play">
-				{#if take === 'idle' && !feedback}
+				{#if scale.take === 'idle' && !feedback}
 					<div class="options-row">
 						<label class="field small">
 							{tx.drone}
@@ -1057,49 +845,48 @@
 					{#if transposition}<p class="hint">{tx.soundingScale(midiName(question.item.midis[0]))}</p>{/if}
 					<button type="button" class="btn" onclick={startTake}><span class="mic" aria-hidden="true"></span>{tx.micStart}</button>
 					{#if drone !== 'off' || settings.click}<p class="hint">{tx.headphones}</p>{/if}
-				{:else if take !== 'idle'}
-					{@const q = question}
-					{#if take === 'count'}
-						{#if showConductor}<Conductor meter={4} start={beat !== null && conduct ? conduct.start : null} beatMs={conduct?.ms ?? 600} counting bach={conductor === 'bach'} />{/if}
-						<p class="listening" role="status">{tx.countIn} {beat !== null && beat < 0 ? beat + 5 : ''}</p>
+				{:else if scale.take !== 'idle'}
+					{#if scale.take === 'count'}
+						{#if showConductor}<Conductor meter={4} start={clock.beat !== null && clock.conduct ? clock.conduct.start : null} beatMs={clock.conduct?.ms ?? 600} counting bach={conductor === 'bach'} />{/if}
+						<p class="listening" role="status">{tx.countIn} {clock.beat !== null && clock.beat < 0 ? clock.beat + 5 : ''}</p>
 					{:else}
 						<p class="listening" role="status">
 							<span class="mic live" aria-hidden="true"></span>{tx.playingScale}
-							{#if heardNow}
-								<span class="heard">{midiName(heardNow.midi)}{#if !settings.hideCents}{' '}{heardNow.cents > 0 ? '+' : ''}{heardNow.cents} ct{/if}</span>
+							{#if scale.heardNow}
+								<span class="heard">{midiName(scale.heardNow.midi)}{#if !settings.hideCents}{' '}{scale.heardNow.cents > 0 ? '+' : ''}{scale.heardNow.cents} ct{/if}</span>
 							{/if}
 						</p>
 					{/if}
-					<button type="button" class="btn ghost small" onclick={() => finishTake(q)}>{tx.doneTake}</button>
+					<button type="button" class="btn ghost small" onclick={finishTake}>{tx.doneTake}</button>
 				{/if}
 				{#if micProblem}<p class="msg error">{micProblem === 'insecure' ? t.practice.tuner.insecure : t.practice.tuner.noMic}</p>{/if}
 			</div>
 		{:else if question.kind === 'rhythm' || question.kind === 'pulse'}
 			{@const pulse = question.kind === 'pulse'}
-			{@const meter = question.kind === 'rhythm' && phase !== 'calibrate' ? question.meter : 4}
+			{@const meter = question.kind === 'rhythm' && clock.phase !== 'calibrate' ? question.meter : 4}
 			<!-- Counted within the bar, as the count-in is one bar of the meter: 1 2 1 2 for 2/4 too. -->
-			{@const counted = beat !== null && beat < 0 ? ((beat + 4 * meter) % meter) + 1 : ''}
+			{@const counted = clock.beat !== null && clock.beat < 0 ? ((clock.beat + 4 * meter) % meter) + 1 : ''}
 			<div class="tapping">
 				<!-- The bar's beat as a conductor gives it; it rests while the metronome is quiet. -->
 				{#if showConductor}
-					<Conductor {meter} start={beat !== null && conduct ? conduct.start : null} beatMs={conduct?.ms ?? 600} counting={beat !== null && beat < 0} bach={conductor === 'bach'} />
+					<Conductor {meter} start={clock.beat !== null && clock.conduct ? clock.conduct.start : null} beatMs={clock.conduct?.ms ?? 600} counting={clock.beat !== null && clock.beat < 0} bach={conductor === 'bach'} />
 				{/if}
 				<p class="status" role="status">
-					{#if phase === 'example'}{tx.example}
-					{:else if phase === 'count'}{tx.countIn} {counted}
-					{:else if phase === 'tap'}{pulse ? tx.tapAlong : tx.tapNow}
-					{:else if phase === 'alone'}{tx.keepPulse}
-					{:else if phase === 'calibrate'}{beat !== null && beat < 0 ? `${tx.countIn} ${counted}` : tx.calibrateNow}
+					{#if clock.phase === 'example'}{tx.example}
+					{:else if clock.phase === 'count'}{tx.countIn} {counted}
+					{:else if clock.phase === 'tap'}{pulse ? tx.tapAlong : tx.tapNow}
+					{:else if clock.phase === 'alone'}{tx.keepPulse}
+					{:else if clock.phase === 'calibrate'}{clock.beat !== null && clock.beat < 0 ? `${tx.countIn} ${counted}` : tx.calibrateNow}
 					{:else if calibrationFailed}{tx.calibrateFailed}{/if}
 				</p>
-				{#if phase === 'count' || phase === 'tap' || phase === 'alone' || phase === 'calibrate'}
+				{#if clock.tapping}
 					<button
 						type="button"
 						class="pad"
-						class:hit={tapped % 2 === 1}
+						class:hit={clock.tapped % 2 === 1}
 						onpointerdown={(event) => {
 							event.preventDefault();
-							tap(tapTime(event.timeStamp, performance.now()));
+							clock.tap(tapTime(event.timeStamp, performance.now()));
 						}}>{tx.tapPad}</button
 					>
 				{:else if !feedback}
@@ -1110,13 +897,13 @@
 						{:else if q.kind === 'pulse'}
 							<button type="button" class="btn" onclick={tapPulse}>{tx.tapStart}</button>
 						{:else}
-							<button type="button" class="btn ghost" disabled={phase === 'example'} onclick={() => hearRhythm(q)}>{tx.listen}</button>
+							<button type="button" class="btn ghost" disabled={clock.phase === 'example'} onclick={() => hearRhythm(q)}>{tx.listen}</button>
 							<button type="button" class="btn" onclick={tapRhythm}>{tx.tapStart}</button>
 						{/if}
 					</div>
 					{#if q.kind === 'rhythm' && !calibrating}<p class="hint">{tx.listenCosts}</p>{/if}
 				{/if}
-				{#if !feedback && (phase === 'idle' || phase === 'example') && !calibrating}
+				{#if !feedback && (clock.phase === 'idle' || clock.phase === 'example') && !calibrating}
 					<label class="field small">
 						{tx.conductor}
 						<select value={conductor} onchange={(event) => onsetting({ conductor: event.currentTarget.value as DrillSettings['conductor'] })}>
@@ -1149,7 +936,7 @@
 					>
 					<button type="button" class="btn" onclick={next}>{tx.next}</button>
 				</div>
-			{:else if !calibrating && take === 'idle'}
+			{:else if !calibrating && scale.take === 'idle'}
 				<div class="row">
 					<button type="button" class="btn ghost small" onclick={skip}>{trying ? tx.reach.notNow : tx.skip}</button>
 					{#if withSound && isHeard(question)}
@@ -1161,18 +948,18 @@
 				</div>
 			{/if}
 		</div>
-	{:else if finished}
+	{:else if tally.finished}
 		<div class="done">
 			<p class="big">{tx.done}</p>
 			<ul class="facts">
-				{#if rightAfterHearing}
-					<li><strong>{tx.donePoints(points, answers.length)}</strong></li>
-					<li>{tx.doneHeard(rightAfterHearing)}</li>
+				{#if tally.rightAfterHearing}
+					<li><strong>{tx.donePoints(new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(tally.points), tally.answers.length)}</strong></li>
+					<li>{tx.doneHeard(tally.rightAfterHearing)}</li>
 				{:else}
-					<li><strong>{tx.doneRight(right, answers.length)}</strong></li>
+					<li><strong>{tx.doneRight(tally.right, tally.answers.length)}</strong></li>
 				{/if}
-				{#if times.length}<li>{tx.doneTime(new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(median(times) / 1000))}</li>{/if}
-				{#if introduced}<li>{tx.doneNew(introduced)}</li>{/if}
+				{#if tally.typicalMs !== null}<li>{tx.doneTime(new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(tally.typicalMs / 1000))}</li>{/if}
+				{#if tally.introduced}<li>{tx.doneNew(tally.introduced)}</li>{/if}
 				<li>{tx.mastered(masteredNow, order.length)}</li>
 			</ul>
 			<div class="row">
@@ -1181,12 +968,7 @@
 					type="button"
 					class="btn"
 					onclick={() => {
-						count = 0;
-						answers = [];
-						times = [];
-						introduced = 0;
-						rightAfterHearing = 0;
-						finished = false;
+						tally.restart();
 						next();
 					}}>{tx.again}</button
 				>
@@ -1197,7 +979,7 @@
 	{#if (question?.kind === 'rhythm' || question?.kind === 'pulse') && !calibrating}
 		<p class="hint keys">
 			{tx.keyboardRhythm}
-			{#if tapOffset !== undefined && phase === 'idle' && !feedback}
+			{#if tapOffset !== undefined && clock.phase === 'idle' && !feedback}
 				· <button type="button" class="link" onclick={() => (calibrating = true)}>{tx.recalibrate}</button>
 			{/if}
 		</p>
