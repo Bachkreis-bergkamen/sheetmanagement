@@ -9,6 +9,7 @@ import type { PracticeDay } from '#lib/practice/practice.ts';
 import type { Sharing, SummaryRow } from '#lib/practice/drills/sharing.ts';
 import type { TourOutcome } from '#lib/tour/tour.ts';
 import type { Ticket, TicketOrder, TicketSale } from '#lib/tickets/tickets.ts';
+import type { PhotoConsent } from '#lib/parents/photos.ts';
 
 /** Email and password sign-in: only the hash, and the stamp that changes with each new password. */
 export interface Account {
@@ -176,6 +177,10 @@ export interface Store {
 	drillConsentOf(child: string): Promise<string | null>;
 	/** A parent allows (or, with false, takes back) their child's sharing beyond the family. */
 	setDrillConsent(child: string, parent: string, allowed: boolean): Promise<void>;
+	/** Who may appear in the orchestra's photos and videos (#299), by email; no entry: not answered. */
+	photoConsentAll(): Promise<Map<string, PhotoConsent>>;
+	/** Records the answer for a member, given by them or a parent; null forgets it. */
+	setPhotoConsent(email: string, allowed: boolean | null, by: string): Promise<void>;
 	/** The drills an administrator opened for a member (#327). */
 	drillUnlocksOf(email: string): Promise<string[]>;
 	/** Every member with drills opened by an administrator, for the admin page. */

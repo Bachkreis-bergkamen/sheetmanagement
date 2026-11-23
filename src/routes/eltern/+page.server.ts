@@ -9,7 +9,9 @@ import { isOn } from '#lib/server/env.ts';
 import { formText } from '#lib/server/feedback.ts';
 import { getLibrary, orchestraOf } from '#lib/server/library.ts';
 import { parentNoticeStore } from '#lib/server/parent-notices.ts';
-import { parentContext } from '#lib/server/parents.ts';
+import { parentContext, takingPart } from '#lib/server/parents.ts';
+import { answerPhotos, photoConsents } from '#lib/server/photos.ts';
+import { answerOf } from '#lib/parents/photos.ts';
 import { dutySummaries } from '#lib/server/duties.ts';
 import { childrenDrills, drillsAccessList } from '#lib/server/drills.ts';
 import { getStore } from '#lib/server/db/index.ts';
@@ -26,7 +28,7 @@ const MAX_DATES = 20;
 export const load: PageServerLoad = async ({ locals }) => {
 	const parent = await parentContext(locals);
 	const signupsOn = isOn('signups');
-	const [library, signups, notices] = await Promise.all([
+	const [library, signups, notices, { takesPart }, photos] = await Promise.all([
 		getLibrary(),
 		signupsOn ? getSignups().catch(() => null) : null,
 		parentNoticeStore()
@@ -34,7 +36,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 			.catch((cause) => {
 				console.error('Loading the notices to parents failed:', cause);
 				return [];
-			}) ?? []
+			}) ?? [],
+		takingPart(),
+		photoConsents()
 	]);
 
 	// The next dates of any of the children's orchestras, with who of them it is for.
@@ -65,12 +69,14 @@ export const load: PageServerLoad = async ({ locals }) => {
 	return {
 		name: parent.name,
 		drills,
+		// Photos and videos (#299): the parents answer for their children.
+		photos: parent.children.map((child) => ({ email: child.email, name: child.name, answer: answerOf(photos.get(child.email)) })),
 		children: parent.children.map((child) => ({ email: child.email, name: child.name, orchestras: child.orchestras })),
 		signups: signupsOn,
 		notices: notices
-			.filter((notice) => noticeFor(notice, parent.children.map((child) => child.orchestras)))
+			.filter((notice) => noticeFor(notice, parent.children, takesPart))
 			.slice(0, 10)
-			.map(({ id, title, body, orchestras, byName, createdAt }) => ({ id, title, body, orchestras, byName, day: createdAt.slice(0, 10) })),
+			.map(({ id, title, body, orchestras, event, byName, createdAt }) => ({ id, title, body, orchestras, event: event?.label ?? null, byName, day: createdAt.slice(0, 10) })),
 		dates: dates.map(({ event, children }) => {
 			const sale = sales.get(event.id);
 			return {
@@ -112,6 +118,22 @@ export const actions: Actions = {
 		if (!child) return fail(400, { drillError: t.parents.drills.failed });
 		await getStore().setDrillConsent(child.email, parent.email, formText(data, 'allowed') === 'yes');
 		return { drillSaved: child.email };
+	},
+
+	/** Whether a child may appear in the orchestra's photos and videos (#299). */
+	photos: async ({ request, locals }) => {
+		const parent = await parentContext(locals);
+		const data = await request.formData();
+		const child = parent.children.find((one) => one.email === formText(data, 'child'));
+		const allowed = formText(data, 'allowed');
+		if (!child || (allowed !== 'yes' && allowed !== 'no')) return fail(400, { photoError: t.photos.failed });
+		try {
+			if (!(await answerPhotos(parent.email, child.email, allowed === 'yes'))) return fail(403, { photoError: t.photos.failed });
+		} catch (cause) {
+			console.error('Saving a photo consent failed:', cause);
+			return fail(503, { photoError: t.photos.failed });
+		}
+		return { photoSaved: child.email };
 	},
 
 	/** Answers a date for one child: coming, or excused with an optional reason. */

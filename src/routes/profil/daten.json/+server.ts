@@ -16,7 +16,7 @@ export const GET: RequestHandler = async ({ locals }) => {
 	if (locals.auth === 'off' || !user) redirect(303, '/anmelden');
 	const email = user.email.trim().toLowerCase();
 	const store = getStore();
-	const [access, feedback, signups, attendance, pieceNotes, rehearsalNotes, devices, reminders, optOut, tour, practiceOn, practiceDays, marks, polls, drillSharing, drillDays, trips, tripLists, drillProgress, lent, duties, rides] = await Promise.all([
+	const [access, feedback, signups, attendance, pieceNotes, rehearsalNotes, devices, reminders, optOut, tour, practiceOn, practiceDays, marks, polls, drillSharing, drillDays, trips, tripLists, drillProgress, lent, duties, rides, photos] = await Promise.all([
 		getAccessList({ force: true }),
 		getFeedback(),
 		getSignups(),
@@ -38,7 +38,11 @@ export const GET: RequestHandler = async ({ locals }) => {
 		store.drillProgressOf(email).catch(() => null),
 		myInstrumentLoans(email),
 		myDuties(email),
-		myRides(email)
+		myRides(email),
+		store
+			.photoConsentAll()
+			.then((all) => all.get(email) ?? null)
+			.catch(() => null)
 	]);
 	const member = access?.membersByEmail.get(email);
 	const data = myData(
@@ -57,7 +61,7 @@ export const GET: RequestHandler = async ({ locals }) => {
 		email: user.email,
 		exportedAt: new Date().toISOString(),
 		about: t.myData.explain,
-		data: { ...data, ...storedData(devices, reminders, optOut.has(email), tour, { on: practiceOn, days: practiceDays }, marks), ...pollData(polls), ...tripData(trips), ...lendingData(lent), ...dutyData(duties, rides), ...tripListData(tripLists.lists, tripLists.kept, tripLists.instruments, tripLists.trips, tripLists.arrangements), ...(drillSharing || drillProgress ? { [t.myData.drills]: { ...(drillProgress ? { progress: JSON.parse(drillProgress) } : {}), ...(drillSharing ? { sharing: drillSharing, days: drillDays.map(({ email: _, ...row }) => row) } : {}) } } : {}) }
+		data: { ...data, ...storedData(devices, reminders, optOut.has(email), tour, { on: practiceOn, days: practiceDays }, marks), ...pollData(polls), ...tripData(trips), ...lendingData(lent), ...dutyData(duties, rides), ...tripListData(tripLists.lists, tripLists.kept, tripLists.instruments, tripLists.trips, tripLists.arrangements), ...(photos ? { [t.photos.export]: photos } : {}), ...(drillSharing || drillProgress ? { [t.myData.drills]: { ...(drillProgress ? { progress: JSON.parse(drillProgress) } : {}), ...(drillSharing ? { sharing: drillSharing, days: drillDays.map(({ email: _, ...row }) => row) } : {}) } } : {}) }
 	};
 	return new Response(JSON.stringify(body, null, 2), {
 		headers: {

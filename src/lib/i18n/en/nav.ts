@@ -19,6 +19,7 @@ export const nav: Texts['nav'] = {
 	parents: 'Parents',
 	parentMessages: 'Messages',
 	parentNotices: 'Notices to parents',
+	photos: 'Photo consent',
 	drillsOverview: 'Practice overview',
 	gaps: 'Missing parts',
 	naming: 'File names',

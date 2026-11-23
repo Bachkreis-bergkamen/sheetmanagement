@@ -295,6 +295,21 @@ export function sqlStore(db: D1): Store {
 			if (allowed) await run('INSERT INTO drill_parent_consent (child, parent) VALUES (?, ?) ON CONFLICT (child) DO UPDATE SET parent = excluded.parent', child, parent);
 			else await run('DELETE FROM drill_parent_consent WHERE child = ?', child);
 		},
+		async photoConsentAll() {
+			const rows = await all<{ email: string; allowed: number; by_email: string; updated_at: string }>('SELECT email, allowed, by_email, updated_at FROM photo_consent');
+			return new Map(rows.map((row) => [row.email, { allowed: !!row.allowed, by: row.by_email, at: row.updated_at }]));
+		},
+		async setPhotoConsent(email, allowed, by) {
+			if (allowed === null) await run('DELETE FROM photo_consent WHERE email = ?', email);
+			else
+				await run(
+					`INSERT INTO photo_consent (email, allowed, by_email) VALUES (?, ?, ?)
+					 ON CONFLICT (email) DO UPDATE SET allowed = excluded.allowed, by_email = excluded.by_email, updated_at = datetime('now')`,
+					email,
+					allowed ? 1 : 0,
+					by
+				);
+		},
 		async drillUnlocksOf(email) {
 			const rows = await all<{ card: string }>('SELECT card FROM drill_unlocks WHERE email = ? ORDER BY card', email);
 			return rows.map((row) => row.card);

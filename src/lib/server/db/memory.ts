@@ -5,6 +5,7 @@ import { memoryTickets } from './tickets-memory.ts';
 import { MIGRATIONS } from './sql.ts';
 import type { Sharing, SummaryRow } from '#lib/practice/drills/sharing.ts';
 import type { Device, Metric, VitalCount } from '#lib/vitals/vitals.ts';
+import type { PhotoConsent } from '#lib/parents/photos.ts';
 
 /** Like SQLite's datetime('now'). */
 const sqlTime = (at: number) => new Date(at).toISOString().slice(0, 19).replace('T', ' ');
@@ -30,6 +31,8 @@ export function memoryStore(now = () => Date.now()): Store {
 	const drillDays = new Map<string, Map<string, SummaryRow>>();
 	/** Parent consent by child. */
 	const drillConsent = new Map<string, string>();
+	/** Photo consent by member (#299). */
+	const photoConsent = new Map<string, PhotoConsent>();
 	/** Drills opened by an administrator, by member. */
 	const drillUnlocks = new Map<string, string[]>();
 	const drillProgress = new Map<string, string>();
@@ -185,6 +188,11 @@ export function memoryStore(now = () => Date.now()): Store {
 		async setDrillConsent(child, parent, allowed) {
 			if (allowed) drillConsent.set(child, parent);
 			else drillConsent.delete(child);
+		},
+		photoConsentAll: async () => new Map([...photoConsent].map(([email, consent]) => [email, { ...consent }])),
+		async setPhotoConsent(email, allowed, by) {
+			if (allowed === null) photoConsent.delete(email);
+			else photoConsent.set(email, { allowed, by, at: sqlTime(now()) });
 		},
 		drillUnlocksOf: async (email) => [...(drillUnlocks.get(email) ?? [])],
 		drillUnlocksAll: async () => new Map([...drillUnlocks].map(([email, cards]) => [email, [...cards]])),
