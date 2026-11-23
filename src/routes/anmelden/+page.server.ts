@@ -18,6 +18,8 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		// Setting names only, no values: safe to show, and they help whoever sets up the app.
 		problems: auth.problems.filter((problem) => !problem.startsWith('BOOTSTRAP_ADMINS')),
 		google: auth.google,
+		// The school's sign-in (#190): only the button's name leaves the server.
+		oidc: auth.oidc ? auth.oidc.label : null,
 		// Signing up and "forgot password" need a link by email, so an account that sends mail.
 		mail: !auth.problems.length && (await mailReady()),
 		// Accounts kept on this device (saved.ts): one tap back into them.
