@@ -175,4 +175,9 @@ describe('parents', () => {
 		const on = navGroups({ auth: 'on', rights: ['ansehen', 'eltern.informieren'], polls: true, parent: 'also' }).flatMap((group) => group.items.map((item) => item.href));
 		for (const href of ['/termine', '/kummerkasten', '/eltern', '/eltern/mitteilungen', '/chronik']) expect(on).toContain(href);
 	});
+
+	it('shows the photo consent to those who see who comes (#299)', () => {
+		expect(hrefs('on', ['ansehen', 'anmeldungen.sehen']).verwaltung).toContain('/fotoerlaubnis');
+		expect(hrefs('off', ['ansehen', 'anmeldungen.sehen']).verwaltung ?? []).not.toContain('/fotoerlaubnis');
+	});
 });

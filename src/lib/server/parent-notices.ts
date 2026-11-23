@@ -25,17 +25,24 @@ const SCHEMA = [
 		title TEXT NOT NULL,
 		body TEXT NOT NULL,
 		orchestras TEXT NOT NULL,
+		event_id TEXT,
+		event_label TEXT,
 		by_email TEXT NOT NULL,
 		by_name TEXT NOT NULL,
 		created_at TEXT NOT NULL
 	)`
 ];
 
+/** Added later (#299): a notice about one date. Tables made before get the columns once. */
+const EVENT_COLUMNS = ['event_id', 'event_label'];
+
 interface NoticeRow {
 	id: string;
 	title: string;
 	body: string;
 	orchestras: string;
+	event_id: string | null;
+	event_label: string | null;
 	by_name: string;
 	created_at: string;
 }
@@ -49,6 +56,9 @@ export class SqlParentNoticeStore implements ParentNoticeStore {
 	private ready(): Promise<void> {
 		this.#ready ??= (async () => {
 			for (const statement of SCHEMA) await this.db.prepare(statement).run();
+			const { results } = await this.db.prepare('PRAGMA table_info(parent_notices)').all<{ name: string }>();
+			const have = new Set(results.map((column) => column.name));
+			for (const column of EVENT_COLUMNS.filter((name) => !have.has(name))) await this.db.prepare(`ALTER TABLE parent_notices ADD COLUMN ${column} TEXT`).run();
 		})().catch((cause) => {
 			this.#ready = null;
 			throw cause;
@@ -58,18 +68,26 @@ export class SqlParentNoticeStore implements ParentNoticeStore {
 
 	async list(): Promise<ParentNotice[]> {
 		await this.ready();
-		const { results } = await this.db.prepare('SELECT id, title, body, orchestras, by_name, created_at FROM parent_notices ORDER BY created_at DESC').all<NoticeRow>();
-		return results.map((row) => ({ id: row.id, title: row.title, body: row.body, orchestras: splitGroups(row.orchestras), byName: row.by_name, createdAt: row.created_at }));
+		const { results } = await this.db.prepare('SELECT id, title, body, orchestras, event_id, event_label, by_name, created_at FROM parent_notices ORDER BY created_at DESC').all<NoticeRow>();
+		return results.map((row) => ({
+			id: row.id,
+			title: row.title,
+			body: row.body,
+			orchestras: splitGroups(row.orchestras),
+			event: row.event_id ? { id: row.event_id, label: row.event_label ?? '' } : null,
+			byName: row.by_name,
+			createdAt: row.created_at
+		}));
 	}
 
 	async create(notice: NewParentNotice, now = new Date().toISOString()): Promise<ParentNotice> {
 		await this.ready();
 		const id = newId();
 		await this.db
-			.prepare('INSERT INTO parent_notices (id, title, body, orchestras, by_email, by_name, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
-			.bind(id, notice.title, notice.body, notice.orchestras.join(', '), notice.byEmail, notice.byName, now)
+			.prepare('INSERT INTO parent_notices (id, title, body, orchestras, event_id, event_label, by_email, by_name, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+			.bind(id, notice.title, notice.body, notice.orchestras.join(', '), notice.event?.id ?? null, notice.event?.label ?? null, notice.byEmail, notice.byName, now)
 			.run();
-		return { id, title: notice.title, body: notice.body, orchestras: notice.orchestras, byName: notice.byName, createdAt: now };
+		return { id, title: notice.title, body: notice.body, orchestras: notice.orchestras, event: notice.event, byName: notice.byName, createdAt: now };
 	}
 
 	async remove(id: string): Promise<void> {
@@ -86,7 +104,7 @@ export class MemoryParentNoticeStore implements ParentNoticeStore {
 	}
 
 	async create(notice: NewParentNotice, now = new Date().toISOString()): Promise<ParentNotice> {
-		const created = { id: newId(), title: notice.title, body: notice.body, orchestras: notice.orchestras, byName: notice.byName, createdAt: now };
+		const created = { id: newId(), title: notice.title, body: notice.body, orchestras: notice.orchestras, event: notice.event, byName: notice.byName, createdAt: now };
 		this.#notices.push(created);
 		return created;
 	}

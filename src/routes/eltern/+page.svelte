@@ -41,7 +41,7 @@
 				<li class="ui-card notice">
 					<h3>{notice.title}</h3>
 					<p class="body">{notice.body}</p>
-					<p class="meta">{t.parents.notices.by(notice.byName, day(notice.day))}</p>
+					<p class="meta">{t.parents.notices.by(notice.byName, day(notice.day))}{#if notice.event}{' · '}{notice.event}{/if}</p>
 				</li>
 			{/each}
 		</ul>
@@ -191,6 +191,29 @@
 	</section>
 {/if}
 
+{#if data.photos.length}
+	<!-- Photos and videos (#299): one answer per child, "no" until a parent says yes. -->
+	<section class="block photos" aria-labelledby="photos">
+		<h2 class="ui-label" id="photos">{t.photos.title}</h2>
+		{#if form?.photoError}<p class="msg error" role="alert">{form.photoError}</p>{/if}
+		{#each data.photos as child (child.email)}
+			<form class="ui-card consent" method="POST" action="?/photos" use:enhance={saving.submit()}>
+				<input type="hidden" name="child" value={child.email} />
+				<p>
+					<strong>{child.name}</strong>
+					<span>{t.photos.leadChild(child.name)}</span>
+					<span class="answer">{t.photos.state[child.answer]}</span>
+				</p>
+				<div class="choices">
+					<button class="btn small" name="allowed" value="yes" disabled={saving.busy || child.answer === 'yes'}>{t.photos.allow}</button>
+					<button class="btn ghost small" name="allowed" value="no" disabled={saving.busy || child.answer === 'no'}>{t.photos.refuse}</button>
+				</div>
+				{#if form?.photoSaved === child.email}<span class="saved" role="status"><Icon name="check" size={14} />{t.photos.saved}</span>{/if}
+			</form>
+		{/each}
+	</section>
+{/if}
+
 <!-- Messages to the Leitung go through the Kummerkasten: gone while it's turned off (#395). -->
 {#if data.features.kummer}
 	<section class="block">
@@ -233,6 +256,22 @@
 	.consent p span {
 		color: var(--text-muted);
 		font-size: var(--text-sm);
+	}
+
+	.photos {
+		display: grid;
+		gap: var(--space-3);
+	}
+
+	.consent p .answer {
+		color: var(--text);
+		font-weight: 600;
+	}
+
+	.choices {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-2);
 	}
 
 	.kids {

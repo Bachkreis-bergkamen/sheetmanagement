@@ -8,6 +8,8 @@ import { instrumentDetails, instrumentName } from '#lib/lending/lending.ts';
 import { myInstrumentLoans } from '#lib/server/lending.ts';
 import { jobTime } from '#lib/duties/duties.ts';
 import { myDuties } from '#lib/server/duties.ts';
+import { answerPhotos, photoConsents } from '#lib/server/photos.ts';
+import { answerOf, parentsOf } from '#lib/parents/photos.ts';
 import { readMemberForm, today, writable } from '#lib/server/members.ts';
 import { getAccessList } from '#lib/server/repertoire.ts';
 import { setPassword, withinAttempts } from '#lib/server/auth/accounts.ts';
@@ -53,6 +55,11 @@ export const load: PageServerLoad = async ({ locals, url, cookies }) => {
 		practice: await practice(member.email),
 		lent: await lent(member.email),
 		duties: await upcomingDuties(member.email),
+		// Photos and videos (#299): their own answer; a young player's parents give it on /eltern.
+		photos:
+			member.status === 'eltern'
+				? null
+				: { answer: answerOf((await photoConsents()).get(member.email)), byParents: parentsOf(member.email, list?.members ?? []).length > 0 },
 		instruments: playableInstruments(config),
 		common: commonInstruments(config),
 		orchestras: config.orchestras
@@ -255,6 +262,22 @@ export const actions: Actions = {
 		} catch (error) {
 			console.error('Changing email reminders failed:', error);
 			return fail(503, { mailMessage: t.email.profileFailed });
+		}
+	},
+
+	/** Whether the member may appear in the orchestra's photos and videos (#299); not for a young player with parents. */
+	photos: async ({ locals, request }) => {
+		const user = locals.access.user;
+		if (locals.auth === 'off' || !user) redirect(303, '/anmelden');
+		const allowed = (await request.formData()).get('allowed');
+		if (allowed !== 'yes' && allowed !== 'no') return fail(400, { photoMessage: t.photos.failed });
+		const email = normalizeEmail(user.email);
+		try {
+			if (!(await answerPhotos(email, email, allowed === 'yes'))) return fail(403, { photoMessage: t.photos.byParents });
+			return { photoSaved: true };
+		} catch (error) {
+			console.error('Saving a photo consent failed:', error);
+			return fail(503, { photoMessage: t.photos.failed });
 		}
 	},
 

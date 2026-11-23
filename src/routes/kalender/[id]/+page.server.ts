@@ -24,6 +24,7 @@ import { checkRehearsalNote, isEmptyNote, type RehearsalNote } from '#lib/notes/
 import { requireRight } from '#lib/server/auth/index.ts';
 import { tripLink } from '#lib/server/trips.ts';
 import { dutyLink } from '#lib/server/duties.ts';
+import { photosForDate } from '#lib/server/photos.ts';
 import { publicDetails, publishedIds, readDetails, setPublicDetails, setPublished } from '#lib/server/public-concerts.ts';
 import { appendRecords, deleteRows, ensureTab, readTab, refreshAfterWrite, SheetLayoutError, updateRecord, withSheetLock } from '#lib/server/sheet-writes.ts';
 import { formatDay } from '#lib/events/format.ts';
@@ -473,6 +474,8 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		trip: await tripLink(locals, event.id),
 		// Its Dienste (#298): free places, and the viewer's own.
 		duties: await dutyLink(locals, event),
+		// Who of its players may not be shown in photos and videos (#299), for those who see who comes.
+		photos: await photosForDate(event, orchestra, locals, library.today),
 		// Whose rehearsal it is, changed here by those who plan dates (several orchestras only).
 		orchestras:
 			event.type !== 'konzert' && config.orchestras.length > 1

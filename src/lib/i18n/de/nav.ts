@@ -18,6 +18,7 @@ export const nav = {
 	parents: 'Elternbereich',
 	parentMessages: 'Nachrichten',
 	parentNotices: 'Elternmitteilungen',
+	photos: 'Fotoerlaubnis',
 	drillsOverview: 'Übestand',
 	gaps: 'Fehlende Stimmen',
 	naming: 'Dateinamen',

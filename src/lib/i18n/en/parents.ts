@@ -25,6 +25,10 @@ export const parents: Texts['parents'] = {
 		forHint: 'None ticked: all parents. Otherwise only parents of children in these orchestras.',
 		forAll: 'all parents',
 		forSome: (orchestras: string) => `parents in ${orchestras}`,
+		forDate: (label: string) => `parents of those playing at ${label}`,
+		about: 'About a date',
+		noDate: 'No particular date',
+		aboutHint: 'With a date: only to the parents of children taking part, that is playing in the date’s orchestra and not excused.',
 		send: 'Publish',
 		added: 'Published.',
 		remove: 'Delete',
@@ -38,7 +42,8 @@ export const parents: Texts['parents'] = {
 		problems: {
 			title: 'Please give a heading.',
 			body: 'Please write something.',
-			'too-long': 'That’s too long: heading up to 120, text up to 5000 characters.'
+			'too-long': 'That’s too long: heading up to 120, text up to 5000 characters.',
+			event: 'That date is gone. Please choose it again.'
 		} as Record<string, string>
 	},
 	dates: 'Next dates',
