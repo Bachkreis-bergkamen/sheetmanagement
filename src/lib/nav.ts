@@ -91,6 +91,8 @@ export function navGroups({ auth, rights, features = ALL_ON, polls = false, pare
 							...(polls && features.polls ? [{ href: '/termine', label: t.nav.polls, icon: 'poll' as const }] : []),
 							// Konzert- and Probenfahrten (#334): sign up, and the plan of each day.
 							...(features.trips ? [{ href: '/fahrten', label: t.nav.trips, icon: 'suitcase' as const }] : []),
+							// Photos and impressions of concerts, rehearsals and trips (#66).
+							...(features.album ? [{ href: '/fotos', label: t.nav.album, icon: 'camera' as const }] : []),
 							// The parents' area, for a member whose children play too.
 							...(parent === 'also' && features.parents ? [{ href: '/eltern', label: t.nav.parents, icon: 'users' as const }] : []),
 							// Anonymous messages to the Leitung, and its inbox for those who read it.

@@ -7,7 +7,7 @@
 
 import type { TabKey } from '#lib/repertoire/sheet.ts';
 
-export const FEATURES = ['loans', 'musicReport', 'attendance', 'signups', 'wishes', 'calendarFeed', 'offline', 'seasons', 'tickets', 'drills', 'trips', 'lending', 'duties', 'polls', 'kummer', 'parents', 'chronicle'] as const;
+export const FEATURES = ['loans', 'musicReport', 'attendance', 'signups', 'wishes', 'calendarFeed', 'offline', 'seasons', 'tickets', 'drills', 'trips', 'lending', 'duties', 'polls', 'kummer', 'parents', 'chronicle', 'album'] as const;
 
 export type Feature = (typeof FEATURES)[number];
 export type Features = Record<Feature, boolean>;
@@ -47,7 +47,9 @@ const ALIASES: Record<string, Feature> = {
 	kummerkasten: 'kummer',
 	eltern: 'parents',
 	elternbereich: 'parents',
-	chronik: 'chronicle'
+	chronik: 'chronicle',
+	fotos: 'album',
+	fotoalbum: 'album'
 };
 
 const byName = new Map<string, Feature>([...FEATURES.map((feature) => [feature.toLowerCase(), feature] as const), ...Object.entries(ALIASES)]);
@@ -81,6 +83,8 @@ export function featureOfPath(path: string): Feature | undefined {
 	if (path === '/wuensche' || path.startsWith('/wuensche/')) return 'wishes';
 	if (path === '/fahrten' || path.startsWith('/fahrten/')) return 'trips';
 	if (path === '/leihinstrumente' || path.startsWith('/leihinstrumente/')) return 'lending';
+	// The photo album (#66), its images and the website's list.
+	if (path === '/fotos' || path.startsWith('/fotos/') || path === '/api/fotos' || path.startsWith('/api/fotos/')) return 'album';
 	if (path === '/dienste' || path.startsWith('/dienste/') || /^\/kalender\/[^/]+\/dienste(\/|$)/.test(path)) return 'duties';
 	// #395: date polls, the Kummerkasten, the parents' area and the Chronik.
 	if (path === '/termine' || path.startsWith('/termine/')) return 'polls';

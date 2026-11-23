@@ -10,7 +10,7 @@ describe('navGroups', () => {
 	it('shows members their music, the archive, wishes and their profile', () => {
 		expect(hrefs('on', ['ansehen'])).toEqual({
 			musik: ['/meine-noten', '/kalender', '/stuecke', '/ueben', '/chronik'],
-			mitmachen: ['/wuensche', '/fahrten', '/kummerkasten', '/profil']
+			mitmachen: ['/wuensche', '/fahrten', '/fotos', '/kummerkasten', '/profil']
 		});
 	});
 

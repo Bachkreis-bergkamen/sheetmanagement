@@ -1,3 +1,4 @@
+import { watchUrl, type AlbumComment, type AlbumPhoto, type AlbumVideo } from '#lib/album/album.ts';
 import { normalizeEmail } from '#lib/access/access.ts';
 import { parseVotes, submitterEmail } from '#lib/feedback/feedback.ts';
 import * as t from '#lib/i18n/texts.ts';
@@ -171,6 +172,20 @@ export function dutyData(entries: { take: DutyTake; slot: DutySlot }[], rides: R
 		[e.note]: ride.note ?? ''
 	}));
 	return { ...(rows.length ? { [t.duties.title]: rows } : {}), ...(lifts.length ? { [t.duties.rides]: lifts } : {}) };
+}
+
+/** The photos the member uploaded and what they wrote in the album (#66); the images stay in the album. */
+export function albumData(photos: AlbumPhoto[], comments: AlbumComment[], titles: Map<string, string>, videos: AlbumVideo[] = []): MyData {
+	const e = t.album.exported;
+	const uploads = photos.map((photo) => ({
+		[e.album]: photo.title,
+		[e.caption]: photo.caption ?? '',
+		[e.status]: e.statuses[photo.status],
+		[e.uploaded]: photo.createdAt.slice(0, 10)
+	}));
+	const said = comments.map((comment) => ({ [e.album]: titles.get(comment.album) ?? comment.album, [e.text]: comment.text, [e.written]: comment.createdAt.slice(0, 10) }));
+	const films = videos.map((video) => ({ [e.album]: video.albumTitle, [e.text]: video.title, [e.link]: watchUrl(video.youtube, video.start), [e.status]: e.statuses[video.status], [e.uploaded]: video.createdAt.slice(0, 10) }));
+	return { ...(uploads.length ? { [e.photos]: uploads } : {}), ...(films.length ? { [e.videos]: films } : {}), ...(said.length ? { [e.comments]: said } : {}) };
 }
 
 /** The member's sign-ups for trips (#334): which trip, as what, and what they told the organisers. */

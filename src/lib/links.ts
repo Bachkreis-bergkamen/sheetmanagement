@@ -85,7 +85,7 @@ export function youtubeId(text: string): string | undefined {
 }
 
 /** "1m30s", "90s" or "90" → seconds; YouTube's start times. */
-function startSeconds(value: string | null): number | undefined {
+export function startSeconds(value: string | null): number | undefined {
 	const match = value?.match(/^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s?)?$/);
 	if (!match || !value) return undefined;
 	const seconds = Number(match[1] ?? 0) * 3600 + Number(match[2] ?? 0) * 60 + Number(match[3] ?? 0);

@@ -11,6 +11,7 @@ import { getAccessList, getAttendance, getFeedback, getLoans, getScanTasks } fro
 import { features } from './env.ts';
 import { DUTY_RIGHT, dutyStore } from './duties.ts';
 import { LENDING_RIGHT, lendingStore } from './lending.ts';
+import { ALBUM_RIGHT, albumStore } from './album.ts';
 import { unansweredPolls } from './polls.ts';
 import { unreadKummer } from './kummer.ts';
 import { getSchedule } from './schedule.ts';
@@ -28,6 +29,8 @@ export interface OpenWork {
 	instruments: number;
 	/** Dates within two weeks with duties nobody took yet (#298). */
 	duties: number;
+	/** Photos members uploaded that wait for approval (#66). */
+	photos: number;
 	attendance: number;
 	/** The oldest rehearsal without attendance. */
 	attendanceUrl?: string;
@@ -58,6 +61,7 @@ export async function openWork(locals: App.Locals): Promise<OpenWork | null> {
 		loans: open.loans.length,
 		instruments: open.instruments.length,
 		duties: open.duties.length,
+		photos: open.photos,
 		attendance: open.untaken.length,
 		attendanceUrl: open.untaken[0] ? attendanceUrl(open.untaken[0].id) : undefined,
 		polls: open.polls.length,
@@ -71,7 +75,7 @@ export async function openWork(locals: App.Locals): Promise<OpenWork | null> {
 
 /** One thing waiting for someone, on the "Zu erledigen" list (#185). */
 export interface OpenItem {
-	kind: 'report' | 'wish' | 'request' | 'loan' | 'instrument' | 'duty' | 'attendance' | 'poll' | 'scans' | 'kummerAnswers' | 'kummerInbox';
+	kind: 'report' | 'wish' | 'request' | 'loan' | 'instrument' | 'duty' | 'photo' | 'attendance' | 'poll' | 'scans' | 'kummerAnswers' | 'kummerInbox';
 	/** What it is about: the piece, the wish, the person, the rehearsal. */
 	title: string;
 	/** What to do or what's wrong, short. */
@@ -106,6 +110,7 @@ export async function openItems(locals: App.Locals): Promise<OpenItem[]> {
 		...open.loans.map((loan) => ({ kind: 'loan' as const, title: loan.pieceName, detail: loan.from || undefined, date: loan.dueAt, href: '/leihmaterial' })),
 		...open.instruments.map(({ loan, instrument }) => ({ kind: 'instrument' as const, title: instrumentName(instrument), detail: loan.name, date: loan.due, href: `/leihinstrumente/${instrument.id}` })),
 		...open.duties.map((one) => ({ kind: 'duty' as const, title: one.eventTitle, detail: t.duties.places(one.free, one.needed), date: one.eventDay, href: `/kalender/${encodeURIComponent(one.eventId)}/dienste` })),
+		...(open.photos ? [{ kind: 'photo' as const, title: t.album.waiting(open.photos), count: open.photos, href: '/fotos/freigabe' }] : []),
 		...open.untaken.map((event) => ({ kind: 'attendance' as const, title: event.displayTitle, date: day(event.start), href: attendanceUrl(event.id) })),
 		...open.polls.map((poll) => ({ kind: 'poll' as const, title: poll.title, date: poll.deadline, href: `/termine/${poll.id}` })),
 		...(open.gapScans ? [{ kind: 'scans' as const, title: t.home.todo.scans(open.gapScans), count: open.gapScans, href: '/fehlende-stimmen?meine' }] : []),
@@ -134,14 +139,15 @@ async function read(locals: App.Locals) {
 	const admin = rights.has('mitglieder.verwalten') && locals.auth === 'on';
 	const attendance = on.attendance && rights.has('anwesenheit.erfassen') && locals.auth === 'on';
 	const today = eventDay({ start: new Date().toISOString(), allDay: false }, config.timeZone);
-	// Four reads from D1, side by side: one after the other they were four round trips on every page with counts.
-	const [polls, kummer, instruments, duties] = await Promise.all([
+	// Five reads from D1, side by side: one after the other they were five round trips on every page with counts.
+	const [polls, kummer, instruments, duties, photos] = await Promise.all([
 		on.polls && locals.auth === 'on' ? unansweredPolls(locals, today).catch(() => []) : [],
 		on.kummer ? unreadKummer(locals).catch(() => ({ answers: 0, inbox: 0 })) : { answers: 0, inbox: 0 },
 		rights.has(LENDING_RIGHT) && locals.auth === 'on' ? dueInstruments(today) : [],
-		rights.has(DUTY_RIGHT) && locals.auth === 'on' ? openDuties(today) : []
+		rights.has(DUTY_RIGHT) && locals.auth === 'on' ? openDuties(today) : [],
+		rights.has(ALBUM_RIGHT) && locals.auth === 'on' ? waitingPhotos() : 0
 	]);
-	if (!reports && !admin && !attendance && !polls.length && !kummer.answers && !kummer.inbox && !instruments.length && !duties.length) return null;
+	if (!reports && !admin && !attendance && !polls.length && !kummer.answers && !kummer.inbox && !instruments.length && !duties.length && !photos) return null;
 	const [feedback, access, loans, taken, schedule, scans] = await Promise.all([
 		getFeedback(),
 		admin ? getAccessList() : null,
@@ -174,6 +180,7 @@ async function read(locals: App.Locals) {
 		loans: loans ? urgentLoans(loans.loans, today) : [],
 		instruments,
 		duties,
+		photos,
 		untaken,
 		polls,
 		// Parts to scan: gaps planned in "Fehlende Stimmen", and reports handed to the scanning team.
@@ -200,6 +207,16 @@ async function dueInstruments(today: string) {
 	}
 }
 
+/** Photos waiting for approval (#66); none without the store. */
+async function waitingPhotos(): Promise<number> {
+	try {
+		return (await (await albumStore())?.pendingCount()) ?? 0;
+	} catch (cause) {
+		console.error('Counting the photos waiting for approval failed:', cause);
+		return 0;
+	}
+}
+
 /** Dates within two weeks whose duties still have free places; none without the store. */
 async function openDuties(today: string) {
 	try {
@@ -216,6 +233,6 @@ async function openDuties(today: string) {
 /** The counts by page, for tabs and menus: only pages with something open. */
 export function countsByPage(work: OpenWork | null): Record<string, number> {
 	if (!work) return {};
-	const counts: Record<string, number> = { '/meldungen': work.reports + work.scans - work.gapScans, '/wuensche': work.wishes, '/admin': work.requests, '/leihmaterial': work.loans, '/leihinstrumente': work.instruments, '/dienste': work.duties, '/fehlende-stimmen': work.gapScans, '/kummerkasten': work.kummerAnswers + work.kummerInbox };
+	const counts: Record<string, number> = { '/meldungen': work.reports + work.scans - work.gapScans, '/wuensche': work.wishes, '/admin': work.requests, '/leihmaterial': work.loans, '/leihinstrumente': work.instruments, '/dienste': work.duties, '/fotos': work.photos, '/fehlende-stimmen': work.gapScans, '/kummerkasten': work.kummerAnswers + work.kummerInbox };
 	return Object.fromEntries(Object.entries(counts).filter(([, count]) => count > 0));
 }

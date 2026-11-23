@@ -28,6 +28,7 @@ export const nav = {
 	status: 'Status',
 	polls: 'Terminumfragen',
 	trips: 'Fahrten',
+	album: 'Fotos',
 	more: 'Mehr',
 	profile: 'Profil',
 	details: 'Angaben ergänzen',

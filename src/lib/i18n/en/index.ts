@@ -67,6 +67,8 @@ export { imslp } from './imslp.ts';
 export { duties } from './duties.ts';
 export { parents } from './parents.ts';
 export { photos } from './photos.ts';
+export { album } from './album.ts';
+export { albumLink } from './albumLink.ts';
 export { ensembles } from './ensembles.ts';
 export { partners } from './partners.ts';
 export { musicReport } from './musicReport.ts';

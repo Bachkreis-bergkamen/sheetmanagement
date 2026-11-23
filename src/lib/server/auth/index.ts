@@ -186,6 +186,9 @@ export function isPublicPath(path: string): boolean {
 		// Published concerts for the orchestra's website (#197): only what an organiser published.
 		path === '/api/konzerte' ||
 		path === '/api/konzerte.ics' ||
+		// Photos for the website (#66): the list holds only what was made public; each image checks itself.
+		path === '/api/fotos' ||
+		path.startsWith('/api/fotos/') ||
 		// Concert tickets (docs/tickets-plan.md): the website's sale, and a buyer's tickets, whose
 		// address holds the order's long random id.
 		path.startsWith('/api/karten/') ||

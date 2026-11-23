@@ -29,6 +29,7 @@ export const nav: Texts['nav'] = {
 	status: 'Status',
 	polls: 'Date polls',
 	trips: 'Trips',
+	album: 'Photos',
 	more: 'More',
 	profile: 'Profile',
 	details: 'Complete details',

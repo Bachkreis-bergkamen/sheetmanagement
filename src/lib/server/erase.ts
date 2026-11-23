@@ -6,6 +6,7 @@ import { getStore } from './db/index.ts';
 import { pollStore } from './polls.ts';
 import { getAccessList } from './repertoire.ts';
 import { lendingStore } from './lending.ts';
+import { albumStore } from './album.ts';
 import { dutyStore } from './duties.ts';
 import { tripStore } from './trips.ts';
 import { authorKey, kummerStore } from './kummer.ts';
@@ -63,7 +64,7 @@ async function kummerCount(email: string): Promise<number> {
 
 async function storedItems(email: string): Promise<EraseItem[]> {
 	const store = getStore();
-	const [devices, reminders, optOut, tour, practiceOn, practice, marks, polls, kummer, drillSharing, drillConsent, trips, drillProgress, lent, duties, photos] = await Promise.all([
+	const [devices, reminders, optOut, tour, practiceOn, practice, marks, polls, kummer, drillSharing, drillConsent, trips, drillProgress, lent, duties, photos, album] = await Promise.all([
 		store.pushOf(email),
 		store.remindersOf(email),
 		store.mailOptOuts(),
@@ -79,7 +80,8 @@ async function storedItems(email: string): Promise<EraseItem[]> {
 		store.drillProgressOf(email),
 		lendingStore().then((lending) => lending?.countBy(email) ?? 0),
 		dutyStore().then((store) => store?.countBy(email) ?? 0),
-		store.photoConsentAll().then((all) => (all.has(email) ? 1 : 0))
+		store.photoConsentAll().then((all) => (all.has(email) ? 1 : 0)),
+		albumStore().then((album) => album?.countBy(email) ?? 0)
 	]);
 	const items: EraseItem[] = [
 		{ where: t.erase.stored.devices, count: devices.length, how: 'remove' },
@@ -93,6 +95,7 @@ async function storedItems(email: string): Promise<EraseItem[]> {
 		{ where: t.lending.erased, count: lent, how: 'anonymise' },
 		{ where: t.duties.erased, count: duties, how: 'remove' },
 		{ where: t.photos.export, count: photos, how: 'remove' },
+		{ where: t.album.erased, count: album, how: 'anonymise' },
 		{ where: t.erase.stored.kummer, count: kummer, how: 'remove' }
 	];
 	return items.filter((item) => item.count > 0);
@@ -138,6 +141,7 @@ export async function eraseMember(address: string): Promise<ErasePreview> {
 		store.deleteMarks(email),
 		pollStore()?.forget(email, stand),
 		tripStore()?.forget(email, stand),
+		albumStore().then((album) => album?.forget(email, stand)),
 		lendingStore().then((lending) => lending?.forget(email, stand)),
 		dutyStore().then((store) => store?.forget(email)),
 		authorKey(email).then((key) => (key ? kummerStore()?.forget(email, key, stand) : undefined))

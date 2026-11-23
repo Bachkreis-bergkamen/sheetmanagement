@@ -335,6 +335,7 @@ export const bachkreis: OrchestraConfig = {
 		},
 		{ name: 'Notenwart', description: 'Pflegt Noten, Stücke und das Archiv.', rights: ['stuecke.bearbeiten', 'archiv.bearbeiten'] },
 		{ name: 'Instrumentenwart', description: 'Verleiht die Instrumente des Orchesters und behält im Blick, wer welches hat.', rights: ['instrumente.verwalten'] },
+		{ name: 'Fotos', description: 'Gibt Fotos frei, die Mitglieder hochladen, und entscheidet, welche auf die Website dürfen.', rights: ['fotos.freigeben'] },
 		{ name: 'Dienstplanung', description: 'Teilt die Dienste für Konzerte ein: Aufbau, Abendkasse, Kuchenverkauf, Abbau.', rights: ['dienste.verwalten'] },
 		{
 			name: 'Orga',
@@ -344,7 +345,7 @@ export const bachkreis: OrchestraConfig = {
 		{
 			name: 'Vorstand',
 			description: 'Verwaltet Mitglieder und Rechte.',
-			rights: ['mitglieder.verwalten', 'programme.bearbeiten', 'stuecke.bearbeiten', 'archiv.bearbeiten', 'anmeldungen.sehen', 'anwesenheit.erfassen', 'termine.planen', 'fahrten.bearbeiten', 'instrumente.verwalten', 'dienste.verwalten']
+			rights: ['mitglieder.verwalten', 'programme.bearbeiten', 'stuecke.bearbeiten', 'archiv.bearbeiten', 'anmeldungen.sehen', 'anwesenheit.erfassen', 'termine.planen', 'fahrten.bearbeiten', 'instrumente.verwalten', 'dienste.verwalten', 'fotos.freigeben']
 		}
 	],
 	orchestras: ['EO', 'A', 'B'],

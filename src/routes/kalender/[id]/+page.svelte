@@ -269,6 +269,20 @@
 			</a>
 		</li>
 	{/if}
+	{#if data.album}
+		{@const album = data.album}
+		<!-- Photos and impressions (#66). -->
+		<li>
+			<a class="fact" href={album.href}>
+				<span class="icon"><Icon name="camera" size={18} /></span>
+				<span class="fact-body">
+					<strong>{t.albumLink.title}</strong>
+					<span>{t.albumLink.summary(album.photos, album.videos, album.comments)}</span>
+				</span>
+				<span class="trail"><Icon name="chevron" size={16} /></span>
+			</a>
+		</li>
+	{/if}
 	{#if data.kind === 'event' && data.photos?.players}
 		{@const photos = data.photos}
 		<!-- Whom not to show in photos and videos (#299): those who said no or haven't answered. -->

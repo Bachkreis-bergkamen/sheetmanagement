@@ -316,8 +316,18 @@
 		{/each}
 
 		<!-- What there is to open: the plan, one's lists, and for those who read them, everyone's. -->
-		{#if data.inside || data.myLists.length || data.listProgress?.length}
+		{#if data.inside || data.myLists.length || data.listProgress?.length || data.album}
 			<ul class="ui-list links">
+				{#if data.album}
+					<!-- Photos and impressions (#66). -->
+					<li>
+						<a href={data.album.href}>
+							<span class="tile"><Icon name="camera" size={20} /></span>
+							<span class="body"><strong>{t.albumLink.title}</strong><span class="muted">{t.albumLink.summary(data.album.photos, data.album.videos, data.album.comments)}</span></span>
+							<Icon name="chevron" size={16} />
+						</a>
+					</li>
+				{/if}
 				{#if data.inside}
 					<li>
 						<a href="/fahrten/{trip.id}/plan">

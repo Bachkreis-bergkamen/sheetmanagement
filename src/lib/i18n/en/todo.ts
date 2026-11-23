@@ -14,6 +14,7 @@ export const todo: Texts['todo'] = {
 		loan: 'Rented music to return',
 		instrument: 'Take instruments back',
 		duty: 'Fill duties',
+		photo: 'Approve photos and recordings',
 		attendance: 'Take attendance',
 		poll: 'Date polls to answer',
 		other: 'Also'

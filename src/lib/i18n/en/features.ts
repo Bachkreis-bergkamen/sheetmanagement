@@ -18,5 +18,6 @@ export const features: Texts['features'] = {
 	polls: 'Date polls',
 	kummer: 'Suggestion box',
 	parents: 'Parents’ area',
-	chronicle: 'Chronicle'
+	chronicle: 'Chronicle',
+	album: 'Photos & impressions'
 };
