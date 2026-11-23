@@ -79,14 +79,15 @@ export async function dutyLink(locals: App.Locals, event: { id: string; past: bo
  * Jobs within two weeks that are free or up for taking over, for the start page and the
  * parents' area (#196): only dates the viewer sees, and not those they're on already.
  */
-export async function openDutiesFor(eventIds: Set<string>, email: string | undefined, today: string) {
+export async function openDutiesFor(eventIds: Set<string> | Promise<Set<string>>, email: string | undefined, today: string) {
 	const store = await dutyStore();
 	if (!store) return [];
 	try {
-		const [slots, takes] = await Promise.all([store.slots(), store.takes()]);
+		// The dates may still be on their way: D1 is asked meanwhile, not after.
+		const [slots, takes, ids] = await Promise.all([store.slots(), store.takes(), eventIds]);
 		const me = email ? normalizeEmail(email) : '';
 		return openDuties(
-			slots.filter((slot) => eventIds.has(slot.eventId)),
+			slots.filter((slot) => ids.has(slot.eventId)),
 			takes,
 			today
 		).map((one) => ({ ...one, href: `/kalender/${encodeURIComponent(one.eventId)}/dienste`, mine: takes.some((take) => take.eventId === one.eventId && take.email === me) }));

@@ -134,10 +134,13 @@ async function read(locals: App.Locals) {
 	const admin = rights.has('mitglieder.verwalten') && locals.auth === 'on';
 	const attendance = on.attendance && rights.has('anwesenheit.erfassen') && locals.auth === 'on';
 	const today = eventDay({ start: new Date().toISOString(), allDay: false }, config.timeZone);
-	const polls = on.polls && locals.auth === 'on' ? await unansweredPolls(locals, today).catch(() => []) : [];
-	const kummer = on.kummer ? await unreadKummer(locals).catch(() => ({ answers: 0, inbox: 0 })) : { answers: 0, inbox: 0 };
-	const instruments = rights.has(LENDING_RIGHT) && locals.auth === 'on' ? await dueInstruments(today) : [];
-	const duties = rights.has(DUTY_RIGHT) && locals.auth === 'on' ? await openDuties(today) : [];
+	// Four reads from D1, side by side: one after the other they were four round trips on every page with counts.
+	const [polls, kummer, instruments, duties] = await Promise.all([
+		on.polls && locals.auth === 'on' ? unansweredPolls(locals, today).catch(() => []) : [],
+		on.kummer ? unreadKummer(locals).catch(() => ({ answers: 0, inbox: 0 })) : { answers: 0, inbox: 0 },
+		rights.has(LENDING_RIGHT) && locals.auth === 'on' ? dueInstruments(today) : [],
+		rights.has(DUTY_RIGHT) && locals.auth === 'on' ? openDuties(today) : []
+	]);
 	if (!reports && !admin && !attendance && !polls.length && !kummer.answers && !kummer.inbox && !instruments.length && !duties.length) return null;
 	const [feedback, access, loans, taken, schedule, scans] = await Promise.all([
 		getFeedback(),
