@@ -7,11 +7,13 @@
 	import TempoMark from './staff/TempoMark.svelte';
 
 	/**
-	 * A melody for sight-reading (#315), two bars to a line: clef and key signature on every line,
+	 * A melody for sight-reading (#315), about eight beats to a line (two bars of 4/4, four of 2/4): clef and key signature on every line,
 	 * the time signature on the first, notes spaced by their length, beamed by the beat, stems up
 	 * below the middle line and down above it. Drawn in SVG in the text colour like DrillStaff.
 	 * `now` is the note being played (an index into `melody.notes`); `hidden` bars are blanked out
 	 * (reading ahead); `marks` and `captions` are per sounding note, after a take.
+	 * A long melody gets narrower to fit the height `--staff-room` (down to what still reads), and while
+	 * it's played the line after the current one is scrolled into view, so nobody has to scroll to go on.
 	 */
 	type Mark = 'right' | 'wrong' | 'off' | null;
 	let {
@@ -36,7 +38,9 @@
 	const BASE = 90;
 	const y = (position: number) => BASE - position * 5;
 	const STEM = 35;
-	const PER_LINE = 2;
+	const LINE_HEIGHT = 145;
+	/** Bars to a line: about eight beats, so short bars don't stack up into a long column. */
+	const perLine = $derived(Math.max(2, Math.round(32 / lengthOfBar(melody.meter))));
 	/** Room a note takes by its length, before the next one. */
 	const room = (len: number) => 12 + len * 6.5;
 	const signature = $derived(keySignature(melody.fifths));
@@ -87,8 +91,8 @@
 			bars.push({ notes, width: x, index: bar });
 		}
 		const lines: { bars: typeof bars; start: number; content: number }[] = [];
-		for (let i = 0; i < bars.length; i += PER_LINE) {
-			const some = bars.slice(i, i + PER_LINE);
+		for (let i = 0; i < bars.length; i += perLine) {
+			const some = bars.slice(i, i + perLine);
 			lines.push({ bars: some, start: bodyStart(lines.length), content: some.reduce((sum, bar) => sum + bar.width, 0) });
 		}
 		// Every line as wide as the widest, its notes spread out to fill it.
@@ -162,16 +166,29 @@
 		return { stems, beams, flags };
 	}
 
+	const shownLines = $derived(preview ? layout.slice(0, 1) : layout);
+	/** Width over height of all lines together, to fit them into `--staff-room`. */
+	const aspect = $derived((layout[0]?.width ?? 600) / (shownLines.length * LINE_HEIGHT));
+
+	let lineElements = $state<SVGSVGElement[]>([]);
+	/** The line being played, and the one after it, kept on the screen. */
+	const nowLine = $derived(now === null ? null : layout.findIndex((line) => line.bars.some((bar) => bar.notes.some((note) => note.index === now))));
+	$effect(() => {
+		if (preview || nowLine === null || nowLine < 0) return;
+		const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+		(lineElements[nowLine + 1] ?? lineElements[nowLine])?.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
+	});
+
 	const markOf = (note: Note) => (note.sounding >= 0 ? (marks[note.sounding] ?? null) : null);
 	const hollow = (len: number) => len >= 8;
 	const dotted = (len: number) => len === 3 || len === 6 || len === 12;
 </script>
 
-<div class="sight" role="img" aria-label={label}>
+<div class="sight" role="img" aria-label={label} style:--aspect={aspect}>
 	<!-- Over the empty room above the first staff: a percentage margin scales with the line's width, as the staff does. -->
 	{#if !preview}<p class="tempo" style:margin-bottom="-{(42 / (layout[0]?.width ?? 600)) * 100}%"><TempoMark bpm={markedTempo(melody.bpm, melody.meter)} unit={melody.meter === 6 ? 'dotted' : 'quarter'} /></p>{/if}
-	{#each preview ? layout.slice(0, 1) : layout as line (line.number)}
-		<svg viewBox="0 0 {line.width} 145" class="line">
+	{#each shownLines as line, i (line.number)}
+		<svg viewBox="0 0 {line.width} {LINE_HEIGHT}" class="line" bind:this={lineElements[i]}>
 			{#each [0, 2, 4, 6, 8] as each (each)}
 				<line x1="2" x2={line.width - 2} y1={y(each)} y2={y(each)} class="staffline" />
 			{/each}
@@ -275,7 +292,8 @@
 		display: grid;
 		gap: var(--space-1);
 		width: 100%;
-		max-width: 680px;
+		/* As wide as fits: 680px, or narrower so all lines fit the room given (less the tempo mark), never below what still reads. */
+		max-width: max(min(22rem, 100%), min(680px, calc((var(--staff-room, 200rem) - 2.5rem) * var(--aspect))));
 		margin-inline: auto;
 		color: var(--text);
 	}

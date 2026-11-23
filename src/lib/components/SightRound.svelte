@@ -93,6 +93,7 @@
 	let change = $state<-1 | 0 | 1>(0);
 	let scores = $state<number[]>([]);
 	let shownAt = 0;
+	let roundBox = $state<HTMLElement>();
 
 	let stopMic: (() => void) | null = null;
 	let micProblem = $state<MicProblem | null>(null);
@@ -130,6 +131,8 @@
 		}
 		count++;
 		phase = 'prep';
+		// The next melody from the top of the round, if the last one's buttons were further down.
+		if (roundBox && roundBox.getBoundingClientRect().top < 0) roundBox.scrollIntoView({ block: 'start' });
 		shownAt = performance.now();
 		// A look of a few seconds a bar: enough to find the key, the time and the tricky spots.
 		prepLeft = Math.min(30, 8 + melody.bars * 4);
@@ -304,7 +307,7 @@
 
 <svelte:window {onkeydown} />
 
-<section class="round ui-card" aria-labelledby="sight-title">
+<section class="round ui-card" aria-labelledby="sight-title" bind:this={roundBox}>
 	<header class="top">
 		<h2 id="sight-title">{title}</h2>
 		{#if phase !== 'done'}<span class="count">{tx.question(count, length)} · {tx.level(level.level, maxLevel)}</span>{/if}
@@ -312,10 +315,18 @@
 	</header>
 
 	{#if melody && phase !== 'done'}
-		<SightStaff {melody} {marks} {captions} {now} {hidden} label={keyLabel(melody)} />
+		<!-- Never taller than the screen leaves room for: the buttons below stay in view without scrolling. -->
+		<div class="score">
+			<SightStaff {melody} {marks} {captions} {now} {hidden} label={keyLabel(melody)} />
+		</div>
 
 		<div class="below" aria-live="polite">
 			{#if phase === 'prep'}
+				<!-- The start first, right under the notes; what to look out for below it. -->
+				<div class="row">
+					<button type="button" class="btn" class:pulse={!prepLeft} onclick={play}>{tx.sightStart}</button>
+				</div>
+				<p class="ui-hint">{prepLeft ? tx.prepLeft(prepLeft) : tx.prepDone}</p>
 				<ul class="look">
 					{#if entryAt}<li><strong>{tx.lookEntry(entryAt.bars, entryAt.beat)}</strong></li>{/if}
 					<li>{tx.lookKey(keyLabel(melody), tx.accidentals(Math.abs(melody.fifths), melody.fifths > 0))}</li>
@@ -325,10 +336,6 @@
 					{#if look.accidental}<li>{tx.lookAccidental(look.accidental)}</li>{/if}
 					{#if look.leap}<li>{tx.lookLeap(tx.intervalSteps[look.leap.steps] ?? '', look.leap.bar)}</li>{/if}
 				</ul>
-				<p class="ui-hint">{prepLeft ? tx.prepLeft(prepLeft) : tx.prepDone}</p>
-				<div class="row">
-					<button type="button" class="btn" class:pulse={!prepLeft} onclick={play}>{tx.sightStart}</button>
-				</div>
 				{#if mode === 'sight'}
 					<label class="check">
 						<input type="checkbox" checked={duet} onchange={(event) => onduet(event.currentTarget.checked)} />
@@ -408,9 +415,25 @@
 
 <style>
 	.round {
+		/* The room for the notes: the screen less the bars above and the round's header, and the buttons below. */
+		--staff-room: max(10rem, calc(100dvh - var(--header-height) - 17rem));
 		display: grid;
 		gap: var(--space-4);
 		padding: var(--space-4);
+		scroll-margin-top: calc(var(--header-height) + var(--space-2));
+	}
+
+	@media (max-width: 720px) {
+		.round {
+			--staff-room: max(10rem, calc(100dvh - var(--header-height) - var(--tabbar-height) - env(safe-area-inset-bottom) - 15rem));
+		}
+	}
+
+	/* A long melody at its smallest still taller than the room: it scrolls in here, following the play, not the page. */
+	.score {
+		max-height: var(--staff-room);
+		overflow-y: auto;
+		overscroll-behavior: contain;
 	}
 
 	.top {
