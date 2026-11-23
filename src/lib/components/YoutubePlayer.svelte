@@ -20,11 +20,11 @@
 	{:else}
 		<button type="button" class="poster" onclick={() => (playing = true)}>
 			<span class="play"><Icon name="music" size={22} /></span>
-			<span class="label">{t.album.video.play}{start ? ` · ${t.album.video.at(clockText(start))}` : ''}</span>
-			<span class="hint">{t.album.video.playHint}</span>
+			<span class="label">{t.albumLink.play}{start ? ` · ${t.albumLink.at(clockText(start))}` : ''}</span>
+			<span class="hint">{t.albumLink.playHint}</span>
 		</button>
 	{/if}
-	<a class="open" href={watchUrl(youtube, start)} target="_blank" rel="noopener noreferrer nofollow"><Icon name="external" size={14} />{t.album.video.open}</a>
+	<a class="open" href={watchUrl(youtube, start)} target="_blank" rel="noopener noreferrer nofollow"><Icon name="external" size={14} />{t.albumLink.open}</a>
 </div>
 
 <style>

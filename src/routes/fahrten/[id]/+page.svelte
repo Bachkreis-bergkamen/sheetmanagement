@@ -323,7 +323,7 @@
 					<li>
 						<a href={data.album.href}>
 							<span class="tile"><Icon name="camera" size={20} /></span>
-							<span class="body"><strong>{t.album.link.title}</strong><span class="muted">{t.album.link.summary(data.album.photos, data.album.videos, data.album.comments)}</span></span>
+							<span class="body"><strong>{t.albumLink.title}</strong><span class="muted">{t.albumLink.summary(data.album.photos, data.album.videos, data.album.comments)}</span></span>
 							<Icon name="chevron" size={16} />
 						</a>
 					</li>

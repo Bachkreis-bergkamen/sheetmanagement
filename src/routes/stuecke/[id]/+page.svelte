@@ -314,8 +314,8 @@
 {#if data.recordings.length}
 	<!-- Our own recordings of it (#408): from the concerts' albums, starting where it starts. -->
 	<section class="ours">
-		<h2 class="ui-label">{t.album.video.ours}</h2>
-		<p class="ours-lead">{t.album.video.oursLead}</p>
+		<h2 class="ui-label">{t.albumLink.ours}</h2>
+		<p class="ours-lead">{t.albumLink.oursLead}</p>
 		{#each data.recordings as recording (recording.id)}
 			<div class="recording">
 				<a href={recording.href}><strong>{recording.album}</strong>{recording.when ? ` · ${recording.when}` : ''}</a>

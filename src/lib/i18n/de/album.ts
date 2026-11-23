@@ -95,17 +95,10 @@ export const album = {
 		save: 'Aufnahme hinzufügen',
 		sent: 'Aufnahme vorgeschlagen. Sie erscheint nach der Freigabe.',
 		sentApproved: 'Aufnahme hinzugefügt.',
-		play: 'Abspielen',
-		playHint: 'Das Video kommt von YouTube, ohne Cookies, bis du abspielst.',
-		open: 'Auf YouTube öffnen',
 		by: (name: string) => `Von ${name}`,
-		at: (clock: string) => `ab ${clock}`,
 		remove: 'Aufnahme entfernen',
 		removeConfirm: 'Diese Aufnahme aus dem Album entfernen? Das Video auf YouTube bleibt.',
-		removed: 'Aufnahme entfernt.',
-		/** On a piece's page. */
-		ours: 'Unsere Aufnahmen',
-		oursLead: 'Aus unseren Konzerten, nur für Mitglieder.'
+		removed: 'Aufnahme entfernt.'
 	},
 
 	talk: {
@@ -155,19 +148,6 @@ export const album = {
 		waiting: (n: number) => `Von dir warten schon ${n} Fotos auf Freigabe. Sobald sie freigegeben sind, geht es weiter.`,
 		notYours: 'Das darfst du nicht entfernen.',
 		failed: 'Das hat nicht geklappt. Bitte versuch es noch einmal.'
-	},
-
-	/** On a date's or trip's page. */
-	link: {
-		title: 'Fotos & Eindrücke',
-		summary: (photos: number, videos: number, comments: number) =>
-			[
-				photos ? (photos === 1 ? '1 Foto' : `${photos} Fotos`) : '',
-				videos ? (videos === 1 ? '1 Aufnahme' : `${videos} Aufnahmen`) : '',
-				comments ? (comments === 1 ? '1 Kommentar' : `${comments} Kommentare`) : ''
-			]
-				.filter(Boolean)
-				.join(' · ') || 'Fotos hinzufügen und erzählen, wie es war'
 	},
 
 	/** In "Meine Daten herunterladen". */

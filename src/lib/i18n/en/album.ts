@@ -95,17 +95,10 @@ export const album = {
 		save: 'Add recording',
 		sent: 'Recording suggested. It appears once approved.',
 		sentApproved: 'Recording added.',
-		play: 'Play',
-		playHint: 'The video comes from YouTube, without cookies until you play it.',
-		open: 'Open on YouTube',
 		by: (name: string) => `By ${name}`,
-		at: (clock: string) => `from ${clock}`,
 		remove: 'Remove recording',
 		removeConfirm: 'Remove this recording from the album? The video on YouTube stays.',
-		removed: 'Recording removed.',
-		/** On a piece's page. */
-		ours: 'Our recordings',
-		oursLead: 'From our concerts, for members only.'
+		removed: 'Recording removed.'
 	},
 
 	talk: {
@@ -155,19 +148,6 @@ export const album = {
 		waiting: (n: number) => `${n} of your photos are already waiting for approval. Once they’re approved you can add more.`,
 		notYours: 'You may not remove that.',
 		failed: 'That didn’t work. Please try again.'
-	},
-
-	/** On a date's or trip's page. */
-	link: {
-		title: 'Photos & impressions',
-		summary: (photos: number, videos: number, comments: number) =>
-			[
-				photos ? (photos === 1 ? '1 photo' : `${photos} photos`) : '',
-				videos ? (videos === 1 ? '1 recording' : `${videos} recordings`) : '',
-				comments ? (comments === 1 ? '1 comment' : `${comments} comments`) : ''
-			]
-				.filter(Boolean)
-				.join(' · ') || 'Add photos and tell how it was'
 	},
 
 	/** In "Download my data". */

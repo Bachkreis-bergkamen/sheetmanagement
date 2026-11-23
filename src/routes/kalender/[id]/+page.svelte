@@ -276,8 +276,8 @@
 			<a class="fact" href={album.href}>
 				<span class="icon"><Icon name="camera" size={18} /></span>
 				<span class="fact-body">
-					<strong>{t.album.link.title}</strong>
-					<span>{t.album.link.summary(album.photos, album.videos, album.comments)}</span>
+					<strong>{t.albumLink.title}</strong>
+					<span>{t.albumLink.summary(album.photos, album.videos, album.comments)}</span>
 				</span>
 				<span class="trail"><Icon name="chevron" size={16} /></span>
 			</a>
