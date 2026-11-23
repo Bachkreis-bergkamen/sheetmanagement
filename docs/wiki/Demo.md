@@ -19,6 +19,6 @@ Everything works, including the editors, but changes stay in memory: they're gon
 ## Notes
 
 - The settings come from `[env.demo]` in `wrangler.toml`. If you also have a `.dev.vars` with real settings, create an empty `.dev.vars.demo`; otherwise Wrangler loads `.dev.vars` for the demo too.
-- The public demo is a separate Worker (`noten-demo`) that needs no secrets: `APP_LANGUAGE=en pnpm build && pnpm wrangler deploy --env demo`. The deploy workflow does this after every merge into `main`.
+- The public demo is a separate Worker (`noten-demo`) that needs no secrets: `APP_LANGUAGE=en CLOUDFLARE_ENV=demo pnpm build && pnpm wrangler deploy` (the environment is picked when building). The deploy workflow does this after every merge into `main`.
 - On Cloudflare each Worker instance keeps its own copy of the data, so visitors may see each other's changes for a while, or not.
 - The end-to-end tests (`pnpm test:e2e`) run against the demo too.
