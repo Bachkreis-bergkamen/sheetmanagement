@@ -73,3 +73,13 @@ The app's own settings stay Cloudflare secrets; the workflow doesn't touch them.
 ## On Windows
 
 Stop a running `pnpm preview` or `pnpm dev` before building again: the running Worker locks the build folder.
+
+## Sign-in with the school account
+
+Besides Google, email and password, and access links, the app can offer one OpenID Connect provider: Microsoft 365 / Entra ID, IServ, Moodle with an OIDC plugin, Keycloak and the like. Ask the school's IT and data protection officer first whether it may be used for this.
+
+1. Register the app with the provider as a web application with the redirect address `https://<your address>/auth/oidc/callback` and the scopes `openid email profile`.
+2. Set `OIDC_ISSUER` (the address before `/.well-known/openid-configuration`, for Entra ID `https://login.microsoftonline.com/<tenant id>/v2.0`), `OIDC_CLIENT_ID` and `OIDC_CLIENT_SECRET`, and `OIDC_LABEL` for the button ("IServ").
+3. Entra ID and many school systems don't mark addresses as verified. If the school gives out the addresses and people can't pick their own, set `OIDC_TRUST_EMAIL=true`; otherwise the sign-in refuses them.
+
+Members are matched by the email address the provider gives. If it isn't the one in "Mitglieder", add it to the member's other addresses (`Weitere Adressen`).

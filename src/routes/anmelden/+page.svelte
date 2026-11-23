@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import * as t from '#lib/i18n/texts.ts';
+	import Icon from '#lib/components/Icon.svelte';
 	import Title from '#lib/components/Title.svelte';
 
 	let { data, form } = $props();
@@ -55,6 +56,15 @@
 				{t.auth.button}
 			</a>
 			<p class="small">{t.auth.privacy}</p>
+			<p class="or"><span>{t.email.or}</span></p>
+		{/if}
+		{#if data.oidc}
+			<!-- The school's account (#190): Microsoft 365, IServ or another OpenID Connect sign-in. -->
+			<a class="button" href="/auth/oidc/login?weiter={encodeURIComponent(data.returnTo)}" data-sveltekit-reload>
+				<Icon name="user" size={18} />
+				{t.auth.oidc.button(data.oidc)}
+			</a>
+			{#if !data.google}<p class="small">{t.auth.privacy}</p>{/if}
 			<p class="or"><span>{t.email.or}</span></p>
 		{/if}
 		<form

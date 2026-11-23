@@ -5,6 +5,7 @@ import { getStore } from '../db/index.ts';
 import { appEnv, isDemo } from '../env.ts';
 import { readAccessList } from '../repertoire.ts';
 import { linkValid } from './links.ts';
+import type { OidcConfig } from './oidc.ts';
 import { savedAccounts, withAccount, writeSaved } from './saved.ts';
 import { SESSION_DAYS, signSession, verifySession, type Session } from './session.ts';
 import * as t from '#lib/i18n/texts.ts';
@@ -26,6 +27,8 @@ export type AuthConfig =
 			google: boolean;
 			clientId: string;
 			clientSecret: string;
+			/** The school's or another OpenID Connect sign-in (#190), from OIDC_ISSUER; null without one. */
+			oidc: OidcConfig | null;
 			sessionSecret: string;
 			bootstrapAdmins: string[];
 			/** Settings that are missing or too weak; sign-in fails until they're fixed. */
@@ -52,10 +55,11 @@ export function authConfig(): AuthConfig {
 	const env = appEnv();
 	// The demo is "signed in" without Google: as the admin, or as a member to see their view.
 	if (isDemo()) {
-		return { mode: 'on', google: true, clientId: 'demo', clientSecret: 'demo', sessionSecret: 'demo'.repeat(8), bootstrapAdmins: [DEMO_ADMIN.email], problems: [] };
+		return { mode: 'on', google: true, clientId: 'demo', clientSecret: 'demo', oidc: null, sessionSecret: 'demo'.repeat(8), bootstrapAdmins: [DEMO_ADMIN.email], problems: [] };
 	}
 	const clientId = env.GOOGLE_OAUTH_CLIENT_ID?.trim() ?? '';
-	if (!clientId && !signInRequired(env.FORCE_AUTH)) return { mode: 'off', reason: 'not-configured' };
+	const oidc = oidcConfig(env);
+	if (!clientId && !oidc && !signInRequired(env.FORCE_AUTH)) return { mode: 'off', reason: 'not-configured' };
 	if (!signInForced(env.FORCE_AUTH)) return { mode: 'off', reason: 'disabled' };
 	const google = !!clientId;
 	const clientSecret = env.GOOGLE_OAUTH_CLIENT_SECRET?.trim() ?? '';
@@ -63,10 +67,40 @@ export function authConfig(): AuthConfig {
 	const bootstrapAdmins = parseEmailList(env.BOOTSTRAP_ADMINS);
 	const problems = [
 		...(clientSecret || !google ? [] : [t.messages.notSet('GOOGLE_OAUTH_CLIENT_SECRET')]),
+		...oidcProblems(oidc),
 		...(sessionSecret.length >= MIN_SECRET_LENGTH ? [] : [t.messages.shortSecret(MIN_SECRET_LENGTH)]),
 		...(bootstrapAdmins.length ? [] : [t.messages.noAdmins])
 	];
-	return { mode: 'on', google, clientId, clientSecret, sessionSecret, bootstrapAdmins, problems };
+	return { mode: 'on', google, clientId, clientSecret, oidc, sessionSecret, bootstrapAdmins, problems };
+}
+
+/** The OpenID Connect sign-in (#190): on as soon as OIDC_ISSUER is set. */
+function oidcConfig(env: ReturnType<typeof appEnv>): OidcConfig | null {
+	const issuer = env.OIDC_ISSUER?.trim() ?? '';
+	if (!issuer) return null;
+	return {
+		issuer,
+		clientId: env.OIDC_CLIENT_ID?.trim() ?? '',
+		clientSecret: env.OIDC_CLIENT_SECRET?.trim() ?? '',
+		label: env.OIDC_LABEL?.trim() || t.auth.oidc.defaultLabel,
+		trustEmail: switchedOn(env.OIDC_TRUST_EMAIL)
+	};
+}
+
+/** What's missing for the OpenID Connect sign-in: setting names only, no values. */
+export function oidcProblems(oidc: OidcConfig | null): string[] {
+	if (!oidc) return [];
+	let https = false;
+	try {
+		https = new URL(oidc.issuer).protocol === 'https:';
+	} catch {
+		// Not a URL at all: the same problem.
+	}
+	return [
+		...(https ? [] : [t.auth.oidc.issuerNotHttps]),
+		...(oidc.clientId ? [] : [t.messages.notSet('OIDC_CLIENT_ID')]),
+		...(oidc.clientSecret ? [] : [t.messages.notSet('OIDC_CLIENT_SECRET')])
+	];
 }
 
 /** Signs someone in: a session cookie for SESSION_DAYS, whichever way they proved who they are. */

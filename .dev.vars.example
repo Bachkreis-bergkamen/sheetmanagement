@@ -70,6 +70,19 @@ REPERTOIRE_SHEET_ID=""
 # FORCE_AUTH="true"
 # Comma-separated emails that always have every right (the first admins).
 # BOOTSTRAP_ADMINS="admin@example.org,second-admin@example.org"
+# Sign-in with the school's account or another OpenID Connect provider (#190), next to the
+# others; setting OIDC_ISSUER turns sign-in on. Register the app with the provider with the
+# redirect address https://<your address>/auth/oidc/callback and the scopes openid, email,
+# profile. Members are matched by the email address the provider gives.
+# OIDC_ISSUER="https://login.microsoftonline.com/<tenant id>/v2.0"
+# OIDC_CLIENT_ID=""
+# OIDC_CLIENT_SECRET=""
+# The button's name: "Mit IServ anmelden". Default: "Mit dem Schulkonto anmelden".
+# OIDC_LABEL="IServ"
+# true: accept addresses the provider doesn't mark as verified (no email_verified claim), as
+# Entra ID and many school systems do, whose addresses the school gives out. Only for a
+# provider where people can't choose their own address.
+# OIDC_TRUST_EMAIL="true"
 
 # --- Notifications (#157) ------------------------------------------------------------
 # Reminders on members' phones (unanswered rehearsals, rented music due) and a notice to the

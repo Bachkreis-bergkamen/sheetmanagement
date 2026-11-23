@@ -10,8 +10,15 @@ export const auth: Texts['auth'] = {
 		abgebrochen: 'Sign-in was cancelled.',
 		abgelaufen: 'Sign-in has expired. Please try again.',
 		konto: 'This Google account has no verified email address.',
+		oidc: "Signing in with the provider didn't work just now. Please try again.",
+		'oidc-konto': 'This account has no verified email address. Please sign in another way.',
 		google: "Google didn't confirm the sign-in just now. Please try again."
 	} as Record<string, string>,
+	oidc: {
+		button: (label: string) => `Sign in with ${label}`,
+		defaultLabel: 'your school account',
+		issuerNotHttps: 'OIDC_ISSUER must be an https address.'
+	},
 	signedInAs: (email: string) => `Signed in as ${email}`,
 	logout: 'Sign out',
 	switchAccount: 'Sign in with another account',

@@ -51,6 +51,17 @@ export interface AppEnv {
 	 * "true" turns it on without Google, with email and password and access links only. Default: on with Google, else off.
 	 */
 	FORCE_AUTH?: string;
+	/**
+	 * Sign-in with the school's or another OpenID Connect account (#190): the issuer, e.g.
+	 * "https://login.microsoftonline.com/<tenant>/v2.0". Its client id and secret from the
+	 * provider (redirect address <origin>/auth/oidc/callback), and the button's name ("IServ").
+	 */
+	OIDC_ISSUER?: string;
+	OIDC_CLIENT_ID?: string;
+	OIDC_CLIENT_SECRET?: string;
+	OIDC_LABEL?: string;
+	/** "true": take the provider's address without an email_verified claim (Entra ID, school systems). */
+	OIDC_TRUST_EMAIL?: string;
 	/** Comma-separated emails that always have every right. */
 	BOOTSTRAP_ADMINS?: string;
 	/** Who is responsible for the app, for the privacy notice (defaults to ORCHESTRA_NAME). */
