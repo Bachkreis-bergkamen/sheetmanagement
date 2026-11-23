@@ -17,16 +17,23 @@ const GENRES: { key: GenreKey; words: RegExp }[] = [
 	{ key: 'musical', words: /musical/ },
 	{ key: 'oper', words: /\boper|opera|operette|singspiel/ },
 	{ key: 'jazz', words: /jazz|swing|big ?band|blues|latin/ },
-	{ key: 'pop-rock', words: /\bpop|rock|schlager/ },
+	// "\brock": not the end of "Barock".
+	{ key: 'pop-rock', words: /\bpop|\brock|schlager/ },
 	{ key: 'marsch-blasmusik', words: /marsch|march|blasmusik|blasorchester/ },
 	{ key: 'tanz-walzer', words: /walzer|waltz|tanz|dance|polka|tango|menuett/ }
 ];
 
+/** The genres a piece's "Genre" cell names, as the pictures know them: "Filmmusik, Pop" → filmmusik, pop-rock. */
+export function genreKeys(genre: string | undefined): GenreKey[] {
+	return splitList(genre).flatMap((part) => {
+		const match = GENRES.find((entry) => entry.words.test(searchText(part)));
+		return match ? [match.key] : [];
+	});
+}
+
 export function pieceArt({ genre, title }: { genre?: string; title: string }): ArtKey {
-	for (const name of splitList(genre).map((part) => searchText(part))) {
-		const match = GENRES.find((entry) => entry.words.test(name));
-		if (match) return match.key;
-	}
+	const [match] = genreKeys(genre);
+	if (match) return match;
 	// Leading articles and numbers don't count: "Die Moldau" is an M, "1812" has no letter.
 	const letter = searchText(title)
 		.replace(/^(der|die|das|the|a|an|le|la|les|il|el)\s+/, '')

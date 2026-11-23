@@ -8,6 +8,9 @@ describe('pieceArt', () => {
 		expect(pieceArt({ genre: 'Klassik, Weihnachtslied', title: 'Stille Nacht' })).toBe('weihnachten');
 		expect(pieceArt({ genre: 'Operette', title: 'Die Fledermaus' })).toBe('oper');
 		expect(pieceArt({ genre: 'Big Band', title: 'In the Mood' })).toBe('jazz');
+		expect(pieceArt({ genre: 'Rock, Pop', title: 'Bohemian Rhapsody' })).toBe('pop-rock');
+		// "Barock" ends in "rock", but isn't.
+		expect(pieceArt({ genre: 'Barock', title: 'Brandenburgisches Konzert' })).toBe('staff');
 	});
 
 	it('without a known genre: a staff for titles A–G, a violin for the rest', () => {

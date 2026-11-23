@@ -10,6 +10,7 @@ import { driveWriteEnabled, getArchiveIndex } from '#lib/server/services.ts';
 import { isGap, priorityRank, reportedGaps } from '#lib/repertoire/missing-parts.ts';
 import { missingVoices, readInstrumentation, voiceText } from '#lib/music/instrumentation.ts';
 import { playedParts } from '#lib/music/my-parts.ts';
+import { mayBeOnImslp } from '#lib/music/imslp.ts';
 import { getFeedback, getMissingPartsDone, getMusicConfig, getScanTasks } from '#lib/server/repertoire.ts';
 import { planScans, scanners } from '#lib/server/scan-tasks.ts';
 import { ensureColumns, readTab, refreshAfterWrite, SheetLayoutError, updateRecord, updateRecords } from '#lib/server/sheet-writes.ts';
@@ -93,7 +94,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 				: [];
 			// A piece is as urgent as its most urgent open gap.
 			const rank = Math.min(priorityRank(undefined), ...gaps.filter((gap) => !gap.done).map((gap) => priorityRank(gap.priority)));
-			return { id: piece.id, title: piece.title, composer: piece.composer, programs: piece.programs, gaps, reports, hints, unscored, rank };
+			// IMSLP (#198): only where looking can help, not for film music, pop or arrangements.
+			const imslp = canMark && gaps.length > 0 && mayBeOnImslp({ composer: piece.composer, genre: piece.sheet?.genre, arranger: piece.sheet?.arranger });
+			return { id: piece.id, title: piece.title, composer: piece.composer, programs: piece.programs, gaps, reports, hints, unscored, rank, imslp };
 		})
 		.filter((piece) => piece.gaps.length || piece.reports.length || piece.hints.length || piece.unscored.length)
 		.sort((a, b) => a.rank - b.rank);

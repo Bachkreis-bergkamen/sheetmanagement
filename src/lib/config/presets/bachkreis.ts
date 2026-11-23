@@ -219,7 +219,7 @@ export const bachkreis: OrchestraConfig = {
 			name: 'Kontrabass',
 			family: 'streicher',
 			common: true,
-			aliases: ['Kontrabässe', 'Contrabass', 'Contrabasses', 'Double Bass', 'String Bass', 'Stringbass', 'Bass']
+			aliases: ['Kontrabässe', 'Contrabass', 'Contrabasses', 'Double Bass', 'Double Basses', 'String Bass', 'Stringbass', 'Bass', 'Basses']
 		},
 		{ name: 'Gitarre', family: 'streicher', aliases: ['Guitar', 'Konzertgitarre', 'Classical Guitar', 'Akustikgitarre', 'Acoustic Guitar'] },
 		{ name: 'E-Gitarre', family: 'streicher', aliases: ['E Gitarre', 'Electric Guitar'] },
