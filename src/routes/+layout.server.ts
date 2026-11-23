@@ -33,7 +33,7 @@ export const load: LayoutServerLoad = async ({ locals, url, cookies }) => {
 	// A parent: only their area ("only"), or a member who also has children there ("also").
 	const parent = access.parent ? (access.parent.only ? ('only' as const) : ('also' as const)) : undefined;
 	// The reads below don't wait for each other (#349): they run side by side on every navigation.
-	const pollsRead = Promise.resolve(parent !== 'only' && (held.has('termine.planen') || visiblePolls(locals).then((list) => list.length > 0, () => false)));
+	const pollsRead = Promise.resolve(parent !== 'only' && on.polls && (held.has('termine.planen') || visiblePolls(locals).then((list) => list.length > 0, () => false)));
 	// The counts need the menu, and the menu needs to know whether there are polls.
 	const countsRead = pollsRead.then(async (polls) => (workspaceOf(navGroups({ auth, rights, features: on, polls, parent }), url.pathname) ? countsByPage(await openWork(locals)) : {}));
 	// The first instrument from "Mitglieder" is the avatar's picture (#136).

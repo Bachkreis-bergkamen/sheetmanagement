@@ -214,16 +214,19 @@
 	</section>
 {/if}
 
-<section class="block">
-	<a class="ui-card write" href="/eltern/nachrichten">
-		<Icon name="mail" size={22} />
-		<span>
-			<strong>{t.parents.write}</strong>
-			<small>{t.parents.messages.lead}</small>
-		</span>
-		<Icon name="chevron" size={16} />
-	</a>
-</section>
+<!-- Messages to the Leitung go through the Kummerkasten: gone while it's turned off (#395). -->
+{#if data.features.kummer}
+	<section class="block">
+		<a class="ui-card write" href="/eltern/nachrichten">
+			<Icon name="mail" size={22} />
+			<span>
+				<strong>{t.parents.write}</strong>
+				<small>{t.parents.messages.lead}</small>
+			</span>
+			<Icon name="chevron" size={16} />
+		</a>
+	</section>
+{/if}
 
 <style>
 	.drills .lead,

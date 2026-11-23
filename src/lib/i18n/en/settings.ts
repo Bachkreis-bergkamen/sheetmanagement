@@ -53,7 +53,14 @@ export const settings: Texts['settings'] = {
 		seasons: 'Small drawings for the season: a snowflake, a blossom, a pumpkin.',
 		tickets: 'Reserve concert tickets on the website, paid at the door, with check-in by phone.',
 		offline: 'Save parts in “My parts” for rehearsals without a connection.',
-		drills: 'Short exercises in note reading, keys, intervals, rhythm, pitch, scales, sight-reading, playing together and transposing. They run on the device, your progress follows you to your other devices; the time counts toward practice time.'
+		drills: 'Short exercises in note reading, keys, intervals, rhythm, pitch, scales, sight-reading, playing together and transposing. They run on the device, your progress follows you to your other devices; the time counts toward practice time.',
+		trips: 'Concert and rehearsal trips with sign-up, a plan for each day, rooms, travel and costs.',
+		lending: 'The orchestra’s instruments: what there is and who has which one.',
+		duties: 'Jobs for concerts that members take on themselves, and car-pools.',
+		polls: 'Offer several dates and find the one that suits most.',
+		kummer: 'Anonymous messages to the leaders, answered privately; also how parents reach the leaders.',
+		parents: 'Parent accounts for young members: their children’s dates, excuses, notices. While off, parent accounts have no access.',
+		chronicle: 'The orchestra’s past concerts and seasons, with a look back at each season.'
 	} as Record<string, string>,
 	instruments: 'Instruments',
 	instrumentsLead:

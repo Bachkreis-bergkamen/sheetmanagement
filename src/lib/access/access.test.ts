@@ -6,6 +6,7 @@ import {
 	buildAccessList,
 	isAdminOnly,
 	parentMayOpen,
+	withoutParentArea,
 	formatRoles,
 	parseRoles,
 	mayFor,
@@ -570,5 +571,15 @@ describe('other addresses of a member (#190)', () => {
 		const mia = resolveAccess(user('mia.beispiel@schule.example'), school, ['mia@example.org']);
 		expect(mia.bootstrapAdmin).toBe(false);
 		expect(mia.rights.has('mitglieder.verwalten')).toBe(false);
+	});
+});
+
+describe("the parents' area turned off (#395)", () => {
+	it('leaves a parent account without access and a member with children without the area', () => {
+		const user = { email: 'p@x.org', name: 'P' };
+		expect(withoutParentArea({ user, member: true, parent: { children: ['k@x.org'], only: true } })).toEqual({ user, member: false });
+		expect(withoutParentArea({ user, member: true, parent: { children: ['k@x.org'], only: false } })).toEqual({ user, member: true });
+		const plain = { user, member: true };
+		expect(withoutParentArea(plain)).toBe(plain);
 	});
 });

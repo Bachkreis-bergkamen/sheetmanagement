@@ -58,7 +58,7 @@ export function navGroups({ auth, rights, features = ALL_ON, polls = false, pare
 				label: t.nav.groups.eltern,
 				items: [
 					{ href: '/eltern', label: t.nav.parents, icon: 'users', primary: true },
-					{ href: '/eltern/nachrichten', label: t.nav.parentMessages, icon: 'mail', primary: true },
+					...(features.kummer ? [{ href: '/eltern/nachrichten', label: t.nav.parentMessages, icon: 'mail' as const, primary: true }] : []),
 					// Their child's trips (#334, #299): to confirm the sign-up and see the plan.
 					...(features.trips ? [{ href: '/fahrten', label: t.nav.trips, icon: 'suitcase' as const }] : []),
 					{ href: '/profil', label: t.nav.profile, icon: 'user', primary: true }
@@ -77,7 +77,7 @@ export function navGroups({ auth, rights, features = ALL_ON, polls = false, pare
 				{ href: '/stuecke', label: t.nav.pieces, icon: 'music' },
 				// The Übebereich's drills (#300): on the device, so also with sign-in off.
 				...(features.drills ? [{ href: '/ueben', label: t.nav.drills, icon: 'note' as const }] : []),
-				{ href: '/chronik', label: t.nav.chronicle, icon: 'history' }
+				...(features.chronicle ? [{ href: '/chronik', label: t.nav.chronicle, icon: 'history' as const }] : [])
 			]
 		},
 		{
@@ -88,13 +88,13 @@ export function navGroups({ auth, rights, features = ALL_ON, polls = false, pare
 				auth === 'on'
 					? [
 							...(features.wishes ? [{ href: '/wuensche', label: t.nav.wishes, icon: 'bulb' as const }] : []),
-							...(polls ? [{ href: '/termine', label: t.nav.polls, icon: 'poll' as const }] : []),
+							...(polls && features.polls ? [{ href: '/termine', label: t.nav.polls, icon: 'poll' as const }] : []),
 							// Konzert- and Probenfahrten (#334): sign up, and the plan of each day.
 							...(features.trips ? [{ href: '/fahrten', label: t.nav.trips, icon: 'suitcase' as const }] : []),
 							// The parents' area, for a member whose children play too.
-							...(parent === 'also' ? [{ href: '/eltern', label: t.nav.parents, icon: 'users' as const }] : []),
+							...(parent === 'also' && features.parents ? [{ href: '/eltern', label: t.nav.parents, icon: 'users' as const }] : []),
 							// Anonymous messages to the Leitung, and its inbox for those who read it.
-							{ href: '/kummerkasten', label: t.nav.kummer, icon: 'mail' as const },
+							...(features.kummer ? [{ href: '/kummerkasten', label: t.nav.kummer, icon: 'mail' as const }] : []),
 							// Also behind the avatar in the header; in the tab bar for members (see primaryNav).
 							{ href: '/profil', label: t.nav.profile, icon: 'user' as const, primary: true }
 						]
@@ -128,7 +128,7 @@ export function navGroups({ auth, rights, features = ALL_ON, polls = false, pare
 			items: [
 				...(admin && auth === 'on' ? [{ href: '/admin', label: t.nav.admin, icon: 'shield' as const }] : []),
 				// Notices to the parents, shown in their area.
-				...(has(rights, 'eltern.informieren') && auth === 'on' ? [{ href: '/eltern/mitteilungen', label: t.nav.parentNotices, icon: 'bell' as const }] : []),
+				...(has(rights, 'eltern.informieren') && features.parents && auth === 'on' ? [{ href: '/eltern/mitteilungen', label: t.nav.parentNotices, icon: 'bell' as const }] : []),
 				// The instruments the orchestra lends to members (#296).
 				...(has(rights, 'instrumente.verwalten') && features.lending && auth === 'on' ? [{ href: '/leihinstrumente', label: t.nav.lending, icon: 'loan' as const }] : []),
 				// Dienste for concerts (#298): open places and who did how many.
