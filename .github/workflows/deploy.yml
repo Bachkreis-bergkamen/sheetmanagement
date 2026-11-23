@@ -93,16 +93,19 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+      # The Wrangler environment is chosen when building (adapter-cloudflare 9): the generated
+      # wrangler.json is then the demo Worker's, so the deploy needs no --env.
       - run: pnpm build
         env:
           APP_LANGUAGE: en
+          CLOUDFLARE_ENV: demo
 
       - name: Deploy
         uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy --env demo
+          command: deploy
 
       # The demo signs everyone in, so the start page answers right away instead of redirecting.
       - name: Smoke test

@@ -2,7 +2,6 @@
 # Deployment-specific values (orchestra name, Google ids, keys) are set per
 # deployment with `wrangler secret put <NAME>`; see .dev.vars.example for the list.
 name = "noten"
-main = ".svelte-kit/cloudflare/_worker.js"
 compatibility_date = "2026-10-01"
 compatibility_flags = ["nodejs_als"]
 
@@ -49,13 +48,15 @@ migrations_dir = "migrations"
 [triggers]
 crons = ["*/10 * * * *"]
 
+# No `main` and no assets directory (adapter-cloudflare 9): `vite build` writes its own
+# wrangler.json from this file into .svelte-kit/cloudflare, with the worker and the files, and
+# `wrangler deploy` uses that one (through .wrangler/deploy/config.json).
 [assets]
 binding = "ASSETS"
-directory = ".svelte-kit/cloudflare"
 
 # Demo with invented sample data instead of Google, signed in as a demo user (#121).
-# Locally: pnpm dev:demo. Deployed: pnpm build && pnpm wrangler deploy --env demo
-# (a separate Worker, "noten-demo"; it needs no secrets). Bindings aren't inherited, so the
+# Locally: pnpm dev:demo. Deployed: CLOUDFLARE_ENV=demo pnpm build && pnpm wrangler deploy
+# (the environment is picked when building; a separate Worker, "noten-demo"; it needs no secrets). Bindings aren't inherited, so the
 # demo runs without the KV cache, the sheet lock and the database, which it doesn't need
 # (Wrangler warns about them; that's expected). Its notifications stay off.
 [env.demo]

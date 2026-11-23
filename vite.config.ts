@@ -32,11 +32,19 @@ function textsLanguage(lang: 'de' | 'en'): Plugin {
 	};
 }
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ mode }) => {
+	// The Wrangler environment (adapter-cloudflare 9 reads it through Cloudflare's Vite plugin):
+	// [env.demo] for `pnpm dev:demo`. A build for the demo sets CLOUDFLARE_ENV=demo itself, so the
+	// generated wrangler.json is the demo Worker's.
+	if (mode === 'demo') process.env.CLOUDFLARE_ENV ??= 'demo';
+	return config(mode);
+});
+
+const config = (mode: string) => ({
 	plugins: [
 		textsLanguage(language(mode)),
 		sveltekit({
-			adapter: adapter({ platformProxy: { environment: mode === 'demo' ? 'demo' : undefined } }),
+			adapter: adapter({ platformProxy: { environment: process.env.CLOUDFLARE_ENV || undefined } }),
 			// An open app notices a deploy within a few minutes and offers "Neu laden" (#140).
 			version: { pollInterval: 5 * 60 * 1000 },
 			// Which scripts may run (#358): the app's own, SvelteKit's inline ones by nonce, and
@@ -78,4 +86,4 @@ export default defineConfig(({ mode }) => ({
 	test: {
 		include: ['src/**/*.test.ts']
 	}
-}));
+});
