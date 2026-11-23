@@ -1,6 +1,7 @@
 /**
  * Measures how fast the app is on this device (#187), the way the browser's own Core Web
- * Vitals do, without a library: LCP and TTFB once for the page the app was opened on, INP for
+ * Vitals do, without a library: LCP and TTFB once for the page the app was opened on (and the
+ * server's own share of TTFB, from its Server-Timing header), INP for
  * every route visited. Sent as one small beacon when the route changes or the app is hidden.
  * Only route patterns and times leave the device.
  */
@@ -10,7 +11,11 @@ interface Landing {
 	route: string;
 	lcp: number | null;
 	ttfb: number | null;
+	server: number | null;
 }
+
+/** The steps hooks.server.ts times in its Server-Timing header. */
+const HOOK_MARKS = new Set(['settings', 'access', 'page']);
 
 let started = false;
 /** The page the app was opened on, until its LCP and TTFB are sent. */
@@ -37,7 +42,10 @@ export function startVitals(route: string) {
 	const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
 	// Opened in a background tab: the page wasn't waited for, so its load says nothing.
 	const visible = document.visibilityState === 'visible';
-	landing = { route, lcp: null, ttfb: visible && navigation && navigation.responseStart > 0 ? navigation.responseStart : null };
+	const ttfb = visible && navigation && navigation.responseStart > 0 ? navigation.responseStart : null;
+	// The hook's marks add up to the server's time; none when a cache answered. Cloudflare adds marks of its own.
+	const marks = (navigation?.serverTiming ?? []).filter((mark) => HOOK_MARKS.has(mark.name));
+	landing = { route, lcp: null, ttfb, server: ttfb !== null && marks.length ? marks.reduce((sum, mark) => sum + mark.duration, 0) : null };
 	current = { route, interactions: new Map() };
 	if (visible) {
 		observe('largest-contentful-paint', (entries) => {
@@ -68,9 +76,9 @@ export function vitalsNavigated(route: string) {
 
 function flush(next: string | null) {
 	lcpFinal = true;
-	const items: { route: string; lcp?: number; ttfb?: number; inp?: number }[] = [];
+	const items: { route: string; lcp?: number; ttfb?: number; server?: number; inp?: number }[] = [];
 	if (landing && (landing.lcp !== null || landing.ttfb !== null)) {
-		items.push({ route: landing.route, ...(landing.lcp !== null ? { lcp: Math.round(landing.lcp) } : {}), ...(landing.ttfb !== null ? { ttfb: Math.round(landing.ttfb) } : {}) });
+		items.push({ route: landing.route, ...(landing.lcp !== null ? { lcp: Math.round(landing.lcp) } : {}), ...(landing.ttfb !== null ? { ttfb: Math.round(landing.ttfb) } : {}), ...(landing.server !== null ? { server: Math.round(landing.server) } : {}) });
 	}
 	landing = null;
 	const inp = current ? inpOf([...current.interactions.values()]) : null;

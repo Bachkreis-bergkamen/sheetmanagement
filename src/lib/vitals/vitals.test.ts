@@ -31,12 +31,13 @@ describe('field speed (#187)', () => {
 			{ route: '/', device: 'phone', metric: 'lcp', bucket: 1000, count: 5 },
 			{ route: '/', device: 'phone', metric: 'inp', bucket: 100, count: 9 },
 			{ route: '/kalender', device: 'phone', metric: 'lcp', bucket: 2500, count: 8 },
-			{ route: '/', device: 'desktop', metric: 'ttfb', bucket: 300, count: 1 }
+			{ route: '/', device: 'desktop', metric: 'ttfb', bucket: 300, count: 1 },
+			{ route: '/', device: 'desktop', metric: 'server', bucket: 50, count: 1 }
 		]);
-		expect(rows.map((row) => [row.route, row.device, row.loads, row.lcp, row.inp, row.ttfb])).toEqual([
-			['/kalender', 'phone', 8, 2500, null, null],
-			['/', 'phone', 5, 1000, 100, null],
-			['/', 'desktop', 0, null, null, 300]
+		expect(rows.map((row) => [row.route, row.device, row.loads, row.lcp, row.inp, row.ttfb, row.server])).toEqual([
+			['/kalender', 'phone', 8, 2500, null, null, null],
+			['/', 'phone', 5, 1000, 100, null, null],
+			['/', 'desktop', 0, null, null, 300, 50]
 		]);
 	});
 

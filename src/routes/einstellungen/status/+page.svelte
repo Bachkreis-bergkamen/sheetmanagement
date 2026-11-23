@@ -194,6 +194,7 @@
 							<th scope="col"><abbr title={t.status.vitals.names.lcp}>LCP</abbr></th>
 							<th scope="col"><abbr title={t.status.vitals.names.inp}>INP</abbr></th>
 							<th scope="col"><abbr title={t.status.vitals.names.ttfb}>TTFB</abbr></th>
+								<th scope="col"><abbr title={t.status.vitals.names.server}>Server</abbr></th>
 						</tr>
 					</thead>
 					<tbody>
@@ -202,7 +203,7 @@
 								<th scope="row"><code>{row.route}</code></th>
 								<td>{t.status.vitals.devices[row.device]}</td>
 								<td>{row.loads}</td>
-								{#each ['lcp', 'inp', 'ttfb'] as const as metric (metric)}
+								{#each ['lcp', 'inp', 'ttfb', 'server'] as const as metric (metric)}
 									{@const value = row[metric]}
 									{@const target = TARGETS[metric]}
 									<td class:miss={value !== null && target !== undefined && value > target}>{value === null ? '–' : t.status.vitals.atMost(value)}</td>

@@ -14,9 +14,9 @@ export const status = {
 		device: 'Gerät',
 		devices: { phone: 'Handy', desktop: 'Computer' },
 		loads: 'Seitenstarts',
-		names: { lcp: 'Bis der Hauptinhalt zu sehen war', inp: 'Wie lange ein Tippen auf die Antwort wartete', ttfb: 'Wie lange der Server brauchte' },
+		names: { lcp: 'Bis der Hauptinhalt zu sehen war', inp: 'Wie lange ein Tippen auf die Antwort wartete', ttfb: 'Bis die erste Antwort ankam, mit dem Weg dorthin (Verbindung, Weiterleitungen)', server: 'Wie lange der Server selbst brauchte, ein Teil von TTFB' },
 		atMost: (ms: number) => (ms >= 1000 ? `≤ ${(ms / 1000).toLocaleString('de-DE', { maximumFractionDigits: 2 })} s` : `≤ ${ms} ms`),
-		none: 'Noch nichts gemessen. Safari misst LCP und INP noch nicht; dort zählt nur TTFB.'
+		none: 'Noch nichts gemessen. Safari misst LCP und INP noch nicht; dort zählen nur TTFB und Server.'
 	},
 	title: 'Status',
 	lead: 'Ob die Verbindung zu Google funktioniert.',
