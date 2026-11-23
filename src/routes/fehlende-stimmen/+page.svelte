@@ -9,6 +9,7 @@
 	import ScanPlan from '#lib/components/ScanPlan.svelte';
 	import Title from '#lib/components/Title.svelte';
 	import ScoreRun from './ScoreRun.svelte';
+	import ImslpLookup from './ImslpLookup.svelte';
 
 	let { data, form } = $props();
 	const marking = new FormState();
@@ -78,6 +79,8 @@
 								hint={t.gaps.planAllHint(piece.gaps.length)}
 							/>
 						{/if}
+						<!-- Old works only (#198): film music, pop and arrangements aren't on IMSLP. -->
+						{#if piece.imslp}<ImslpLookup pieceId={piece.id} />{/if}
 					</div>
 					<ul class="gaps">
 						{#each piece.gaps as gap (gap.id)}
