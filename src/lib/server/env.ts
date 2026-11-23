@@ -72,6 +72,8 @@ export interface AppEnv {
 	LEGAL_EMAIL?: string;
 	/** YouTube Data API key: suggests a piece's duration from its Hörbeispiel (#133). Optional. */
 	YOUTUBE_API_KEY?: string;
+	/** The photo album's storage budget in GB (#408), at most 9.5 so R2 stays in its free 10 GB. Default: 9. */
+	PHOTOS_MAX_GB?: string;
 	/** "true": sample data instead of Google, signed in as a demo user; for trying the app (#121). */
 	DEMO?: string;
 	/** "true": the finished app, without the "Beta" badge every page shows until then. */

@@ -18,6 +18,7 @@
 		{ key: 'loan', icon: 'loan', kinds: ['loan'] },
 		{ key: 'instrument', icon: 'loan', kinds: ['instrument'] },
 		{ key: 'duty', icon: 'users', kinds: ['duty'] },
+		{ key: 'photo', icon: 'camera', kinds: ['photo'] },
 		{ key: 'wish', icon: 'bulb', kinds: ['wish'] },
 		{ key: 'other', icon: 'mail', kinds: ['scans', 'kummerAnswers', 'kummerInbox'] }
 	];

@@ -29,6 +29,7 @@ import { manyComposers, parseContents } from '#lib/repertoire/contents.ts';
 import { workKey } from '#lib/music/piece-name.ts';
 import { formatDuration } from '#lib/repertoire/duration.ts';
 import { concertSummary, getLibrary, isPastConcert, namedItem, type Library, type LibraryPiece } from '#lib/server/library.ts';
+import { recordingsOfPiece } from '#lib/server/album.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals, url }) => {
@@ -95,6 +96,8 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		return [...own.map((part) => ({ part, shared: false })), ...shared.map((part) => ({ part, shared: true }))];
 	});
 	return {
+		// Our own recordings of it from concerts (#408), for members, starting where it starts.
+		recordings: await recordingsOfPiece(locals, piece.id),
 		banner: {
 			art: stage ? ('musical' as const) : art,
 			film: logo && {

@@ -16,5 +16,6 @@ export const rights: Texts['rights'] = {
 	'fahrten.bearbeiten': 'Plan concert tours and rehearsal trips, and see who comes along',
 	'instrumente.verwalten': 'Manage the instruments on loan: inventory, lending and returns',
 	'dienste.verwalten': 'Organise concert duties: set-up, box office, cake stand and who takes them',
+	'fotos.freigeben': 'Approve the photos members upload, and decide which may go on the website',
 	'mitglieder.verwalten': 'Manage members and rights'
 };

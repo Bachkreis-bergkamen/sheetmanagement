@@ -10,6 +10,7 @@ import { ensureLookups, withinTime } from '#lib/server/trip-geo.ts';
 import { pictureQueries, shownPictures } from '#lib/server/trip-picture.ts';
 import { listPerson } from '#lib/server/trip-lists.ts';
 import { childrenIn, eventsInWindow, openTrip, planEventOf, youngOnTrips } from '#lib/server/trips.ts';
+import { albumLink } from '#lib/server/album.ts';
 import type { TripStore } from '#lib/server/trips-store.ts';
 import {
 	isActive,
@@ -106,6 +107,8 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const costSummary = organises ? costs(trip, participants, arrangements) : null;
 
 	return {
+		// Its photos and impressions (#66), once it has begun.
+		album: await albumLink(locals, 'fahrt', trip.id, trip.firstDay <= day),
 		trip: {
 			id: trip.id,
 			title: trip.title,

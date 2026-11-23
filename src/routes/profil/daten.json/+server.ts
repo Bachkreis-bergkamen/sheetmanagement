@@ -1,7 +1,8 @@
 import { redirect } from '@sveltejs/kit';
-import { dutyData, exportFileName, lendingData, myData, pollData, storedData, tripData, tripListData } from '#lib/access/my-data.ts';
+import { albumData, dutyData, exportFileName, lendingData, myData, pollData, storedData, tripData, tripListData } from '#lib/access/my-data.ts';
 import { myDuties, myRides } from '#lib/server/duties.ts';
 import { myInstrumentLoans } from '#lib/server/lending.ts';
+import { myAlbum } from '#lib/server/album.ts';
 import { pollStore } from '#lib/server/polls.ts';
 import { tripListsOf, tripStore } from '#lib/server/trips.ts';
 import { getStore } from '#lib/server/db/index.ts';
@@ -16,7 +17,7 @@ export const GET: RequestHandler = async ({ locals }) => {
 	if (locals.auth === 'off' || !user) redirect(303, '/anmelden');
 	const email = user.email.trim().toLowerCase();
 	const store = getStore();
-	const [access, feedback, signups, attendance, pieceNotes, rehearsalNotes, devices, reminders, optOut, tour, practiceOn, practiceDays, marks, polls, drillSharing, drillDays, trips, tripLists, drillProgress, lent, duties, rides, photos] = await Promise.all([
+	const [access, feedback, signups, attendance, pieceNotes, rehearsalNotes, devices, reminders, optOut, tour, practiceOn, practiceDays, marks, polls, drillSharing, drillDays, trips, tripLists, drillProgress, lent, duties, rides, photos, album] = await Promise.all([
 		getAccessList({ force: true }),
 		getFeedback(),
 		getSignups(),
@@ -42,7 +43,8 @@ export const GET: RequestHandler = async ({ locals }) => {
 		store
 			.photoConsentAll()
 			.then((all) => all.get(email) ?? null)
-			.catch(() => null)
+			.catch(() => null),
+		myAlbum(email)
 	]);
 	const member = access?.membersByEmail.get(email);
 	const data = myData(
@@ -61,7 +63,7 @@ export const GET: RequestHandler = async ({ locals }) => {
 		email: user.email,
 		exportedAt: new Date().toISOString(),
 		about: t.myData.explain,
-		data: { ...data, ...storedData(devices, reminders, optOut.has(email), tour, { on: practiceOn, days: practiceDays }, marks), ...pollData(polls), ...tripData(trips), ...lendingData(lent), ...dutyData(duties, rides), ...tripListData(tripLists.lists, tripLists.kept, tripLists.instruments, tripLists.trips, tripLists.arrangements), ...(photos ? { [t.photos.export]: photos } : {}), ...(drillSharing || drillProgress ? { [t.myData.drills]: { ...(drillProgress ? { progress: JSON.parse(drillProgress) } : {}), ...(drillSharing ? { sharing: drillSharing, days: drillDays.map(({ email: _, ...row }) => row) } : {}) } } : {}) }
+		data: { ...data, ...storedData(devices, reminders, optOut.has(email), tour, { on: practiceOn, days: practiceDays }, marks), ...pollData(polls), ...tripData(trips), ...lendingData(lent), ...(album ? albumData(album.photos, album.comments, album.titles, album.videos) : {}), ...dutyData(duties, rides), ...tripListData(tripLists.lists, tripLists.kept, tripLists.instruments, tripLists.trips, tripLists.arrangements), ...(photos ? { [t.photos.export]: photos } : {}), ...(drillSharing || drillProgress ? { [t.myData.drills]: { ...(drillProgress ? { progress: JSON.parse(drillProgress) } : {}), ...(drillSharing ? { sharing: drillSharing, days: drillDays.map(({ email: _, ...row }) => row) } : {}) } } : {}) }
 	};
 	return new Response(JSON.stringify(body, null, 2), {
 		headers: {

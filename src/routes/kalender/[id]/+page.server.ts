@@ -25,6 +25,7 @@ import { requireRight } from '#lib/server/auth/index.ts';
 import { tripLink } from '#lib/server/trips.ts';
 import { dutyLink } from '#lib/server/duties.ts';
 import { photosForDate } from '#lib/server/photos.ts';
+import { albumLink } from '#lib/server/album.ts';
 import { publicDetails, publishedIds, readDetails, setPublicDetails, setPublished } from '#lib/server/public-concerts.ts';
 import { appendRecords, deleteRows, ensureTab, readTab, refreshAfterWrite, SheetLayoutError, updateRecord, withSheetLock } from '#lib/server/sheet-writes.ts';
 import { formatDay } from '#lib/events/format.ts';
@@ -404,7 +405,15 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 
 	if (!event) {
 		const { title, label, dateText, location, orchestra } = concert!;
-		return { kind: 'archive' as const, archive: { title, label, dateText, location, orchestra }, archiveEdit: await archiveEdit(concert!, locals), mapUrl: mapUrl(location), program };
+		return {
+			kind: 'archive' as const,
+			archive: { title, label, dateText, location, orchestra },
+			archiveEdit: await archiveEdit(concert!, locals),
+			mapUrl: mapUrl(location),
+			program,
+			// Its photos and impressions (#66), also for concerts long before the calendar.
+			album: await albumLink(locals, 'termin', concert!.id, isPastConcert(concert!, library.today))
+		};
 	}
 
 	const lookup = (id: string) => (schedule.ok ? schedule.byId.get(id) : undefined);
@@ -476,6 +485,8 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		duties: await dutyLink(locals, event),
 		// Who of its players may not be shown in photos and videos (#299), for those who see who comes.
 		photos: await photosForDate(event, orchestra, locals, library.today),
+		// Its photos and impressions (#66), once it has begun.
+		album: await albumLink(locals, 'termin', event.id, event.daysUntil <= 0),
 		// Whose rehearsal it is, changed here by those who plan dates (several orchestras only).
 		orchestras:
 			event.type !== 'konzert' && config.orchestras.length > 1

@@ -47,3 +47,19 @@ export async function photosForDate(event: ShownEvent, orchestra: string | undef
 	const notAllowed = byAnswer(answered.filter((player) => player.answer !== 'yes'));
 	return { players: players.length, notAllowed, href: '/fotoerlaubnis' };
 }
+
+/**
+ * For approving photos of a date (#66): its players who may not be shown, or haven't said, by
+ * name; those who said they wouldn't come left out. Null when the members can't be read.
+ */
+export async function notShownAt(event: ShownEvent, orchestra: string | undefined, today: string): Promise<string[] | null> {
+	const [list, signups, consents] = await Promise.all([
+		getAccessList().catch(() => null),
+		isOn('signups') ? getSignups().catch(() => null) : null,
+		photoConsents()
+	]);
+	if (!list) return null;
+	const excused = new Set((signups?.byEvent.get(event.id) ?? []).filter((signup) => signup.answer === 'no').map((signup) => signup.email));
+	const players = countingMembers(list.members, orchestra, today).filter((member) => !isAdminOnly(member) && !excused.has(member.email));
+	return byAnswer(players.map((member) => ({ name: member.name, answer: answerOf(consents.get(member.email)) })).filter((player) => player.answer !== 'yes')).map((player) => player.name);
+}

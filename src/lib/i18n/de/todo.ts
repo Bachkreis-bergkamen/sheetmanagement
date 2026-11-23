@@ -12,6 +12,7 @@ export const todo = {
 		loan: 'Leihmaterial zurückgeben',
 		instrument: 'Leihinstrumente zurücknehmen',
 		duty: 'Dienste besetzen',
+		photo: 'Fotos und Aufnahmen freigeben',
 		attendance: 'Anwesenheit eintragen',
 		poll: 'Terminumfragen beantworten',
 		other: 'Außerdem'

@@ -10,6 +10,7 @@
 	import EventRow from '#lib/components/EventRow.svelte';
 	import OrchestraSeating from '#lib/components/OrchestraSeating.svelte';
 	import Icon, { type IconName } from '#lib/components/Icon.svelte';
+	import YoutubePlayer from '#lib/components/YoutubePlayer.svelte';
 	import InstrumentGlyph from '#lib/components/InstrumentGlyph.svelte';
 	import { partGlyph } from '#lib/music/instrument-glyph.ts';
 	import ProblemReports from '#lib/components/ProblemReports.svelte';
@@ -310,6 +311,20 @@
 {/if}
 </div>
 
+{#if data.recordings.length}
+	<!-- Our own recordings of it (#408): from the concerts' albums, starting where it starts. -->
+	<section class="ours">
+		<h2 class="ui-label">{t.album.video.ours}</h2>
+		<p class="ours-lead">{t.album.video.oursLead}</p>
+		{#each data.recordings as recording (recording.id)}
+			<div class="recording">
+				<a href={recording.href}><strong>{recording.album}</strong>{recording.when ? ` · ${recording.when}` : ''}</a>
+				<YoutubePlayer youtube={recording.youtube} start={recording.start} title={recording.title} />
+			</div>
+		{/each}
+	</section>
+{/if}
+
 {#if piece.info.notes || data.saved || gaps > 0 || form?.againError || data.again?.planned}
 <div class="notices">
 	{#if piece.info.notes}
@@ -590,6 +605,24 @@
 </div>
 
 <style>
+	.ours {
+		display: grid;
+		gap: var(--space-3);
+		max-width: 720px;
+		margin: var(--space-5) 0;
+	}
+
+	.ours-lead {
+		margin: 0;
+		color: var(--text-muted);
+		font-size: var(--text-sm);
+	}
+
+	.recording {
+		display: grid;
+		gap: var(--space-2);
+	}
+
 	.loan {
 		display: flex;
 		flex-wrap: wrap;

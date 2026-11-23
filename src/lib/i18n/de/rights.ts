@@ -14,5 +14,6 @@ export const rights = {
 	'fahrten.bearbeiten': 'Konzert- und Probenfahrten planen und sehen, wer mitfährt',
 	'instrumente.verwalten': 'Leihinstrumente verwalten: Bestand, Verleih und Rückgabe',
 	'dienste.verwalten': 'Dienste für Konzerte einteilen: Aufbau, Kasse, Kuchen und wer sie übernimmt',
+	'fotos.freigeben': 'Fotos freigeben, die Mitglieder hochladen, und entscheiden, welche auf die Website dürfen',
 	'mitglieder.verwalten': 'Mitglieder und Rechte verwalten'
 } as const;

@@ -16,5 +16,6 @@ export const features = {
 	polls: 'Terminumfragen',
 	kummer: 'Kummerkasten',
 	parents: 'Elternbereich',
-	chronicle: 'Chronik'
+	chronicle: 'Chronik',
+	album: 'Fotos & Eindrücke'
 } as const;

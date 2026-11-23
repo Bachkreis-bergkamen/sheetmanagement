@@ -54,6 +54,9 @@ REPERTOIRE_SHEET_ID=""
 # Lets the piece editor suggest a duration from the Hörbeispiel's video. Optional, free.
 # YOUTUBE_API_KEY=""
 
+# The photo album stops taking uploads at this many GB, so R2 stays free (10 GB). At most 9.5. Default: 9.
+# PHOTOS_MAX_GB="9"
+
 # Until the release every page shows a "Beta" badge in the header (never in the demo).
 # RELEASE="true"
 

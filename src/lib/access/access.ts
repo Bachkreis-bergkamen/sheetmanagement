@@ -24,6 +24,8 @@ export const RIGHTS = [
 	'instrumente.verwalten',
 	// Dienste for concerts (#298): set up the jobs a date needs, put people down, see who did what.
 	'dienste.verwalten',
+	// The photo album (#66): approve what members upload, decide what the website may show.
+	'fotos.freigeben',
 	'mitglieder.verwalten'
 ] as const;
 export type Right = (typeof RIGHTS)[number];

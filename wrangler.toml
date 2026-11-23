@@ -43,6 +43,13 @@ binding = "DB"
 database_name = "noten"
 migrations_dir = "migrations"
 
+# The photo album's images (#66): one object per photo and size; the records are in D1. Wrangler
+# creates the bucket on the first deploy, in the EU. R2 must be turned on for the account once
+# (dashboard → R2; 10 GB free); without the bucket the album says it isn't set up.
+[[r2_buckets]]
+binding = "PHOTOS"
+jurisdiction = "eu"
+
 # Background jobs (#160): one trigger that runs whatever is due, see src/lib/server/jobs/.
 # scripts/wrap-worker.mjs adds the handler to the worker.
 [triggers]
