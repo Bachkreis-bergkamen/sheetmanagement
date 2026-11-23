@@ -21,6 +21,7 @@
 	const name = $derived(data.member?.name || data.user?.name || '');
 	const feeds = new FormState();
 	const mails = new FormState();
+	const photoSave = new FormState();
 	const passwords = new FormState();
 	const links = new FormState();
 	/** Other accounts kept on this device, to switch to. */
@@ -123,6 +124,25 @@
 							</li>
 						{/each}
 					</ul>
+				</section>
+			{/if}
+
+			<!-- Photos and videos (#299): their own answer, or a note that their parents give it. -->
+			{#if data.photos}
+				<section class="ui-card feed" id="fotos">
+					<h3><Icon name="camera" size={18} />{t.photos.title}</h3>
+					<p class="muted">{t.photos.leadSelf}</p>
+					<p>{t.photos.state[data.photos.answer]}</p>
+					{#if data.photos.byParents}
+						<p class="muted">{t.photos.byParents}</p>
+					{:else}
+						<form class="choices" method="POST" action="?/photos" use:enhance={photoSave.submit()}>
+							<button class="btn secondary" name="allowed" value="yes" disabled={photoSave.busy || data.photos.answer === 'yes'}>{t.photos.allow}</button>
+							<button class="btn ghost" name="allowed" value="no" disabled={photoSave.busy || data.photos.answer === 'no'}>{t.photos.refuse}</button>
+						</form>
+					{/if}
+					{#if form && 'photoSaved' in form}<p class="saved" role="status"><Icon name="check" size={16} />{t.photos.saved}</p>{/if}
+					{#if form && 'photoMessage' in form && form.photoMessage}<p class="msg error" role="alert">{form.photoMessage}</p>{/if}
 				</section>
 			{/if}
 		</section>
@@ -530,6 +550,12 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-3);
+	}
+
+	.choices {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-2);
 	}
 
 	.saved {

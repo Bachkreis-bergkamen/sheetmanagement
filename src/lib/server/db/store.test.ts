@@ -169,6 +169,20 @@ describe.each([
 		expect(await store.drillConsentOf('kid@x.org')).toBeNull();
 	});
 
+	it('keeps who may appear in photos, and who said so (#299)', async () => {
+		const store = make();
+		expect(await store.photoConsentAll()).toEqual(new Map());
+		await store.setPhotoConsent('kid@x.org', true, 'mum@x.org');
+		await store.setPhotoConsent('a@x.org', false, 'a@x.org');
+		await store.setPhotoConsent('kid@x.org', false, 'dad@x.org');
+		const all = await store.photoConsentAll();
+		expect(all.get('kid@x.org')).toMatchObject({ allowed: false, by: 'dad@x.org' });
+		expect(all.get('kid@x.org')?.at).toMatch(/^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/);
+		expect(all.get('a@x.org')).toMatchObject({ allowed: false, by: 'a@x.org' });
+		await store.setPhotoConsent('kid@x.org', null, '');
+		expect([...(await store.photoConsentAll()).keys()]).toEqual(['a@x.org']);
+	});
+
 	it('keeps the drills an administrator opened for a member (#327)', async () => {
 		const store = make();
 		expect(await store.drillUnlocksOf('pro@x.org')).toEqual([]);

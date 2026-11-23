@@ -269,6 +269,21 @@
 			</a>
 		</li>
 	{/if}
+	{#if data.kind === 'event' && data.photos?.players}
+		{@const photos = data.photos}
+		<!-- Whom not to show in photos and videos (#299): those who said no or haven't answered. -->
+		<li>
+			<a class="fact" href={photos.href}>
+				<span class="icon"><Icon name="camera" size={18} /></span>
+				<span class="fact-body">
+					<span class="over">{t.photos.date.over}</span>
+					<strong>{photos.notAllowed.length ? t.photos.date.notAllowed(photos.notAllowed.length) : t.photos.date.allAllowed}</strong>
+					{#if photos.notAllowed.length}<span>{photos.notAllowed.map((player) => player.name).join(', ')}</span>{/if}
+				</span>
+				<span class="trail"><Icon name="chevron" size={16} /></span>
+			</a>
+		</li>
+	{/if}
 	{#if data.kind === 'event' && data.orchestras}
 		{@const orchestras = data.orchestras}
 		<li>

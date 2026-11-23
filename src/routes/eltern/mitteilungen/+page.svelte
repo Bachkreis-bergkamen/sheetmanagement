@@ -11,6 +11,8 @@
 	let { data, form } = $props();
 	const saving = new FormState();
 	const values = $derived(form && 'values' in form ? form.values : undefined);
+	// About one date: its players' parents, so the orchestras are left out.
+	let event = $derived(values?.event ?? '');
 
 	const confirmRemove = (title: string) => (event: MouseEvent) => {
 		if (!confirm(t.parents.notices.confirmRemove(title))) event.preventDefault();
@@ -29,7 +31,17 @@
 		<form method="POST" action="?/add" use:enhance={saving.submit({ reset: true })}>
 			<label class="field">{t.parents.notices.heading}<input name="title" maxlength="120" required autocomplete="off" value={values?.title ?? ''} /></label>
 			<label class="field">{t.parents.notices.body}<textarea name="body" rows="5" maxlength="5000" required value={values?.body ?? ''}></textarea></label>
-			{#if data.orchestras.length > 1}
+			{#if data.dates.length}
+				<label class="field"
+					>{t.parents.notices.about}
+					<select name="event" bind:value={event}>
+						<option value="">{t.parents.notices.noDate}</option>
+						{#each data.dates as date (date.id)}<option value={date.id}>{date.label}</option>{/each}
+					</select>
+					<span class="meta">{t.parents.notices.aboutHint}</span>
+				</label>
+			{/if}
+			{#if data.orchestras.length > 1 && !event}
 				<fieldset>
 					<legend class="field">{t.parents.notices.for}</legend>
 					<div class="checks">
@@ -57,7 +69,11 @@
 						<p class="body">{notice.body}</p>
 						<p class="meta">
 							{t.parents.notices.by(notice.byName, formatDay(notice.day, config.locale))}
-							· {notice.orchestras.length ? t.parents.notices.forSome(notice.orchestras.join(', ')) : t.parents.notices.forAll}
+							· {notice.event
+								? t.parents.notices.forDate(notice.event.label)
+								: notice.orchestras.length
+									? t.parents.notices.forSome(notice.orchestras.join(', '))
+									: t.parents.notices.forAll}
 							· {t.parents.notices.reaches(notice.reaches)}
 						</p>
 					</div>

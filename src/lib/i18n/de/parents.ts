@@ -24,6 +24,10 @@ export const parents = {
 		forHint: 'Nichts angekreuzt: an alle Eltern. Sonst nur an Eltern von Kindern in diesen Orchestern.',
 		forAll: 'alle Eltern',
 		forSome: (orchestras: string) => `Eltern aus ${orchestras}`,
+		forDate: (label: string) => `Eltern der Mitspielenden bei ${label}`,
+		about: 'Zu einem Termin',
+		noDate: 'Kein bestimmter Termin',
+		aboutHint: 'Mit Termin: nur an die Eltern der Kinder, die dabei sind, also im Orchester des Termins spielen und nicht entschuldigt sind.',
 		send: 'Veröffentlichen',
 		added: 'Veröffentlicht.',
 		remove: 'Löschen',
@@ -37,7 +41,8 @@ export const parents = {
 		problems: {
 			title: 'Bitte eine Überschrift angeben.',
 			body: 'Bitte etwas schreiben.',
-			'too-long': 'Das ist zu lang: Überschrift bis 120, Text bis 5000 Zeichen.'
+			'too-long': 'Das ist zu lang: Überschrift bis 120, Text bis 5000 Zeichen.',
+			event: 'Diesen Termin gibt es nicht mehr. Bitte wähle ihn neu.'
 		} as Record<string, string>
 	},
 	dates: 'Nächste Termine',

@@ -133,6 +133,8 @@ export function navGroups({ auth, rights, features = ALL_ON, polls = false, pare
 				...(has(rights, 'instrumente.verwalten') && features.lending && auth === 'on' ? [{ href: '/leihinstrumente', label: t.nav.lending, icon: 'loan' as const }] : []),
 				// Dienste for concerts (#298): open places and who did how many.
 				...(has(rights, 'dienste.verwalten') && features.duties && auth === 'on' ? [{ href: '/dienste', label: t.nav.duties, icon: 'users' as const }] : []),
+				// Who may appear in photos and videos (#299), for those who see who comes.
+				...(has(rights, 'anmeldungen.sehen') && auth === 'on' ? [{ href: '/fotoerlaubnis', label: t.nav.photos, icon: 'camera' as const }] : []),
 				// What members share from the Übebereich with their conductor and teachers (#300).
 				...(has(rights, 'ueben.begleiten') && features.drills && auth === 'on' ? [{ href: '/ueben/stand', label: t.nav.drillsOverview, icon: 'note' as const }] : []),
 				// Every setting in one place (#185): the orchestra, the sheet and data, the status.

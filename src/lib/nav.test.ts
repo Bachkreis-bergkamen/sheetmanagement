@@ -166,4 +166,9 @@ describe('parents', () => {
 	it('gives the notices to parents to those who write them, as organiser work', () => {
 		expect(hrefs('on', ['ansehen', 'eltern.informieren']).verwaltung).toEqual(['/eltern/mitteilungen']);
 	});
+
+	it('shows the photo consent to those who see who comes (#299)', () => {
+		expect(hrefs('on', ['ansehen', 'anmeldungen.sehen']).verwaltung).toContain('/fotoerlaubnis');
+		expect(hrefs('off', ['ansehen', 'anmeldungen.sehen']).verwaltung ?? []).not.toContain('/fotoerlaubnis');
+	});
 });
