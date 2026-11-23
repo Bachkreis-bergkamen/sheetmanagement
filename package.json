@@ -32,7 +32,7 @@
 		"eslint": "^10.15.0",
 		"eslint-plugin-svelte": "^3.24.1",
 		"pdfjs-dist": "6.5.438",
-		"svelte": "^5.57.3",
+		"svelte": "^5.58.1",
 		"svelte-check": "^4.7.8",
 		"tesseract.js": "7.0.0",
 		"typescript": "^6.0.0",
