@@ -1,12 +1,12 @@
 /**
  * How fast the app feels on members' own phones (#187): the browser measures LCP (when the
  * page's main content showed), INP (how long a tap waits for the screen to answer) and TTFB
- * (how long the server took), per route pattern. The server keeps only counts per bucket, per
+ * (until the first byte arrived, the connection included) and the server's own share of it, per route pattern. The server keeps only counts per bucket, per
  * day, route and kind of device, so the p75 can be read without storing a single visit.
  */
 import { isPageRoute } from '#lib/page-counts.ts';
 
-export const METRICS = ['lcp', 'inp', 'ttfb'] as const;
+export const METRICS = ['lcp', 'inp', 'ttfb', 'server'] as const;
 export type Metric = (typeof METRICS)[number];
 
 /** Phones and tablets (touch) apart from computers: the targets are about phones. */
@@ -82,6 +82,8 @@ export interface VitalRow {
 	lcp: number | null;
 	inp: number | null;
 	ttfb: number | null;
+	/** The server's own time within TTFB, from its Server-Timing header: the rest is the way there. */
+	server: number | null;
 }
 
 /** One row per route and device, the most measured first. */
@@ -89,7 +91,7 @@ export function vitalRows(counts: VitalCount[]): VitalRow[] {
 	const groups = new Map<string, { route: string; device: Device; byMetric: Record<Metric, { bucket: number; count: number }[]> }>();
 	for (const count of counts) {
 		const key = `${count.route} ${count.device}`;
-		const group = groups.get(key) ?? { route: count.route, device: count.device, byMetric: { lcp: [], inp: [], ttfb: [] } };
+		const group = groups.get(key) ?? { route: count.route, device: count.device, byMetric: { lcp: [], inp: [], ttfb: [], server: [] } };
 		group.byMetric[count.metric].push(count);
 		groups.set(key, group);
 	}
@@ -100,7 +102,8 @@ export function vitalRows(counts: VitalCount[]): VitalRow[] {
 			loads: byMetric.lcp.reduce((sum, each) => sum + each.count, 0),
 			lcp: p75(byMetric.lcp),
 			inp: p75(byMetric.inp),
-			ttfb: p75(byMetric.ttfb)
+			ttfb: p75(byMetric.ttfb),
+			server: p75(byMetric.server)
 		}))
 		.sort((a, b) => b.loads - a.loads || a.route.localeCompare(b.route) || a.device.localeCompare(b.device));
 }

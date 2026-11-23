@@ -15,9 +15,9 @@ export const status: Texts['status'] = {
 		device: 'Device',
 		devices: { phone: 'Phone', desktop: 'Computer' },
 		loads: 'Page loads',
-		names: { lcp: 'Until the main content showed', inp: 'How long a tap waited for an answer', ttfb: 'How long the server took' },
+		names: { lcp: 'Until the main content showed', inp: 'How long a tap waited for an answer', ttfb: 'Until the first answer arrived, the way there included (connection, redirects)', server: 'How long the server itself took, part of TTFB' },
 		atMost: (ms: number) => (ms >= 1000 ? `≤ ${(ms / 1000).toLocaleString('en-GB', { maximumFractionDigits: 2 })} s` : `≤ ${ms} ms`),
-		none: 'Nothing measured yet. Safari doesn’t measure LCP and INP yet; there only TTFB counts.'
+		none: 'Nothing measured yet. Safari doesn’t measure LCP and INP yet; there only TTFB and Server count.'
 	},
 	title: 'Status',
 	lead: 'Whether the connection to Google works.',

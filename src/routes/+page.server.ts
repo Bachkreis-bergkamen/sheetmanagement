@@ -6,18 +6,34 @@ import { openWork } from '#lib/server/todo.ts';
 import { openDutiesFor } from '#lib/server/duties.ts';
 import { config } from '#lib/config/index.ts';
 import { formatDay } from '#lib/events/format.ts';
+import { today } from '#lib/server/members.ts';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
-	const library = await getLibrary();
-	const [open, plan, notes, answers] = await Promise.all([openWork(locals), getRehearsalPlan(), getRehearsalNotes(), myAnswers(locals)]);
+	// Everything starts at once (#349): the cached sheet and calendar, and the reads from D1, which
+	// used to wait for the library first. The Dienste only wait for the dates to filter them by.
+	// A member's next rehearsal is one of their own orchestras.
+	const libraryRead = getLibrary();
+	const seenRead = libraryRead.then(async (library) => {
+		const shown = await shownDates(library, locals);
+		return { shown, upcoming: library.schedule.ok ? library.schedule.events.filter((event) => !event.past && shown(event)) : [] };
+	});
+	const helpRead = locals.access.user
+		? openDutiesFor(seenRead.then(({ upcoming }) => new Set(upcoming.map((event) => event.id))), locals.access.user.email, today())
+		: [];
+	const [library, { shown, upcoming }, open, plan, notes, answers, wanted] = await Promise.all([
+		libraryRead,
+		seenRead,
+		openWork(locals),
+		getRehearsalPlan(),
+		getRehearsalNotes(),
+		myAnswers(locals),
+		helpRead
+	]);
 	const result = library.schedule;
 	if (!result.ok)
 		return { calendar: result.reason, nextConcert: null, nextRehearsal: null, rehearsalFor: undefined, rehearsalParts: undefined, rehearsing: [], program: [], lastNote: null, todo: open, answers: null, help: [] };
 
-	// A member's next rehearsal is one of their own orchestras.
-	const shown = await shownDates(library, locals);
-	const upcoming = result.events.filter((event) => !event.past && shown(event));
 	const nextConcert = upcoming.find((event) => event.type === 'konzert') ?? null;
 	const nextRehearsal = upcoming.find((event) => event.type === 'probe' || event.type === 'generalprobe') ?? null;
 	const program = nextConcert
@@ -40,11 +56,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 		notes.byEvent
 	);
 	// Dienste within two weeks where help is wanted (#196): free places, or one someone hands on.
-	const help = locals.access.user
-		? (await openDutiesFor(new Set(upcoming.map((event) => event.id)), locals.access.user.email, library.today))
-				.filter((one) => one.free || one.offered)
-				.map((one) => ({ id: one.eventId, title: one.eventTitle, day: formatDay(one.eventDay, config.locale), free: one.free, offered: one.offered, href: one.href }))
-		: [];
+	const help = wanted
+		.filter((one) => one.free || one.offered)
+		.map((one) => ({ id: one.eventId, title: one.eventTitle, day: formatDay(one.eventDay, config.locale), free: one.free, offered: one.offered, href: one.href }));
 	const lastNote =
 		last && (last.note.practise || last.note.next)
 			? { url: `/kalender/${encodeURIComponent(last.event.id)}`, date: last.event.date.long, practise: last.note.practise, next: last.note.next }

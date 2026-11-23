@@ -34,8 +34,11 @@ export const load: LayoutServerLoad = async ({ locals, url, cookies }) => {
 	const parent = access.parent ? (access.parent.only ? ('only' as const) : ('also' as const)) : undefined;
 	// The reads below don't wait for each other (#349): they run side by side on every navigation.
 	const pollsRead = Promise.resolve(parent !== 'only' && on.polls && (held.has('termine.planen') || visiblePolls(locals).then((list) => list.length > 0, () => false)));
-	// The counts need the menu, and the menu needs to know whether there are polls.
-	const countsRead = pollsRead.then(async (polls) => (workspaceOf(navGroups({ auth, rights, features: on, polls, parent }), url.pathname) ? countsByPage(await openWork(locals)) : {}));
+	// The counts are for workspace pages, and the menu needs to know whether there are polls.
+	// The open work doesn't wait for the polls: it starts whenever the page may be a workspace.
+	const workspace = (polls: boolean) => workspaceOf(navGroups({ auth, rights, features: on, polls, parent }), url.pathname);
+	const workRead = workspace(false) || workspace(true) ? openWork(locals) : null;
+	const countsRead = Promise.all([pollsRead, workRead]).then(([polls, work]) => (workspace(polls) ? countsByPage(work) : {}));
 	// The first instrument from "Mitglieder" is the avatar's picture (#136).
 	const memberRead = access.user ? getAccessList().then((list) => list?.membersByEmail.get(normalizeEmail(access.user!.email)), () => undefined) : undefined;
 	// The tour for new members, until they finish or skip it; not on sign-in or legal pages.
