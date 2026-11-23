@@ -166,4 +166,13 @@ describe('parents', () => {
 	it('gives the notices to parents to those who write them, as organiser work', () => {
 		expect(hrefs('on', ['ansehen', 'eltern.informieren']).verwaltung).toEqual(['/eltern/mitteilungen']);
 	});
+
+	it('leaves out what the orchestra turned off (#395)', () => {
+		const off = { ...ALL_ON, polls: false, kummer: false, parents: false, chronicle: false };
+		const groups = navGroups({ auth: 'on', rights: ['ansehen', 'eltern.informieren', 'termine.planen'], features: off, polls: true, parent: 'also' });
+		const hrefs = groups.flatMap((group) => group.items.map((item) => item.href));
+		for (const href of ['/termine', '/kummerkasten', '/eltern', '/eltern/mitteilungen', '/chronik']) expect(hrefs).not.toContain(href);
+		const on = navGroups({ auth: 'on', rights: ['ansehen', 'eltern.informieren'], polls: true, parent: 'also' }).flatMap((group) => group.items.map((item) => item.href));
+		for (const href of ['/termine', '/kummerkasten', '/eltern', '/eltern/mitteilungen', '/chronik']) expect(on).toContain(href);
+	});
 });

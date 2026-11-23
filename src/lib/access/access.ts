@@ -417,6 +417,16 @@ export const isAdminOnly = (member: Pick<Member, 'status'> | undefined) => membe
  * The pages a parent account may open: their area, their profile and messages to the Leitung,
  * and what the app itself calls in the background. Everything else leads to /eltern.
  */
+/**
+ * The access while the parents' area is turned off (#395): a parent account is then like an
+ * address without access, and a member with children keeps everything but the area.
+ */
+export function withoutParentArea<A extends Pick<Access, 'member' | 'parent'>>(access: A): A {
+	if (!access.parent) return access;
+	const { parent, ...rest } = access;
+	return (parent.only ? { ...rest, member: false } : rest) as A;
+}
+
 export function parentMayOpen(path: string): boolean {
 	const under = (base: string) => path === base || path.startsWith(base + '/');
 	// A date's Dienste and lifts (#298, #196): parents help out and drive too.

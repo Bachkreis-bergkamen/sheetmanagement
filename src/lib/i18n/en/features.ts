@@ -14,5 +14,9 @@ export const features: Texts['features'] = {
 	drills: 'Practice room',
 	trips: 'Trips',
 	lending: 'Instruments on loan',
-	duties: 'Duties'
+	duties: 'Duties',
+	polls: 'Date polls',
+	kummer: 'Suggestion box',
+	parents: 'Parents’ area',
+	chronicle: 'Chronicle'
 };

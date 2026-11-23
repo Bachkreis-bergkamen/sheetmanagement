@@ -9,6 +9,7 @@ import { eventDay } from '#lib/repertoire/dates.ts';
 import { addPastConcert } from '#lib/server/archive.ts';
 import { requireRight } from '#lib/server/auth/index.ts';
 import { pollStore, pollViewer, visiblePolls } from '#lib/server/polls.ts';
+import { isOn } from '#lib/server/env.ts';
 import { addCalendarEvent, calendarRange, getSchedule } from '#lib/server/schedule.ts';
 import { calendarWriteEnabled } from '#lib/server/services.ts';
 import { myAnswers } from '#lib/server/signups.ts';
@@ -26,6 +27,8 @@ const VIEW_COOKIE = 'konzerte-ansicht';
 
 /** Open date polls meant for you (#95), with whether you've answered: they sit next to the dates. */
 async function openPolls(locals: App.Locals, today: string) {
+	// Turned off (#395): no polls next to the dates.
+	if (!isOn('polls')) return { polls: [], plans: false };
 	const store = pollStore();
 	const viewer = await pollViewer(locals);
 	if (!store || !viewer) return { polls: [], plans: false };

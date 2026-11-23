@@ -12,5 +12,9 @@ export const features = {
 	drills: 'Übebereich',
 	trips: 'Fahrten',
 	lending: 'Leihinstrumente',
-	duties: 'Dienste'
+	duties: 'Dienste',
+	polls: 'Terminumfragen',
+	kummer: 'Kummerkasten',
+	parents: 'Elternbereich',
+	chronicle: 'Chronik'
 } as const;

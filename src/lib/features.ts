@@ -7,7 +7,7 @@
 
 import type { TabKey } from '#lib/repertoire/sheet.ts';
 
-export const FEATURES = ['loans', 'musicReport', 'attendance', 'signups', 'wishes', 'calendarFeed', 'offline', 'seasons', 'tickets', 'drills', 'trips', 'lending', 'duties'] as const;
+export const FEATURES = ['loans', 'musicReport', 'attendance', 'signups', 'wishes', 'calendarFeed', 'offline', 'seasons', 'tickets', 'drills', 'trips', 'lending', 'duties', 'polls', 'kummer', 'parents', 'chronicle'] as const;
 
 export type Feature = (typeof FEATURES)[number];
 export type Features = Record<Feature, boolean>;
@@ -41,7 +41,13 @@ const ALIASES: Record<string, Feature> = {
 	leihinstrumente: 'lending',
 	instrumente: 'lending',
 	dienste: 'duties',
-	dienstplan: 'duties'
+	dienstplan: 'duties',
+	umfragen: 'polls',
+	terminumfragen: 'polls',
+	kummerkasten: 'kummer',
+	eltern: 'parents',
+	elternbereich: 'parents',
+	chronik: 'chronicle'
 };
 
 const byName = new Map<string, Feature>([...FEATURES.map((feature) => [feature.toLowerCase(), feature] as const), ...Object.entries(ALIASES)]);
@@ -76,6 +82,13 @@ export function featureOfPath(path: string): Feature | undefined {
 	if (path === '/fahrten' || path.startsWith('/fahrten/')) return 'trips';
 	if (path === '/leihinstrumente' || path.startsWith('/leihinstrumente/')) return 'lending';
 	if (path === '/dienste' || path.startsWith('/dienste/') || /^\/kalender\/[^/]+\/dienste(\/|$)/.test(path)) return 'duties';
+	// #395: date polls, the Kummerkasten, the parents' area and the Chronik.
+	if (path === '/termine' || path.startsWith('/termine/')) return 'polls';
+	if (path === '/kummerkasten' || path.startsWith('/kummerkasten/')) return 'kummer';
+	// The parents' messages go to the Leitung through the Kummerkasten: they need both.
+	if (path === '/eltern/nachrichten' || path.startsWith('/eltern/nachrichten/')) return 'kummer';
+	if (path === '/eltern' || path.startsWith('/eltern/')) return 'parents';
+	if (path === '/chronik' || path.startsWith('/chronik/')) return 'chronicle';
 	// The feed sits next to the calendar's pages: only the .ics file itself.
 	if (/^\/kalender\/[^/]+\.ics$/.test(path)) return 'calendarFeed';
 	if (/^\/kalender\/[^/]+\/anwesenheit(\/|$)/.test(path)) return 'attendance';

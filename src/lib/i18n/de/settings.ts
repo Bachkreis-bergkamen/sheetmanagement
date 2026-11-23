@@ -52,7 +52,14 @@ export const settings = {
 		offline: 'Stimmen in „Meine Noten“ für die Probe ohne Netz speichern.',
 		seasons: 'Kleine Zeichnungen zur Jahreszeit: Schneeflocke, Blüte, Kürbis.',
 		tickets: 'Karten für Konzerte über die Website reservieren, bezahlt an der Abendkasse, mit Einlass per Handy.',
-		drills: 'Kurze Übungen zu Notenlesen, Tonarten, Intervallen, Rhythmus, Tönen, Tonleitern, Vom-Blatt-Spiel, Zusammenspiel und Transponieren. Sie laufen auf dem Gerät, der Fortschritt geht mit auf deine anderen Geräte; die Übezeit zählt für die Probenzeit.'
+		drills: 'Kurze Übungen zu Notenlesen, Tonarten, Intervallen, Rhythmus, Tönen, Tonleitern, Vom-Blatt-Spiel, Zusammenspiel und Transponieren. Sie laufen auf dem Gerät, der Fortschritt geht mit auf deine anderen Geräte; die Übezeit zählt für die Probenzeit.',
+		trips: 'Konzert- und Probenfahrten mit Anmeldung, Tagesplan, Zimmern, Fahrt und Kosten.',
+		lending: 'Die Instrumente des Orchesters: was es gibt und wer welches hat.',
+		duties: 'Aufgaben für Konzerte, die Mitglieder selbst übernehmen, und Fahrgemeinschaften.',
+		polls: 'Mehrere Daten zur Wahl stellen und den Termin finden, der den meisten passt.',
+		kummer: 'Anonyme Nachrichten an die Leitung, privat beantwortet; auch der Weg der Eltern zur Leitung.',
+		parents: 'Eltern-Konten für junge Mitglieder: Termine der Kinder, Entschuldigungen, Mitteilungen. Ausgeschaltet haben Eltern-Konten keinen Zugang.',
+		chronicle: 'Vergangene Konzerte und Saisons des Orchesters, mit Rückblick auf die Saison.'
 	} as Record<string, string>,
 	instruments: 'Instrumente',
 	instrumentsLead:

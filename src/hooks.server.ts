@@ -1,5 +1,5 @@
 import type { Handle, HandleServerError } from '@sveltejs/kit/hooks';
-import { parentMayOpen, resolveAccess } from '#lib/access/access.ts';
+import { parentMayOpen, resolveAccess, withoutParentArea } from '#lib/access/access.ts';
 import { LANGUAGE } from '#lib/i18n/index.ts';
 import * as t from '#lib/i18n/texts.ts';
 import { featureOfPath } from '#lib/features.ts';
@@ -44,6 +44,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// The health check must answer even while Google doesn't.
 	event.locals.access =
 		event.url.pathname === '/api/health' ? resolveAccess(null, null, []) : await accessFromCookies(event.cookies, auth);
+	// The parents' area turned off (#395): parent accounts have no access, members keep theirs.
+	if (event.locals.access.parent && !isOn('parents')) event.locals.access = withoutParentArea(event.locals.access);
 	// A date's pages, its programme, plan and attendance (#305): a role limited to some orchestras
 	// counts there only for theirs, so every check on those pages goes by the date's orchestra.
 	if (event.locals.access.scopes && event.route.id?.startsWith('/kalender/[id]') && event.params.id) {

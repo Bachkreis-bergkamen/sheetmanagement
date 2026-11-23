@@ -48,6 +48,18 @@ describe('featureOfPath', () => {
 		expect(featureOfPath('/ueben/1AbC')).toBeUndefined();
 	});
 
+	it("knows the date polls, the Kummerkasten, the parents' area and the Chronik (#395)", () => {
+		expect(featureOfPath('/termine')).toBe('polls');
+		expect(featureOfPath('/termine/abc')).toBe('polls');
+		expect(featureOfPath('/kummerkasten/abc')).toBe('kummer');
+		expect(featureOfPath('/eltern')).toBe('parents');
+		expect(featureOfPath('/eltern/mitteilungen')).toBe('parents');
+		// The parents' messages go through the Kummerkasten.
+		expect(featureOfPath('/eltern/nachrichten')).toBe('kummer');
+		expect(featureOfPath('/chronik/saison')).toBe('chronicle');
+		expect(resolveFeatures({}, 'kummerkasten, elternbereich, chronik, umfragen').features).toMatchObject({ kummer: false, parents: false, chronicle: false, polls: false });
+	});
+
 	it('leaves every other page alone', () => {
 		for (const path of ['/', '/kalender', '/kalender/abc', '/kalender/abc/drucken', '/leihmaterialien', '/stuecke/wuensche', '/kartei']) {
 			expect(featureOfPath(path)).toBeUndefined();
