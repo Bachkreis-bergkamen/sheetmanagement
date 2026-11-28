@@ -6,7 +6,7 @@
 	import { MARK_COLORS, MARK_SYMBOLS, markLines, onPage, strokePath, SYMBOL_SIZE, symbolLines, type MarkColor, type MarkSymbol, type Stroke } from '#lib/practice/marks.ts';
 	import { OpenTools } from '#lib/practice/open-tools.svelte.ts';
 	import { pageKey } from '#lib/practice/page-keys.ts';
-	import { fittedFor, keepView, modeFor, readView, shownPages, sideBySide, turnTo, VIEWS, type Mode, type View } from '#lib/practice/page-view.ts';
+	import { fittedFor, keepView, modeFor, readView, shownPages, sideBySide, spreadTurn, turnTo, VIEWS, type Mode, type View } from '#lib/practice/page-view.ts';
 	import { PageMarks } from '#lib/practice/page-marks.svelte.ts';
 	import { MAX_ZOOM, PageZoom, ZOOM_STEP } from '#lib/practice/page-zoom.svelte.ts';
 	import { Pen } from '#lib/practice/pen.svelte.ts';
@@ -275,23 +275,75 @@
 
 	let leaf: { ghost: HTMLElement; from: number; to: number } | null = null;
 	let leafing: Animation[] = [];
+	/** Two pages (#414): copies of both pages as they lay, each with its place on the sheet (see `boxes`). */
+	let spreadLeaf: { ghosts: { element: HTMLElement; number: number; x: number; width: number }[]; from: number; to: number } | null = null;
 
-	/** A copy of the page being turned away, with its marks; not while zoomed or for those who'd rather have no motion. */
-	function liftLeaf(from: number, to: number) {
-		leaf = null;
-		if (!sheet || zoom.zoomed || spread || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-		const old = slot?.querySelector('canvas');
-		if (!old || !old.width) return;
+	/** Where a page lies across the sheet, as CSS. */
+	const across = (box: { x: number; width: number }) => ({ left: `${(box.x / size!.width) * 100}%`, width: `${(box.width / size!.width) * 100}%` });
+
+	/**
+	 * A copy of a page as it lies on the sheet, with its marks: the sheet's drawing cut to the
+	 * page's box, stretched over the copy. One page or two (#414), for the turn's animation.
+	 */
+	function pageCopy(canvas: HTMLCanvasElement, box: { x: number; width: number }) {
 		const ghost = document.createElement('div');
 		ghost.className = 'leaf';
 		const copy = document.createElement('canvas');
-		copy.width = old.width;
-		copy.height = old.height;
-		copy.getContext('2d')?.drawImage(old, 0, 0);
+		copy.width = canvas.width;
+		copy.height = canvas.height;
+		copy.getContext('2d')?.drawImage(canvas, 0, 0);
 		ghost.append(copy);
-		const drawnMarks = sheet.querySelector('svg.marks');
-		if (drawnMarks) ghost.append(drawnMarks.cloneNode(true));
-		leaf = { ghost, from, to };
+		const marks = sheet!.querySelector('svg.marks')?.cloneNode(true) as SVGSVGElement | undefined;
+		if (marks) {
+			for (const [name, value] of [['viewBox', `${box.x} 0 ${box.width} ${size!.height}`], ['width', '100%'], ['height', '100%'], ['preserveAspectRatio', 'none']]) marks.setAttribute(name, value);
+			ghost.append(marks);
+		}
+		Object.assign(ghost.style, { right: 'auto', ...across(box) });
+		return ghost;
+	}
+
+	/**
+	 * Two pages turning by one (#414): the page both spreads share slides across to its new
+	 * place, over the page that goes; the page that comes lies underneath, where the sliding
+	 * page was, and is found as it moves away.
+	 */
+	function turnSpread() {
+		const lifted = spreadLeaf;
+		spreadLeaf = null;
+		if (!lifted || !pileBox) return;
+		const shared = Math.max(lifted.from, lifted.to);
+		const moving = lifted.ghosts.find((ghost) => ghost.number === shared);
+		const going = lifted.ghosts.find((ghost) => ghost.number !== shared);
+		const landing = boxes.find((box) => box.number === shared);
+		if (!moving || !going || !landing) return;
+		pileBox.append(going.element, moving.element);
+		going.element.style.zIndex = '6';
+		moving.element.style.zIndex = '7';
+		const timing = { duration: 520, easing: 'cubic-bezier(0.33, 0, 0.25, 1)', fill: 'forwards' as const };
+		leafing.push(
+			// Lifted a little as it travels, laid down flat where it lands.
+			moving.element.animate(
+				[{ ...across(moving), transform: 'none' }, { transform: 'translateY(-1.5%) rotate(-0.4deg)', offset: 0.45 }, { ...across(landing), transform: 'none' }],
+				timing
+			),
+			// The page that goes darkens a touch as it's covered.
+			going.element.animate([{ filter: 'brightness(1)' }, { filter: 'brightness(0.92)' }], timing)
+		);
+		const done = () => lifted.ghosts.forEach((ghost) => ghost.element.remove());
+		leafing[0].onfinish = done;
+		leafing[0].oncancel = done;
+	}
+
+	/** A copy of the page, or both pages, being turned away; not while zoomed or for those who'd rather have no motion. */
+	function liftLeaf(from: number, to: number) {
+		leaf = null;
+		spreadLeaf = null;
+		if (!sheet || !size || zoom.zoomed || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+		const canvases = [...(slot?.querySelectorAll('canvas') ?? [])];
+		if (!canvases.length || canvases.some((canvas) => !canvas.width)) return;
+		if (!spread) leaf = { ghost: pageCopy(canvases[0], { x: 0, width: size.width }), from, to };
+		else if (spreadTurn(from, to) && canvases.length === boxes.length)
+			spreadLeaf = { ghosts: boxes.map((box, i) => ({ element: pageCopy(canvases[i], box), ...box })), from, to };
 	}
 
 	function turnLeaf() {
@@ -299,6 +351,10 @@
 		leaf = null;
 		for (const running of leafing) running.finish();
 		leafing = [];
+		// A turn before this one may still be under way: its copies go now, not when its animation
+		// reports it's done (which waits for the next frame, and never comes in a hidden tab).
+		for (const old of pileBox?.querySelectorAll(':scope > .leaf') ?? []) old.remove();
+		if (spreadLeaf) return turnSpread();
 		if (!lifted || !sheet || !pileBox) return;
 		const { ghost, from, to } = lifted;
 		pileBox.append(ghost);
@@ -344,13 +400,13 @@
 		first.oncancel = done;
 	}
 
-	/** By `step` pages, two at a time on two pages; past the first or last, to the piece before or after. */
+	/** By `step` pages, one at a time on two pages too (#414); past the first or last, to the piece before or after. */
 	function turn(step: number, past = Math.abs(step) === 1) {
 		const next = turnTo(mode, page, step, pages);
 		if (next !== null) {
 			pen.finish();
 			flushSync();
-			liftLeaf(page, next);
+			liftLeaf(showing[0], next);
 			page = next;
 		} else {
 			landLow = false;

@@ -550,7 +550,7 @@ test('notes from the section: one taken over by hand, then the rest at once', as
 	await expect(page.getByRole('button', { name: 'Mit Stimmgruppe teilen' })).toBeVisible();
 });
 
-test('a broad screen shows two pages and turns two at a time; the view chosen is kept, and the tools open in a window of their own (#410)', async ({ page }) => {
+test('a broad screen shows two pages and moves on one page at a time (#414); the view chosen is kept, and the tools open in a window of their own (#410)', async ({ page }) => {
 	test.skip(test.info().project.name === 'phone', 'two pages need a broad screen');
 	await page.setViewportSize({ width: 1800, height: 1000 });
 	// Sleigh Ride's cello part has three pages.
