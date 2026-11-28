@@ -61,3 +61,16 @@ export function programLength(durations: (number | undefined)[]): ProgramLength 
 	}
 	return { seconds, known, missing: durations.length - known };
 }
+
+/**
+ * Seconds into the programme each piece starts, from the durations of those before it (#411):
+ * for the moderation sheet. Undefined from the first unknown duration on, since a guess would mislead.
+ */
+export function startTimes(durations: (number | undefined)[]): (number | undefined)[] {
+	let at: number | undefined = 0;
+	return durations.map((duration) => {
+		const start = at;
+		at = at !== undefined && duration ? at + duration : undefined;
+		return start;
+	});
+}

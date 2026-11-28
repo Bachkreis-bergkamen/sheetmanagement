@@ -14,6 +14,8 @@
 	import Crumbs from '#lib/components/Crumbs.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import InstrumentationField from '#lib/components/InstrumentationField.svelte';
+	import FactsField from '#lib/components/FactsField.svelte';
+	import { maxLength } from '#lib/repertoire/piece-edit.ts';
 	import PieceSuggestions from '#lib/components/PieceSuggestions.svelte';
 	import Title from '#lib/components/Title.svelte';
 
@@ -90,6 +92,8 @@
 	// A medley: with "Komponist" empty, the composers of its songs stand there, shortened.
 	const hasContents = $derived(data.state === 'ready' && !(data.missing as string[]).includes('contents'));
 	const fromContents = $derived(contentsComposers(current.contents));
+	// "Wissenswertes" (#411): hidden like the other columns until setup adds it.
+	const hasFacts = $derived(data.state === 'ready' && !(data.missing as string[]).includes('facts'));
 	// A long list typed by hand that the songs already name: offered to leave to them.
 	const canFollowContents = $derived(!!fromContents && splitList(current.composer).length > SHOWN_COMPOSERS);
 	// A short form (#185): what most edits need up top, the rest under "Weitere Angaben". Working
@@ -100,9 +104,15 @@
 	const moreFields = $derived(fields.filter((field) => !mainNames.has(field.name)));
 	/** How many of the fields below are filled, so a closed section still says there's something in it. */
 	const moreFilled = $derived(
-		[...moreFields.map((field) => field.name), ...(hasContents ? ['contents'] : []), 'notes'].filter((name) => (current[name] ?? '').trim()).length
+		[...moreFields.map((field) => field.name), ...(hasContents ? ['contents'] : []), ...(hasFacts ? ['facts'] : []), 'notes'].filter((name) => (current[name] ?? '').trim()).length
 	);
 	let moreOpen = $state(false);
+	// "Wissenswertes ergänzen" on the piece page links here: open the section, on to the field.
+	$effect(() => {
+		if (location.hash !== '#facts' || !hasFacts) return;
+		moreOpen = true;
+		requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>('#facts textarea')?.focus());
+	});
 	// A refused save may be about a field down there.
 	$effect.pre(() => {
 		if (form?.message) moreOpen = true;
@@ -201,6 +211,22 @@
 						<textarea name="contents" maxlength="4000" rows={Math.min(12, Math.max(3, (current.contents ?? '').split('\n').length + 1))} placeholder={t.pieceEditor.contentsHint} bind:value={current.contents}></textarea>
 						<span class="ui-hint">{t.pieceEditor.contentsLead}</span>
 					</label>
+				{/if}
+				{#if hasFacts}
+					<!-- Background for the Moderation and the Programmheft (#411), with a Wikipedia lookup. -->
+					<div class="field wide" id="facts" class:suggested={!!marks.facts} oninput={() => delete marks.facts}>
+						<FactsField
+							name="facts"
+							label={columns.facts}
+							bind:value={current.facts}
+							title={current.title ?? data.piece.title}
+							composer={current.composerFull || current.composer}
+							maxlength={maxLength('facts')}
+							take={(value, source) => apply('facts', value, source)}
+						>
+							{#if marks.facts}{@render mark('facts')}{/if}
+						</FactsField>
+					</div>
 				{/if}
 				<label class="field wide">
 					{columns.notes}

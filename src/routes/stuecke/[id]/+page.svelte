@@ -20,6 +20,7 @@
 	import PartAssignments from '#lib/components/PartAssignments.svelte';
 	import ScanList from '#lib/components/ScanList.svelte';
 	import Title from '#lib/components/Title.svelte';
+	import FactsText from '#lib/components/FactsText.svelte';
 
 	let { data, form } = $props();
 	const piece = $derived(data.piece);
@@ -325,6 +326,16 @@
 	</section>
 {/if}
 
+{#if piece.facts.paragraphs.length}
+	<!-- Background (#411): where it comes from, stories to tell; what the Moderation and the Programmheft print. -->
+	<section class="background" aria-labelledby="facts-title">
+		<h2 class="ui-label" id="facts-title">{t.facts.title}</h2>
+		<FactsText facts={piece.facts} />
+	</section>
+{:else if data.canEdit}
+	<p class="background-add"><a class="btn ghost small" href="/stuecke/{encodeURIComponent(piece.id)}/bearbeiten#facts"><Icon name="book" size={16} />{t.facts.add}</a></p>
+{/if}
+
 {#if piece.info.notes || data.saved || gaps > 0 || form?.againError || data.again?.planned}
 <div class="notices">
 	{#if piece.info.notes}
@@ -610,6 +621,17 @@
 		gap: var(--space-3);
 		max-width: 720px;
 		margin: var(--space-5) 0;
+	}
+
+	.background {
+		display: grid;
+		gap: var(--space-2);
+		max-width: 720px;
+		margin: var(--space-5) 0;
+	}
+
+	.background-add {
+		margin: var(--space-3) 0;
 	}
 
 	.ours-lead {

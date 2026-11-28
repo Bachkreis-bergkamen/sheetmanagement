@@ -79,6 +79,18 @@ interface SamplePiece {
 	pages?: { all: number; short?: Record<string, number> };
 }
 
+/** "Wissenswertes" (#411) of two sample pieces, written for the demo. */
+const DEMO_FACTS: Record<string, string> = {
+	'demo-egmont': [
+		'Beethoven schrieb die Musik 1809/10 für eine Aufführung von Goethes Trauerspiel „Egmont“ am Wiener Burgtheater. Graf Egmont stellt sich im 16. Jahrhundert gegen die spanische Herrschaft über die Niederlande und wird hingerichtet; die Ouvertüre erzählt das in wenigen Minuten, vom düsteren f-Moll bis zum Siegesjubel am Schluss.',
+		'Heute wird fast nur noch die Ouvertüre gespielt, als eigenes Konzertstück. Unsere Stimmen stammen aus dem Nachlass eines Gründungsmitglieds.'
+	].join('\n\n'),
+	'demo-nachtmusik': [
+		'Mozart trug die Serenade im August 1787 in sein Werkverzeichnis ein, als er an „Don Giovanni“ arbeitete. Für welchen Anlass er sie schrieb, weiß man bis heute nicht; zu seinen Lebzeiten wurde sie nie gedruckt.',
+		'Ursprünglich hatte sie fünf Sätze, ein Menuett ist verloren gegangen.'
+	].join('\n\n')
+};
+
 const PIECES: SamplePiece[] = [
 	{
 		id: 'demo-cancan',
@@ -336,6 +348,8 @@ export function demoSheet(now: number): Map<string, string[][]> {
 				publisher: p.publisher ?? '',
 				// Film music shows the film's logo on its banner (#312).
 				...(p.id === 'demo-007' ? { genre: 'Filmmusik' } : {}),
+				// Background for the Moderation and the Programmheft (#411), for two, so the gaps show.
+				...(DEMO_FACTS[p.id] ? { facts: DEMO_FACTS[p.id] } : {}),
 				driveFolderId: p.id
 			})),
 			// Played long ago, no sheet music in the archive.

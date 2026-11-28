@@ -16,7 +16,7 @@ export type RepertoireTab = (typeof REPERTOIRE_TABS)[number];
 export type ColumnKey<T extends TabKey> = keyof (typeof LAYOUT)[T]['columns'];
 /** Columns added later that an older sheet works without, so they aren't reported missing. */
 const OPTIONAL_COLUMNS: Partial<Record<RepertoireTab, string[]>> = {
-	pieces: ['duration', 'publisher', 'composerFull', 'instrumentation', 'contents'],
+	pieces: ['duration', 'publisher', 'composerFull', 'instrumentation', 'contents', 'facts'],
 	concerts: ['sameProgramAs', 'partners', 'organizer'],
 	program: ['orchestra', 'composer', 'arranger', 'publisher', 'duration']
 };
@@ -98,6 +98,8 @@ export interface SheetPiece {
 	instrumentation?: string;
 	/** A medley's songs, one per line: "Habanera – Bizet" (contents.ts). */
 	contents?: string;
+	/** Background, history, stories (#411): for the Moderation and the Programmheft (facts.ts). */
+	facts?: string;
 	driveFolderId?: string;
 }
 
@@ -244,6 +246,7 @@ export function buildRepertoire(values: SheetValues): Repertoire {
 			publisher: optional(v.publisher),
 			instrumentation: optional(v.instrumentation),
 			contents: optional(v.contents),
+			facts: optional(v.facts),
 			driveFolderId: optional(folder)
 		};
 		pieces.push(piece);

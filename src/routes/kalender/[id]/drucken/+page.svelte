@@ -4,13 +4,25 @@
 	import * as t from '#lib/i18n/texts.ts';
 	import Icon from '#lib/components/Icon.svelte';
 	import Title from '#lib/components/Title.svelte';
-	import { formatDuration, programLength, roundMinutes } from '#lib/repertoire/duration.ts';
+	import FactsText from '#lib/components/FactsText.svelte';
+	import { formatDuration, programLength, roundMinutes, startTimes } from '#lib/repertoire/duration.ts';
 
 	let { data } = $props();
 	const concertUrl = $derived(`/kalender/${encodeURIComponent(data.concert.id)}`);
 	const when = $derived([data.concert.date, data.concert.time].filter(Boolean).join(', '));
 	const length = $derived(programLength(data.items.map((item) => item.duration)));
-	const hints = $derived({ handout: t.print.handoutHint, setlist: t.print.setlistHint, musikfolge: t.musicReport.hint });
+	const hints = $derived({
+		handout: t.print.handoutHint,
+		booklet: t.factsPrint.bookletHint,
+		moderation: t.factsPrint.moderationHint,
+		setlist: t.print.setlistHint,
+		musikfolge: t.musicReport.hint
+	});
+	// The Programmheft and the moderation (#411): which pieces have nothing to tell yet.
+	const withFacts = $derived(data.kind === 'booklet' || data.kind === 'moderation');
+	const factsGaps = $derived(withFacts ? data.items.filter((item) => !item.facts?.paragraphs.length) : []);
+	const starts = $derived(startTimes(data.items.map((item) => item.duration)));
+	const speaking = $derived(data.items.reduce((sum, item) => sum + (item.speaking ?? 0), 0));
 </script>
 
 <Title title={t.print.title(data.concert.title)} />
@@ -20,6 +32,12 @@
 	<div class="tabs" role="tablist">
 		<a role="tab" class="tab" class:active={data.kind === 'handout'} aria-selected={data.kind === 'handout'} href="?art=zettel" data-sveltekit-replacestate>
 			{t.print.handout}
+		</a>
+		<a role="tab" class="tab" class:active={data.kind === 'booklet'} aria-selected={data.kind === 'booklet'} href="?art=programmheft" data-sveltekit-replacestate>
+			{t.factsPrint.booklet}
+		</a>
+		<a role="tab" class="tab" class:active={data.kind === 'moderation'} aria-selected={data.kind === 'moderation'} href="?art=moderation" data-sveltekit-replacestate>
+			{t.factsPrint.moderation}
 		</a>
 		<a role="tab" class="tab" class:active={data.kind === 'setlist'} aria-selected={data.kind === 'setlist'} href="?art=setlist" data-sveltekit-replacestate>
 			{t.print.setlist}
@@ -77,8 +95,93 @@
 	</div>
 {/if}
 
+{#if withFacts && data.items.length}
+	<!-- What the Programmheft and the moderation still lack, with a way to fill it in; not printed. -->
+	<div class="no-print gaps" class:complete={!factsGaps.length}>
+		{#if factsGaps.length}
+			<p><Icon name="alert" size={16} />{t.factsPrint.factsGaps(factsGaps.length)}</p>
+			<ul>
+				{#each factsGaps as gap, i (i)}
+					<li>
+						<strong>{gap.title}</strong>
+						{#if gap.pieceId && data.canEditPieces}
+							<a href="/stuecke/{encodeURIComponent(gap.pieceId)}/bearbeiten#facts">{t.factsPrint.fill}</a>
+						{/if}
+					</li>
+				{/each}
+			</ul>
+		{:else}
+			<p><Icon name="check" size={16} />{t.factsPrint.factsComplete}</p>
+		{/if}
+	</div>
+{/if}
+
 {#if !data.items.length}
 	<p class="msg info no-print">{t.print.empty}</p>
+{:else if data.kind === 'booklet'}
+	<!-- The Programmheft: the handout's head, then each piece with what there is to know about it. -->
+	<article class="sheet booklet">
+		<header>
+			<p class="orchestra">{page.data.orchestraName}</p>
+			<h1>{data.concert.title}</h1>
+			{#if data.concert.partners.length}<p class="with">{t.partners.with(data.concert.partners)}</p>{/if}
+			{#if when || data.concert.location}
+				<p class="when">{[when, data.concert.location].filter(Boolean).join(' · ')}</p>
+			{/if}
+		</header>
+		<h2>{t.print.program}</h2>
+		<ol>
+			{#each data.items as item, i (i)}
+				<li>
+					<h3>{item.title}</h3>
+					{#if item.subtitle}<p class="composer">{item.subtitle}</p>{/if}
+					{#if item.performers}<p class="by">{item.performers}</p>{/if}
+					{#if item.notes}<p class="note">{item.notes}</p>{/if}
+					{#if item.facts?.paragraphs.length}<div class="story"><FactsText facts={item.facts} /></div>{/if}
+				</li>
+			{/each}
+		</ol>
+		{#if length.known && !length.missing}<p class="total">{t.print.totalLength(roundMinutes(length.seconds))}</p>{/if}
+	</article>
+{:else if data.kind === 'moderation'}
+	<!-- For whoever presents: the running order with times, and everything to tell, large enough for a dim stage. -->
+	<article class="sheet moderation">
+		<header>
+			<p class="setlist-head">{[data.concert.title, when, data.concert.location].filter(Boolean).join(' · ')}</p>
+			<p class="totals">
+				{#if length.known}<span>{t.duration.total(roundMinutes(length.seconds), length.missing)}</span>{/if}
+				{#if speaking}<span>{t.factsPrint.speakingTotal(roundMinutes(speaking))}</span>{/if}
+			</p>
+		</header>
+		<ol>
+			{#each data.items as item, i (i)}
+				{@const start = starts[i]}
+				<li>
+					<div class="cue">
+						<span class="number">{i + 1}</span>
+						<div>
+							<h3>{item.title}</h3>
+							{#if item.subtitle}<p class="composer">{item.subtitle}</p>{/if}
+							{#if item.performers}<p class="by">{item.performers}</p>{/if}
+						</div>
+						<p class="times">
+							{#if start !== undefined}<span>{t.factsPrint.startsAt(Math.round(start / 60))}</span>{/if}
+							{#if item.duration}<span>{formatDuration(item.duration)}</span>{/if}
+							{#if item.speaking}<span>{t.facts.speaking(item.speaking)}</span>{/if}
+						</p>
+					</div>
+					{#if item.notes}<p class="note">{item.notes}</p>{/if}
+					{#if item.facts?.paragraphs.length}
+						<div class="story"><FactsText facts={item.facts} sources={false} /></div>
+					{:else}
+						<p class="nothing">{t.factsPrint.nothingToTell}</p>
+					{/if}
+					<!-- Room to write by hand: what the conductor wants said, a thank-you, an encore. -->
+					<div class="own" aria-hidden="true">{t.factsPrint.ownNotes}</div>
+				</li>
+			{/each}
+		</ol>
+	</article>
 {:else if data.kind === 'handout'}
 	<article class="sheet handout">
 		<header>
@@ -467,7 +570,136 @@
 		font-size: var(--text-base);
 	}
 
+	.booklet header {
+		margin-bottom: var(--space-6);
+		text-align: center;
+	}
+
+	.booklet h1 {
+		margin: var(--space-2) 0;
+	}
+
+	.booklet h2 {
+		margin-bottom: var(--space-3);
+		color: var(--text-muted);
+		font-size: var(--text-xs);
+		letter-spacing: 0.12em;
+		text-align: center;
+		text-transform: uppercase;
+	}
+
+	.booklet li {
+		padding: var(--space-4) 0;
+		border-bottom: 1px dotted var(--border);
+		break-inside: avoid-page;
+	}
+
+	.booklet li:last-child {
+		border-bottom: 0;
+	}
+
+	.booklet h3,
+	.moderation h3 {
+		margin: 0;
+		font-family: var(--font-display);
+		font-size: var(--text-xl);
+		font-weight: 600;
+		line-height: 1.25;
+	}
+
+	.booklet li > p,
+	.moderation .cue p:not(.times) {
+		margin: 2px 0 0;
+	}
+
+	.story {
+		margin-top: var(--space-3);
+		font-size: var(--text-md);
+		hyphens: auto;
+	}
+
+	.booklet .story {
+		columns: 2 18rem;
+		column-gap: var(--space-5);
+	}
+
+	.moderation header {
+		margin-bottom: var(--space-4);
+	}
+
+	.totals {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-1) var(--space-4);
+		color: var(--text-muted);
+		font-size: var(--text-sm);
+	}
+
+	.moderation li {
+		padding: var(--space-4) 0;
+		border-bottom: 2px solid var(--border);
+	}
+
+	.cue {
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr) auto;
+		align-items: baseline;
+		gap: var(--space-3);
+		break-after: avoid;
+	}
+
+	.moderation .number {
+		font-size: var(--text-2xl);
+	}
+
+	.times {
+		display: grid;
+		justify-items: end;
+		margin: 0;
+		color: var(--text-muted);
+		font-size: var(--text-sm);
+		font-variant-numeric: tabular-nums;
+		white-space: nowrap;
+	}
+
+	.moderation .note {
+		margin: var(--space-2) 0 0;
+	}
+
+	/* Read out on stage: larger than in the booklet, short lines. */
+	.moderation .story {
+		max-width: 62ch;
+		font-size: var(--text-lg);
+	}
+
+	.nothing {
+		margin: var(--space-2) 0 0;
+		color: var(--text-muted);
+		font-style: italic;
+	}
+
+	.own {
+		min-height: 4.5rem;
+		margin-top: var(--space-3);
+		padding: var(--space-1) var(--space-2);
+		border: 1px dashed var(--border);
+		border-radius: var(--radius-s);
+		color: var(--text-muted);
+		font-size: var(--text-2xs);
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		break-inside: avoid;
+	}
+
 	@media print {
+		.moderation .story {
+			font-size: 14pt;
+		}
+
+		.booklet .story {
+			font-size: 10.5pt;
+		}
+
 		.sheet {
 			max-width: none;
 			padding: 0;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatDuration, parseDuration, programLength, roundMinutes } from './duration.ts';
+import { formatDuration, parseDuration, programLength, roundMinutes, startTimes } from './duration.ts';
 
 describe('parseDuration', () => {
 	it.each([
@@ -47,5 +47,12 @@ describe('programLength', () => {
 	it('rounds to whole minutes, at least one', () => {
 		expect(roundMinutes(1050)).toBe(18);
 		expect(roundMinutes(10)).toBe(1);
+	});
+});
+
+describe('startTimes', () => {
+	it('add up the pieces before, until one has no duration', () => {
+		expect(startTimes([300, 450, undefined, 600])).toEqual([0, 300, 750, undefined]);
+		expect(startTimes([])).toEqual([]);
 	});
 });

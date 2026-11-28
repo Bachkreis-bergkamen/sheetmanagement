@@ -26,6 +26,8 @@ export const sheet = {
 			instrumentation: 'Besetzung',
 			/** A medley's songs, one per line: "Habanera – Bizet". */
 			contents: 'Inhalt',
+			/** Background for the Moderation and the Programmheft (#411): where it comes from, stories about it. */
+			facts: 'Wissenswertes',
 			driveFolderId: 'Drive-Ordner-ID'
 		}
 	},

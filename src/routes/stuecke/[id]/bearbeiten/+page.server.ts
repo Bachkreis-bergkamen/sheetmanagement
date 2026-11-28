@@ -3,7 +3,7 @@ import { config } from '#lib/config/index.ts';
 import { gapsOf, nextWithGaps, parseGapFilter } from '#lib/repertoire/details.ts';
 import * as t from '#lib/i18n/texts.ts';
 import { searchText } from '#lib/music/text.ts';
-import { checkPieceValues, EDITABLE, findPieceRow, pieceValues, pieceVersion, renameInProgram, writableValues, type PieceValues } from '#lib/repertoire/piece-edit.ts';
+import { checkPieceValues, EDITABLE, maxLength, findPieceRow, pieceValues, pieceVersion, renameInProgram, writableValues, type PieceValues } from '#lib/repertoire/piece-edit.ts';
 import { requireRight } from '#lib/server/auth/index.ts';
 import { getLibrary } from '#lib/server/library.ts';
 import { instrumentationFromParts } from '#lib/music/instrumentation.ts';
@@ -77,9 +77,9 @@ export const actions: Actions = {
 	default: async ({ params, request, locals }) => {
 		requireRight(locals, RIGHT);
 		const data = await request.formData();
-		// A medley's contents may run longer than one line.
+		// A medley's contents and a piece's background (#411) may run longer than one line.
 		const submitted = Object.fromEntries(
-			EDITABLE.map((column) => [column, String(data.get(column) ?? '').slice(0, column === 'contents' ? 4000 : 1000)])
+			EDITABLE.map((column) => [column, String(data.get(column) ?? '').slice(0, maxLength(column))])
 		) as PieceValues;
 
 		const library = await getLibrary();
