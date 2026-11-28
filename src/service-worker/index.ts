@@ -3,6 +3,9 @@ import { assets, immutable } from '$app/manifest';
 import { self as sw } from '$app/service-worker';
 import { sendPending } from '#lib/offline/marks.ts';
 import { networkOr } from '#lib/offline/patience.ts';
+import jbig2 from 'pdfjs-dist/wasm/jbig2.wasm?url';
+import openjpeg from 'pdfjs-dist/wasm/openjpeg.wasm?url';
+import qcms from 'pdfjs-dist/wasm/qcms_bg.wasm?url';
 
 /**
  * Offline mode for rehearsal halls with bad reception (#62). The app's own files come from
@@ -36,8 +39,15 @@ const WARMED = '/__offline-warmed';
 const DAY = 24 * 60 * 60 * 1000;
 /** How long after a failed keeping of the library it is tried again, instead of on every start. */
 const RETRY_WARM = 60 * 60 * 1000;
+/**
+ * pdf.js's decoders for scans and colour profiles (src/routes/pdfjs-wasm). Only that server route
+ * imports them, so they aren't among the app's files the build lists; without them a part kept
+ * offline didn't draw: pdf.js loads the colour one with a request that blocks it until answered,
+ * and on a hall's weak Wi-Fi the page stayed white.
+ */
+const DECODERS = [jbig2, openjpeg, qcms].map((url) => ({ path: new URL(url, sw.location.href).pathname }));
 /** Paths come relative to the base path; requests are matched by their absolute path. */
-const ASSETS = new Set([...immutable, ...assets].map(({ path }) => `/${path.replace(/^\//, '')}`));
+const ASSETS = new Set([...immutable, ...assets, ...DECODERS].map(({ path }) => `/${path.replace(/^\//, '')}`));
 /** Big files only the door's phones need (the code reader for iPhones): kept once fetched, not on install. */
 const onDemand = (path: string) => path.includes('zxing_reader');
 
