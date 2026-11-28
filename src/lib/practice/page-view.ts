@@ -49,15 +49,25 @@ export function shownPages(mode: Mode, page: number, pages: number): number[] {
 }
 
 /**
- * Where a turn by `step` pages goes from `page`, a spread turning two at a time; null when it
- * goes nowhere (past the first or last page).
+ * Where a turn by `step` pages goes from `page`; null when it goes nowhere (past the first or
+ * last page). A spread moves on one page at a time (#414): 1–2, 2–3, 3–4, so the page on the
+ * right is still there on the left after the turn and the music reads on without a jump.
  */
 export function turnTo(mode: Mode, page: number, step: number, pages: number): number | null {
 	const spread = mode === 'spread' && pages > 1;
 	const left = spread ? shownPages(mode, page, pages)[0] : page;
 	const last = spread ? pages - 1 : pages;
-	const next = Math.max(1, Math.min(last, left + step * (spread ? 2 : 1)));
+	const next = Math.max(1, Math.min(last, left + step));
 	return next === left ? null : next;
+}
+
+/**
+ * How a spread turns (#414): on, the right page slides over to the left and the next page
+ * is found under where it lay; back, the left page slides over to the right and the page
+ * before is found under it. Null for a jump of more than one page, which just shows the new spread.
+ */
+export function spreadTurn(from: number, to: number): 'on' | 'back' | null {
+	return to === from + 1 ? 'on' : to === from - 1 ? 'back' : null;
 }
 
 /**

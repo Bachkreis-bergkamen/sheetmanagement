@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fittedFor, modeFor, shownPages, sideBySide, turnTo } from './page-view.ts';
+import { fittedFor, modeFor, shownPages, sideBySide, spreadTurn, turnTo } from './page-view.ts';
 
 const a4 = { width: 595, height: 842 };
 
@@ -44,19 +44,25 @@ describe('shownPages', () => {
 });
 
 describe('turnTo', () => {
-	it('turns two pages at a time in a spread', () => {
-		expect(turnTo('spread', 1, 1, 4)).toBe(3);
-		expect(turnTo('spread', 3, -1, 4)).toBe(1);
+	it('moves a spread on one page at a time: 1–2, 2–3, 3–4 (#414)', () => {
+		expect(turnTo('spread', 1, 1, 4)).toBe(2);
+		expect(turnTo('spread', 2, 1, 4)).toBe(3);
+		expect(turnTo('spread', 3, -1, 4)).toBe(2);
 	});
 
-	it('shows the last two pages at the end of an odd part, and stops there', () => {
-		expect(turnTo('spread', 3, 1, 5)).toBe(4);
-		expect(turnTo('spread', 4, 1, 5)).toBeNull();
+	it('stops at the spread that ends with the last page', () => {
+		expect(turnTo('spread', 3, 1, 4)).toBeNull();
+		expect(turnTo('spread', 1, -1, 4)).toBeNull();
 	});
 
 	it('counts a spread from the pages it shows, e.g. after coming back from the next piece', () => {
-		expect(turnTo('spread', 4, -1, 4)).toBe(1);
+		expect(turnTo('spread', 4, -1, 4)).toBe(2);
 		expect(turnTo('spread', 4, 1, 4)).toBeNull();
+	});
+
+	it('jumps to the first and last spread', () => {
+		expect(turnTo('spread', 2, -99, 5)).toBe(1);
+		expect(turnTo('spread', 2, 99, 5)).toBe(4);
 	});
 
 	it('turns one page otherwise, to the first and last at most', () => {
@@ -85,5 +91,14 @@ describe('fittedFor', () => {
 
 	it('fits two pages side by side as one sheet', () => {
 		expect(fittedFor('spread', { width: 1190, height: 842 }, 2000, 421)).toEqual({ width: 595, height: 421 });
+	});
+});
+
+describe('spreadTurn', () => {
+	it('slides one page on or back, and not on a jump', () => {
+		expect(spreadTurn(1, 2)).toBe('on');
+		expect(spreadTurn(3, 2)).toBe('back');
+		expect(spreadTurn(1, 4)).toBeNull();
+		expect(spreadTurn(2, 2)).toBeNull();
 	});
 });
