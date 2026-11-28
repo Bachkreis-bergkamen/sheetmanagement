@@ -55,7 +55,7 @@
 		"/nutzungsbedingungen": 135,
 		"/profil": 170,
 		"/stuecke": 150,
-		"/stuecke/[id]": 200,
+		"/stuecke/[id]": 205,
 		"/stuecke/[id]/bearbeiten": 170,
 		"/stuecke/[id]/stimmensatz": 140,
 		"/stuecke/angaben": 140,

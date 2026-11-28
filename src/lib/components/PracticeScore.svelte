@@ -275,11 +275,17 @@
 
 	let leaf: { ghost: HTMLElement; from: number; to: number } | null = null;
 	let leafing: Animation[] = [];
-	/** Two pages (#414): copies of both pages as they lay, each with its place on the sheet (0–1 across). */
+	/** Two pages (#414): copies of both pages as they lay, each with its place on the sheet (see `boxes`). */
 	let spreadLeaf: { ghosts: { element: HTMLElement; number: number; x: number; width: number }[]; from: number; to: number } | null = null;
 
-	/** A copy of a page on the sheet with its marks, at its place across the sheet (0–1). */
-	function pageCopy(canvas: HTMLCanvasElement, box: { x: number; width: number }, marks: Element | null) {
+	/** Where a page lies across the sheet, as CSS. */
+	const across = (box: { x: number; width: number }) => ({ left: `${(box.x / size!.width) * 100}%`, width: `${(box.width / size!.width) * 100}%` });
+
+	/**
+	 * A copy of a page as it lies on the sheet, with its marks: the sheet's drawing cut to the
+	 * page's box, stretched over the copy. One page or two (#414), for the turn's animation.
+	 */
+	function pageCopy(canvas: HTMLCanvasElement, box: { x: number; width: number }) {
 		const ghost = document.createElement('div');
 		ghost.className = 'leaf';
 		const copy = document.createElement('canvas');
@@ -287,33 +293,13 @@
 		copy.height = canvas.height;
 		copy.getContext('2d')?.drawImage(canvas, 0, 0);
 		ghost.append(copy);
-		if (marks && size) {
-			// The sheet's marks cut to this page: its part of the drawing, stretched over the copy.
-			const own = marks.cloneNode(true) as SVGSVGElement;
-			own.setAttribute('viewBox', `${box.x * size.width} 0 ${box.width * size.width} ${size.height}`);
-			own.setAttribute('width', '100%');
-			own.setAttribute('height', '100%');
-			own.setAttribute('preserveAspectRatio', 'none');
-			ghost.append(own);
+		const marks = sheet!.querySelector('svg.marks')?.cloneNode(true) as SVGSVGElement | undefined;
+		if (marks) {
+			for (const [name, value] of [['viewBox', `${box.x} 0 ${box.width} ${size!.height}`], ['width', '100%'], ['height', '100%'], ['preserveAspectRatio', 'none']]) marks.setAttribute(name, value);
+			ghost.append(marks);
 		}
-		Object.assign(ghost.style, { left: `${box.x * 100}%`, right: 'auto', width: `${box.width * 100}%` });
+		Object.assign(ghost.style, { right: 'auto', ...across(box) });
 		return ghost;
-	}
-
-	/** Both pages of a spread as they lie, before it moves on or back by one page (see turnLeaf). */
-	function liftSpread(from: number, to: number) {
-		spreadLeaf = null;
-		if (!sheet || !spreadTurn(from, to)) return;
-		const canvases = [...(slot?.querySelectorAll('canvas') ?? [])];
-		if (canvases.length !== onSheet.length || canvases.some((canvas) => !canvas.width)) return;
-		const marks = sheet.querySelector('svg.marks');
-		let x = 0;
-		const ghosts = onSheet.map(({ number, share }, i) => {
-			const box = { x, width: share };
-			x += share;
-			return { element: pageCopy(canvases[i], box, marks), number, ...box };
-		});
-		spreadLeaf = { ghosts, from, to };
 	}
 
 	/**
@@ -325,64 +311,39 @@
 		const lifted = spreadLeaf;
 		spreadLeaf = null;
 		if (!lifted || !pileBox) return;
-		const { ghosts, from, to } = lifted;
-		const shared = Math.max(from, to);
-		const moving = ghosts.find((ghost) => ghost.number === shared);
-		const going = ghosts.find((ghost) => ghost.number !== shared);
-		let x = 0;
-		const landing = onSheet
-			.map(({ number, share }) => {
-				const box = { number, x, width: share };
-				x += share;
-				return box;
-			})
-			.find((box) => box.number === shared);
+		const shared = Math.max(lifted.from, lifted.to);
+		const moving = lifted.ghosts.find((ghost) => ghost.number === shared);
+		const going = lifted.ghosts.find((ghost) => ghost.number !== shared);
+		const landing = boxes.find((box) => box.number === shared);
 		if (!moving || !going || !landing) return;
 		pileBox.append(going.element, moving.element);
 		going.element.style.zIndex = '6';
 		moving.element.style.zIndex = '7';
-		const timing = { duration: 520, easing: 'cubic-bezier(0.33, 0, 0.25, 1)' };
-		const percent = (value: number) => `${value * 100}%`;
+		const timing = { duration: 520, easing: 'cubic-bezier(0.33, 0, 0.25, 1)', fill: 'forwards' as const };
 		leafing.push(
 			// Lifted a little as it travels, laid down flat where it lands.
 			moving.element.animate(
-				[
-					{ left: percent(moving.x), width: percent(moving.width), transform: 'none' },
-					{ transform: 'translateY(-1.5%) rotate(-0.4deg)', offset: 0.45 },
-					{ left: percent(landing.x), width: percent(landing.width), transform: 'none' }
-				],
-				{ ...timing, fill: 'forwards' }
+				[{ ...across(moving), transform: 'none' }, { transform: 'translateY(-1.5%) rotate(-0.4deg)', offset: 0.45 }, { ...across(landing), transform: 'none' }],
+				timing
 			),
 			// The page that goes darkens a touch as it's covered.
-			going.element.animate([{ filter: 'brightness(1)' }, { filter: 'brightness(0.92)' }], { ...timing, fill: 'forwards' })
+			going.element.animate([{ filter: 'brightness(1)' }, { filter: 'brightness(0.92)' }], timing)
 		);
-		const [first] = leafing;
-		const done = () => {
-			moving.element.remove();
-			going.element.remove();
-		};
-		first.onfinish = done;
-		first.oncancel = done;
+		const done = () => lifted.ghosts.forEach((ghost) => ghost.element.remove());
+		leafing[0].onfinish = done;
+		leafing[0].oncancel = done;
 	}
 
-	/** A copy of the page being turned away, with its marks; not while zoomed or for those who'd rather have no motion. */
+	/** A copy of the page, or both pages, being turned away; not while zoomed or for those who'd rather have no motion. */
 	function liftLeaf(from: number, to: number) {
 		leaf = null;
 		spreadLeaf = null;
-		if (!sheet || zoom.zoomed || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-		if (spread) return liftSpread(from, to);
-		const old = slot?.querySelector('canvas');
-		if (!old || !old.width) return;
-		const ghost = document.createElement('div');
-		ghost.className = 'leaf';
-		const copy = document.createElement('canvas');
-		copy.width = old.width;
-		copy.height = old.height;
-		copy.getContext('2d')?.drawImage(old, 0, 0);
-		ghost.append(copy);
-		const drawnMarks = sheet.querySelector('svg.marks');
-		if (drawnMarks) ghost.append(drawnMarks.cloneNode(true));
-		leaf = { ghost, from, to };
+		if (!sheet || !size || zoom.zoomed || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+		const canvases = [...(slot?.querySelectorAll('canvas') ?? [])];
+		if (!canvases.length || canvases.some((canvas) => !canvas.width)) return;
+		if (!spread) leaf = { ghost: pageCopy(canvases[0], { x: 0, width: size.width }), from, to };
+		else if (spreadTurn(from, to) && canvases.length === boxes.length)
+			spreadLeaf = { ghosts: boxes.map((box, i) => ({ element: pageCopy(canvases[i], box), ...box })), from, to };
 	}
 
 	function turnLeaf() {
