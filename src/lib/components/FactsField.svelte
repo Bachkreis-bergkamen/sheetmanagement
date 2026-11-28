@@ -149,7 +149,7 @@
 							<li>
 								<button type="button" onclick={() => show(candidate)} disabled={busy !== 'idle'}>
 									<strong>{candidate.title}</strong>
-									{#if candidate.snippet}<span class="ui-hint">{candidate.snippet} …</span>{/if}
+									{#if candidate.description}<span class="ui-hint">{candidate.description}</span>{/if}
 								</button>
 							</li>
 						{/each}

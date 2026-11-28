@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { plainSnippet, searchWikipedia, webSearchUrl, wikiQuery, wikipediaArticle, WikipediaBusyError } from './wikipedia.ts';
+import { searchWikipedia, webSearchUrl, wikiQuery, wikipediaArticle, WikipediaBusyError } from './wikipedia.ts';
 
 const respond = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 
@@ -10,19 +10,26 @@ describe('wikipedia', () => {
 		expect(wikiQuery(' Bolero ')).toBe('Bolero');
 	});
 
-	it('reads snippets as plain text', () => {
-		expect(plainSnippet('Die <span class="searchmatch">Egmont</span>-Musik &amp; mehr')).toBe('Die Egmont-Musik & mehr');
-		// Nothing that could read as a tag is left, written or nested.
-		expect(plainSnippet('a <<b>script>c &lt;script&gt; d')).toBe('a scriptc script d');
-	});
-
 	it('finds articles in the first language, else in the second', async () => {
 		const asked: string[] = [];
 		const fetchImpl = (async (url: string) => {
 			asked.push(new URL(url).hostname);
-			return url.startsWith('https://de.') ? respond({ query: { search: [] } }) : respond({ query: { search: [{ title: 'Egmont (Beethoven)', snippet: '<b>x</b>' }] } });
+			return url.startsWith('https://de.')
+				? respond({ batchcomplete: true })
+				: respond({
+						query: {
+							pages: [
+								{ title: 'Egmont (Goethe)', index: 2 },
+								{ title: 'Egmont (Beethoven)', index: 1, description: 'incidental music by Beethoven' }
+							]
+						}
+					});
 		}) as typeof fetch;
-		expect(await searchWikipedia('Egmont', fetchImpl)).toEqual([{ title: 'Egmont (Beethoven)', snippet: 'x', language: 'en' }]);
+		// In the search's order, with the description as plain text.
+		expect(await searchWikipedia('Egmont', fetchImpl)).toEqual([
+			{ title: 'Egmont (Beethoven)', description: 'incidental music by Beethoven', language: 'en' },
+			{ title: 'Egmont (Goethe)', description: '', language: 'en' }
+		]);
 		expect(asked).toEqual(['de.wikipedia.org', 'en.wikipedia.org']);
 	});
 

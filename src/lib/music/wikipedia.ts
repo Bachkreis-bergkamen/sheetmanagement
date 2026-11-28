@@ -16,8 +16,8 @@ export const WIKI_LANGUAGES: readonly WikiLanguage[] = LANGUAGE === 'en' ? ['en'
 
 export interface WikiCandidate {
 	title: string;
-	/** A few words around the match, as plain text. */
-	snippet: string;
+	/** What the article is about in a few words, as Wikipedia describes it ("Konzertouvertüre von Ludwig van Beethoven"). */
+	description: string;
 	language: WikiLanguage;
 }
 
@@ -45,19 +45,6 @@ async function call(language: WikiLanguage, params: Record<string, string>, fetc
 	return response.json();
 }
 
-const ENTITIES: Record<string, string> = { amp: '&', quot: '"', '#039': "'", nbsp: ' ' };
-/**
- * A search snippet is HTML with the match marked: plain text, entities read. No angle bracket
- * survives, not even a written "&lt;", so the result can never read as a tag, however it's shown.
- */
-export const plainSnippet = (html: string) =>
-	html
-		.replace(/<[^>]*>/g, '')
-		.replace(/[<>]|&(lt|gt);/g, '')
-		.replace(/&(amp|quot|#039|nbsp);/g, (_, name: string) => ENTITIES[name])
-		.replace(/\s+/g, ' ')
-		.trim();
-
 /** What to search for: the title and the composer's last name, which is how articles are named. */
 export function wikiQuery(title: string, composer?: string): string {
 	const name = composer?.split(/[,;]/)[0].trim().split(/\s+/).at(-1);
@@ -68,8 +55,11 @@ export function wikiQuery(title: string, composer?: string): string {
 export async function searchWikipedia(query: string, fetchImpl: Fetch = fetch): Promise<WikiCandidate[]> {
 	if (!query.trim()) return [];
 	for (const language of WIKI_LANGUAGES) {
-		const json = await call(language, { action: 'query', list: 'search', srsearch: query, srlimit: '5', srprop: 'snippet' }, fetchImpl);
-		const found = ((json.query?.search ?? []) as Json[]).map((hit) => ({ title: String(hit.title), snippet: plainSnippet(String(hit.snippet ?? '')), language }));
+		// The hits as pages with their short description: plain text, so no HTML to clean up (the search's own snippets are HTML).
+		const json = await call(language, { action: 'query', generator: 'search', gsrsearch: query, gsrlimit: '5', prop: 'description' }, fetchImpl);
+		const found = ((json.query?.pages ?? []) as Json[])
+			.toSorted((a, b) => (a.index ?? 0) - (b.index ?? 0))
+			.map((page) => ({ title: String(page.title), description: String(page.description ?? ''), language }));
 		if (found.length) return found;
 	}
 	return [];
