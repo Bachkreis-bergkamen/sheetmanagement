@@ -45,7 +45,7 @@
 	let candidates = $state<WikiCandidate[] | null>(null);
 	let article = $state<WikiArticle | null>(null);
 
-	const failure = (error: unknown) => (error instanceof WikipediaBusyError ? t.facts.busy : t.facts.failed);
+	const failure = (error: unknown) => (error instanceof WikipediaBusyError ? t.factsLookup.busy : t.factsLookup.failed);
 
 	async function search() {
 		busy = 'searching';
@@ -53,7 +53,7 @@
 		article = null;
 		try {
 			candidates = await searchWikipedia(query);
-			if (!candidates.length) problem = t.facts.nothing;
+			if (!candidates.length) problem = t.factsLookup.nothing;
 		} catch (error) {
 			candidates = null;
 			problem = failure(error);
@@ -67,7 +67,7 @@
 		problem = '';
 		try {
 			article = (await wikipediaArticle(candidate.title, candidate.language)) ?? null;
-			if (!article) problem = t.facts.noIntro;
+			if (!article) problem = t.factsLookup.noIntro;
 		} catch (error) {
 			problem = failure(error);
 		} finally {
@@ -85,7 +85,7 @@
 
 	function takeOver() {
 		if (!article) return;
-		take(withSource(value, article.text, t.facts.source(article.title, article.url)), t.facts.sourceName);
+		take(withSource(value, article.text, t.factsLookup.source(article.title, article.url)), t.factsLookup.sourceName);
 		open = false;
 		article = null;
 	}
@@ -98,38 +98,38 @@
 			{name}
 			{maxlength}
 			rows={Math.min(14, Math.max(4, value.split('\n').length + 1))}
-			placeholder={t.facts.placeholder}
+			placeholder={t.factsLookup.placeholder}
 			bind:value
 		></textarea>
-		<span class="ui-hint">{t.facts.hint}</span>
+		<span class="ui-hint">{t.factsLookup.hint}</span>
 	</label>
 	{@render children?.()}
 	<div class="tools">
-		<button class="btn ghost small" type="button" aria-expanded={open} onclick={start}><Icon name="book" size={14} />{t.facts.lookup}</button>
-		<a class="btn ghost small" href={webSearchUrl(title, composer)} target="_blank" rel="noopener noreferrer nofollow"><Icon name="external" size={14} />{t.facts.webSearch}</a>
+		<button class="btn ghost small" type="button" aria-expanded={open} onclick={start}><Icon name="book" size={14} />{t.factsLookup.lookup}</button>
+		<a class="btn ghost small" href={webSearchUrl(title, composer)} target="_blank" rel="noopener noreferrer nofollow"><Icon name="external" size={14} />{t.factsLookup.webSearch}</a>
 		{#if speaking}<span class="ui-hint speaking"><Icon name="clock" size={14} />{t.facts.speaking(speaking)}</span>{/if}
 	</div>
 
 	{#if open}
 		<div class="lookup" aria-live="polite">
-			<p class="ui-hint">{t.facts.lookupHint}</p>
+			<p class="ui-hint">{t.factsLookup.lookupHint}</p>
 			{#if article}
 				<article class="preview">
-					<h3>{article.title} <span class="ui-hint">({t.facts.inLanguage(article.language)})</span></h3>
+					<h3>{article.title} <span class="ui-hint">({t.factsLookup.inLanguage(article.language)})</span></h3>
 					{#each article.text.split('\n\n') as paragraph, i (i)}<p>{paragraph}</p>{/each}
 					<a class="ui-hint" href={article.url} target="_blank" rel="noopener noreferrer">{article.url}</a>
 				</article>
 				<div class="tools">
-					<button class="btn small" type="button" title={t.facts.takeHint} onclick={takeOver}><Icon name="plus" size={14} />{t.facts.take}</button>
-					<button class="btn ghost small" type="button" onclick={() => (article = null)}><Icon name="back" size={14} />{t.facts.back}</button>
+					<button class="btn small" type="button" title={t.factsLookup.takeHint} onclick={takeOver}><Icon name="plus" size={14} />{t.factsLookup.take}</button>
+					<button class="btn ghost small" type="button" onclick={() => (article = null)}><Icon name="back" size={14} />{t.factsLookup.back}</button>
 				</div>
-				<p class="ui-hint">{t.facts.takeHint}</p>
+				<p class="ui-hint">{t.factsLookup.takeHint}</p>
 			{:else}
 				<!-- Not a form of its own: it sits inside the editor's form; Enter searches. -->
 				<div class="query">
 					<input
 						type="search"
-						aria-label={t.facts.query}
+						aria-label={t.factsLookup.query}
 						bind:value={query}
 						autocomplete="off"
 						onkeydown={(event) => {
@@ -139,10 +139,10 @@
 							}
 						}}
 					/>
-					<button class="btn ghost small" type="button" onclick={search} disabled={busy !== 'idle'}><Icon name="search" size={14} />{t.facts.search}</button>
+					<button class="btn ghost small" type="button" onclick={search} disabled={busy !== 'idle'}><Icon name="search" size={14} />{t.factsLookup.search}</button>
 				</div>
-				{#if busy === 'searching'}<p class="ui-hint">{t.facts.searching}</p>{/if}
-				{#if busy === 'loading'}<p class="ui-hint">{t.facts.loading}</p>{/if}
+				{#if busy === 'searching'}<p class="ui-hint">{t.factsLookup.searching}</p>{/if}
+				{#if busy === 'loading'}<p class="ui-hint">{t.factsLookup.loading}</p>{/if}
 				{#if candidates?.length && busy !== 'searching'}
 					<ul class="candidates">
 						{#each candidates as candidate (candidate.language + candidate.title)}
@@ -157,7 +157,7 @@
 				{/if}
 			{/if}
 			{#if problem}<p class="msg info">{problem}</p>{/if}
-			<button class="btn ghost small" type="button" onclick={() => (open = false)}><Icon name="x" size={14} />{t.facts.close}</button>
+			<button class="btn ghost small" type="button" onclick={() => (open = false)}><Icon name="x" size={14} />{t.factsLookup.close}</button>
 		</div>
 	{/if}
 </div>
