@@ -34,6 +34,10 @@
 	const groups = $derived(navGroups({ auth: data.auth, rights: data.rights, features: data.features, polls: data.polls, parent: data.parent }));
 	const nav = $derived(primaryNav(groups));
 	const path = $derived(page.url.pathname);
+	// The practice tools' own window (#410): the tools alone, without the app's bars.
+	const bare = $derived(page.route.id === '/ueben/[id]/werkzeuge');
+	// The practice viewer gets the whole width: two pages side by side, and room beside a page for the tools (#410).
+	const wide = $derived(page.route.id === '/ueben/[id]');
 	// The most specific entry counts: "Angaben ergänzen" lights up "Mehr", not "Archiv".
 	const current = $derived(currentItem(groups, path)?.item.href);
 	// The organisers' pages light up their area, "Verwaltung" (#185).
@@ -178,6 +182,10 @@
 </style>`}
 </svelte:head>
 
+{#if bare}
+	<main id="inhalt" class="bare">{@render children()}</main>
+	<Toast />
+{:else}
 <div class="app">
 	<a class="skip" href="#inhalt">{t.nav.skip}</a>
 	<!-- Early in the page, so the keyboard reaches the tour's card right after the skip link. -->
@@ -237,7 +245,7 @@
 		</div>
 	</header>
 
-	<main id="inhalt" tabindex="-1">
+	<main id="inhalt" tabindex="-1" class:wide>
 		<!-- Outside the page's animation: the tabs stay put while switching between the workspace's pages. -->
 		{#if workspace}<WorkspaceTabs group={workspace} {current} counts={data.counts} />{/if}
 		{#key path}
@@ -288,6 +296,7 @@
 	<Toast />
 	<UpdateNotice />
 </div>
+{/if}
 
 <style>
 	/* For keyboards: the first Tab shows it, Enter skips the navigation. */
@@ -509,6 +518,15 @@
 		max-width: var(--content-width);
 		margin: 0 auto;
 		padding: var(--space-6) var(--space-4) var(--space-7);
+	}
+
+	main.wide {
+		max-width: none;
+	}
+
+	main.bare {
+		max-width: none;
+		padding: 0;
 	}
 
 	.page {

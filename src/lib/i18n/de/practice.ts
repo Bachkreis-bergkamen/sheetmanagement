@@ -52,8 +52,9 @@ export const practice = {
 		elsewhere: 'In Drive öffnen (zählt nicht)',
 		failed: 'Die Noten ließen sich nicht laden.',
 		title: (part: string, piece: string) => `${part} · ${piece}`,
-		fitPage: 'Ganze Seite',
-		fitWidth: 'Seitenbreite',
+		view: 'Ansicht',
+		views: { auto: 'Automatisch', page: 'Ganze Seite', width: 'Seitenbreite', spread: 'Zwei Seiten', half: 'Halbe Seiten' },
+		autoAs: (mode: string) => `Automatisch (${mode})`,
 		zoom: 'Zoom',
 		zoomIn: 'Vergrößern',
 		zoomOut: 'Verkleinern',
@@ -74,7 +75,11 @@ export const practice = {
 		autoPlace: 'Automatisch platzieren',
 		fold: 'Einklappen',
 		toolsAt: (x: number, y: number) => `Werkzeuge bei ${x} % von links, ${y} % von oben`,
-		toolsAuto: 'Werkzeuge automatisch platziert'
+		toolsAuto: 'Werkzeuge automatisch platziert',
+		popOut: 'In eigenem Fenster öffnen, z. B. für einen zweiten Bildschirm',
+		popOutBlocked: 'Das Fenster wurde blockiert. Bitte Pop-ups für diese Seite erlauben.',
+		windowTitle: (piece: string) => `Werkzeuge · ${piece}`,
+		windowHint: 'Dieses Fenster lässt sich auf einen zweiten Bildschirm ziehen. Metronom, Stimmgerät und Hörbeispiel laufen hier weiter, auch wenn die Noten umgeblättert werden.'
 	},
 	recording: {
 		title: 'Hörbeispiel',

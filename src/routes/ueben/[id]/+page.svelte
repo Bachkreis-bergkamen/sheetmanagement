@@ -1,10 +1,10 @@
 <script lang="ts">
 	import * as t from '#lib/i18n/texts.ts';
 	import Icon from '#lib/components/Icon.svelte';
-	import Metronome from '#lib/components/Metronome.svelte';
 	import PracticeScore from '#lib/components/PracticeScore.svelte';
+	import PracticeTools from '#lib/components/PracticeTools.svelte';
 	import Title from '#lib/components/Title.svelte';
-	import Tuner from '#lib/components/Tuner.svelte';
+	import { showToast } from '#lib/forms.svelte.ts';
 	import { BEAT_SECONDS, PracticeClock } from '#lib/practice/practice.ts';
 	import { outcome, queuePractice, sendQueuedPractice } from '#lib/offline/practice-queue.ts';
 	import QuickReport from '#lib/components/QuickReport.svelte';
@@ -21,14 +21,26 @@
 	 * The tools, each a button in the score's toolbar; PracticeScore places their panel beside the
 	 * page. Metronome, tuner and drone share one, "Werkzeuge", with a tab each; all stay running.
 	 */
-	let playing = $state(false);
 	const tools = $derived([
 		...(data.recording ? [{ value: 'recording' as const, label: t.practice.recording.title }] : []),
-		{ value: 'tools', label: t.practice.viewer.tools }
+		{ value: 'tools' as const, label: t.practice.viewer.tools }
 	]);
-	type Tab = 'metronome' | 'tuner' | 'drone';
-	let tab = $state<Tab>('metronome');
-	const TABS: Tab[] = ['metronome', 'tuner', 'drone'];
+
+	/**
+	 * The tools in a window of their own, which can go to a second screen (#410); one window,
+	 * brought forward when it's open already. The panel beside the page closes meanwhile.
+	 */
+	function popOut() {
+		const opened = window.open(`/ueben/${encodeURIComponent(data.file)}/werkzeuge`, 'practice-tools', 'popup,width=380,height=640');
+		if (!opened) showToast(t.practice.viewer.popOutBlocked);
+		else opened.focus();
+		return !!opened;
+	}
+	// Only where a window can go beside the app, with a mouse: on phones and tablets it would replace the page.
+	let canPopOut = $state(false);
+	$effect(() => {
+		canPopOut = matchMedia('(pointer: fine)').matches;
+	});
 
 	// The clock: ticks every 5 seconds, reports every 30; only with practice time on.
 	type Status = 'counting' | 'idle' | 'paused' | 'full' | 'stopped';
@@ -156,35 +168,10 @@
 </div>
 
 {#snippet toolPanel(tool: string)}
-	{#if tool === 'recording' && data.recording}
-		<section class="recording" aria-label={t.practice.recording.title}>
-			{#if data.recording.youtube && playing}
-				<div class="video">
-					<iframe
-						src="https://www.youtube-nocookie.com/embed/{data.recording.youtube}?autoplay=1&rel=0"
-						title={t.practice.recording.title}
-						allow="autoplay; encrypted-media; picture-in-picture"
-						allowfullscreen
-					></iframe>
-				</div>
-			{:else if data.recording.youtube}
-				<button type="button" class="btn" onclick={() => (playing = true)}><Icon name="music" size={16} />{t.practice.recording.play}</button>
-				<p class="muted">{t.practice.recording.hint}</p>
-			{/if}
-			<a class="external" href={data.recording.url} target="_blank" rel="noopener noreferrer nofollow"><Icon name="external" size={14} />{t.practice.recording.open}</a>
-		</section>
-	{:else if tool === 'tools'}
-		<div class="tabs" role="group" aria-label={t.practice.viewer.tools}>
-			{#each TABS as each (each)}
-				<button type="button" class:on={tab === each} aria-pressed={tab === each} onclick={() => (tab = each)}>{t.practice[each].title}</button>
-			{/each}
-		</div>
-		<div hidden={tab !== 'metronome'}><Metronome /></div>
-		<div hidden={tab === 'metronome'}><Tuner show={tab === 'drone' ? 'drone' : 'tuner'} /></div>
-	{/if}
+	<PracticeTools tool={tool === 'recording' ? 'recording' : 'tools'} recording={data.recording} />
 {/snippet}
 
-<PracticeScore file={data.file} marks={data.marks} offers={data.offers} sharedAt={data.sharedAt} share={data.own} {tools} panel={toolPanel} bind:page />
+<PracticeScore file={data.file} marks={data.marks} offers={data.offers} sharedAt={data.sharedAt} share={data.own} {tools} panel={toolPanel} popOut={canPopOut ? popOut : undefined} bind:page />
 
 {#if data.canReport}
 	<QuickReport pieceId={data.piece.id} fileId={data.file} part={data.part} {page} reports={data.reports} bind:open={reporting} />
@@ -275,71 +262,6 @@
 		font-weight: 600;
 	}
 
-	/* Three short words, wrapping in a very narrow panel. */
-	.tabs {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 2px;
-		margin: 0 0 var(--space-3);
-		padding: 3px;
-		border-radius: var(--radius-control);
-		background: color-mix(in oklab, var(--text) 6%, transparent);
-	}
-
-	.tabs button {
-		flex: 1 1 auto;
-		min-width: 0;
-		min-height: 32px;
-		padding: 0 var(--space-1);
-		border: 0;
-		border-radius: calc(var(--radius-control) - 2px);
-		background: none;
-		color: var(--text-muted);
-		font: inherit;
-		font-size: var(--text-xs);
-		cursor: pointer;
-	}
-
-	.tabs button.on {
-		background: var(--surface);
-		box-shadow: var(--shadow);
-		color: var(--text);
-		font-weight: 600;
-	}
-
-	[hidden] {
-		display: none;
-	}
-
-	.recording {
-		display: grid;
-		gap: var(--space-2);
-		padding-right: var(--space-5);
-	}
-
-	.video {
-		position: relative;
-		aspect-ratio: 16 / 9;
-		overflow: hidden;
-		border-radius: var(--radius-s);
-		background: var(--brand-ink);
-	}
-
-	.video iframe {
-		position: absolute;
-		inset: 0;
-		width: 100%;
-		height: 100%;
-		border: 0;
-	}
-
-	.muted {
-		margin: 0;
-		color: var(--text-muted);
-		font-size: var(--text-xs);
-	}
-
-	.external,
 	.elsewhere a {
 		display: inline-flex;
 		align-items: center;

@@ -331,7 +331,7 @@ test('the member’s notes are in the concert’s merged PDF', async ({ page }) 
 test('the concert mode turns on into the next piece, its head clear of the controls', async ({ page }) => {
 	await open(page, '/meine-noten');
 	await page.locator('section.concert').first().getByRole('button', { name: 'Auftrittsmodus' }).click();
-	const piece = page.locator('.concert-mode select');
+	const piece = page.locator('.concert-mode .jump select');
 	const canvas = page.locator('.concert-mode .slot canvas');
 	await expect(canvas).toHaveCount(1);
 	const first = await canvas.evaluate((each: HTMLCanvasElement) => each.toDataURL());
@@ -538,7 +538,7 @@ test('notes from the section: one taken over by hand, then the rest at once', as
 
 	// After reloading: all four marks hers (a down-bow is two lines, mf three), the offer answered.
 	await open(page, PART);
-	await expect(page.locator('svg.marks > path')).toHaveCount(7);
+	await expect(page.locator('svg.marks > g > path')).toHaveCount(7);
 	await expect(page.locator('.offer')).toHaveCount(0);
 
 	// Her own offer to the section, and taken back.
@@ -548,4 +548,27 @@ test('notes from the section: one taken over by hand, then the rest at once', as
 	await expect(page.getByRole('button', { name: 'Nicht mehr teilen' })).toBeVisible();
 	await page.getByRole('button', { name: 'Nicht mehr teilen' }).click();
 	await expect(page.getByRole('button', { name: 'Mit Stimmgruppe teilen' })).toBeVisible();
+});
+
+test('a broad screen shows two pages and turns two at a time; the view chosen is kept, and the tools open in a window of their own (#410)', async ({ page }) => {
+	test.skip(test.info().project.name === 'phone', 'two pages need a broad screen');
+	await page.setViewportSize({ width: 1800, height: 1000 });
+	// Sleigh Ride's cello part has three pages.
+	await open(page, '/ueben/demo-sleigh-7');
+	await expect(page.locator('.slot canvas')).toHaveCount(2);
+	await expect(page.getByText('Seite 1–2 von 3')).toBeVisible();
+	await page.keyboard.press('ArrowRight');
+	// The last spread ends with the last page.
+	await expect(page.getByText('Seite 2–3 von 3')).toBeVisible();
+
+	await page.getByLabel('Ansicht').selectOption('page');
+	await expect(page.locator('.slot canvas')).toHaveCount(1);
+	await open(page, '/ueben/demo-sleigh-7');
+	await expect(page.getByLabel('Ansicht')).toHaveValue('page');
+	await expect(page.getByText('Seite 1 von 3')).toBeVisible();
+
+	await open(page, `${PART}/werkzeuge`);
+	await expect(page.locator('header.topbar')).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Metronom' })).toBeVisible();
+	await expectAccessible(page);
 });

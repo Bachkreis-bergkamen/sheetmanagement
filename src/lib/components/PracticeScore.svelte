@@ -6,10 +6,11 @@
 	import { MARK_COLORS, MARK_SYMBOLS, markLines, onPage, strokePath, SYMBOL_SIZE, symbolLines, type MarkColor, type MarkSymbol, type Stroke } from '#lib/practice/marks.ts';
 	import { OpenTools } from '#lib/practice/open-tools.svelte.ts';
 	import { pageKey } from '#lib/practice/page-keys.ts';
+	import { fittedFor, keepView, modeFor, readView, shownPages, sideBySide, turnTo, VIEWS, type Mode, type View } from '#lib/practice/page-view.ts';
 	import { PageMarks } from '#lib/practice/page-marks.svelte.ts';
 	import { MAX_ZOOM, PageZoom, ZOOM_STEP } from '#lib/practice/page-zoom.svelte.ts';
 	import { Pen } from '#lib/practice/pen.svelte.ts';
-	import { ASIDE, dockFor, fitted as fitTo, lying, PANEL, pileFor } from '#lib/practice/score-layout.ts';
+	import { ASIDE, dockFor, lying, PANEL, pileFor } from '#lib/practice/score-layout.ts';
 	import { SectionOffers, type Offer } from '#lib/practice/section-offers.svelte.ts';
 	import { nudged, ToolSpots, type Spot } from '#lib/practice/tool-spots.svelte.ts';
 	import { keptPages, sendPending } from '#lib/offline/marks.ts';
@@ -42,6 +43,7 @@
 		sharedAt = null,
 		share: canShare = true,
 		print: printable = true,
+		popOut,
 		page = $bindable(1)
 	}: {
 		file: string;
@@ -74,6 +76,8 @@
 		print?: boolean;
 		/** The page shown, e.g. for a report about it (#306). */
 		page?: number;
+		/** Opens the tools in a window of their own, e.g. for a second screen; returns whether it opened. */
+		popOut?: () => boolean;
 	} = $props();
 
 	/** The tool shown; tools once opened stay mounted (see OpenTools). */
@@ -101,13 +105,26 @@
 			printing = false;
 		}
 	}
-	let fit = $state<'page' | 'width'>('page');
 	let full = $state(false);
 	let root = $state<HTMLDivElement>();
 	let stage = $state<HTMLDivElement>();
 	let slot = $state<HTMLDivElement>();
 	let stageWidth = $state(0);
 	let stageHeight = $state(0);
+	/** The view chosen on this device (#410), and as shown: "auto" resolved for the screen and the part. */
+	let view = $state<View>(readView());
+	/** The first page's own size, for choosing the view before anything is drawn. */
+	let firstPage = $state<{ width: number; height: number } | null>(null);
+	const mode: Mode = $derived(modeFor(view, { stageWidth, stageHeight, page: firstPage, pages }));
+	/** How the sheet fits for the tools' dock: whole, or at its width (and scrolling). */
+	const fit = $derived(mode === 'width' || mode === 'half' ? 'width' : 'page');
+	const spread = $derived(mode === 'spread');
+	/** The pages shown now: this one, or this one and the next. */
+	const showing = $derived(shownPages(mode, page, pages));
+	function choose(next: View) {
+		view = next;
+		keepView(next);
+	}
 	/** The current page's size fitted to the screen, before zooming. */
 	let fittedSize = $state<{ width: number; height: number } | null>(null);
 	/** Shown at `zoom.level`, drawn at `zoom.drawn` once a pinch rests (see PageZoom). */
@@ -116,7 +133,7 @@
 	const size = $derived(fittedSize && { width: Math.round(fittedSize.width * zoom.level), height: Math.round(fittedSize.height * zoom.level) });
 	let sheet = $state<HTMLDivElement>();
 	let pileBox = $state<HTMLDivElement>();
-	/** The page can be scrolled: at its width, or zoomed in. */
+	/** The page can be scrolled: at its width, in halves, or zoomed in. */
 	const scrolls = $derived(fit === 'width' || zoom.zoomed);
 	/** The current page's own size, unscaled. */
 	let base = $state<{ width: number; height: number } | null>(null);
@@ -136,9 +153,13 @@
 				// The concert mode turns on into the next part: its pages, not the last part's.
 				drawn.clear();
 				sizes.clear();
+				firstPage = null;
 				score = opened;
 				pages = opened.doc.numPages;
 				page = startAt === 'last' ? pages : 1;
+				const { pageSize } = await import('#lib/music/score-reader.ts');
+				const first = await pageSize(opened, 1);
+				if (!cancelled) firstPage = first;
 			} catch {
 				if (!cancelled) failed = true;
 			}
@@ -165,7 +186,7 @@
 	}
 
 	function fitted(base: { width: number; height: number }, height = stageHeight) {
-		return fitTo(base, fit, stageWidth, height);
+		return fittedFor(mode, base, stageWidth, height);
 	}
 
 	/** One page at one width; drawn one at a time, as pdf.js likes it. */
@@ -182,39 +203,66 @@
 			// A page still drawing from the part before isn't kept for this one.
 			if (current !== score) return canvas;
 			drawn.set(key, canvas);
-			// Phones have little memory for canvases: only the last few.
-			while (drawn.size > 4) drawn.delete(drawn.keys().next().value!);
+			// Phones have little memory for canvases: only the last few (two spreads and the one shown, for two pages).
+			while (drawn.size > (spread ? 6 : 4)) drawn.delete(drawn.keys().next().value!);
 			return canvas;
 		});
 		queue = next.catch(() => {});
 		return next;
 	}
 
+	/**
+	 * The pages on the sheet as drawn, each with its share of the sheet's width, so the marks
+	 * go where the drawing is, also while the next pages are still being drawn.
+	 */
+	let onSheet = $state<{ number: number; share: number }[]>([]);
+	/** Back in half pages: the page before opens at its lower half. */
+	let landLow = false;
+
+	/** The sheet for these pages: its own size, its fitted size and its pages' shares. */
+	async function sheetFor(current: OpenScore, numbers: number[]) {
+		const sizesNow = await Promise.all(numbers.map((number) => baseSize(current, number)));
+		const { size: own, shares } = sideBySide(sizesNow);
+		return { own, target: fitted(own), shares };
+	}
+
+	/** Each page of the sheet drawn at its share of the width; the canvases are kept, so sized here each time. */
+	async function canvasesFor(current: OpenScore, numbers: number[], width: number, shares: number[]) {
+		const canvases = [];
+		for (const [i, number] of numbers.entries()) canvases.push(await canvasFor(current, number, Math.round(width * shares[i])));
+		return canvases;
+	}
+
 	let shown = 0;
 	let shownPage = 0;
 	$effect(() => {
 		if (!score || !slot || !stageWidth || !stageHeight) return;
-		const [current, number, mode, scale] = [score, page, fit, zoom.drawn];
+		const [current, numbers, now, scale] = [score, showing, mode, zoom.drawn];
 		const token = ++shown;
-		void mode;
 		(async () => {
 			try {
-				const own = await baseSize(current, number);
-				const target = fitted(own);
-				const canvas = await canvasFor(current, number, Math.round(target.width * scale));
+				const { own, target, shares } = await sheetFor(current, numbers);
+				const canvases = await canvasesFor(current, numbers, target.width * scale, shares);
 				if (token !== shown) return;
+				const number = numbers[0];
 				const turned = number !== shownPage;
 				shownPage = number;
 				fittedSize = target;
 				base = own;
-				slot!.replaceChildren(canvas);
+				canvases.forEach((canvas, i) => (canvas.style.width = `${shares[i] * 100}%`));
+				onSheet = numbers.map((each, i) => ({ number: each, share: shares[i] }));
+				slot!.replaceChildren(...canvases);
 				if (turned) turnLeaf();
-				// A new page starts at its top; a sharper drawing of the same page stays where it is.
-				if (turned && scrolls) stage?.scrollTo({ top: 0, left: 0 });
+				// A new page starts at its top (in half pages, back, at its lower half); a sharper drawing of the same page stays where it is.
+				if (turned && scrolls) stage?.scrollTo({ top: landLow && now === 'half' ? stage.scrollHeight : 0, left: 0 });
+				landLow = false;
 				// The neighbours, ready for the next turn.
-				for (const other of [number + 1, number - 1]) {
-					if (other < 1 || other > pages) continue;
-					canvasFor(current, other, Math.round(fitted(await baseSize(current, other)).width * scale)).catch(() => {});
+				for (const step of [1, -1]) {
+					const next = turnTo(now, number, step, pages);
+					if (next === null) continue;
+					const others = shownPages(now, next, pages);
+					const sheet = await sheetFor(current, others);
+					canvasesFor(current, others, sheet.target.width * scale, sheet.shares).catch(() => {});
 				}
 			} catch {
 				if (token === shown) failed = true;
@@ -223,7 +271,7 @@
 	});
 
 	/** The other pages, as a loose pile of paper under this one (see pileFor). */
-	const underneath = $derived(score && !scrolls ? pileFor(page, pages) : []);
+	const underneath = $derived(score && !scrolls && !spread ? pileFor(page, pages) : []);
 
 	let leaf: { ghost: HTMLElement; from: number; to: number } | null = null;
 	let leafing: Animation[] = [];
@@ -231,7 +279,7 @@
 	/** A copy of the page being turned away, with its marks; not while zoomed or for those who'd rather have no motion. */
 	function liftLeaf(from: number, to: number) {
 		leaf = null;
-		if (!sheet || zoom.zoomed || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+		if (!sheet || zoom.zoomed || spread || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 		const old = slot?.querySelector('canvas');
 		if (!old || !old.width) return;
 		const ghost = document.createElement('div');
@@ -296,24 +344,31 @@
 		first.oncancel = done;
 	}
 
-	function turn(step: number) {
-		const next = Math.min(pages, Math.max(1, page + step));
-		if (next !== page) {
+	/** By `step` pages, two at a time on two pages; past the first or last, to the piece before or after. */
+	function turn(step: number, past = Math.abs(step) === 1) {
+		const next = turnTo(mode, page, step, pages);
+		if (next !== null) {
 			pen.finish();
 			flushSync();
 			liftLeaf(page, next);
 			page = next;
-		} else if (onpast && pages && Math.abs(step) === 1) onpast(step as 1 | -1);
+		} else {
+			landLow = false;
+			if (onpast && pages && past) onpast(step > 0 ? 1 : -1);
+		}
 	}
 
-	/** With the page at its width or zoomed: down the page first, then to the next one. */
+	/** With the page at its width, in halves or zoomed: down the page first, then to the next one. */
 	function forward() {
-		if (scrolls && stage && stage.scrollTop + stage.clientHeight < stage.scrollHeight - 4) stage.scrollBy({ top: stage.clientHeight * 0.85, behavior: 'smooth' });
+		if (scrolls && stage && stage.scrollTop + stage.clientHeight < stage.scrollHeight - 4) stage.scrollBy({ top: stage.clientHeight * (mode === 'half' ? 1 : 0.85), behavior: 'smooth' });
 		else turn(1);
 	}
 	function back() {
-		if (scrolls && stage && stage.scrollTop > 4) stage.scrollBy({ top: -stage.clientHeight * 0.85, behavior: 'smooth' });
-		else turn(-1);
+		if (scrolls && stage && stage.scrollTop > 4) stage.scrollBy({ top: -stage.clientHeight * (mode === 'half' ? 1 : 0.85), behavior: 'smooth' });
+		else {
+			landLow = mode === 'half' && !zoom.zoomed;
+			turn(-1);
+		}
 	}
 
 	function onkeydown(event: KeyboardEvent) {
@@ -321,8 +376,8 @@
 		if (action === 'leave') return void leaveFull();
 		if (action === 'forward') forward();
 		else if (action === 'back') back();
-		else if (action === 'first') turn(-pages);
-		else if (action === 'last') turn(pages);
+		else if (action === 'first') turn(-pages, false);
+		else if (action === 'last') turn(pages, false);
 		else return;
 		event.preventDefault();
 	}
@@ -454,16 +509,21 @@
 		return () => removeEventListener('online', online);
 	});
 	/** The colour and tool, and the one pointer drawing (see Pen). */
-	const pen = new Pen(own, () => page);
-	const current = $derived(own.on(page));
+	/** The page the pen works on: the one shown, or on two pages the one last touched. */
+	let penPage = $state(1);
+	$effect.pre(() => {
+		penPage = showing[0];
+	});
+	const pen = new Pen(own, () => penPage);
+	const current = $derived(own.on(penPage));
 	/** How full the page is, 0 to 1. */
-	const fullness = $derived(own.fullness(page));
+	const fullness = $derived(own.fullness(penPage));
 
 	// Sharing with the section: the member's own offer, and the offers of others (see SectionOffers).
 	const section = new SectionOffers(own, () => file);
 	$effect.pre(() => section.reset(sharedAt, offers));
-	/** The offered marks shown on this page, to be taken over with a tap. */
-	const offered = $derived(section.offered(page));
+	/** The offered marks shown on these pages, to be taken over with a tap. */
+	const offered = $derived(onSheet.flatMap(({ number }) => section.offered(number)));
 	function share() {
 		if (confirm(t.practice.share.confirm)) section.share();
 	}
@@ -474,15 +534,39 @@
 	// Leaving the page: what's still waiting goes out now.
 	$effect(() => () => own.leave());
 
-	function point(event: PointerEvent, element: Element): [number, number] {
+	/** Where each page lies on the sheet, in its pixels: one, or two side by side. */
+	const boxes = $derived.by(() => {
+		if (!size) return [];
+		let x = 0;
+		return onSheet.map(({ number, share }) => {
+			const box = { number, x, width: size.width * share, height: size.height };
+			x += box.width;
+			return box;
+		});
+	});
+
+	/** Where the pointer is, 0–1 across and down `number`'s page on the sheet. */
+	function point(event: PointerEvent, element: Element, number = penPage): [number, number] {
 		const rect = element.getBoundingClientRect();
-		return [onPage((event.clientX - rect.left) / rect.width), onPage((event.clientY - rect.top) / rect.height)];
+		const across = (event.clientX - rect.left) / rect.width;
+		const box = boxes.find((each) => each.number === number);
+		const [from, share] = box && size ? [box.x / size.width, box.width / size.width] : [0, 1];
+		return [onPage((across - from) / share), onPage((event.clientY - rect.top) / rect.height)];
+	}
+
+	/** The page under the pointer, on two pages. */
+	function pageAt(event: PointerEvent, element: Element) {
+		const rect = element.getBoundingClientRect();
+		const x = ((event.clientX - rect.left) / rect.width) * (size?.width ?? 0);
+		return boxes.find((box) => x < box.x + box.width)?.number ?? boxes[boxes.length - 1]?.number ?? page;
 	}
 
 	function down(event: PointerEvent) {
 		if (!pen.on || pinch) return;
 		event.preventDefault();
 		const element = event.currentTarget as Element;
+		// A new line starts on the page it's on; one being drawn stays on its own page.
+		if (!pen.drawing) penPage = pageAt(event, element);
 		if (!pen.down({ id: event.pointerId, type: event.pointerType, at: point(event, element) })) return;
 		// Keeps the line going past the page's edge; a browser that won't still draws on the page.
 		try {
@@ -504,12 +588,12 @@
 	}
 
 	function undo() {
-		own.undo(page);
+		own.undo(penPage);
 	}
 
 	function clear() {
 		if (!current.length || !confirm(t.practice.marks.confirmClear)) return;
-		own.change(page, []);
+		own.change(penPage, []);
 	}
 
 	/**
@@ -609,7 +693,8 @@
 	const STROKE: Record<MarkColor, string> = { graphite: 'var(--mark-graphite)', red: 'var(--mark-red)', blue: 'var(--mark-blue)' };
 	/** A symbol's button: its glyph in a 24 × 24 box, 10 to a symbol unit. */
 	const preview = (symbol: MarkSymbol) => symbolLines(symbol, 0, 0, 1).map((line) => strokePath(line.map((n) => 12 + (n / SYMBOL_SIZE) * 10), 1, 1));
-	const strokeWidth = $derived(Math.max(1.5, (size?.width ?? 600) * 0.0032));
+	/** By the width of one page, also on two. */
+	const strokeWidth = $derived(Math.max(1.5, (size?.width ?? 600) * (onSheet[0]?.share ?? 1) * 0.0032));
 </script>
 
 <svelte:window {onkeydown} bind:innerWidth={windowWidth} bind:innerHeight={windowHeight} />
@@ -626,14 +711,20 @@
 	<div class="bar">
 		{#if extra}<div class="group">{@render extra()}</div>{/if}
 		<div class="group">
-			<button type="button" class="tool" onclick={back} disabled={page <= 1 && fit === 'page' && !onpast} aria-label={t.viewer.previous}><Icon name="back" size={16} /></button>
-			<span class="pages">{t.viewer.page(page, pages || 1)}</span>
-			<button type="button" class="tool" onclick={forward} disabled={page >= pages && fit === 'page' && !onpast} aria-label={t.viewer.next}><Icon name="chevron" size={16} /></button>
+			<button type="button" class="tool" onclick={back} disabled={showing[0] <= 1 && !scrolls && !onpast} aria-label={t.viewer.previous}><Icon name="back" size={16} /></button>
+			<span class="pages">{showing.length > 1 ? t.viewer.spread(showing[0], showing[showing.length - 1], pages) : t.viewer.page(page, pages || 1)}</span>
+			<button type="button" class="tool" onclick={forward} disabled={showing[showing.length - 1] >= pages && !scrolls && !onpast} aria-label={t.viewer.next}><Icon name="chevron" size={16} /></button>
 		</div>
 		<div class="group">
-			<button type="button" class="tool text" onclick={() => (fit = fit === 'page' ? 'width' : 'page')}>
-				<Icon name={fit === 'page' ? 'fitWidth' : 'fitHeight'} size={15} />{fit === 'page' ? t.practice.viewer.fitWidth : t.practice.viewer.fitPage}
-			</button>
+			<label class="tool text view" title={t.practice.viewer.view}>
+				<Icon name={mode === 'width' || mode === 'half' ? 'fitWidth' : 'fitHeight'} size={15} />
+				<span class="sr-only">{t.practice.viewer.view}</span>
+				<select value={view} onchange={(event) => choose(event.currentTarget.value as View)}>
+					{#each VIEWS as each (each)}
+						<option value={each}>{each === 'auto' ? t.practice.viewer.autoAs(t.practice.viewer.views[mode]) : t.practice.viewer.views[each]}</option>
+					{/each}
+				</select>
+			</label>
 			<span class="zoom" role="group" aria-label={t.practice.viewer.zoom}>
 				<button type="button" class="tool" onclick={() => zoomTo(zoom.level / ZOOM_STEP)} disabled={!zoom.zoomed} aria-label={t.practice.viewer.zoomOut}><Icon name="minus" size={16} /></button>
 				<button type="button" class="tool text percent" onclick={() => zoomTo(1)} disabled={!zoom.zoomed} aria-label={t.practice.viewer.zoomReset}>{Math.round(zoom.level * 100)} %</button>
@@ -782,6 +873,9 @@
 					<button type="button" class="icon" onclick={() => (placed.folded = true)} aria-expanded="true" aria-label={t.practice.viewer.fold} title={t.practice.viewer.fold}><Icon name="minus" size={16} /></button>
 					<button type="button" class="icon" onclick={() => placed.place(null, true)} aria-label={t.practice.viewer.autoPlace} title={t.practice.viewer.autoPlace}><Icon name="refresh" size={16} /></button>
 				{/if}
+				{#if popOut && !(spot && placed.folded)}
+					<button type="button" class="icon" onclick={() => popOut() && toolbox.close()} aria-label={t.practice.viewer.popOut} title={t.practice.viewer.popOut}><Icon name="external" size={16} /></button>
+				{/if}
 				{#if !(spot && placed.folded)}
 					<button type="button" class="close" onclick={() => toolbox.close()} aria-label={t.practice.viewer.closeTools}>×</button>
 				{/if}
@@ -830,25 +924,29 @@
 					onpointercancel={lift}
 					aria-hidden={offered.length ? undefined : 'true'}
 				>
-					{#each [...current, ...(pen.drawing ? [pen.drawing] : [])] as stroke, i (i)}
-						{#each markLines(stroke, size.width / size.height) as line, j (j)}
-							<path d={strokePath(line, size.width, size.height)} stroke={STROKE[stroke.color]} stroke-width={strokeWidth} />
-						{/each}
-					{/each}
-					<!-- Offered marks, dashed; a tap takes one over (a wide invisible line makes it easy to hit). -->
-					{#each offered as stroke, i (i)}
-						<g
-							class="offered"
-							role="button"
-							tabindex="0"
-							aria-label={t.practice.share.take}
-							onclick={(event) => (event.stopPropagation(), section.take(page, i))}
-							onkeydown={(event) => (event.key === 'Enter' || event.key === ' ') && (event.preventDefault(), event.stopPropagation(), section.take(page, i))}
-						>
-							{#each markLines(stroke, size.width / size.height) as line, j (j)}
-								{@const d = strokePath(line, size.width, size.height)}
-								<path {d} class="hit" stroke-width={Math.max(18, strokeWidth * 6)} />
-								<path {d} stroke={STROKE[stroke.color]} stroke-width={strokeWidth} stroke-dasharray="{strokeWidth * 2} {strokeWidth * 2}" />
+					{#each boxes as box (box.number)}
+						<g transform="translate({box.x} 0)">
+							{#each [...own.on(box.number), ...(pen.drawing && penPage === box.number ? [pen.drawing] : [])] as stroke, i (i)}
+								{#each markLines(stroke, box.width / box.height) as line, j (j)}
+									<path d={strokePath(line, box.width, box.height)} stroke={STROKE[stroke.color]} stroke-width={strokeWidth} />
+								{/each}
+							{/each}
+							<!-- Offered marks, dashed; a tap takes one over (a wide invisible line makes it easy to hit). -->
+							{#each section.offered(box.number) as stroke, i (i)}
+								<g
+									class="offered"
+									role="button"
+									tabindex="0"
+									aria-label={t.practice.share.take}
+									onclick={(event) => (event.stopPropagation(), section.take(box.number, i))}
+									onkeydown={(event) => (event.key === 'Enter' || event.key === ' ') && (event.preventDefault(), event.stopPropagation(), section.take(box.number, i))}
+								>
+									{#each markLines(stroke, box.width / box.height) as line, j (j)}
+										{@const d = strokePath(line, box.width, box.height)}
+										<path {d} class="hit" stroke-width={Math.max(18, strokeWidth * 6)} />
+										<path {d} stroke={STROKE[stroke.color]} stroke-width={strokeWidth} stroke-dasharray="{strokeWidth * 2} {strokeWidth * 2}" />
+									{/each}
+								</g>
 							{/each}
 						</g>
 					{/each}
@@ -1311,10 +1409,29 @@
 	}
 
 	/* Stretched while a pinch is under way, until the page is drawn at the new size. */
+	/* One page, or two side by side, each at its share of the sheet (set as it's shown). */
+	.slot {
+		display: flex;
+	}
+
 	.slot :global(canvas) {
 		display: block;
-		width: 100% !important;
+		flex: none;
 		height: auto;
+	}
+
+	/* The view: a select dressed as the other buttons. */
+	.view {
+		position: relative;
+	}
+
+	.view select {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: inherit;
+		font: inherit;
+		cursor: pointer;
 	}
 
 	.marks {
