@@ -11,17 +11,5 @@ export const print: Texts['print'] = {
 	back: 'Back to the concert',
 	empty: 'No programme entered for this concert yet.',
 	program: 'Programme',
-	totalLength: (minutes: number) => `About ${minutes} minutes`,
-	booklet: 'Programme booklet',
-	bookletHint: 'For the audience: the programme with background on each piece.',
-	moderation: 'Presenter',
-	moderationHint: 'For whoever presents: order, start time, length and what there is to tell about each piece.',
-	factsGaps: (n: number) => (n === 1 ? '1 piece has no background yet.' : `${n} pieces have no background yet.`),
-	factsComplete: 'Every piece has background.',
-	fill: 'Add',
-	startsAt: (minutes: number) => `from min. ${minutes}`,
-	speakingTotal: (minutes: number) => `Presenting about ${minutes} min`,
-	nothingToTell: 'Nothing entered yet.',
-	ownNotes: 'Own notes',
-	piece: (n: number) => `Piece ${n}`
+	totalLength: (minutes: number) => `About ${minutes} minutes`
 };

@@ -40,7 +40,7 @@
 		"/kalender": 160,
 		"/kalender/[id]": 190,
 		"/kalender/[id]/anwesenheit": 140,
-		"/kalender/[id]/drucken": 140,
+		"/kalender/[id]/drucken": 145,
 		"/kalender/[id]/karten": 145,
 		"/kalender/[id]/probenplan": 140,
 		"/kalender/[id]/programm": 155,

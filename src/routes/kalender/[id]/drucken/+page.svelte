@@ -13,8 +13,8 @@
 	const length = $derived(programLength(data.items.map((item) => item.duration)));
 	const hints = $derived({
 		handout: t.print.handoutHint,
-		booklet: t.print.bookletHint,
-		moderation: t.print.moderationHint,
+		booklet: t.factsPrint.bookletHint,
+		moderation: t.factsPrint.moderationHint,
 		setlist: t.print.setlistHint,
 		musikfolge: t.musicReport.hint
 	});
@@ -34,10 +34,10 @@
 			{t.print.handout}
 		</a>
 		<a role="tab" class="tab" class:active={data.kind === 'booklet'} aria-selected={data.kind === 'booklet'} href="?art=programmheft" data-sveltekit-replacestate>
-			{t.print.booklet}
+			{t.factsPrint.booklet}
 		</a>
 		<a role="tab" class="tab" class:active={data.kind === 'moderation'} aria-selected={data.kind === 'moderation'} href="?art=moderation" data-sveltekit-replacestate>
-			{t.print.moderation}
+			{t.factsPrint.moderation}
 		</a>
 		<a role="tab" class="tab" class:active={data.kind === 'setlist'} aria-selected={data.kind === 'setlist'} href="?art=setlist" data-sveltekit-replacestate>
 			{t.print.setlist}
@@ -99,19 +99,19 @@
 	<!-- What the Programmheft and the moderation still lack, with a way to fill it in; not printed. -->
 	<div class="no-print gaps" class:complete={!factsGaps.length}>
 		{#if factsGaps.length}
-			<p><Icon name="alert" size={16} />{t.print.factsGaps(factsGaps.length)}</p>
+			<p><Icon name="alert" size={16} />{t.factsPrint.factsGaps(factsGaps.length)}</p>
 			<ul>
 				{#each factsGaps as gap, i (i)}
 					<li>
 						<strong>{gap.title}</strong>
 						{#if gap.pieceId && data.canEditPieces}
-							<a href="/stuecke/{encodeURIComponent(gap.pieceId)}/bearbeiten#facts">{t.print.fill}</a>
+							<a href="/stuecke/{encodeURIComponent(gap.pieceId)}/bearbeiten#facts">{t.factsPrint.fill}</a>
 						{/if}
 					</li>
 				{/each}
 			</ul>
 		{:else}
-			<p><Icon name="check" size={16} />{t.print.factsComplete}</p>
+			<p><Icon name="check" size={16} />{t.factsPrint.factsComplete}</p>
 		{/if}
 	</div>
 {/if}
@@ -150,7 +150,7 @@
 			<p class="setlist-head">{[data.concert.title, when, data.concert.location].filter(Boolean).join(' · ')}</p>
 			<p class="totals">
 				{#if length.known}<span>{t.duration.total(roundMinutes(length.seconds), length.missing)}</span>{/if}
-				{#if speaking}<span>{t.print.speakingTotal(roundMinutes(speaking))}</span>{/if}
+				{#if speaking}<span>{t.factsPrint.speakingTotal(roundMinutes(speaking))}</span>{/if}
 			</p>
 		</header>
 		<ol>
@@ -165,7 +165,7 @@
 							{#if item.performers}<p class="by">{item.performers}</p>{/if}
 						</div>
 						<p class="times">
-							{#if start !== undefined}<span>{t.print.startsAt(Math.round(start / 60))}</span>{/if}
+							{#if start !== undefined}<span>{t.factsPrint.startsAt(Math.round(start / 60))}</span>{/if}
 							{#if item.duration}<span>{formatDuration(item.duration)}</span>{/if}
 							{#if item.speaking}<span>{t.facts.speaking(item.speaking)}</span>{/if}
 						</p>
@@ -174,10 +174,10 @@
 					{#if item.facts?.paragraphs.length}
 						<div class="story"><FactsText facts={item.facts} sources={false} /></div>
 					{:else}
-						<p class="nothing">{t.print.nothingToTell}</p>
+						<p class="nothing">{t.factsPrint.nothingToTell}</p>
 					{/if}
 					<!-- Room to write by hand: what the conductor wants said, a thank-you, an encore. -->
-					<div class="own" aria-hidden="true">{t.print.ownNotes}</div>
+					<div class="own" aria-hidden="true">{t.factsPrint.ownNotes}</div>
 				</li>
 			{/each}
 		</ol>
