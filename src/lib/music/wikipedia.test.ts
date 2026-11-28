@@ -12,6 +12,8 @@ describe('wikipedia', () => {
 
 	it('reads snippets as plain text', () => {
 		expect(plainSnippet('Die <span class="searchmatch">Egmont</span>-Musik &amp; mehr')).toBe('Die Egmont-Musik & mehr');
+		// Nothing that could read as a tag is left, written or nested.
+		expect(plainSnippet('a <<b>script>c &lt;script&gt; d')).toBe('a scriptc script d');
 	});
 
 	it('finds articles in the first language, else in the second', async () => {

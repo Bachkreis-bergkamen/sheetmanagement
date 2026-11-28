@@ -45,12 +45,16 @@ async function call(language: WikiLanguage, params: Record<string, string>, fetc
 	return response.json();
 }
 
-const ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', '#039': "'", nbsp: ' ' };
-/** A search snippet is HTML with the match marked: plain text, entities read. */
+const ENTITIES: Record<string, string> = { amp: '&', quot: '"', '#039': "'", nbsp: ' ' };
+/**
+ * A search snippet is HTML with the match marked: plain text, entities read. No angle bracket
+ * survives, not even a written "&lt;", so the result can never read as a tag, however it's shown.
+ */
 export const plainSnippet = (html: string) =>
 	html
 		.replace(/<[^>]*>/g, '')
-		.replace(/&(amp|lt|gt|quot|#039|nbsp);/g, (_, name: string) => ENTITIES[name])
+		.replace(/[<>]|&(lt|gt);/g, '')
+		.replace(/&(amp|quot|#039|nbsp);/g, (_, name: string) => ENTITIES[name])
 		.replace(/\s+/g, ' ')
 		.trim();
 
