@@ -52,8 +52,9 @@ export const practice: Texts['practice'] = {
 		elsewhere: 'Open in Drive (doesn’t count)',
 		failed: 'The music couldn’t be loaded.',
 		title: (part: string, piece: string) => `${part} · ${piece}`,
-		fitPage: 'Whole page',
-		fitWidth: 'Page width',
+		view: 'View',
+		views: { auto: 'Automatic', page: 'Whole page', width: 'Page width', spread: 'Two pages', half: 'Half pages' },
+		autoAs: (mode: string) => `Automatic (${mode})`,
 		zoom: 'Zoom',
 		zoomIn: 'Zoom in',
 		zoomOut: 'Zoom out',
@@ -74,7 +75,11 @@ export const practice: Texts['practice'] = {
 		autoPlace: 'Place automatically',
 		fold: 'Fold',
 		toolsAt: (x: number, y: number) => `Tools at ${x} % from the left, ${y} % from the top`,
-		toolsAuto: 'Tools placed automatically'
+		toolsAuto: 'Tools placed automatically',
+		popOut: 'Open in its own window, e.g. for a second screen',
+		popOutBlocked: 'The window was blocked. Please allow pop-ups for this site.',
+		windowTitle: (piece: string) => `Tools · ${piece}`,
+		windowHint: 'Drag this window to a second screen if you like. Metronome, tuner and recording keep running here while the pages turn.'
 	},
 	recording: {
 		title: 'Recording',
