@@ -50,6 +50,7 @@ Drive, Calendar and Sheets stay fully usable on their own. Nothing is locked in.
 - **My parts:** each member's own parts in programme order, a concert mode, everything as one PDF, saved offline.
 - **Calendar and sign-ups:** rehearsals and concerts from Google Calendar, "I'm coming / maybe / I can't" in one tap, reminders by push or email.
 - **Programmes and rehearsal plans:** what's played at which concert and rehearsed when.
+- **Background on each piece:** where it comes from and stories to tell, with a Wikipedia lookup; printed as a programme booklet and as a presenter's sheet with start times.
 - **Notes from rehearsals:** cuts, repeats and bowings per piece and section; what to practise after each rehearsal.
 - **Attendance, rented music, the GEMA list, wishes and reports.**
 - **History:** every past concert by decade, first performances, the numbers; a printable season report.

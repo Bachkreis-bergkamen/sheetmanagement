@@ -60,6 +60,7 @@ export { drills } from './drills.ts';
 export { practice } from './practice.ts';
 export { partSet } from './partSet.ts';
 export { print } from './print.ts';
+export { facts } from './facts.ts';
 export { trips } from './trips.ts';
 export { kummer } from './kummer.ts';
 export { lending } from './lending.ts';

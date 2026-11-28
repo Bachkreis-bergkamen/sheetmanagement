@@ -29,10 +29,15 @@ export const EDITABLE = [
 	'duration',
 	'publisher',
 	'instrumentation',
-	'contents'
+	'contents',
+	'facts'
 ] as const;
 export type EditableColumn = (typeof EDITABLE)[number];
 export type PieceValues = Record<EditableColumn, string>;
+
+/** A field's longest text: one line for most, more for a medley's songs and a piece's background (#411). */
+const LONG: Partial<Record<EditableColumn, number>> = { contents: 4000, facts: 6000 };
+export const maxLength = (column: EditableColumn) => LONG[column] ?? 1000;
 
 export function pieceValues(row: TableRow<PieceColumn>): PieceValues {
 	return Object.fromEntries(EDITABLE.map((column) => [column, row.values[column] ?? ''])) as PieceValues;

@@ -25,6 +25,8 @@ export const sheet: Texts['sheet'] = {
 			instrumentation: 'Instrumentation',
 			/** A medley's songs, one per line: "Habanera – Bizet". */
 			contents: 'Contents',
+			/** Background for the presenter and the programme booklet (#411): where it comes from, stories about it. */
+			facts: 'Background',
 			driveFolderId: 'Drive folder ID'
 		}
 	},

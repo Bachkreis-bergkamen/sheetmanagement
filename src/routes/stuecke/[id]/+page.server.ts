@@ -26,6 +26,7 @@ import { folderUrl, partUrl } from '#lib/server/catalog.ts';
 import { addPlaceholder, createPieceFolder, folderTools, FolderError } from '#lib/server/piece-folder.ts';
 import { listsOverlap } from '#lib/repertoire/lists.ts';
 import { manyComposers, parseContents } from '#lib/repertoire/contents.ts';
+import { parseFacts } from '#lib/repertoire/facts.ts';
 import { workKey } from '#lib/music/piece-name.ts';
 import { formatDuration } from '#lib/repertoire/duration.ts';
 import { concertSummary, getLibrary, isPastConcert, namedItem, type Library, type LibraryPiece } from '#lib/server/library.ts';
@@ -198,6 +199,8 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 			catalogue: piece.catalogue,
 			// A medley's songs with their composers, from "Inhalt".
 			contents: parseContents(sheet?.contents),
+			// Background for the Moderation and the Programmheft (#411).
+			facts: parseFacts(sheet?.facts),
 			category: piece.category,
 			programs: piece.programs,
 			partCount: piece.partCount,
